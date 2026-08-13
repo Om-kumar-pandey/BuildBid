@@ -1,0 +1,2 @@
+USE buildbid;
+SHOW TABLES;
