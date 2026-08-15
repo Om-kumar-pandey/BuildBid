@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>BuildBid | Build Better. Bid Smarter.</title>
+
+    <link rel="stylesheet" href="website style.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+<!-- ================= NAVBAR ================= -->
+
+<header class="navbar">
+
+    <div class="logo">
+
+        <div class="logo-icon">
+            <img src="logo.png" alt="BuildBid Logo"/>
+        </div>
+
+        <div>
+            <h2>Build<span>Bid</span></h2>
+            <small>Plan • Build • Grow Together</small>
+        </div>
+
+    </div>
+
+    <nav class="nav-links">
+
+        <a href="#home">Home</a>
+        <a href="#projects">Projects</a>
+        <a href="#contractors">Contractors</a>
+        <a href="#materials">Materials</a>
+        <a href="#hiring">Hiring</a>
+        <a href="#about">About</a>
+
+    </nav>
+
+    <div class="nav-buttons">
+
+        <button class="login-btn" onclick="openAuth()">
+            Login
+        </button>
+
+        <button class="start-btn" onclick="goToRequirement()">
+            Get Started
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- ================= HERO ================= -->
+
+<section class="hero" id="home">
+
+    <div class="hero-content">
+
+        <div class="hero-tag">
+            🏗️ SMART CONSTRUCTION PLATFORM
+        </div>
+
+        <h1>
+            Build Your Dream
+            <br>
+            <span>Smarter & Better.</span>
+        </h1>
+
+        <p>
+            Plan your construction project, get accurate cost estimates,
+            find trusted contractors, compare materials and hire skilled
+            professionals — all in one place.
+        </p>
+
+        <div class="hero-buttons">
+
+            <button class="primary-btn" onclick="goToRequirement()">
+                Start Your Project →
+            </button>
+
+            <button class="secondary-btn"
+                    onclick="showMessage('BuildBid introduction video coming soon!')">
+                ▶ Watch How It Works
+            </button>
+
+        </div>
+
+        <div class="hero-trust">
+
+            <div>
+                <strong>10K+</strong>
+                <span>Projects</span>
+            </div>
+
+            <div>
+                <strong>5K+</strong>
+                <span>Contractors</span>
+            </div>
+
+            <div>
+                <strong>50K+</strong>
+                <span>Materials</span>
+            </div>
+
+            <div>
+                <strong>4.8 ⭐</strong>
+                <span>Rating</span>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="hero-image">
+
+        <img
+            src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1400&q=80"
+            alt="Construction">
+
+        <div class="floating-card card-one">
+
+            🏗️
+
+            <div>
+                <strong>Real Projects</strong>
+                <small>Build with confidence</small>
+            </div>
+
+        </div>
+
+        <div class="floating-card card-two">
+
+            👷
+
+            <div>
+                <strong>Verified Professionals</strong>
+                <small>Trusted experts</small>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= SERVICES ================= -->
+
+<section class="services">
+
+    <div class="section-heading">
+
+        <span>BUILDBID SERVICES</span>
+
+        <h2>Everything You Need to Build</h2>
+
+        <p>
+            One platform for your complete construction journey.
+        </p>
+
+    </div>
+
+
+    <div class="service-grid">
+
+        <div class="service-card customer-card">
+
+            <div class="service-icon">🏠</div>
+
+            <h3>Build Your Project</h3>
+
+            <p>
+                Post your construction requirements and get
+                estimates from trusted professionals.
+            </p>
+
+            <button onclick="goToRequirement()">
+                Post Project →
+            </button>
+
+        </div>
+
+
+        <div class="service-card contractor-card">
+
+            <div class="service-icon">👷</div>
+
+            <h3>Find Contractors</h3>
+
+            <p>
+                Compare verified contractors, their experience,
+                ratings and project bids.
+            </p>
+
+            <button onclick="showMessage('Contractor marketplace coming soon!')">
+                Find Contractors →
+            </button>
+
+        </div>
+
+
+        <div class="service-card material-card">
+
+            <div class="service-icon">🧱</div>
+
+            <h3>Buy Materials</h3>
+
+            <p>
+                Compare quality building materials and suppliers
+                at competitive prices.
+            </p>
+
+            <button onclick="showMessage('Materials marketplace coming soon!')">
+                Explore Materials →
+            </button>
+
+        </div>
+
+
+        <div class="service-card hiring-card">
+
+            <div class="service-icon">🛠️</div>
+
+            <h3>Hire Professionals</h3>
+
+            <p>
+                Find electricians, plumbers, painters, masons
+                and other skilled workers.
+            </p>
+
+            <button onclick="showMessage('Professional hiring coming soon!')">
+                Hire Now →
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= STATS ================= -->
+
+<section class="stats-section">
+
+    <div class="stat">
+        <strong>10,000+</strong>
+        <span>Projects Posted</span>
+    </div>
+
+    <div class="stat">
+        <strong>5,000+</strong>
+        <span>Verified Contractors</span>
+    </div>
+
+    <div class="stat">
+        <strong>50,000+</strong>
+        <span>Materials</span>
+    </div>
+
+    <div class="stat">
+        <strong>20,000+</strong>
+        <span>Professionals</span>
+    </div>
+
+    <div class="stat">
+        <strong>4.8/5 ⭐</strong>
+        <span>Average Rating</span>
+    </div>
+
+</section>
+
+
+<!-- ================= HOW IT WORKS ================= -->
+
+<section class="how-section">
+
+    <div class="section-heading">
+
+        <span>HOW IT WORKS</span>
+
+        <h2>Build Your Project in 4 Simple Steps</h2>
+
+        <p>
+            We make construction simple, transparent and efficient.
+        </p>
+
+    </div>
+
+
+    <div class="steps">
+
+        <div class="step">
+
+            <div class="step-number">01</div>
+
+            <h3>Post Requirement</h3>
+
+            <p>
+                Tell us about your project, location,
+                budget and requirements.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">02</div>
+
+            <h3>Get Estimates</h3>
+
+            <p>
+                Receive project estimates and compare
+                available options.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">03</div>
+
+            <h3>Choose Professionals</h3>
+
+            <p>
+                Compare contractors, workers, ratings
+                and bids.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">04</div>
+
+            <h3>Start Building</h3>
+
+            <p>
+                Hire, order materials and manage
+                your project confidently.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= REQUIREMENT ================= -->
+
+<section class="requirement-section" id="requirement">
+
+    <div class="requirement-header">
+
+        <span>START YOUR PROJECT</span>
+
+        <h2>Tell Us About Your Project</h2>
+
+        <p>
+            Share your requirements and take the first step
+            toward building your dream project.
+        </p>
+
+    </div>
+
+
+    <div class="requirement-box">
+
+        <form id="requirementForm">
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>Project Name</label>
+
+                    <input
+                        type="text"
+                        placeholder="Example: My Dream House"
+                        required>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Project Type</label>
+
+                    <select required>
+
+                        <option value="">
+                            Select Project Type
+                        </option>
+
+                        <option>House Construction</option>
+                        <option>Commercial Building</option>
+                        <option>Renovation</option>
+                        <option>Interior Design</option>
+                        <option>Road Construction</option>
+                        <option>Other</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>Area / Size</label>
+
+                    <input
+                        type="text"
+                        placeholder="Example: 1200 sq.ft"
+                        required>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Location</label>
+
+                    <input
+                        type="text"
+                        placeholder="City / Area"
+                        required>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>Approximate Budget</label>
+
+                    <input
+                        type="number"
+                        placeholder="Example: 2500000"
+                        required>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Expected Start Date</label>
+
+                    <input type="date">
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>Materials Required</label>
+
+                <div class="material-options">
+
+                    <label>
+                        <input type="checkbox">
+                        Cement
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        Steel
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        Bricks
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        Tiles
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        Paint
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        Electrical
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        Plumbing
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>Project Description</label>
+
+                <textarea
+                    placeholder="Tell us more about your project..."></textarea>
+
+            </div>
+
+
+            <button type="submit" class="project-submit-btn">
+                Submit Project Requirement →
+            </button>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+<!-- ================= PROJECTS ================= -->
+
+<section class="projects-section" id="projects">
+
+    <div class="section-heading">
+
+        <span>FEATURED</span>
+
+        <h2>Projects & Services</h2>
+
+        <p>
+            Explore some of the opportunities available on BuildBid.
+        </p>
+
+    </div>
+
+
+    <div class="project-grid">
+
+        <div class="project-card">
+
+            <img
+                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
+                alt="House">
+
+            <div class="project-content">
+
+                <span>PROJECT</span>
+
+                <h3>2 BHK House Construction</h3>
+
+                <p>📍 Greater Noida, Uttar Pradesh</p>
+
+                <p>📐 1200 sq.ft</p>
+
+                <strong>₹18 - 25 Lakh</strong>
+
+                <button onclick="showMessage('Project details coming soon!')">
+                    View Details →
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="project-card" id="contractors">
+
+            <img
+                src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80"
+                alt="Contractor">
+
+            <div class="project-content">
+
+                <span>CONTRACTOR</span>
+
+                <h3>BuildPro Construction</h3>
+
+                <p>⭐ 5.0 (245 reviews)</p>
+
+                <p>📍 Greater Noida, UP</p>
+
+                <strong>Residential • Commercial</strong>
+
+                <button onclick="showMessage('Contractor profile coming soon!')">
+                    View Profile →
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="project-card" id="materials">
+
+            <img
+                src="https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=800&q=80"
+                alt="Materials">
+
+            <div class="project-content">
+
+                <span>MATERIAL</span>
+
+                <h3>Premium Cement</h3>
+
+                <p>High-quality construction cement</p>
+
+                <strong>₹420 / Bag</strong>
+
+                <button onclick="showMessage('Material ordering coming soon!')">
+                    Order Now →
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="project-card" id="hiring">
+
+            <img
+                src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80"
+                alt="Professional">
+
+            <div class="project-content">
+
+                <span>PROFESSIONAL</span>
+
+                <h3>Verified Plumber</h3>
+
+                <p>⭐ 4.8 (120 reviews)</p>
+
+                <p>📍 Greater Noida, UP</p>
+
+                <strong>Plumbing • Residential</strong>
+
+                <button onclick="showMessage('Professional booking coming soon!')">
+                    Book Now →
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= ABOUT ================= -->
+
+<section class="about-section" id="about">
+
+    <div class="about-content">
+
+        <span>ABOUT BUILDBID</span>
+
+        <h2>
+            Making Construction
+            <span>Simple & Transparent.</span>
+        </h2>
+
+        <p>
+            BuildBid connects customers, contractors, suppliers
+            and skilled professionals on one platform.
+        </p>
+
+        <p>
+            Our goal is to make construction easier by bringing
+            project planning, bidding, materials and professional
+            hiring together.
+        </p>
+
+        <button class="primary-btn" onclick="goToRequirement()">
+            Start Your Journey →
+        </button>
+
+    </div>
+
+
+    <div class="about-image">
+
+        <img
+            src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80"
+            alt="Modern Construction">
+
+        <div class="about-badge">
+            🛡️ Trusted Construction Platform
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= TESTIMONIALS ================= -->
+
+<section class="testimonials">
+
+    <div class="section-heading">
+
+        <span>USER STORIES</span>
+
+        <h2>What People Say About BuildBid</h2>
+
+    </div>
+
+
+    <div class="testimonial-grid">
+
+        <div class="testimonial">
+
+            <div class="testimonial-user">👨</div>
+
+            <h3>Amit Singh</h3>
+
+            <small>Homeowner</small>
+
+            <div class="stars">★★★★★</div>
+
+            <p>
+                BuildBid made my house construction process
+                much easier. I could compare different options
+                in one place.
+            </p>
+
+        </div>
+
+
+        <div class="testimonial">
+
+            <div class="testimonial-user">👩</div>
+
+            <h3>Neha Verma</h3>
+
+            <small>Project Owner</small>
+
+            <div class="stars">★★★★★</div>
+
+            <p>
+                The platform is simple and easy to understand.
+                Finding professionals becomes much easier.
+            </p>
+
+        </div>
+
+
+        <div class="testimonial">
+
+            <div class="testimonial-user">👨</div>
+
+            <h3>Rajesh Yadav</h3>
+
+            <small>Contractor</small>
+
+            <div class="stars">★★★★★</div>
+
+            <p>
+                BuildBid can help contractors discover
+                genuine projects and grow their business.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= CTA ================= -->
+
+<section class="cta">
+
+    <div>
+
+        <h2>Ready to Build Something Amazing?</h2>
+
+        <p>
+            Start your construction journey with BuildBid today.
+        </p>
+
+    </div>
+
+    <button onclick="goToRequirement()">
+        Get Started Free →
+    </button>
+
+</section>
+
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <div class="footer-container">
+
+        <div class="footer-brand">
+
+            <h2 class="footer-logo">
+                <img src="logo.png" alt="Logo" width="30"/> Build<span>Bid</span>
+
+            </h2>
+
+            <p>
+                Plan • Build • Grow Together.
+                A smarter platform for modern construction.
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>Platform</h3>
+
+            <a href="#projects">Projects</a>
+            <a href="#contractors">Contractors</a>
+            <a href="#materials">Materials</a>
+            <a href="#hiring">Professionals</a>
+
+        </div>
+
+
+        <div>
+
+            <h3>Company</h3>
+
+            <a href="#about">About Us</a>
+            <a href="#home">Home</a>
+            <a href="#requirement">Get Started</a>
+
+        </div>
+
+
+        <div>
+
+            <h3>Support</h3>
+
+            <a href="#" onclick="showMessage('Support section coming soon!'); return false;">
+                Help Center
+            </a>
+
+            <a href="#" onclick="showMessage('Contact section coming soon!'); return false;">
+                Contact Us
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="copyright">
+        © 2026 BuildBid. All Rights Reserved.
+    </div>
+
+</footer>
+
+
+<!-- ================= LOGIN / SIGNUP POPUP ================= -->
+<section class="buildbid-auth" id="auth">
+    <div class="buildbid-auth-overlay" onclick="closeAuth()"></div>
+
+    <div class="buildbid-login-container">
+        <!-- LEFT SIDE -->
+<div class="buildbid-login-left">
+    <div class="buildbid-login-overlay"></div>
+    <div class="buildbid-login-content">
+        
+        <div class="buildbid-brand-header">
+            <div class="buildbid-custom-logo">
+                <img src="logo.png" alt="BuildBid Logo"/>
+            </div>
+            <div class="buildbid-brand-info">
+                <h2>Build<span>Bid</span></h2>
+                <p>Build Better. Bid Smarter.</p>
+            </div>
+        </div>
+
+        <div class="buildbid-login-hero">
+            <h1>Build Better.<br><span>Bid Smarter.</span></h1>
+            <p>BuildBid brings everything together to help you plan, build, and manage your construction projects efficiently.</p>
+        </div>
+
+        <!-- FEATURE LIST FROM IMAGE -->
+        <div class="buildbid-features">
+            <div class="buildbid-feature">
+                <div class="buildbid-feature-icon">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <div>
+                    <h3>Accurate Estimation</h3>
+                    <p>Get real-time material rates and accurate cost estimation.</p>
+                </div>
+            </div>
+
+            <div class="buildbid-feature">
+                <div class="buildbid-feature-icon">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+                <div>
+                    <h3>Verified Contractors</h3>
+                    <p>Connect with trusted contractors and get competitive quotes.</p>
+                </div>
+            </div>
+
+            <div class="buildbid-feature">
+                <div class="buildbid-feature-icon">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <div>
+                    <h3>Manage Projects</h3>
+                    <p>Track progress, manage tasks and stay updated in real-time.</p>
+                </div>
+            </div>
+
+            <div class="buildbid-feature">
+                <div class="buildbid-feature-icon">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
+                <div>
+                    <h3>Expert Support</h3>
+                    <p>Get help from professionals whenever you need.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECURITY CARD AT BOTTOM -->
+        <div class="buildbid-security-card">
+            <i class="fa-solid fa-shield-halved"></i>
+            <div>
+                <h4>Your data is safe with us</h4>
+                <p>We use industry-standard security to protect your information.</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+        <!-- RIGHT SIDE -->
+        <div class="buildbid-login-right">
+            <button class="buildbid-close-auth" onclick="closeAuth()">&times;</button>
+
+            <!-- LOGIN FORM BOX -->
+            <div class="buildbid-form-container" id="loginFormBox">
+                <span class="buildbid-welcome-small">WELCOME BACK!</span>
+                <h2>Login to your BuildBid account</h2>
+
+                <div class="buildbid-role-selector">
+                    <button type="button" class="buildbid-role-btn active" id="customerBtn" onclick="selectRole('customer')">
+                        <i class="fa-solid fa-user"></i> Customer / Homeowner
+                    </button>
+                    <button type="button" class="buildbid-role-btn" id="contractorBtn" onclick="selectRole('contractor')">
+                        <i class="fa-solid fa-hard-hat"></i> Contractor / Professional
+                    </button>
+                </div>
+
+                <form id="loginForm">
+                    <input type="hidden" id="selectedRole" value="customer">
+
+                    <div class="buildbid-input-group">
+                        <label>Email Address</label>
+                        <div class="buildbid-input-wrapper">
+                            <input type="email" placeholder="Enter your email" required>
+                            <i class="fa-regular fa-envelope"></i>
+                        </div>
+                    </div>
+
+                    <div class="buildbid-input-group">
+                        <label>Password</label>
+                        <div class="buildbid-input-wrapper">
+                            <input type="password" placeholder="Enter your password" required>
+                            <i class="fa-regular fa-eye-slash password-toggle"></i>
+                        </div>
+                    </div>
+
+                    <div class="buildbid-form-options">
+                        <label><input type="checkbox"> Remember me</label>
+                        <a href="#" onclick="showMessage('Password reset feature coming soon!'); return false;">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="buildbid-auth-submit">
+                        Login <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <!-- CLICKABLE SIGNUP LINK HERE -->
+                <p class="buildbid-footer-text">
+                    Don't have an account? 
+                    <a href="javascript:void(0)" onclick="showSignup()">Sign up</a>
+                </p>
+            </div>
+
+            <!-- SIGNUP FORM BOX -->
+<div class="buildbid-form-container hidden" id="signupFormBox">
+    <button class="buildbid-close-auth" onclick="closeAuth()">&times;</button>
+    
+    <span class="buildbid-welcome-small">GET STARTED</span>
+    <h2>Create your BuildBid account</h2>
+    <p class="buildbid-subtitle">Select your account type to get started</p>
+
+    <form id="signupForm">
+        <!-- Hidden input to store selected role -->
+        <input type="hidden" id="signupSelectedRole" name="role" value="customer">
+
+        <!-- Role Selection -->
+        <div class="buildbid-input-group">
+            <label>Select Role</label>
+            <div class="buildbid-signup-roles">
+                <button type="button" class="signup-role-btn active" onclick="selectSignupRole(this, 'customer')">
+                    <i class="fa-solid fa-user"></i> Customer
+                </button>
+                <button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'homeowner')">
+                    <i class="fa-solid fa-house"></i> Homeowner
+                </button>
+                <button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'contractor')">
+                    <i class="fa-solid fa-helmet-safety"></i> Contractor
+                </button>
+                <button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'professional')">
+                    <i class="fa-solid fa-user-tie"></i> Professional
+                </button>
+            </div>
+        </div>
+
+        <div class="buildbid-input-group">
+            <label>Full Name</label>
+            <div class="buildbid-input-wrapper">
+                <input type="text" placeholder="Enter your full name" required>
+                <i class="fa-regular fa-user"></i>
+            </div>
+        </div>
+
+        <div class="buildbid-input-group">
+            <label>Email Address</label>
+            <div class="buildbid-input-wrapper">
+                <input type="email" placeholder="Enter your email" required>
+                <i class="fa-regular fa-envelope"></i>
+            </div>
+        </div>
+
+        <div class="buildbid-input-group">
+            <label>Password</label>
+            <div class="buildbid-input-wrapper">
+                <input type="password" placeholder="Create a password" required>
+                <i class="fa-regular fa-eye-slash password-toggle"></i>
+            </div>
+        </div>
+
+        <button type="submit" class="buildbid-auth-submit">Create Account &rarr;</button>
+
+        <p class="buildbid-footer-text">
+            Already have an account? <a href="#" onclick="showLogin(); return false;">Login</a>
+        </p>
+    </form>
+</div>
+                
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Don't forget to link your script at the bottom -->
+<script src="website script.js"></script>
+</body>
+</html>
