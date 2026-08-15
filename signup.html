@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BuildBid - Create Your Account</title>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="signup style.css" />
+</head>
+<body>
+  <div class="signup-container">
+    
+    <!-- Left Hero Section -->
+    <div class="left-panel">
+      <div class="overlay"></div>
+      <div class="panel-content">
+        
+        <!-- Logo -->
+        <div class="logo">
+  <div class="logo-icon">
+    <img src="logo.png" alt="BuildBid Logo" class="brand-logo-img">
+  </div>
+  <div class="logo-text">
+    <h2>Build<span>Bid</span></h2>
+    <p>Build Better. Bid Smarter.</p>
+  </div>
+</div>
+
+        <!-- Headline -->
+        <h1 class="hero-title">Build Better.<br><span>Bid Smarter.</span></h1>
+        <p class="hero-desc">
+          Join BuildBid and get everything you need to plan, build, and manage your dream project in one platform.
+        </p>
+
+        <!-- Feature List -->
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon"><i data-lucide="calculator"></i></div>
+            <div class="feature-text">
+              <h4>Accurate Cost Estimates</h4>
+              <p>Get real-time material rates and accurate cost estimation.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i data-lucide="users"></i></div>
+            <div class="feature-text">
+              <h4>Verified Contractors</h4>
+              <p>Connect with trusted contractors and compare quotations.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i data-lucide="clipboard-list"></i></div>
+            <div class="feature-text">
+              <h4>Manage Projects</h4>
+              <p>Track progress, manage tasks and stay updated in real-time.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i data-lucide="headphones"></i></div>
+            <div class="feature-text">
+              <h4>Expert Support</h4>
+              <p>Get help from professionals whenever you need.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Card -->
+        <div class="security-card">
+          <div class="security-icon"><i data-lucide="shield-check"></i></div>
+          <div class="security-text">
+            <h4>Your data is safe with us</h4>
+            <p>We use industry-standard security to protect your information.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right Form Section -->
+    <div class="right-panel">
+      <div class="form-wrapper">
+        <h2 class="form-title">Create Your Account</h2>
+        <p class="form-subtitle">Join <span class="brand-highlight">BuildBid</span> and start your construction journey today.</p>
+
+        <form id="signupForm">
+          <!-- Role Selection -->
+          <div class="role-selector">
+            <label class="role-card active" id="roleHomeowner">
+              <input type="radio" name="role" value="homeowner" checked hidden />
+              <div class="role-icon"><i data-lucide="user"></i></div>
+              <div class="role-info">
+                <h4>I am a Homeowner</h4>
+                <p>I want to build a project</p>
+              </div>
+            </label>
+
+            <label class="role-card" id="roleContractor">
+              <input type="radio" name="role" value="contractor" hidden />
+              <div class="role-icon"><i data-lucide="hard-hat"></i></div>
+              <div class="role-info">
+                <h4>I am a Contractor</h4>
+                <p>I want to bid for projects</p>
+              </div>
+            </label>
+          </div>
+
+          <!-- Name & Email Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fullName">Full Name</label>
+              <div class="input-wrapper">
+                <input type="text" id="fullName" placeholder="Enter your full name" required />
+                <i data-lucide="user" class="input-icon"></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <div class="input-wrapper">
+                <input type="email" id="email" placeholder="Enter your email" required />
+                <i data-lucide="mail" class="input-icon"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile Number Field -->
+          <div class="form-group">
+            <label for="mobile">Mobile Number</label>
+            <div class="input-wrapper mobile-wrapper">
+              <div class="country-code">
+                <img src="https://flagcdn.com/w20/in.png" alt="India Flag" class="flag-icon" />
+                <span>+91</span>
+                <i data-lucide="chevron-down" class="code-arrow"></i>
+              </div>
+              <input type="tel" id="mobile" placeholder="Enter your mobile number" required />
+              <i data-lucide="phone" class="input-icon"></i>
+            </div>
+          </div>
+
+          <!-- Passwords Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="password">Password</label>
+              <div class="input-wrapper">
+                <input type="password" id="password" placeholder="Create a strong password" required />
+                <i data-lucide="lock" class="input-icon left-lock"></i>
+                <i data-lucide="eye" class="toggle-password" id="togglePassword"></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <div class="input-wrapper">
+                <input type="password" id="confirmPassword" placeholder="Confirm your password" required />
+                <i data-lucide="lock" class="input-icon left-lock"></i>
+                <i data-lucide="eye" class="toggle-password" id="toggleConfirmPassword"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- City & State Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city">City</label>
+              <div class="input-wrapper">
+                <input type="text" id="city" placeholder="Enter your city" required />
+                <i data-lucide="map-pin" class="input-icon"></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="state">State</label>
+              <div class="input-wrapper">
+                <select id="state" required>
+  <option value="" disabled selected>Select your state / UT</option>
+  
+  <!-- States -->
+  <option value="AP">Andhra Pradesh</option>
+  <option value="AR">Arunachal Pradesh</option>
+  <option value="AS">Assam</option>
+  <option value="BR">Bihar</option>
+  <option value="CG">Chhattisgarh</option>
+  <option value="GA">Goa</option>
+  <option value="GJ">Gujarat</option>
+  <option value="HR">Haryana</option>
+  <option value="HP">Himachal Pradesh</option>
+  <option value="JH">Jharkhand</option>
+  <option value="KA">Karnataka</option>
+  <option value="KL">Kerala</option>
+  <option value="MP">Madhya Pradesh</option>
+  <option value="MH">Maharashtra</option>
+  <option value="MN">Manipur</option>
+  <option value="ML">Meghalaya</option>
+  <option value="MZ">Mizoram</option>
+  <option value="NL">Nagaland</option>
+  <option value="OD">Odisha</option>
+  <option value="PB">Punjab</option>
+  <option value="RJ">Rajasthan</option>
+  <option value="SK">Sikkim</option>
+  <option value="TN">Tamil Nadu</option>
+  <option value="TS">Telangana</option>
+  <option value="TR">Tripura</option>
+  <option value="UP">Uttar Pradesh</option>
+  <option value="UK">Uttarakhand</option>
+  <option value="WB">West Bengal</option>
+
+  <!-- Union Territories -->
+  <option value="AN">Andaman and Nicobar Islands</option>
+  <option value="CH">Chandigarh</option>
+  <option value="DH">Dadra and Nagar Haveli and Daman and Diu</option>
+  <option value="DL">Delhi</option>
+  <option value="JK">Jammu and Kashmir</option>
+  <option value="LA">Ladakh</option>
+  <option value="LD">Lakshadweep</option>
+  <option value="PY">Puducherry</option>
+</select>
+                <i data-lucide="chevron-down" class="input-icon select-arrow"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terms Checkbox -->
+          <div class="terms-group">
+            <input type="checkbox" id="terms" required />
+            <label for="terms">
+              I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="submit-btn">Create Account</button>
+
+          <!-- Login Link -->
+          <p class="login-prompt">
+            Already have an account? <a href="#">Login</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="signup script.js"></script>
+</body>
+</html>
