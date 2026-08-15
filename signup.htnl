@@ -1,0 +1,368 @@
+// =================================================
+// GET STARTED
+// =================================================
+
+function goToRequirement() {
+
+    const requirement = document.querySelector("#requirement");
+
+    if (requirement) {
+
+        requirement.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    }
+
+}
+
+
+// =================================================
+// MESSAGE
+// =================================================
+
+function showMessage(message) {
+
+    alert(message);
+
+}
+
+
+// =================================================
+// OPEN LOGIN
+// =================================================
+
+function openAuth() {
+
+    const auth = document.querySelector("#auth");
+
+    if (auth) {
+
+        auth.classList.add("show-auth");
+
+        document.body.classList.add("auth-open");
+
+        showLogin();
+
+    }
+
+}
+
+
+// =================================================
+// CLOSE LOGIN
+// =================================================
+
+function closeAuth() {
+
+    const auth = document.querySelector("#auth");
+
+    if (auth) {
+
+        auth.classList.remove("show-auth");
+
+        document.body.classList.remove("auth-open");
+
+    }
+
+}
+
+
+// =================================================
+// SHOW LOGIN
+// =================================================
+
+function showLogin() {
+
+    const loginBox =
+        document.querySelector("#loginFormBox");
+
+    const signupBox =
+        document.querySelector("#signupFormBox");
+
+    if (loginBox && signupBox) {
+
+        loginBox.classList.remove("hidden");
+
+        signupBox.classList.add("hidden");
+
+    }
+
+}
+
+
+// =================================================
+// SHOW SIGNUP
+// =================================================
+
+function showSignup() {
+
+    const loginBox =
+        document.querySelector("#loginFormBox");
+
+    const signupBox =
+        document.querySelector("#signupFormBox");
+
+    if (loginBox && signupBox) {
+
+        loginBox.classList.add("hidden");
+
+        signupBox.classList.remove("hidden");
+
+    }
+
+}
+
+
+// =================================================
+// DOM LOADED
+// =================================================
+
+document.addEventListener("DOMContentLoaded", function() {
+
+
+    // =================================================
+    // ROLE TOGGLE
+    // =================================================
+
+    const roleButtons =
+        document.querySelectorAll(".buildbid-role-btn");
+
+    let selectedRole = "customer";
+
+
+    roleButtons.forEach(function(button) {
+
+        button.addEventListener("click", function() {
+
+            roleButtons.forEach(function(btn) {
+
+                btn.classList.remove("active");
+
+            });
+
+            button.classList.add("active");
+
+            selectedRole =
+                button.getAttribute("data-role");
+
+        });
+
+    });
+
+
+    // =================================================
+    // PASSWORD SHOW / HIDE
+    // =================================================
+
+    const togglePassword =
+        document.querySelector("#togglePassword");
+
+    const passwordInput =
+        document.querySelector("#loginPassword");
+
+
+    if (togglePassword && passwordInput) {
+
+        togglePassword.addEventListener("click", function() {
+
+            const type =
+                passwordInput.getAttribute("type") === "password"
+                ? "text"
+                : "password";
+
+
+            passwordInput.setAttribute("type", type);
+
+
+            togglePassword.classList.toggle("fa-eye");
+
+            togglePassword.classList.toggle("fa-eye-slash");
+
+        });
+
+    }
+
+
+    // =================================================
+    // LOGIN FORM
+    // =================================================
+
+    const loginForm =
+        document.querySelector("#loginForm");
+
+
+    if (loginForm) {
+
+        loginForm.addEventListener("submit", function(event) {
+
+            event.preventDefault();
+
+
+            const email =
+                document.querySelector("#loginEmail").value;
+
+            const password =
+                document.querySelector("#loginPassword").value;
+
+            const rememberMe =
+                document.querySelector("#rememberMe").checked;
+
+
+            console.log("Login Details:", {
+
+                role: selectedRole,
+
+                email: email,
+
+                password: password,
+
+                rememberMe: rememberMe
+
+            });
+
+
+            alert(
+                "Logging in as " +
+                (
+                    selectedRole === "customer"
+                    ? "Customer / Homeowner"
+                    : "Contractor / Professional"
+                )
+            );
+
+
+            loginForm.reset();
+
+            closeAuth();
+
+        });
+
+    }
+
+
+    // =================================================
+    // SIGNUP FORM
+    // =================================================
+
+    const signupForm =
+        document.querySelector("#signupForm");
+
+
+    if (signupForm) {
+
+        signupForm.addEventListener("submit", function(event) {
+
+            event.preventDefault();
+
+
+            alert(
+                "Account created successfully!"
+            );
+
+
+            signupForm.reset();
+
+            closeAuth();
+
+        });
+
+    }
+
+
+    // =================================================
+    // REQUIREMENT FORM
+    // =================================================
+
+    const requirementForm =
+        document.querySelector("#requirementForm");
+
+
+    if (requirementForm) {
+
+        requirementForm.addEventListener(
+            "submit",
+            function(event) {
+
+                event.preventDefault();
+
+
+                alert(
+                    "Thank you! Your project requirement has been submitted successfully."
+                );
+
+
+                requirementForm.reset();
+
+            }
+        );
+
+    }
+
+
+    // =================================================
+    // NAVBAR ACTIVE LINK
+    // =================================================
+
+    const navLinks =
+        document.querySelectorAll(".nav-links a");
+
+
+    navLinks.forEach(function(link) {
+
+        link.addEventListener("click", function() {
+
+            navLinks.forEach(function(item) {
+
+                item.classList.remove("active");
+
+            });
+
+
+            link.classList.add("active");
+
+        });
+
+    });
+
+
+    // =================================================
+    // ESC KEY CLOSE
+    // =================================================
+
+    document.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Escape") {
+
+                closeAuth();
+
+            }
+
+        }
+    );
+
+
+    // =================================================
+    // CLICK OUTSIDE LOGIN
+    // =================================================
+
+    const authOverlay =
+        document.querySelector(".buildbid-auth-overlay");
+
+
+    if (authOverlay) {
+
+        authOverlay.addEventListener(
+            "click",
+            function() {
+
+                closeAuth();
+
+            }
+        );
+
+    }
+
+});
