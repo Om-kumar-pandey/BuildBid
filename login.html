@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BuildBid - Login</title>
+  <link rel="stylesheet" href="login style.css" />
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body>
+  <div class="login-container">
+    <!-- Left Section (Hero/Features) -->
+    <div class="left-section">
+      <div class="overlay"></div>
+      <div class="left-content">
+        <div class="brand-header">
+  <img src="logo.png" alt="BuildBid Logo" class="custom-logo" />
+  <div class="brand-info">
+    <h2>Build<span class="highlight">Bid</span></h2>
+    <p>Build Better. Bid Smarter.</p>
+  </div>
+</div>
+
+        <div class="hero-text">
+          <h1>Build Better.<br><span class="highlight">Bid Smarter.</span></h1>
+          <p>BuildBid brings everything together to help you plan, build, and manage your construction projects efficiently.</p>
+        </div>
+
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-calculator"></i></div>
+            <div>
+              <h3>Accurate Estimation</h3>
+              <p>Get real-time material rates and accurate cost estimation.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-user-group"></i></div>
+            <div>
+              <h3>Verified Contractors</h3>
+              <p>Connect with trusted contractors and get competitive quotes.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <div>
+              <h3>Manage Projects</h3>
+              <p>Track progress, manage tasks and stay updated in real-time.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-headset"></i></div>
+            <div>
+              <h3>Expert Support</h3>
+              <p>Get help from professionals whenever you need.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="security-card">
+          <i class="fa-solid fa-shield-halved security-icon"></i>
+          <div>
+            <h4>Your data is safe with us</h4>
+            <p>We use industry-standard security to protect your information.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section (Form) -->
+    <div class="right-section">
+      <div class="form-container">
+        <h2>Welcome Back!</h2>
+        <p class="subtitle">Login to your <span class="brand-text">BuildBid</span> account</p>
+
+        <!-- Role Selector Toggle -->
+        <div class="role-selector">
+          <button type="button" class="role-btn active" data-role="customer">
+            <i class="fa-solid fa-user"></i> Customer / Homeowner
+          </button>
+          <button type="button" class="role-btn" data-role="contractor">
+            <i class="fa-solid fa-hard-hat"></i> Contractor / Professional
+          </button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm">
+          <div class="input-group">
+            <label for="email">Email Address</label>
+            <div class="input-wrapper">
+              <input type="email" id="email" placeholder="Enter your email" required />
+              <i class="fa-regular fa-envelope field-icon"></i>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <div class="input-wrapper">
+              <input type="password" id="password" placeholder="Enter your password" required />
+              <i class="fa-regular fa-eye-slash field-icon toggle-password" id="togglePassword"></i>
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-container">
+              <input type="checkbox" id="rememberMe" />
+              <span class="checkmark"></span>
+              Remember me
+            </label>
+            <a href="#" class="forgot-link">Forgot Password?</a>
+          </div>
+
+          <button type="submit" class="submit-btn">Login <i class="fa-solid fa-arrow-right"></i></button>
+        </form>
+
+        <p class="footer-text">
+          Don't have an account? <a href="#" class="signup-link">Sign up</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="login script.js"></script>
+</body>
+</html>
