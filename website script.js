@@ -1,4 +1,13 @@
-// ================= GET STARTED =================
+// ============================================================
+// BACKEND CONFIGURATION
+// ============================================================
+
+const API_BASE_URL = "http://localhost:8080";
+
+
+// ============================================================
+// GET STARTED
+// ============================================================
 
 function goToRequirement() {
 
@@ -15,7 +24,9 @@ function goToRequirement() {
 }
 
 
-// ================= LOGIN POPUP =================
+// ============================================================
+// LOGIN POPUP
+// ============================================================
 
 function openAuth() {
 
@@ -34,7 +45,9 @@ function openAuth() {
 }
 
 
-// ================= CLOSE LOGIN POPUP =================
+// ============================================================
+// CLOSE LOGIN POPUP
+// ============================================================
 
 function closeAuth() {
 
@@ -51,7 +64,9 @@ function closeAuth() {
 }
 
 
-// ================= SHOW LOGIN =================
+// ============================================================
+// SHOW LOGIN
+// ============================================================
 
 function showLogin() {
 
@@ -88,7 +103,9 @@ function showLogin() {
 }
 
 
-// ================= SHOW SIGNUP =================
+// ============================================================
+// SHOW SIGNUP
+// ============================================================
 
 function showSignup() {
 
@@ -125,7 +142,9 @@ function showSignup() {
 }
 
 
-// ================= MESSAGE =================
+// ============================================================
+// MESSAGE
+// ============================================================
 
 function showMessage(message) {
 
@@ -134,7 +153,9 @@ function showMessage(message) {
 }
 
 
-// ================= REQUIREMENT FORM =================
+// ============================================================
+// REQUIREMENT FORM
+// ============================================================
 
 const requirementForm =
     document.querySelector("#requirementForm");
@@ -160,7 +181,9 @@ if (requirementForm) {
 }
 
 
-// ================= LOGIN FORM =================
+// ============================================================
+// LOGIN FORM
+// ============================================================
 
 const loginForm =
     document.querySelector("#loginForm");
@@ -170,17 +193,162 @@ if (loginForm) {
 
     loginForm.addEventListener(
         "submit",
-        function(event) {
+        async function(event) {
 
             event.preventDefault();
 
-            alert(
-                "Login successful! Database connection will be added later."
-            );
 
-            loginForm.reset();
+            // ------------------------------------------------
+            // GET LOGIN INPUTS
+            // ------------------------------------------------
 
-            closeAuth();
+            const emailInput =
+                loginForm.querySelector(
+                    'input[type="email"]'
+                );
+
+            const passwordInput =
+                loginForm.querySelector(
+                    'input[type="password"]'
+                );
+
+
+            if (!emailInput || !passwordInput) {
+
+                alert(
+                    "Login form fields not found."
+                );
+
+                return;
+
+            }
+
+
+            const email =
+                emailInput.value.trim().toLowerCase();
+
+            const password =
+                passwordInput.value;
+
+
+            // ------------------------------------------------
+            // BASIC VALIDATION
+            // ------------------------------------------------
+
+            if (!email || !password) {
+
+                alert(
+                    "Please enter email and password."
+                );
+
+                return;
+
+            }
+
+
+            // ------------------------------------------------
+            // CONNECT TO BACKEND
+            // ------------------------------------------------
+
+            try {
+
+                const response =
+
+                    await fetch(
+                        API_BASE_URL +
+                        "/api/auth/login",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                email: email,
+
+                                password: password
+
+                            })
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                // ------------------------------------------------
+                // LOGIN FAILED
+                // ------------------------------------------------
+
+                if (!response.ok) {
+
+                    alert(
+                        data.message ||
+                        data.error ||
+                        "Login failed. Please check your email and password."
+                    );
+
+                    return;
+
+                }
+
+
+                // ------------------------------------------------
+                // SAVE JWT TOKEN
+                // ------------------------------------------------
+
+                if (data.token) {
+
+                    localStorage.setItem(
+                        "marketplaceToken",
+                        data.token
+                    );
+
+                }
+
+
+                // ------------------------------------------------
+                // SAVE USER INFORMATION
+                // ------------------------------------------------
+
+                localStorage.setItem(
+                    "marketplaceUser",
+                    JSON.stringify({
+                        username: data.username,
+                        roles: data.roles
+                    })
+                );
+
+
+                alert(
+                    "Login successful!"
+                );
+
+
+                loginForm.reset();
+
+                closeAuth();
+
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Login error:",
+                    error
+                );
+
+
+                alert(
+                    "Unable to connect to the backend. Make sure the Spring Boot server is running."
+                );
+
+            }
 
         }
     );
@@ -188,7 +356,9 @@ if (loginForm) {
 }
 
 
-// ================= SIGNUP FORM =================
+// ============================================================
+// SIGNUP FORM
+// ============================================================
 
 const signupForm =
     document.querySelector("#signupForm");
@@ -198,17 +368,214 @@ if (signupForm) {
 
     signupForm.addEventListener(
         "submit",
-        function(event) {
+        async function(event) {
 
             event.preventDefault();
 
-            alert(
-                "Account created successfully! Database connection will be added later."
-            );
 
-            signupForm.reset();
+            // ------------------------------------------------
+            // GET SIGNUP INPUTS
+            // ------------------------------------------------
 
-            closeAuth();
+            const nameInput =
+                signupForm.querySelector(
+                    'input[name="name"], input[type="text"]'
+                );
+
+
+            const emailInput =
+                signupForm.querySelector(
+                    'input[type="email"]'
+                );
+
+
+            const passwordInput =
+                signupForm.querySelector(
+                    'input[type="password"]'
+                );
+
+
+            const roleInput =
+                document.querySelector(
+                    "#signupSelectedRole"
+                );
+
+
+            if (
+                !nameInput ||
+                !emailInput ||
+                !passwordInput
+            ) {
+
+                alert(
+                    "Signup form fields not found."
+                );
+
+                return;
+
+            }
+
+
+            const name =
+                nameInput.value.trim();
+
+            const email =
+                emailInput.value.trim().toLowerCase();
+
+            const password =
+                passwordInput.value;
+
+
+            const role =
+                roleInput
+                    ? roleInput.value
+                    : "customer";
+
+
+            // ------------------------------------------------
+            // BASIC VALIDATION
+            // ------------------------------------------------
+
+            if (!name) {
+
+                alert(
+                    "Please enter your name."
+                );
+
+                return;
+
+            }
+
+
+            if (!email) {
+
+                alert(
+                    "Please enter your email."
+                );
+
+                return;
+
+            }
+
+
+            if (!password) {
+
+                alert(
+                    "Please enter your password."
+                );
+
+                return;
+
+            }
+
+
+            // ------------------------------------------------
+            // CONNECT TO BACKEND
+            // ------------------------------------------------
+
+            try {
+
+                const response =
+
+                    await fetch(
+                        API_BASE_URL +
+                        "/api/auth/register",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                name: name,
+
+                                email: email,
+
+                                password: password,
+
+                                role: role
+
+                            })
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                // ------------------------------------------------
+                // SIGNUP FAILED
+                // ------------------------------------------------
+
+                if (!response.ok) {
+
+                    alert(
+                        data.message ||
+                        data.error ||
+                        "Account creation failed."
+                    );
+
+                    return;
+
+                }
+
+
+                // ------------------------------------------------
+                // SAVE JWT TOKEN
+                // ------------------------------------------------
+
+                if (data.token) {
+
+                    localStorage.setItem(
+                        "marketplaceToken",
+                        data.token
+                    );
+
+                }
+
+
+                // ------------------------------------------------
+                // SAVE USER INFORMATION
+                // ------------------------------------------------
+
+                localStorage.setItem(
+                    "marketplaceUser",
+                    JSON.stringify({
+                        username: data.username,
+                        roles: data.roles
+                    })
+                );
+
+
+                alert(
+                    "Account created successfully!"
+                );
+
+
+                signupForm.reset();
+
+                closeAuth();
+
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Signup error:",
+                    error
+                );
+
+
+                alert(
+                    "Unable to connect to the backend. Make sure the Spring Boot server is running."
+                );
+
+            }
 
         }
     );
@@ -216,7 +583,9 @@ if (signupForm) {
 }
 
 
-// ================= ESC KEY =================
+// ============================================================
+// ESC KEY
+// ============================================================
 
 document.addEventListener(
     "keydown",
@@ -230,96 +599,276 @@ document.addEventListener(
 
     }
 );
-// ================= ROLE SELECTOR SWITCH =================
+
+
+// ============================================================
+// ROLE SELECTOR
+// ============================================================
 
 function selectRole(role) {
-    const customerBtn = document.querySelector("#customerBtn");
-    const contractorBtn = document.querySelector("#contractorBtn");
-    const roleInput = document.querySelector("#selectedRole");
 
-    if (role === 'customer') {
-        customerBtn.classList.add("active");
-        contractorBtn.classList.remove("active");
-        if (roleInput) roleInput.value = "customer";
-    } else if (role === 'contractor') {
-        contractorBtn.classList.add("active");
-        customerBtn.classList.remove("active");
-        if (roleInput) roleInput.value = "contractor";
+    const customerBtn =
+        document.querySelector(
+            "#customerBtn"
+        );
+
+
+    const contractorBtn =
+        document.querySelector(
+            "#contractorBtn"
+        );
+
+
+    const roleInput =
+        document.querySelector(
+            "#selectedRole"
+        );
+
+
+    if (role === "customer") {
+
+        if (customerBtn) {
+
+            customerBtn.classList.add(
+                "active"
+            );
+
+        }
+
+
+        if (contractorBtn) {
+
+            contractorBtn.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        if (roleInput) {
+
+            roleInput.value =
+                "customer";
+
+        }
+
     }
-}
-// Role selection tabs functionality
-document.querySelectorAll('.role-btn').forEach(button => {
-    button.addEventListener('click', function(e) {
-        // Prevent default form submission on button click
-        e.preventDefault();
-        
-        // Remove active class from all role buttons
-        document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
-        
-        // Add active class to the clicked button
-        this.classList.add('active');
-    });
-});
-// ================= SHOW SIGNUP =================
-function showSignup() {
-    const loginBox = document.querySelector("#loginFormBox");
-    const signupBox = document.querySelector("#signupFormBox");
 
-    if (loginBox && signupBox) {
-        loginBox.classList.add("hidden");
-        signupBox.classList.remove("hidden");
+
+    else if (role === "contractor") {
+
+        if (contractorBtn) {
+
+            contractorBtn.classList.add(
+                "active"
+            );
+
+        }
+
+
+        if (customerBtn) {
+
+            customerBtn.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        if (roleInput) {
+
+            roleInput.value =
+                "contractor";
+
+        }
+
     }
+
 }
 
-// ================= SHOW LOGIN =================
-function showLogin() {
-    const loginBox = document.querySelector("#loginFormBox");
-    const signupBox = document.querySelector("#signupFormBox");
 
-    if (loginBox && signupBox) {
-        loginBox.classList.remove("hidden");
-        signupBox.classList.add("hidden");
+// ============================================================
+// ROLE BUTTONS
+// ============================================================
+
+document
+    .querySelectorAll(".role-btn")
+    .forEach(
+        function(button) {
+
+            button.addEventListener(
+                "click",
+                function(event) {
+
+                    event.preventDefault();
+
+
+                    document
+                        .querySelectorAll(
+                            ".role-btn"
+                        )
+                        .forEach(
+                            function(btn) {
+
+                                btn.classList.remove(
+                                    "active"
+                                );
+
+                            }
+                        );
+
+
+                    this.classList.add(
+                        "active"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+// ============================================================
+// SIGNUP ROLE SELECTOR
+// ============================================================
+
+function selectSignupRole(
+    element,
+    role
+) {
+
+    const buttons =
+        document.querySelectorAll(
+            ".signup-role-btn"
+        );
+
+
+    buttons.forEach(
+        function(btn) {
+
+            btn.classList.remove(
+                "active"
+            );
+
+        }
+    );
+
+
+    if (element) {
+
+        element.classList.add(
+            "active"
+        );
+
     }
-}
-// ================= SIGNUP ROLE SELECTOR =================
 
-function selectSignupRole(element, role) {
-    // Remove active class from all signup role buttons
-    const buttons = document.querySelectorAll(".signup-role-btn");
-    buttons.forEach(btn => btn.classList.remove("active"));
 
-    // Add active class to the selected button
-    element.classList.add("active");
+    const roleInput =
+        document.querySelector(
+            "#signupSelectedRole"
+        );
 
-    // Set value in hidden input field
-    const roleInput = document.querySelector("#signupSelectedRole");
+
     if (roleInput) {
-        roleInput.value = role;
+
+        roleInput.value =
+            role;
+
     }
-}
-// ================= PASSWORD EYE TOGGLE =================
 
-function togglePasswordVisibility(iconElement) {
-    // Eye icon ke parent container ke andar input target karna
-    const wrapper = iconElement.closest('.buildbid-input-wrapper');
-    const passwordInput = wrapper ? wrapper.querySelector('input') : null;
-
-    if (!passwordInput) return;
-
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        iconElement.classList.remove('fa-eye-slash');
-        iconElement.classList.add('fa-eye');
-    } else {
-        passwordInput.type = 'password';
-        iconElement.classList.remove('fa-eye');
-        iconElement.classList.add('fa-eye-slash');
-    }
 }
 
-// Event Delegation (Login & Signup dono dynamic forms ke liye)
-document.addEventListener('click', function (e) {
-    if (e.target && e.target.classList.contains('password-toggle')) {
-        togglePasswordVisibility(e.target);
+
+// ============================================================
+// PASSWORD EYE TOGGLE
+// ============================================================
+
+function togglePasswordVisibility(
+    iconElement
+) {
+
+    const wrapper =
+        iconElement.closest(
+            ".buildbid-input-wrapper"
+        );
+
+
+    const passwordInput =
+        wrapper
+            ? wrapper.querySelector(
+                "input"
+            )
+            : null;
+
+
+    if (!passwordInput) {
+
+        return;
+
     }
-});
+
+
+    if (
+        passwordInput.type ===
+        "password"
+    ) {
+
+        passwordInput.type =
+            "text";
+
+
+        iconElement.classList.remove(
+            "fa-eye-slash"
+        );
+
+
+        iconElement.classList.add(
+            "fa-eye"
+        );
+
+    }
+
+    else {
+
+        passwordInput.type =
+            "password";
+
+
+        iconElement.classList.remove(
+            "fa-eye"
+        );
+
+
+        iconElement.classList.add(
+            "fa-eye-slash"
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// PASSWORD EYE EVENT
+// ============================================================
+
+document.addEventListener(
+    "click",
+    function(event) {
+
+        if (
+            event.target &&
+            event.target.classList.contains(
+                "password-toggle"
+            )
+        ) {
+
+            togglePasswordVisibility(
+                event.target
+            );
+
+        }
+
+    }
+);
