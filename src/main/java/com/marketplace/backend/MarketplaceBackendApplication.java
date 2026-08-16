@@ -138,9 +138,13 @@ public class MarketplaceBackendApplication {
 
 
         @ElementCollection(fetch = FetchType.EAGER)
-        @Enumerated(EnumType.STRING)
-        private Set<Role> roles = new HashSet<>();
-
+@CollectionTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id")
+)
+@Column(name = "role")
+@Enumerated(EnumType.STRING)
+private Set<Role> roles = new HashSet<>();
 
         @Column(nullable = false)
         private boolean enabled = true;
