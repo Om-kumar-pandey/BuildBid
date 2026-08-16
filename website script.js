@@ -1,18 +1,28 @@
+// ============================================================
+// BUILD BID - FRONTEND JAVASCRIPT
+// BACKEND: SPRING BOOT + MYSQL + JWT
+// ============================================================
+
 const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 
 
 // ============================================================
-// GET STARTED
+// GET STARTED / REQUIREMENT
 // ============================================================
 
 function goToRequirement() {
-    const requirement = document.querySelector("#requirement");
+
+    const requirement =
+        document.querySelector("#requirement");
 
     if (requirement) {
+
         requirement.scrollIntoView({
             behavior: "smooth"
         });
+
     }
+
 }
 
 
@@ -21,13 +31,20 @@ function goToRequirement() {
 // ============================================================
 
 function openAuth() {
-    const auth = document.querySelector("#auth");
+
+    const auth =
+        document.querySelector("#auth");
 
     if (auth) {
+
         auth.classList.add("show-auth");
+
         document.body.style.overflow = "hidden";
+
         showLogin();
+
     }
+
 }
 
 
@@ -36,12 +53,18 @@ function openAuth() {
 // ============================================================
 
 function closeAuth() {
-    const auth = document.querySelector("#auth");
+
+    const auth =
+        document.querySelector("#auth");
 
     if (auth) {
+
         auth.classList.remove("show-auth");
+
         document.body.style.overflow = "";
+
     }
+
 }
 
 
@@ -50,21 +73,37 @@ function closeAuth() {
 // ============================================================
 
 function showLogin() {
-    const loginBox = document.querySelector("#loginFormBox");
-    const signupBox = document.querySelector("#signupFormBox");
 
-    const loginTab = document.querySelector("#loginTab");
-    const signupTab = document.querySelector("#signupTab");
+    const loginBox =
+        document.querySelector("#loginFormBox");
+
+    const signupBox =
+        document.querySelector("#signupFormBox");
+
+    const loginTab =
+        document.querySelector("#loginTab");
+
+    const signupTab =
+        document.querySelector("#signupTab");
+
 
     if (loginBox && signupBox) {
+
         loginBox.classList.remove("hidden");
+
         signupBox.classList.add("hidden");
+
     }
 
+
     if (loginTab && signupTab) {
+
         loginTab.classList.add("active");
+
         signupTab.classList.remove("active");
+
     }
+
 }
 
 
@@ -73,21 +112,37 @@ function showLogin() {
 // ============================================================
 
 function showSignup() {
-    const loginBox = document.querySelector("#loginFormBox");
-    const signupBox = document.querySelector("#signupFormBox");
 
-    const loginTab = document.querySelector("#loginTab");
-    const signupTab = document.querySelector("#signupTab");
+    const loginBox =
+        document.querySelector("#loginFormBox");
+
+    const signupBox =
+        document.querySelector("#signupFormBox");
+
+    const loginTab =
+        document.querySelector("#loginTab");
+
+    const signupTab =
+        document.querySelector("#signupTab");
+
 
     if (loginBox && signupBox) {
+
         loginBox.classList.add("hidden");
+
         signupBox.classList.remove("hidden");
+
     }
 
+
     if (loginTab && signupTab) {
+
         loginTab.classList.remove("active");
+
         signupTab.classList.add("active");
+
     }
+
 }
 
 
@@ -96,7 +151,30 @@ function showSignup() {
 // ============================================================
 
 function showMessage(message) {
+
     alert(message);
+
+}
+
+
+// ============================================================
+// SAFE JSON RESPONSE
+// ============================================================
+
+async function getResponseData(response) {
+
+    try {
+
+        return await response.json();
+
+    }
+
+    catch (error) {
+
+        return {};
+
+    }
+
 }
 
 
@@ -107,10 +185,13 @@ function showMessage(message) {
 const requirementForm =
     document.querySelector("#requirementForm");
 
+
 if (requirementForm) {
+
     requirementForm.addEventListener(
         "submit",
         function(event) {
+
             event.preventDefault();
 
             alert(
@@ -118,8 +199,10 @@ if (requirementForm) {
             );
 
             requirementForm.reset();
+
         }
     );
+
 }
 
 
@@ -130,6 +213,7 @@ if (requirementForm) {
 const loginForm =
     document.querySelector("#loginForm");
 
+
 if (loginForm) {
 
     loginForm.addEventListener(
@@ -138,56 +222,47 @@ if (loginForm) {
 
             event.preventDefault();
 
+
             // ------------------------------------------------
-            // USERNAME
+            // GET LOGIN INPUTS
             // ------------------------------------------------
 
             const usernameInput =
                 loginForm.querySelector(
                     'input[name="username"]'
-                ) ||
-                loginForm.querySelector(
-                    "#username"
-                ) ||
-                loginForm.querySelector(
-                    "#loginUsername"
-                ) ||
-                loginForm.querySelector(
-                    'input[type="email"]'
                 );
 
 
-            // ------------------------------------------------
-            // PASSWORD
-            // ------------------------------------------------
+            const emailInput =
+                loginForm.querySelector(
+                    'input[name="email"]'
+                );
+
 
             const passwordInput =
                 loginForm.querySelector(
                     'input[name="password"]'
-                ) ||
-                loginForm.querySelector(
-                    "#password"
-                ) ||
-                loginForm.querySelector(
-                    "#loginPassword"
                 );
 
 
-            if (!usernameInput || !passwordInput) {
-
-                alert(
-                    "Login username और password fields नहीं मिलीं."
-                );
-
-                return;
-            }
-
+            // ------------------------------------------------
+            // BACKEND REQUIRES USERNAME
+            // ------------------------------------------------
 
             const username =
-                usernameInput.value.trim();
+                usernameInput
+                    ? usernameInput.value.trim()
+                    : (
+                        emailInput
+                            ? emailInput.value.trim()
+                            : ""
+                    );
+
 
             const password =
-                passwordInput.value;
+                passwordInput
+                    ? passwordInput.value
+                    : "";
 
 
             // ------------------------------------------------
@@ -201,6 +276,7 @@ if (loginForm) {
                 );
 
                 return;
+
             }
 
 
@@ -211,11 +287,12 @@ if (loginForm) {
                 );
 
                 return;
+
             }
 
 
             // ------------------------------------------------
-            // LOGIN REQUEST
+            // SEND LOGIN REQUEST
             // ------------------------------------------------
 
             try {
@@ -233,31 +310,26 @@ if (loginForm) {
                             },
 
                             body: JSON.stringify({
-                                username: username,
-                                password: password
+
+                                username:
+                                    username,
+
+                                password:
+                                    password
+
                             })
                         }
                     );
 
 
-                const text =
-                    await response.text();
-
-
-                let data = {};
-
-                try {
-                    data = text
-                        ? JSON.parse(text)
-                        : {};
-                }
-                catch {
-                    data = {};
-                }
+                const data =
+                    await getResponseData(
+                        response
+                    );
 
 
                 // ------------------------------------------------
-                // LOGIN ERROR
+                // LOGIN FAILED
                 // ------------------------------------------------
 
                 if (!response.ok) {
@@ -269,6 +341,7 @@ if (loginForm) {
                     );
 
                     return;
+
                 }
 
 
@@ -282,23 +355,34 @@ if (loginForm) {
                         "marketplaceToken",
                         data.token
                     );
+
                 }
 
 
                 // ------------------------------------------------
-                // SAVE USER
+                // SAVE USER DATA
                 // ------------------------------------------------
 
                 localStorage.setItem(
+
                     "marketplaceUser",
+
                     JSON.stringify({
+
                         username:
                             data.username,
+
                         roles:
                             data.roles
+
                     })
+
                 );
 
+
+                // ------------------------------------------------
+                // SUCCESS
+                // ------------------------------------------------
 
                 alert(
                     "Login successful!"
@@ -310,6 +394,8 @@ if (loginForm) {
                 closeAuth();
 
             }
+
+
             catch (error) {
 
                 console.error(
@@ -319,11 +405,14 @@ if (loginForm) {
 
 
                 alert(
-                    "Unable to connect to the backend. Please check your Render service."
+                    "Unable to connect to the backend."
                 );
+
             }
+
         }
     );
+
 }
 
 
@@ -333,6 +422,7 @@ if (loginForm) {
 
 const signupForm =
     document.querySelector("#signupForm");
+
 
 if (signupForm) {
 
@@ -344,85 +434,42 @@ if (signupForm) {
 
 
             // ------------------------------------------------
-            // NAME
+            // GET SIGNUP INPUTS
             // ------------------------------------------------
 
             const nameInput =
                 signupForm.querySelector(
                     'input[name="name"]'
-                ) ||
-                signupForm.querySelector(
-                    "#name"
-                ) ||
-                signupForm.querySelector(
-                    "#signupName"
                 );
 
-
-            // ------------------------------------------------
-            // USERNAME
-            // ------------------------------------------------
 
             const usernameInput =
                 signupForm.querySelector(
                     'input[name="username"]'
-                ) ||
-                signupForm.querySelector(
-                    "#username"
-                ) ||
-                signupForm.querySelector(
-                    "#signupUsername"
                 );
 
-
-            // ------------------------------------------------
-            // EMAIL
-            // ------------------------------------------------
 
             const emailInput =
                 signupForm.querySelector(
                     'input[name="email"]'
-                ) ||
-                signupForm.querySelector(
-                    "#email"
-                ) ||
-                signupForm.querySelector(
-                    "#signupEmail"
                 );
 
-
-            // ------------------------------------------------
-            // PHONE
-            // ------------------------------------------------
 
             const phoneInput =
                 signupForm.querySelector(
                     'input[name="phone"]'
-                ) ||
-                signupForm.querySelector(
-                    "#phone"
-                ) ||
-                signupForm.querySelector(
-                    "#signupPhone"
-                ) ||
-                signupForm.querySelector(
-                    'input[type="tel"]'
                 );
 
-
-            // ------------------------------------------------
-            // PASSWORD
-            // ------------------------------------------------
 
             const passwordInput =
                 signupForm.querySelector(
                     'input[name="password"]'
-                ) ||
-                signupForm.querySelector(
-                    "#password"
-                ) ||
-                signupForm.querySelector(
-                    "#signupPassword"
+                );
+
+
+            const roleInput =
+                document.querySelector(
+                    "#signupSelectedRole"
                 );
 
 
@@ -433,50 +480,55 @@ if (signupForm) {
             if (!nameInput) {
 
                 alert(
-                    "Signup name field नहीं मिली."
+                    "Signup name field not found."
                 );
 
                 return;
+
             }
 
 
             if (!usernameInput) {
 
                 alert(
-                    "Signup username field नहीं मिली."
+                    "Signup username field not found."
                 );
 
                 return;
+
             }
 
 
             if (!emailInput) {
 
                 alert(
-                    "Signup email field नहीं मिली."
+                    "Signup email field not found."
                 );
 
                 return;
+
             }
 
 
             if (!phoneInput) {
 
                 alert(
-                    "Signup phone field नहीं मिली."
+                    "Signup phone field not found."
                 );
 
                 return;
+
             }
 
 
             if (!passwordInput) {
 
                 alert(
-                    "Signup password field नहीं मिली."
+                    "Signup password field not found."
                 );
 
                 return;
+
             }
 
 
@@ -487,85 +539,39 @@ if (signupForm) {
             const name =
                 nameInput.value.trim();
 
+
             const username =
                 usernameInput.value.trim();
+
 
             const email =
                 emailInput.value
                     .trim()
                     .toLowerCase();
 
+
             const phone =
                 phoneInput.value.trim();
+
 
             const password =
                 passwordInput.value;
 
 
             // ------------------------------------------------
-            // GET ROLE
+            // ROLE
             // ------------------------------------------------
 
-            const roleInput =
-                document.querySelector(
-                    "#signupSelectedRole"
-                );
-
-
-            let role =
+            let selectedRole =
                 roleInput
                     ? roleInput.value
                     : "CUSTOMER";
 
 
-            role =
-                role
+            selectedRole =
+                selectedRole
                     .trim()
                     .toUpperCase();
-
-
-            // ------------------------------------------------
-            // CONVERT FRONTEND ROLE
-            // TO BACKEND ROLE
-            // ------------------------------------------------
-
-            if (role === "CUSTOMER") {
-
-                role = "CUSTOMER";
-
-            }
-            else if (
-                role === "SELLER"
-            ) {
-
-                role = "SELLER";
-
-            }
-            else if (
-                role === "CONTRACTOR"
-            ) {
-
-                role = "SERVICE_PROVIDER";
-
-            }
-            else if (
-                role === "SERVICE PROVIDER"
-            ) {
-
-                role = "SERVICE_PROVIDER";
-
-            }
-            else if (
-                role === "SERVICE_PROVIDER"
-            ) {
-
-                role = "SERVICE_PROVIDER";
-
-            }
-            else {
-
-                role = "CUSTOMER";
-            }
 
 
             // ------------------------------------------------
@@ -579,16 +585,18 @@ if (signupForm) {
                 );
 
                 return;
+
             }
 
 
             if (!username) {
 
                 alert(
-                    "Please enter a username."
+                    "Please enter your username."
                 );
 
                 return;
+
             }
 
 
@@ -599,6 +607,7 @@ if (signupForm) {
                 );
 
                 return;
+
             }
 
 
@@ -609,6 +618,7 @@ if (signupForm) {
                 );
 
                 return;
+
             }
 
 
@@ -619,74 +629,74 @@ if (signupForm) {
                 );
 
                 return;
+
             }
 
 
             // ------------------------------------------------
-            // PASSWORD REQUIREMENT
-            // Backend requires:
-            // 13-17 characters
-            // uppercase
-            // lowercase
-            // number
-            // special character
+            // ROLE VALIDATION
             // ------------------------------------------------
+
+            const allowedRoles = [
+
+                "CUSTOMER",
+
+                "SELLER",
+
+                "SERVICE_PROVIDER"
+
+            ];
+
 
             if (
-                password.length < 13 ||
-                password.length > 17
+                !allowedRoles.includes(
+                    selectedRole
+                )
             ) {
 
-                alert(
-                    "Password must be 13-17 characters long."
-                );
+                selectedRole =
+                    "CUSTOMER";
 
-                return;
-            }
-
-
-            if (!/[A-Z]/.test(password)) {
-
-                alert(
-                    "Password must contain at least one uppercase letter."
-                );
-
-                return;
-            }
-
-
-            if (!/[a-z]/.test(password)) {
-
-                alert(
-                    "Password must contain at least one lowercase letter."
-                );
-
-                return;
-            }
-
-
-            if (!/[0-9]/.test(password)) {
-
-                alert(
-                    "Password must contain at least one number."
-                );
-
-                return;
-            }
-
-
-            if (!/[^A-Za-z0-9]/.test(password)) {
-
-                alert(
-                    "Password must contain at least one special character."
-                );
-
-                return;
             }
 
 
             // ------------------------------------------------
-            // REGISTER REQUEST
+            // CREATE BACKEND REQUEST
+            // ------------------------------------------------
+
+            const registerData = {
+
+                name:
+                    name,
+
+                username:
+                    username,
+
+                email:
+                    email,
+
+                phone:
+                    phone,
+
+                password:
+                    password,
+
+                roles:
+                    [
+                        selectedRole
+                    ]
+
+            };
+
+
+            console.log(
+                "Register request:",
+                registerData
+            );
+
+
+            // ------------------------------------------------
+            // SEND REGISTER REQUEST
             // ------------------------------------------------
 
             try {
@@ -699,57 +709,81 @@ if (signupForm) {
                             method: "POST",
 
                             headers: {
+
                                 "Content-Type":
                                     "application/json"
+
                             },
 
-                            body: JSON.stringify({
+                            body:
+                                JSON.stringify(
+                                    registerData
+                                )
 
-                                name: name,
-
-                                username: username,
-
-                                email: email,
-
-                                phone: phone,
-
-                                password: password,
-
-                                roles: [role]
-                            })
                         }
                     );
 
 
-                const text =
-                    await response.text();
-
-
-                let data = {};
-
-                try {
-                    data = text
-                        ? JSON.parse(text)
-                        : {};
-                }
-                catch {
-                    data = {};
-                }
+                const data =
+                    await getResponseData(
+                        response
+                    );
 
 
                 // ------------------------------------------------
-                // REGISTER ERROR
+                // SIGNUP FAILED
                 // ------------------------------------------------
 
                 if (!response.ok) {
 
+                    console.error(
+                        "Signup response:",
+                        data
+                    );
+
+
+                    let errorMessage =
+                        "Account creation failed.";
+
+
+                    if (data.message) {
+
+                        errorMessage =
+                            data.message;
+
+                    }
+
+                    else if (data.error) {
+
+                        errorMessage =
+                            data.error;
+
+                    }
+
+                    else if (
+                        data.errors &&
+                        Array.isArray(data.errors)
+                    ) {
+
+                        errorMessage =
+                            data.errors
+                                .map(
+                                    error =>
+                                        error.defaultMessage ||
+                                        error.message ||
+                                        "Invalid field"
+                                )
+                                .join("\n");
+
+                    }
+
+
                     alert(
-                        data.message ||
-                        data.error ||
-                        "Account creation failed."
+                        errorMessage
                     );
 
                     return;
+
                 }
 
 
@@ -763,23 +797,34 @@ if (signupForm) {
                         "marketplaceToken",
                         data.token
                     );
+
                 }
 
 
                 // ------------------------------------------------
-                // SAVE USER
+                // SAVE USER DATA
                 // ------------------------------------------------
 
                 localStorage.setItem(
+
                     "marketplaceUser",
+
                     JSON.stringify({
+
                         username:
                             data.username,
+
                         roles:
                             data.roles
+
                     })
+
                 );
 
+
+                // ------------------------------------------------
+                // SUCCESS
+                // ------------------------------------------------
 
                 alert(
                     "Account created successfully!"
@@ -791,6 +836,8 @@ if (signupForm) {
                 closeAuth();
 
             }
+
+
             catch (error) {
 
                 console.error(
@@ -800,11 +847,14 @@ if (signupForm) {
 
 
                 alert(
-                    "Unable to connect to the backend. Please check your Render service."
+                    "Unable to connect to the backend."
                 );
+
             }
+
         }
     );
+
 }
 
 
@@ -816,10 +866,15 @@ document.addEventListener(
     "keydown",
     function(event) {
 
-        if (event.key === "Escape") {
+        if (
+            event.key ===
+            "Escape"
+        ) {
 
             closeAuth();
+
         }
+
     }
 );
 
@@ -835,10 +890,12 @@ function selectRole(role) {
             "#customerBtn"
         );
 
+
     const contractorBtn =
         document.querySelector(
             "#contractorBtn"
         );
+
 
     const roleInput =
         document.querySelector(
@@ -846,13 +903,17 @@ function selectRole(role) {
         );
 
 
-    if (role === "customer") {
+    if (
+        role ===
+        "customer"
+    ) {
 
         if (customerBtn) {
 
             customerBtn.classList.add(
                 "active"
             );
+
         }
 
 
@@ -861,6 +922,7 @@ function selectRole(role) {
             contractorBtn.classList.remove(
                 "active"
             );
+
         }
 
 
@@ -868,17 +930,23 @@ function selectRole(role) {
 
             roleInput.value =
                 "customer";
+
         }
+
     }
 
 
-    else if (role === "contractor") {
+    else if (
+        role ===
+        "contractor"
+    ) {
 
         if (contractorBtn) {
 
             contractorBtn.classList.add(
                 "active"
             );
+
         }
 
 
@@ -887,6 +955,7 @@ function selectRole(role) {
             customerBtn.classList.remove(
                 "active"
             );
+
         }
 
 
@@ -894,8 +963,11 @@ function selectRole(role) {
 
             roleInput.value =
                 "contractor";
+
         }
+
     }
+
 }
 
 
@@ -904,7 +976,9 @@ function selectRole(role) {
 // ============================================================
 
 document
-    .querySelectorAll(".role-btn")
+    .querySelectorAll(
+        ".role-btn"
+    )
     .forEach(
         function(button) {
 
@@ -925,6 +999,7 @@ document
                                 btn.classList.remove(
                                     "active"
                                 );
+
                             }
                         );
 
@@ -932,8 +1007,10 @@ document
                     this.classList.add(
                         "active"
                     );
+
                 }
             );
+
         }
     );
 
@@ -959,6 +1036,7 @@ function selectSignupRole(
             btn.classList.remove(
                 "active"
             );
+
         }
     );
 
@@ -968,6 +1046,7 @@ function selectSignupRole(
         element.classList.add(
             "active"
         );
+
     }
 
 
@@ -981,7 +1060,9 @@ function selectSignupRole(
 
         roleInput.value =
             role;
+
     }
+
 }
 
 
@@ -992,6 +1073,13 @@ function selectSignupRole(
 function togglePasswordVisibility(
     iconElement
 ) {
+
+    if (!iconElement) {
+
+        return;
+
+    }
+
 
     const wrapper =
         iconElement.closest(
@@ -1010,6 +1098,7 @@ function togglePasswordVisibility(
     if (!passwordInput) {
 
         return;
+
     }
 
 
@@ -1030,7 +1119,9 @@ function togglePasswordVisibility(
         iconElement.classList.add(
             "fa-eye"
         );
+
     }
+
 
     else {
 
@@ -1046,7 +1137,9 @@ function togglePasswordVisibility(
         iconElement.classList.add(
             "fa-eye-slash"
         );
+
     }
+
 }
 
 
@@ -1068,6 +1161,152 @@ document.addEventListener(
             togglePasswordVisibility(
                 event.target
             );
+
         }
+
+    }
+);
+
+
+// ============================================================
+// GET CURRENT LOGGED-IN USER
+// ============================================================
+
+async function getCurrentUser() {
+
+    const token =
+        localStorage.getItem(
+            "marketplaceToken"
+        );
+
+
+    if (!token) {
+
+        return null;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                API_BASE_URL +
+                "/api/me",
+                {
+                    method: "GET",
+
+                    headers: {
+
+                        "Authorization":
+                            "Bearer " + token
+
+                    }
+
+                }
+            );
+
+
+        if (!response.ok) {
+
+            localStorage.removeItem(
+                "marketplaceToken"
+            );
+
+            localStorage.removeItem(
+                "marketplaceUser"
+            );
+
+            return null;
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        return data;
+
+    }
+
+
+    catch (error) {
+
+        console.error(
+            "Profile error:",
+            error
+        );
+
+
+        return null;
+
+    }
+
+}
+
+
+// ============================================================
+// HEALTH CHECK
+// ============================================================
+
+async function checkBackend() {
+
+    try {
+
+        const response =
+            await fetch(
+                API_BASE_URL +
+                "/api/health"
+            );
+
+
+        const data =
+            await response.json();
+
+
+        console.log(
+            "Backend status:",
+            data
+        );
+
+
+        return data;
+
+    }
+
+
+    catch (error) {
+
+        console.error(
+            "Backend connection failed:",
+            error
+        );
+
+
+        return null;
+
+    }
+
+}
+
+
+// ============================================================
+// OPTIONAL BACKEND CHECK
+// ============================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        console.log(
+            "BuildBid frontend loaded."
+        );
+
+        console.log(
+            "Backend:",
+            API_BASE_URL
+        );
+
     }
 );
