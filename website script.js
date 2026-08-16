@@ -1,8 +1,4 @@
-// ============================================================
-// BACKEND CONFIGURATION
-// ============================================================
-
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 
 
 // ============================================================
@@ -10,17 +6,13 @@ const API_BASE_URL = "http://localhost:8080";
 // ============================================================
 
 function goToRequirement() {
-
     const requirement = document.querySelector("#requirement");
 
     if (requirement) {
-
         requirement.scrollIntoView({
             behavior: "smooth"
         });
-
     }
-
 }
 
 
@@ -29,19 +21,13 @@ function goToRequirement() {
 // ============================================================
 
 function openAuth() {
-
     const auth = document.querySelector("#auth");
 
     if (auth) {
-
         auth.classList.add("show-auth");
-
         document.body.style.overflow = "hidden";
-
         showLogin();
-
     }
-
 }
 
 
@@ -50,17 +36,12 @@ function openAuth() {
 // ============================================================
 
 function closeAuth() {
-
     const auth = document.querySelector("#auth");
 
     if (auth) {
-
         auth.classList.remove("show-auth");
-
         document.body.style.overflow = "";
-
     }
-
 }
 
 
@@ -69,37 +50,21 @@ function closeAuth() {
 // ============================================================
 
 function showLogin() {
+    const loginBox = document.querySelector("#loginFormBox");
+    const signupBox = document.querySelector("#signupFormBox");
 
-    const loginBox =
-        document.querySelector("#loginFormBox");
-
-    const signupBox =
-        document.querySelector("#signupFormBox");
-
-    const loginTab =
-        document.querySelector("#loginTab");
-
-    const signupTab =
-        document.querySelector("#signupTab");
-
+    const loginTab = document.querySelector("#loginTab");
+    const signupTab = document.querySelector("#signupTab");
 
     if (loginBox && signupBox) {
-
         loginBox.classList.remove("hidden");
-
         signupBox.classList.add("hidden");
-
     }
-
 
     if (loginTab && signupTab) {
-
         loginTab.classList.add("active");
-
         signupTab.classList.remove("active");
-
     }
-
 }
 
 
@@ -108,37 +73,21 @@ function showLogin() {
 // ============================================================
 
 function showSignup() {
+    const loginBox = document.querySelector("#loginFormBox");
+    const signupBox = document.querySelector("#signupFormBox");
 
-    const loginBox =
-        document.querySelector("#loginFormBox");
-
-    const signupBox =
-        document.querySelector("#signupFormBox");
-
-    const loginTab =
-        document.querySelector("#loginTab");
-
-    const signupTab =
-        document.querySelector("#signupTab");
-
+    const loginTab = document.querySelector("#loginTab");
+    const signupTab = document.querySelector("#signupTab");
 
     if (loginBox && signupBox) {
-
         loginBox.classList.add("hidden");
-
         signupBox.classList.remove("hidden");
-
     }
-
 
     if (loginTab && signupTab) {
-
         loginTab.classList.remove("active");
-
         signupTab.classList.add("active");
-
     }
-
 }
 
 
@@ -147,9 +96,7 @@ function showSignup() {
 // ============================================================
 
 function showMessage(message) {
-
     alert(message);
-
 }
 
 
@@ -160,13 +107,10 @@ function showMessage(message) {
 const requirementForm =
     document.querySelector("#requirementForm");
 
-
 if (requirementForm) {
-
     requirementForm.addEventListener(
         "submit",
         function(event) {
-
             event.preventDefault();
 
             alert(
@@ -174,10 +118,8 @@ if (requirementForm) {
             );
 
             requirementForm.reset();
-
         }
     );
-
 }
 
 
@@ -188,7 +130,6 @@ if (requirementForm) {
 const loginForm =
     document.querySelector("#loginForm");
 
-
 if (loginForm) {
 
     loginForm.addEventListener(
@@ -197,63 +138,89 @@ if (loginForm) {
 
             event.preventDefault();
 
-
             // ------------------------------------------------
-            // GET LOGIN INPUTS
+            // USERNAME
             // ------------------------------------------------
 
-            const emailInput =
+            const usernameInput =
+                loginForm.querySelector(
+                    'input[name="username"]'
+                ) ||
+                loginForm.querySelector(
+                    "#username"
+                ) ||
+                loginForm.querySelector(
+                    "#loginUsername"
+                ) ||
                 loginForm.querySelector(
                     'input[type="email"]'
                 );
 
+
+            // ------------------------------------------------
+            // PASSWORD
+            // ------------------------------------------------
+
             const passwordInput =
                 loginForm.querySelector(
-                    'input[type="password"]'
+                    'input[name="password"]'
+                ) ||
+                loginForm.querySelector(
+                    "#password"
+                ) ||
+                loginForm.querySelector(
+                    "#loginPassword"
                 );
 
 
-            if (!emailInput || !passwordInput) {
+            if (!usernameInput || !passwordInput) {
 
                 alert(
-                    "Login form fields not found."
+                    "Login username और password fields नहीं मिलीं."
                 );
 
                 return;
-
             }
 
 
-            const email =
-                emailInput.value.trim().toLowerCase();
+            const username =
+                usernameInput.value.trim();
 
             const password =
                 passwordInput.value;
 
 
             // ------------------------------------------------
-            // BASIC VALIDATION
+            // VALIDATION
             // ------------------------------------------------
 
-            if (!email || !password) {
+            if (!username) {
 
                 alert(
-                    "Please enter email and password."
+                    "Please enter your username."
                 );
 
                 return;
+            }
 
+
+            if (!password) {
+
+                alert(
+                    "Please enter your password."
+                );
+
+                return;
             }
 
 
             // ------------------------------------------------
-            // CONNECT TO BACKEND
+            // LOGIN REQUEST
             // ------------------------------------------------
 
             try {
 
                 const response =
-
                     await fetch(
                         API_BASE_URL +
                         "/api/auth/login",
@@ -266,22 +233,31 @@ if (loginForm) {
                             },
 
                             body: JSON.stringify({
-
-                                email: email,
-
+                                username: username,
                                 password: password
-
                             })
                         }
                     );
 
 
-                const data =
-                    await response.json();
+                const text =
+                    await response.text();
+
+
+                let data = {};
+
+                try {
+                    data = text
+                        ? JSON.parse(text)
+                        : {};
+                }
+                catch {
+                    data = {};
+                }
 
 
                 // ------------------------------------------------
-                // LOGIN FAILED
+                // LOGIN ERROR
                 // ------------------------------------------------
 
                 if (!response.ok) {
@@ -289,16 +265,15 @@ if (loginForm) {
                     alert(
                         data.message ||
                         data.error ||
-                        "Login failed. Please check your email and password."
+                        "Login failed. Please check your username and password."
                     );
 
                     return;
-
                 }
 
 
                 // ------------------------------------------------
-                // SAVE JWT TOKEN
+                // SAVE JWT
                 // ------------------------------------------------
 
                 if (data.token) {
@@ -307,19 +282,20 @@ if (loginForm) {
                         "marketplaceToken",
                         data.token
                     );
-
                 }
 
 
                 // ------------------------------------------------
-                // SAVE USER INFORMATION
+                // SAVE USER
                 // ------------------------------------------------
 
                 localStorage.setItem(
                     "marketplaceUser",
                     JSON.stringify({
-                        username: data.username,
-                        roles: data.roles
+                        username:
+                            data.username,
+                        roles:
+                            data.roles
                     })
                 );
 
@@ -333,9 +309,7 @@ if (loginForm) {
 
                 closeAuth();
 
-
             }
-
             catch (error) {
 
                 console.error(
@@ -345,14 +319,11 @@ if (loginForm) {
 
 
                 alert(
-                    "Unable to connect to the backend. Make sure the Spring Boot server is running."
+                    "Unable to connect to the backend. Please check your Render service."
                 );
-
             }
-
         }
     );
-
 }
 
 
@@ -362,7 +333,6 @@ if (loginForm) {
 
 const signupForm =
     document.querySelector("#signupForm");
-
 
 if (signupForm) {
 
@@ -374,26 +344,167 @@ if (signupForm) {
 
 
             // ------------------------------------------------
-            // GET SIGNUP INPUTS
+            // NAME
             // ------------------------------------------------
 
             const nameInput =
                 signupForm.querySelector(
-                    'input[name="name"], input[type="text"]'
+                    'input[name="name"]'
+                ) ||
+                signupForm.querySelector(
+                    "#name"
+                ) ||
+                signupForm.querySelector(
+                    "#signupName"
                 );
 
+
+            // ------------------------------------------------
+            // USERNAME
+            // ------------------------------------------------
+
+            const usernameInput =
+                signupForm.querySelector(
+                    'input[name="username"]'
+                ) ||
+                signupForm.querySelector(
+                    "#username"
+                ) ||
+                signupForm.querySelector(
+                    "#signupUsername"
+                );
+
+
+            // ------------------------------------------------
+            // EMAIL
+            // ------------------------------------------------
 
             const emailInput =
                 signupForm.querySelector(
-                    'input[type="email"]'
+                    'input[name="email"]'
+                ) ||
+                signupForm.querySelector(
+                    "#email"
+                ) ||
+                signupForm.querySelector(
+                    "#signupEmail"
                 );
 
+
+            // ------------------------------------------------
+            // PHONE
+            // ------------------------------------------------
+
+            const phoneInput =
+                signupForm.querySelector(
+                    'input[name="phone"]'
+                ) ||
+                signupForm.querySelector(
+                    "#phone"
+                ) ||
+                signupForm.querySelector(
+                    "#signupPhone"
+                ) ||
+                signupForm.querySelector(
+                    'input[type="tel"]'
+                );
+
+
+            // ------------------------------------------------
+            // PASSWORD
+            // ------------------------------------------------
 
             const passwordInput =
                 signupForm.querySelector(
-                    'input[type="password"]'
+                    'input[name="password"]'
+                ) ||
+                signupForm.querySelector(
+                    "#password"
+                ) ||
+                signupForm.querySelector(
+                    "#signupPassword"
                 );
 
+
+            // ------------------------------------------------
+            // CHECK REQUIRED FIELDS
+            // ------------------------------------------------
+
+            if (!nameInput) {
+
+                alert(
+                    "Signup name field नहीं मिली."
+                );
+
+                return;
+            }
+
+
+            if (!usernameInput) {
+
+                alert(
+                    "Signup username field नहीं मिली."
+                );
+
+                return;
+            }
+
+
+            if (!emailInput) {
+
+                alert(
+                    "Signup email field नहीं मिली."
+                );
+
+                return;
+            }
+
+
+            if (!phoneInput) {
+
+                alert(
+                    "Signup phone field नहीं मिली."
+                );
+
+                return;
+            }
+
+
+            if (!passwordInput) {
+
+                alert(
+                    "Signup password field नहीं मिली."
+                );
+
+                return;
+            }
+
+
+            // ------------------------------------------------
+            // GET VALUES
+            // ------------------------------------------------
+
+            const name =
+                nameInput.value.trim();
+
+            const username =
+                usernameInput.value.trim();
+
+            const email =
+                emailInput.value
+                    .trim()
+                    .toLowerCase();
+
+            const phone =
+                phoneInput.value.trim();
+
+            const password =
+                passwordInput.value;
+
+
+            // ------------------------------------------------
+            // GET ROLE
+            // ------------------------------------------------
 
             const roleInput =
                 document.querySelector(
@@ -401,39 +512,64 @@ if (signupForm) {
                 );
 
 
-            if (
-                !nameInput ||
-                !emailInput ||
-                !passwordInput
-            ) {
-
-                alert(
-                    "Signup form fields not found."
-                );
-
-                return;
-
-            }
-
-
-            const name =
-                nameInput.value.trim();
-
-            const email =
-                emailInput.value.trim().toLowerCase();
-
-            const password =
-                passwordInput.value;
-
-
-            const role =
+            let role =
                 roleInput
                     ? roleInput.value
-                    : "customer";
+                    : "CUSTOMER";
+
+
+            role =
+                role
+                    .trim()
+                    .toUpperCase();
 
 
             // ------------------------------------------------
-            // BASIC VALIDATION
+            // CONVERT FRONTEND ROLE
+            // TO BACKEND ROLE
+            // ------------------------------------------------
+
+            if (role === "CUSTOMER") {
+
+                role = "CUSTOMER";
+
+            }
+            else if (
+                role === "SELLER"
+            ) {
+
+                role = "SELLER";
+
+            }
+            else if (
+                role === "CONTRACTOR"
+            ) {
+
+                role = "SERVICE_PROVIDER";
+
+            }
+            else if (
+                role === "SERVICE PROVIDER"
+            ) {
+
+                role = "SERVICE_PROVIDER";
+
+            }
+            else if (
+                role === "SERVICE_PROVIDER"
+            ) {
+
+                role = "SERVICE_PROVIDER";
+
+            }
+            else {
+
+                role = "CUSTOMER";
+            }
+
+
+            // ------------------------------------------------
+            // VALIDATION
             // ------------------------------------------------
 
             if (!name) {
@@ -443,7 +579,16 @@ if (signupForm) {
                 );
 
                 return;
+            }
 
+
+            if (!username) {
+
+                alert(
+                    "Please enter a username."
+                );
+
+                return;
             }
 
 
@@ -454,7 +599,16 @@ if (signupForm) {
                 );
 
                 return;
+            }
 
+
+            if (!phone) {
+
+                alert(
+                    "Please enter your phone number."
+                );
+
+                return;
             }
 
 
@@ -465,18 +619,79 @@ if (signupForm) {
                 );
 
                 return;
-
             }
 
 
             // ------------------------------------------------
-            // CONNECT TO BACKEND
+            // PASSWORD REQUIREMENT
+            // Backend requires:
+            // 13-17 characters
+            // uppercase
+            // lowercase
+            // number
+            // special character
+            // ------------------------------------------------
+
+            if (
+                password.length < 13 ||
+                password.length > 17
+            ) {
+
+                alert(
+                    "Password must be 13-17 characters long."
+                );
+
+                return;
+            }
+
+
+            if (!/[A-Z]/.test(password)) {
+
+                alert(
+                    "Password must contain at least one uppercase letter."
+                );
+
+                return;
+            }
+
+
+            if (!/[a-z]/.test(password)) {
+
+                alert(
+                    "Password must contain at least one lowercase letter."
+                );
+
+                return;
+            }
+
+
+            if (!/[0-9]/.test(password)) {
+
+                alert(
+                    "Password must contain at least one number."
+                );
+
+                return;
+            }
+
+
+            if (!/[^A-Za-z0-9]/.test(password)) {
+
+                alert(
+                    "Password must contain at least one special character."
+                );
+
+                return;
+            }
+
+
+            // ------------------------------------------------
+            // REGISTER REQUEST
             // ------------------------------------------------
 
             try {
 
                 const response =
-
                     await fetch(
                         API_BASE_URL +
                         "/api/auth/register",
@@ -492,23 +707,38 @@ if (signupForm) {
 
                                 name: name,
 
+                                username: username,
+
                                 email: email,
+
+                                phone: phone,
 
                                 password: password,
 
-                                role: role
-
+                                roles: [role]
                             })
                         }
                     );
 
 
-                const data =
-                    await response.json();
+                const text =
+                    await response.text();
+
+
+                let data = {};
+
+                try {
+                    data = text
+                        ? JSON.parse(text)
+                        : {};
+                }
+                catch {
+                    data = {};
+                }
 
 
                 // ------------------------------------------------
-                // SIGNUP FAILED
+                // REGISTER ERROR
                 // ------------------------------------------------
 
                 if (!response.ok) {
@@ -520,12 +750,11 @@ if (signupForm) {
                     );
 
                     return;
-
                 }
 
 
                 // ------------------------------------------------
-                // SAVE JWT TOKEN
+                // SAVE JWT
                 // ------------------------------------------------
 
                 if (data.token) {
@@ -534,19 +763,20 @@ if (signupForm) {
                         "marketplaceToken",
                         data.token
                     );
-
                 }
 
 
                 // ------------------------------------------------
-                // SAVE USER INFORMATION
+                // SAVE USER
                 // ------------------------------------------------
 
                 localStorage.setItem(
                     "marketplaceUser",
                     JSON.stringify({
-                        username: data.username,
-                        roles: data.roles
+                        username:
+                            data.username,
+                        roles:
+                            data.roles
                     })
                 );
 
@@ -560,9 +790,7 @@ if (signupForm) {
 
                 closeAuth();
 
-
             }
-
             catch (error) {
 
                 console.error(
@@ -572,14 +800,11 @@ if (signupForm) {
 
 
                 alert(
-                    "Unable to connect to the backend. Make sure the Spring Boot server is running."
+                    "Unable to connect to the backend. Please check your Render service."
                 );
-
             }
-
         }
     );
-
 }
 
 
@@ -594,9 +819,7 @@ document.addEventListener(
         if (event.key === "Escape") {
 
             closeAuth();
-
         }
-
     }
 );
 
@@ -612,12 +835,10 @@ function selectRole(role) {
             "#customerBtn"
         );
 
-
     const contractorBtn =
         document.querySelector(
             "#contractorBtn"
         );
-
 
     const roleInput =
         document.querySelector(
@@ -632,7 +853,6 @@ function selectRole(role) {
             customerBtn.classList.add(
                 "active"
             );
-
         }
 
 
@@ -641,7 +861,6 @@ function selectRole(role) {
             contractorBtn.classList.remove(
                 "active"
             );
-
         }
 
 
@@ -649,9 +868,7 @@ function selectRole(role) {
 
             roleInput.value =
                 "customer";
-
         }
-
     }
 
 
@@ -662,7 +879,6 @@ function selectRole(role) {
             contractorBtn.classList.add(
                 "active"
             );
-
         }
 
 
@@ -671,7 +887,6 @@ function selectRole(role) {
             customerBtn.classList.remove(
                 "active"
             );
-
         }
 
 
@@ -679,11 +894,8 @@ function selectRole(role) {
 
             roleInput.value =
                 "contractor";
-
         }
-
     }
-
 }
 
 
@@ -713,7 +925,6 @@ document
                                 btn.classList.remove(
                                     "active"
                                 );
-
                             }
                         );
 
@@ -721,10 +932,8 @@ document
                     this.classList.add(
                         "active"
                     );
-
                 }
             );
-
         }
     );
 
@@ -750,7 +959,6 @@ function selectSignupRole(
             btn.classList.remove(
                 "active"
             );
-
         }
     );
 
@@ -760,7 +968,6 @@ function selectSignupRole(
         element.classList.add(
             "active"
         );
-
     }
 
 
@@ -774,9 +981,7 @@ function selectSignupRole(
 
         roleInput.value =
             role;
-
     }
-
 }
 
 
@@ -805,7 +1010,6 @@ function togglePasswordVisibility(
     if (!passwordInput) {
 
         return;
-
     }
 
 
@@ -826,7 +1030,6 @@ function togglePasswordVisibility(
         iconElement.classList.add(
             "fa-eye"
         );
-
     }
 
     else {
@@ -843,9 +1046,7 @@ function togglePasswordVisibility(
         iconElement.classList.add(
             "fa-eye-slash"
         );
-
     }
-
 }
 
 
@@ -867,8 +1068,6 @@ document.addEventListener(
             togglePasswordVisibility(
                 event.target
             );
-
         }
-
     }
 );
