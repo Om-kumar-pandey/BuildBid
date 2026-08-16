@@ -681,10 +681,10 @@ if (signupForm) {
                 password:
                     password,
 
-                roles:
-                    [
-                        selectedRole
-                    ]
+                role:
+                    
+                        selectedRole.toLowerCase()
+                    
 
             };
 
