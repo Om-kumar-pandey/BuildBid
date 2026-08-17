@@ -297,31 +297,22 @@ if (loginForm) {
 
             try {
 
-                const response =
-                    await fetch(
-                        API_BASE_URL +
-                        "/api/auth/login",
-                        {
-                            method: "POST",
+                
+                    const response = await fetch(
+    API_BASE_URL + "/api/auth/login",
+    {
+        method: "POST",
 
-                            headers: {
+        headers: {
+            "Content-Type": "application/json"
+        },
 
-                                "Content-Type":
-                                    "application/json"
-
-                            },
-
-                            body:
-                                JSON.stringify({
-
-                                username:
-                                    username,
-
-                                password:
-                                    password
-
-                        }
-                    );
+        body: JSON.stringify({
+            username: username,
+            password: password
+        })
+    }
+);
 
 
                 const data =
