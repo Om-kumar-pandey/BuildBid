@@ -227,15 +227,17 @@ if (loginForm) {
             // GET EMAIL
             // ------------------------------------------------
 
+            const usernameInput =
+                loginForm.querySelector(
+                    'input[name="username"]'
+                );
+
+
             const emailInput =
                 loginForm.querySelector(
                     'input[name="email"]'
                 );
 
-
-            // ------------------------------------------------
-            // GET PASSWORD
-            // ------------------------------------------------
 
             const passwordInput =
                 loginForm.querySelector(
@@ -244,53 +246,33 @@ if (loginForm) {
 
 
             // ------------------------------------------------
-            // CHECK INPUTS EXIST
+            // BACKEND REQUIRES USERNAME
             // ------------------------------------------------
 
-            if (!emailInput) {
-
-                alert(
-                    "Login email field not found."
-                );
-
-                return;
-
-            }
-
-
-            if (!passwordInput) {
-
-                alert(
-                    "Login password field not found."
-                );
-
-                return;
-
-            }
-
-
-            // ------------------------------------------------
-            // GET VALUES
-            // ------------------------------------------------
-
-            const email =
-                emailInput.value
-                    .trim()
-                    .toLowerCase();
+            const username =
+                usernameInput
+                    ? usernameInput.value.trim()
+                    : (
+                        emailInput
+                            ? emailInput.value.trim()
+                            : ""
+                    );
 
 
             const password =
-                passwordInput.value;
+                passwordInput
+                    ? passwordInput.value
+                    : "";
 
 
             // ------------------------------------------------
             // VALIDATION
             // ------------------------------------------------
 
-            if (!email) {
+            if (!username) {
 
                 alert(
-                    "Please enter your email."
+                    "Please enter your username."
                 );
 
                 return;
@@ -332,13 +314,11 @@ if (loginForm) {
                             body:
                                 JSON.stringify({
 
-                                    email:
-                                        email,
+                                username:
+                                    username,
 
-                                    password:
-                                        password
-
-                                })
+                                password:
+                                    password
 
                         }
                     );
@@ -367,9 +347,7 @@ if (loginForm) {
                         data.message ||
 
                         data.error ||
-
-                        "Login failed. Please check your email and password."
-
+                        "Login failed. Please check your username and password."
                     );
 
 
@@ -379,7 +357,7 @@ if (loginForm) {
 
 
                 // ------------------------------------------------
-                // JWT
+                // SAVE JWT
                 // ------------------------------------------------
 
                 if (data.token) {
@@ -393,7 +371,7 @@ if (loginForm) {
 
 
                 // ------------------------------------------------
-                // USER DATA
+                // SAVE USER DATA
                 // ------------------------------------------------
 
                 localStorage.setItem(
@@ -424,8 +402,6 @@ if (loginForm) {
 
                 loginForm.reset();
 
-
-                closeAuth();
 
             }
 
@@ -475,9 +451,21 @@ if (signupForm) {
                 );
 
 
+            const usernameInput =
+                signupForm.querySelector(
+                    'input[name="username"]'
+                );
+
+
             const emailInput =
                 signupForm.querySelector(
                     'input[name="email"]'
+                );
+
+
+            const phoneInput =
+                signupForm.querySelector(
+                    'input[name="phone"]'
                 );
 
 
@@ -494,13 +482,24 @@ if (signupForm) {
 
 
             // ------------------------------------------------
-            // CHECK INPUTS
+            // CHECK REQUIRED FIELDS
             // ------------------------------------------------
 
             if (!nameInput) {
 
                 alert(
                     "Signup name field not found."
+                );
+
+                return;
+
+            }
+
+
+            if (!usernameInput) {
+
+                alert(
+                    "Signup username field not found."
                 );
 
                 return;
@@ -519,10 +518,10 @@ if (signupForm) {
             }
 
 
-            if (!passwordInput) {
+            if (!phoneInput) {
 
                 alert(
-                    "Signup password field not found."
+                    "Signup phone field not found."
                 );
 
                 return;
@@ -530,10 +529,10 @@ if (signupForm) {
             }
 
 
-            if (!roleInput) {
+            if (!passwordInput) {
 
                 alert(
-                    "Signup role field not found."
+                    "Signup password field not found."
                 );
 
                 return;
@@ -549,24 +548,42 @@ if (signupForm) {
                 nameInput.value.trim();
 
 
+            const username =
+                usernameInput.value.trim();
+
+
             const email =
                 emailInput.value
                     .trim()
                     .toLowerCase();
 
 
+            const phone =
+                phoneInput.value.trim();
+
+
             const password =
                 passwordInput.value;
 
 
+            // ------------------------------------------------
+            // ROLE
+            // ------------------------------------------------
+
             let selectedRole =
-                roleInput.value
+                roleInput
+                    ? roleInput.value
+                    : "CUSTOMER";
+
+
+            selectedRole =
+                selectedRole
                     .trim()
                     .toUpperCase();
 
 
             // ------------------------------------------------
-            // BASIC VALIDATION
+            // VALIDATION
             // ------------------------------------------------
 
             if (!name) {
@@ -580,10 +597,32 @@ if (signupForm) {
             }
 
 
+            if (!username) {
+
+                alert(
+                    "Please enter your username."
+                );
+
+                return;
+
+            }
+
+
             if (!email) {
 
                 alert(
                     "Please enter your email."
+                );
+
+                return;
+
+            }
+
+
+            if (!phone) {
+
+                alert(
+                    "Please enter your phone number."
                 );
 
                 return;
@@ -603,7 +642,7 @@ if (signupForm) {
 
 
             // ------------------------------------------------
-            // FRONTEND ROLE VALIDATION
+            // ROLE VALIDATION
             // ------------------------------------------------
 
             const allowedRoles = [
@@ -630,55 +669,7 @@ if (signupForm) {
 
 
             // ------------------------------------------------
-            // MAP FRONTEND ROLE TO BACKEND ROLE
-            // ------------------------------------------------
-
-            let backendRole;
-
-
-            if (
-                selectedRole ===
-                "CUSTOMER"
-            ) {
-
-                backendRole =
-                    "customer";
-
-            }
-
-
-            else if (
-                selectedRole ===
-                "SELLER"
-            ) {
-
-                backendRole =
-                    "contractor";
-
-            }
-
-
-            else if (
-                selectedRole ===
-                "SERVICE_PROVIDER"
-            ) {
-
-                backendRole =
-                    "professional";
-
-            }
-
-
-            else {
-
-                backendRole =
-                    "customer";
-
-            }
-
-
-            // ------------------------------------------------
-            // REGISTER REQUEST
+            // CREATE BACKEND REQUEST
             // ------------------------------------------------
 
             const registerData = {
@@ -686,14 +677,22 @@ if (signupForm) {
                 name:
                     name,
 
+                username:
+                    username,
+
                 email:
                     email,
+
+                phone:
+                    phone,
 
                 password:
                     password,
 
                 role:
-                    backendRole
+                    
+                        selectedRole.toLowerCase()
+                    
 
             };
 
@@ -764,7 +763,6 @@ if (signupForm) {
 
                     }
 
-
                     else if (data.error) {
 
                         errorMessage =
@@ -772,12 +770,9 @@ if (signupForm) {
 
                     }
 
-
                     else if (
                         data.errors &&
-                        Array.isArray(
-                            data.errors
-                        )
+                        Array.isArray(data.errors)
                     ) {
 
                         errorMessage =
@@ -849,30 +844,6 @@ if (signupForm) {
 
                 signupForm.reset();
 
-
-                // Reset role back to CUSTOMER
-
-                roleInput.value =
-                    "CUSTOMER";
-
-
-                document
-                    .querySelectorAll(
-                        ".signup-role-btn"
-                    )
-                    .forEach(
-                        function(button, index) {
-
-                            button.classList.toggle(
-                                "active",
-                                index === 0
-                            );
-
-                        }
-                    );
-
-
-                closeAuth();
 
             }
 
@@ -1009,6 +980,23 @@ function selectRole(role) {
 
 }
 
+
+// ============================================================
+// ROLE BUTTONS
+// ============================================================
+
+document
+    .querySelectorAll(
+        ".role-btn"
+    )
+    .forEach(
+        function(button) {
+
+            button.addEventListener(
+                "click",
+                function(event) {
+
+                    event.preventDefault();
 
 
 

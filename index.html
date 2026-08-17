@@ -1242,88 +1242,115 @@
 
 
 
-                <!-- LOGIN FORM (UPDATED) -->
-<form id="loginForm">
+                <!-- LOGIN FORM -->
 
-    <input
-        type="hidden"
-        id="selectedRole"
-        name="role"
-        value="customer">
+                <form id="loginForm">
 
-    <!-- EMAIL (Updated from Username) -->
-    <div class="buildbid-input-group">
 
-        <label for="loginEmail">
-            Email Address
-        </label>
+                    <input
+                        type="hidden"
+                        id="selectedRole"
+                        name="role"
+                        value="customer">
 
-        <div class="buildbid-input-wrapper">
 
-            <input
-                type="email"
-                id="loginEmail"
-                name="email"
-                placeholder="Enter your email"
-                autocomplete="email"
-                required>
 
-            <i class="fa-regular fa-envelope"></i>
+                    <!-- USERNAME -->
 
-        </div>
+                    <div class="buildbid-input-group">
 
-    </div>
+                        <label for="loginUsername">
+                            Username
+                        </label>
 
-    <!-- PASSWORD -->
-    <div class="buildbid-input-group">
 
-        <label for="loginPassword">
-            Password
-        </label>
+                        <div class="buildbid-input-wrapper">
 
-        <div class="buildbid-input-wrapper">
+                            <input
+                                type="text"
+                                id="loginUsername"
+                                name="username"
+                                placeholder="Enter your username"
+                                autocomplete="username"
+                                required>
 
-            <input
-                type="password"
-                id="loginPassword"
-                name="password"
-                placeholder="Enter your password"
-                autocomplete="current-password"
-                required>
 
-            <i class="fa-solid fa-eye-slash password-toggle"></i>
+                            <i class="fa-regular fa-user"></i>
 
-        </div>
+                        </div>
 
-    </div>
+                    </div>
 
-    <!-- OPTIONS -->
-    <div class="buildbid-form-options">
 
-        <label>
-            <input type="checkbox">
-            Remember me
-        </label>
 
-        <a
-            href="#"
-            onclick="showMessage('Password reset feature coming soon!'); return false;">
-            Forgot Password?
-        </a>
+                    <!-- PASSWORD -->
 
-    </div>
+                    <div class="buildbid-input-group">
 
-    <!-- LOGIN BUTTON -->
-    <button
-        type="submit"
-        class="buildbid-auth-submit">
+                        <label for="loginPassword">
+                            Password
+                        </label>
 
-        Login
-        <i class="fa-solid fa-arrow-right"></i>
 
-    </button>
+                        <div class="buildbid-input-wrapper">
 
-</form>
+                            <input
+                                type="password"
+                                id="loginPassword"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required>
+
+
+                            <i class="fa-solid fa-eye-slash password-toggle"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- OPTIONS -->
+
+                    <div class="buildbid-form-options">
+
+                        <label>
+
+                            <input type="checkbox">
+
+                            Remember me
+
+                        </label>
+
+
+                        <a
+                            href="#"
+                            onclick="showMessage('Password reset feature coming soon!'); return false;">
+
+                            Forgot Password?
+
+                        </a>
+
+                    </div>
+
+
+
+                    <!-- LOGIN BUTTON -->
+
+                    <button
+                        type="submit"
+                        class="buildbid-auth-submit">
+
+                        Login
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+
+                </form>
+
 
 
                 <!-- SIGNUP LINK -->
@@ -1387,209 +1414,259 @@
                 <form id="signupForm">
 
 
-    <!-- =================================================
-         SELECTED ROLE
-         ================================================= -->
+                    <!-- SELECTED ROLE -->
 
-    <input
-        type="hidden"
-        id="signupSelectedRole"
-        name="role"
-        value="CUSTOMER">
+                    <input
+                        type="hidden"
+                        id="signupSelectedRole"
+                        name="roles"
+                        value="CUSTOMER">
 
 
-    <!-- =================================================
-         ROLE SELECTION
-         ================================================= -->
 
-    <div class="buildbid-input-group">
+                    <!-- ROLE SELECTION -->
 
-        <label>
-            Select Role
-        </label>
+                    <div class="buildbid-input-group">
 
+                        <label>
+                            Select Role
+                        </label>
 
-        <div class="buildbid-signup-roles">
 
+                        <div class="buildbid-signup-roles">
 
-            <!-- CUSTOMER -->
 
-            <button
-                type="button"
-                class="signup-role-btn active"
-                onclick="selectSignupRole(this, 'CUSTOMER')">
+                            <!-- CUSTOMER -->
 
-                <i class="fa-solid fa-user"></i>
+                            <button
+                                type="button"
+                                class="signup-role-btn active"
+                                onclick="selectSignupRole(this, 'CUSTOMER')">
 
-                Customer
+                                <i class="fa-solid fa-user"></i>
 
-            </button>
+                                Customer
 
+                            </button>
 
-            <!-- SELLER -->
 
-            <button
-                type="button"
-                class="signup-role-btn"
-                onclick="selectSignupRole(this, 'SELLER')">
+                            <!-- SELLER -->
 
-                <i class="fa-solid fa-store"></i>
+                            <button
+                                type="button"
+                                class="signup-role-btn"
+                                onclick="selectSignupRole(this, 'SELLER')">
 
-                Seller
+                                <i class="fa-solid fa-store"></i>
 
-            </button>
+                                Seller
 
+                            </button>
 
-            <!-- SERVICE PROVIDER -->
 
-            <button
-                type="button"
-                class="signup-role-btn"
-                onclick="selectSignupRole(this, 'SERVICE_PROVIDER')">
+                            <!-- SERVICE PROVIDER -->
 
-                <i class="fa-solid fa-helmet-safety"></i>
+                            <button
+                                type="button"
+                                class="signup-role-btn"
+                                onclick="selectSignupRole(this, 'SERVICE_PROVIDER')">
 
-                Service Provider
+                                <i class="fa-solid fa-helmet-safety"></i>
 
-            </button>
+                                Service Provider
 
+                            </button>
 
-        </div>
 
-    </div>
+                        </div>
 
+                    </div>
 
 
-    <!-- =================================================
-         FULL NAME
-         ================================================= -->
 
-    <div class="buildbid-input-group">
+                    <!-- FULL NAME -->
 
-        <label for="signupName">
-            Full Name
-        </label>
+                    <div class="buildbid-input-group">
 
+                        <label for="signupName">
+                            Full Name
+                        </label>
 
-        <div class="buildbid-input-wrapper">
 
-            <input
-                type="text"
-                id="signupName"
-                name="name"
-                placeholder="Enter your full name"
-                maxlength="100"
-                autocomplete="name"
-                required>
+                        <div class="buildbid-input-wrapper">
 
+                            <input
+                                type="text"
+                                id="signupName"
+                                name="name"
+                                placeholder="Enter your full name"
+                                maxlength="100"
+                                autocomplete="name"
+                                required>
 
-            <i class="fa-regular fa-user"></i>
 
-        </div>
+                            <i class="fa-regular fa-user"></i>
 
-    </div>
+                        </div>
 
+                    </div>
 
 
-    <!-- =================================================
-         EMAIL
-         ================================================= -->
 
-    <div class="buildbid-input-group">
+                    <!-- USERNAME -->
 
-        <label for="signupEmail">
-            Email Address
-        </label>
+                    <div class="buildbid-input-group">
 
+                        <label for="signupUsername">
+                            Username
+                        </label>
 
-        <div class="buildbid-input-wrapper">
 
-            <input
-                type="email"
-                id="signupEmail"
-                name="email"
-                placeholder="Enter your email"
-                maxlength="150"
-                autocomplete="email"
-                required>
+                        <div class="buildbid-input-wrapper">
 
+                            <input
+                                type="text"
+                                id="signupUsername"
+                                name="username"
+                                placeholder="Choose a username"
+                                minlength="3"
+                                maxlength="30"
+                                pattern="[A-Za-z0-9_]+"
+                                autocomplete="username"
+                                required>
 
-            <i class="fa-regular fa-envelope"></i>
 
-        </div>
+                            <i class="fa-solid fa-at"></i>
 
-    </div>
+                        </div>
 
+                    </div>
 
 
-    <!-- =================================================
-         PASSWORD
-         ================================================= -->
 
-    <div class="buildbid-input-group">
+                    <!-- EMAIL -->
 
-        <label for="signupPassword">
-            Password
-        </label>
+                    <div class="buildbid-input-group">
 
+                        <label for="signupEmail">
+                            Email Address
+                        </label>
 
-        <div class="buildbid-input-wrapper">
 
-            <input
-                type="password"
-                id="signupPassword"
-                name="password"
-                placeholder="Create a password"
-                minlength="1"
-                maxlength="100"
-                autocomplete="new-password"
-                required>
+                        <div class="buildbid-input-wrapper">
 
+                            <input
+                                type="email"
+                                id="signupEmail"
+                                name="email"
+                                placeholder="Enter your email"
+                                autocomplete="email"
+                                required>
 
-            <i class="fa-solid fa-eye-slash password-toggle"></i>
 
-        </div>
+                            <i class="fa-regular fa-envelope"></i>
 
-    </div>
+                        </div>
 
+                    </div>
 
 
-    <!-- =================================================
-         CREATE ACCOUNT
-         ================================================= -->
 
-    <button
-        type="submit"
-        class="buildbid-auth-submit">
+                    <!-- PHONE -->
 
-        Create Account
+                    <div class="buildbid-input-group">
 
-        <i class="fa-solid fa-arrow-right"></i>
+                        <label for="signupPhone">
+                            Phone Number
+                        </label>
 
-    </button>
 
+                        <div class="buildbid-input-wrapper">
 
+                            <input
+                                type="tel"
+                                id="signupPhone"
+                                name="phone"
+                                placeholder="Enter your phone number"
+                                pattern="[0-9]{10,15}"
+                                minlength="10"
+                                maxlength="15"
+                                autocomplete="tel"
+                                required>
 
-    <!-- =================================================
-         LOGIN LINK
-         ================================================= -->
 
-    <p class="buildbid-footer-text">
+                            <i class="fa-solid fa-phone"></i>
 
-        Already have an account?
+                        </div>
 
-        <a
-            href="#"
-            onclick="showLogin(); return false;">
+                    </div>
 
-            Login
 
-        </a>
 
-    </p>
+                    <!-- PASSWORD -->
 
+                    <div class="buildbid-input-group">
 
-</form>
+                        <label for="signupPassword">
+                            Password
+                        </label>
+
+
+                        <div class="buildbid-input-wrapper">
+
+                            <input
+                                type="password"
+                                id="signupPassword"
+                                name="password"
+                                placeholder="Create a password"
+                                minlength="13"
+                                maxlength="17"
+                                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{13,17}"
+                                autocomplete="new-password"
+                                required>
+
+
+                            <i class="fa-solid fa-eye-slash password-toggle"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- CREATE ACCOUNT -->
+
+                    <button
+                        type="submit"
+                        class="buildbid-auth-submit">
+
+                        Create Account
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+
+
+                    <!-- LOGIN LINK -->
+
+                    <p class="buildbid-footer-text">
+
+                        Already have an account?
+
+                        <a
+                            href="#"
+                            onclick="showLogin(); return false;">
+
+                            Login
+
+                        </a>
+
+                    </p>
+
+
+                </form>
+
 
             </div>
 
