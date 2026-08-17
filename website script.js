@@ -207,214 +207,104 @@ if (requirementForm) {
 
 
 // ============================================================
-// LOGIN FORM
+// LOGIN FORM (FIXED)
 // ============================================================
 
-const loginForm =
-    document.querySelector("#loginForm");
-
+const loginForm = document.querySelector("#loginForm");
 
 if (loginForm) {
-
-    loginForm.addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            // ------------------------------------------------
-            // GET LOGIN INPUTS
-            // ------------------------------------------------
-
-            const usernameInput =
-                loginForm.querySelector(
-                    'input[name="username"]'
-                );
-
-
-            const emailInput =
-                loginForm.querySelector(
-                    'input[name="email"]'
-                );
-
-
-            const passwordInput =
-                loginForm.querySelector(
-                    'input[name="password"]'
-                );
-
-
-            // ------------------------------------------------
-            // BACKEND REQUIRES USERNAME
-            // ------------------------------------------------
-
-            const username =
-                usernameInput
-                    ? usernameInput.value.trim()
-                    : (
-                        emailInput
-                            ? emailInput.value.trim()
-                            : ""
-                    );
-
-
-            const password =
-                passwordInput
-                    ? passwordInput.value
-                    : "";
-
-
-            // ------------------------------------------------
-            // VALIDATION
-            // ------------------------------------------------
-
-            if (!username) {
-
-                alert(
-                    "Please enter your username."
-                );
-
-                return;
-
-            }
-
-
-            if (!password) {
-
-                alert(
-                    "Please enter your password."
-                );
-
-                return;
-
-            }
-
-
-            // ------------------------------------------------
-            // SEND LOGIN REQUEST
-            // ------------------------------------------------
-
-            try {
-
-                const response =
-                    await fetch(
-                        API_BASE_URL +
-                        "/api/auth/login",
-                        {
-                            method: "POST",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body: JSON.stringify({
-
-                                username:
-                                    username,
-
-                                password:
-                                    password
-
-                            })
-                        }
-                    );
-
-
-                const data =
-                    await getResponseData(
-                        response
-                    );
-
-
-                // ------------------------------------------------
-                // LOGIN FAILED
-                // ------------------------------------------------
-
-                if (!response.ok) {
-
-                    alert(
-                        data.message ||
-                        data.error ||
-                        "Login failed. Please check your username and password."
-                    );
-
-                    return;
-
-                }
-
-
-                // ------------------------------------------------
-                // SAVE JWT
-                // ------------------------------------------------
-
-                if (data.token) {
-
-                    localStorage.setItem(
-                        "marketplaceToken",
-                        data.token
-                    );
-
-                }
-
-
-                // ------------------------------------------------
-                // SAVE USER DATA
-                // ------------------------------------------------
-
-                localStorage.setItem(
-
-                    "marketplaceUser",
-
-                    JSON.stringify({
-
-                        username:
-                            data.username,
-
-                        roles:
-                            data.roles
-
-                    })
-
-                );
-
-
-                // ------------------------------------------------
-                // SUCCESS
-                // ------------------------------------------------
-
-                alert(
-                    "Login successful!"
-                );
-
-
-                loginForm.reset();
-
-                closeAuth();
-
-            }
-
-
-            catch (error) {
-
-                console.error(
-                    "Login error:",
-                    error
-                );
-
-
-                alert(
-                    "Unable to connect to the backend."
-                );
-
-            }
-
+    loginForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        // ------------------------------------------------
+        // GET LOGIN INPUTS
+        // ------------------------------------------------
+        const emailInput =
+            loginForm.querySelector('input[name="email"]') ||
+            loginForm.querySelector('input[name="username"]');
+
+        const passwordInput =
+            loginForm.querySelector('input[name="password"]');
+
+        // ------------------------------------------------
+        // EXTRACT VALUES
+        // ------------------------------------------------
+        const email = emailInput ? emailInput.value.trim() : "";
+        const password = passwordInput ? passwordInput.value : "";
+
+        // ------------------------------------------------
+        // VALIDATION
+        // ------------------------------------------------
+        if (!email) {
+            alert("Please enter your email.");
+            return;
         }
-    );
 
+        if (!password) {
+            alert("Please enter your password.");
+            return;
+        }
+
+        // ------------------------------------------------
+        // SEND LOGIN REQUEST (KEY MUST BE 'email')
+        // ------------------------------------------------
+        try {
+            const response = await fetch(API_BASE_URL + "/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: email,       // ✅ अब बैकएंड को सही 'email' की (key) मिलेगी
+                    password: password
+                })
+            });
+
+            const data = await getResponseData(response);
+
+            // ------------------------------------------------
+            // LOGIN FAILED
+            // ------------------------------------------------
+            if (!response.ok) {
+                alert(
+                    data.message ||
+                    data.error ||
+                    "Login failed. Please check your credentials."
+                );
+                return;
+            }
+
+            // ------------------------------------------------
+            // SAVE JWT
+            // ------------------------------------------------
+            if (data.token) {
+                localStorage.setItem("marketplaceToken", data.token);
+            }
+
+            // ------------------------------------------------
+            // SAVE USER DATA
+            // ------------------------------------------------
+            localStorage.setItem(
+                "marketplaceUser",
+                JSON.stringify({
+                    username: data.username,
+                    roles: data.roles
+                })
+            );
+
+            // ------------------------------------------------
+            // SUCCESS
+            // ------------------------------------------------
+            alert("Login successful!");
+            loginForm.reset();
+            closeAuth();
+
+        } catch (error) {
+            console.error("Login error:", error);
+            alert("Unable to connect to the backend.");
+        }
+    });
 }
-
 
 // ============================================================
 // SIGNUP FORM
