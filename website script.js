@@ -986,9 +986,7 @@ function selectRole(role) {
 // ============================================================
 
 document
-    .querySelectorAll(
-        ".role-btn"
-    )
+    .querySelectorAll(".role-btn")
     .forEach(
         function(button) {
 
@@ -998,6 +996,18 @@ document
 
                     event.preventDefault();
 
+                    // यहाँ तुम्हारा role button वाला code होगा
+
+                }
+            );
+
+        }
+    );
+
+
+// ============================================================
+// SIGNUP ROLE SELECTOR
+// ============================================================
 
 
 
