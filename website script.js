@@ -224,7 +224,7 @@ if (loginForm) {
 
 
             // ------------------------------------------------
-            // GET LOGIN INPUTS
+            // GET EMAIL
             // ------------------------------------------------
 
             const usernameInput =
@@ -305,11 +305,14 @@ if (loginForm) {
                             method: "POST",
 
                             headers: {
+
                                 "Content-Type":
                                     "application/json"
+
                             },
 
-                            body: JSON.stringify({
+                            body:
+                                JSON.stringify({
 
                                 username:
                                     username,
@@ -317,7 +320,6 @@ if (loginForm) {
                                 password:
                                     password
 
-                            })
                         }
                     );
 
@@ -334,11 +336,20 @@ if (loginForm) {
 
                 if (!response.ok) {
 
+                    console.error(
+                        "Login response:",
+                        data
+                    );
+
+
                     alert(
+
                         data.message ||
+
                         data.error ||
                         "Login failed. Please check your username and password."
                     );
+
 
                     return;
 
@@ -391,7 +402,6 @@ if (loginForm) {
 
                 loginForm.reset();
 
-                closeAuth();
 
             }
 
@@ -414,8 +424,6 @@ if (loginForm) {
     );
 
 }
-
-
 // ============================================================
 // SIGNUP FORM
 // ============================================================
@@ -434,7 +442,7 @@ if (signupForm) {
 
 
             // ------------------------------------------------
-            // GET SIGNUP INPUTS
+            // GET INPUTS
             // ------------------------------------------------
 
             const nameInput =
@@ -468,7 +476,7 @@ if (signupForm) {
 
 
             const roleInput =
-                document.querySelector(
+                signupForm.querySelector(
                     "#signupSelectedRole"
                 );
 
@@ -706,7 +714,9 @@ if (signupForm) {
                         API_BASE_URL +
                         "/api/auth/register",
                         {
-                            method: "POST",
+
+                            method:
+                                "POST",
 
                             headers: {
 
@@ -782,6 +792,7 @@ if (signupForm) {
                         errorMessage
                     );
 
+
                     return;
 
                 }
@@ -833,7 +844,6 @@ if (signupForm) {
 
                 signupForm.reset();
 
-                closeAuth();
 
             }
 
@@ -989,30 +999,6 @@ document
                     event.preventDefault();
 
 
-                    document
-                        .querySelectorAll(
-                            ".role-btn"
-                        )
-                        .forEach(
-                            function(btn) {
-
-                                btn.classList.remove(
-                                    "active"
-                                );
-
-                            }
-                        );
-
-
-                    this.classList.add(
-                        "active"
-                    );
-
-                }
-            );
-
-        }
-    );
 
 
 // ============================================================
