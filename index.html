@@ -1242,115 +1242,88 @@
 
 
 
-                <!-- LOGIN FORM -->
+                <!-- LOGIN FORM (UPDATED) -->
+<form id="loginForm">
 
-                <form id="loginForm">
+    <input
+        type="hidden"
+        id="selectedRole"
+        name="role"
+        value="customer">
 
+    <!-- EMAIL (Updated from Username) -->
+    <div class="buildbid-input-group">
 
-                    <input
-                        type="hidden"
-                        id="selectedRole"
-                        name="role"
-                        value="customer">
+        <label for="loginEmail">
+            Email Address
+        </label>
 
+        <div class="buildbid-input-wrapper">
 
+            <input
+                type="email"
+                id="loginEmail"
+                name="email"
+                placeholder="Enter your email"
+                autocomplete="email"
+                required>
 
-                    <!-- USERNAME -->
+            <i class="fa-regular fa-envelope"></i>
 
-                    <div class="buildbid-input-group">
+        </div>
 
-                        <label for="loginUsername">
-                            Username
-                        </label>
+    </div>
 
+    <!-- PASSWORD -->
+    <div class="buildbid-input-group">
 
-                        <div class="buildbid-input-wrapper">
+        <label for="loginPassword">
+            Password
+        </label>
 
-                            <input
-                                type="text"
-                                id="loginUsername"
-                                name="username"
-                                placeholder="Enter your username"
-                                autocomplete="username"
-                                required>
+        <div class="buildbid-input-wrapper">
 
+            <input
+                type="password"
+                id="loginPassword"
+                name="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required>
 
-                            <i class="fa-regular fa-user"></i>
+            <i class="fa-solid fa-eye-slash password-toggle"></i>
 
-                        </div>
+        </div>
 
-                    </div>
+    </div>
 
+    <!-- OPTIONS -->
+    <div class="buildbid-form-options">
 
+        <label>
+            <input type="checkbox">
+            Remember me
+        </label>
 
-                    <!-- PASSWORD -->
+        <a
+            href="#"
+            onclick="showMessage('Password reset feature coming soon!'); return false;">
+            Forgot Password?
+        </a>
 
-                    <div class="buildbid-input-group">
+    </div>
 
-                        <label for="loginPassword">
-                            Password
-                        </label>
+    <!-- LOGIN BUTTON -->
+    <button
+        type="submit"
+        class="buildbid-auth-submit">
 
+        Login
+        <i class="fa-solid fa-arrow-right"></i>
 
-                        <div class="buildbid-input-wrapper">
+    </button>
 
-                            <input
-                                type="password"
-                                id="loginPassword"
-                                name="password"
-                                placeholder="Enter your password"
-                                autocomplete="current-password"
-                                required>
-
-
-                            <i class="fa-solid fa-eye-slash password-toggle"></i>
-
-                        </div>
-
-                    </div>
-
-
-
-                    <!-- OPTIONS -->
-
-                    <div class="buildbid-form-options">
-
-                        <label>
-
-                            <input type="checkbox">
-
-                            Remember me
-
-                        </label>
-
-
-                        <a
-                            href="#"
-                            onclick="showMessage('Password reset feature coming soon!'); return false;">
-
-                            Forgot Password?
-
-                        </a>
-
-                    </div>
-
-
-
-                    <!-- LOGIN BUTTON -->
-
-                    <button
-                        type="submit"
-                        class="buildbid-auth-submit">
-
-                        Login
-
-                        <i class="fa-solid fa-arrow-right"></i>
-
-                    </button>
-
-
-                </form>
-
+</form>
 
 
                 <!-- SIGNUP LINK -->
