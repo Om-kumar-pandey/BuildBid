@@ -52,7 +52,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import jakarta.servlet.FilterChain;
@@ -70,7 +69,6 @@ import jakarta.servlet.http.HttpServletResponse;
 public class MarketplaceBackendApplication {
 
     public static void main(String[] args) {
-
         org.springframework.boot.SpringApplication.run(
                 MarketplaceBackendApplication.class,
                 args
@@ -83,7 +81,6 @@ public class MarketplaceBackendApplication {
     // ========================================================
 
     public enum Role {
-
         CUSTOMER,
         SELLER,
         SERVICE_PROVIDER
@@ -102,64 +99,43 @@ public class MarketplaceBackendApplication {
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
-
         @Column(nullable = false, length = 100)
         private String name;
 
-
-        /*
-         * Username is kept internally for compatibility
-         * with the existing security structure.
-         *
-         * Frontend does NOT need to send username.
-         */
         @Column(unique = true, length = 100)
         private String username;
-
 
         @Column(nullable = false, unique = true, length = 150)
         private String email;
 
-
-        /*
-         * Phone is no longer required because the current
-         * frontend signup form does not contain a phone field.
-         */
         @Column(length = 20)
         private String phone;
-
 
         @Column(nullable = false, length = 100)
         private String passwordHash;
 
-
         @Column(length = 500)
         private String profilePhotoUrl;
 
-
         @ElementCollection(fetch = FetchType.EAGER)
-@CollectionTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id")
-)
-@Column(name = "role")
-@Enumerated(EnumType.STRING)
-private Set<Role> roles = new HashSet<>();
+        @CollectionTable(
+                name = "user_roles",
+                joinColumns = @JoinColumn(name = "user_id")
+        )
+        @Column(name = "role")
+        @Enumerated(EnumType.STRING)
+        private Set<Role> roles = new HashSet<>();
 
         @Column(nullable = false)
         private boolean enabled = true;
 
-
         @Column(nullable = false)
         private LocalDateTime createdAt;
 
-
         @PrePersist
         public void onCreate() {
-
             createdAt = LocalDateTime.now();
         }
-
 
         // ====================================================
         // GETTERS
@@ -169,41 +145,37 @@ private Set<Role> roles = new HashSet<>();
             return id;
         }
 
-
         public String getName() {
             return name;
         }
-
 
         public String getUsername() {
             return username;
         }
 
-
         public String getEmail() {
             return email;
         }
-
 
         public String getPhone() {
             return phone;
         }
 
-
         public String getPasswordHash() {
             return passwordHash;
         }
 
+        public String getProfilePhotoUrl() {
+            return profilePhotoUrl;
+        }
 
         public Set<Role> getRoles() {
             return roles;
         }
 
-
         public boolean isEnabled() {
             return enabled;
         }
-
 
         // ====================================================
         // SETTERS
@@ -213,29 +185,32 @@ private Set<Role> roles = new HashSet<>();
             this.name = name;
         }
 
-
         public void setUsername(String username) {
             this.username = username;
         }
-
 
         public void setEmail(String email) {
             this.email = email;
         }
 
-
         public void setPhone(String phone) {
             this.phone = phone;
         }
-
 
         public void setPasswordHash(String passwordHash) {
             this.passwordHash = passwordHash;
         }
 
+        public void setProfilePhotoUrl(String profilePhotoUrl) {
+            this.profilePhotoUrl = profilePhotoUrl;
+        }
 
         public void setRoles(Set<Role> roles) {
             this.roles = roles;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 
@@ -244,43 +219,21 @@ private Set<Role> roles = new HashSet<>();
     // USER REPOSITORY
     // ========================================================
 
-    public interface UserRepository
-            extends JpaRepository<MarketplaceUser, Long> {
+    public interface UserRepository extends JpaRepository<MarketplaceUser, Long> {
 
+        Optional<MarketplaceUser> findByUsername(String username);
 
-        Optional<MarketplaceUser> findByUsername(
-                String username
-        );
+        Optional<MarketplaceUser> findByEmail(String email);
 
+        boolean existsByUsername(String username);
 
-        Optional<MarketplaceUser> findByEmail(
-                String email
-        );
-
-
-        boolean existsByUsername(
-                String username
-        );
-
-
-        boolean existsByEmail(
-                String email
-        );
+        boolean existsByEmail(String email);
     }
 
 
     // ========================================================
-    // REGISTER REQUEST
+    // REGISTER REQUEST (Updated with username & phone)
     // ========================================================
-
-    /*
-     * Matches the CURRENT frontend signup form:
-     *
-     * name
-     * email
-     * password
-     * role
-     */
 
     public record RegisterRequest(
 
@@ -288,17 +241,20 @@ private Set<Role> roles = new HashSet<>();
             @Size(max = 100)
             String name,
 
+            @NotBlank
+            @Size(min = 3, max = 50)
+            String username,
 
             @NotBlank
             @Email
             @Size(max = 150)
             String email,
 
+            String phone,
 
             @NotBlank
             @Size(min = 1, max = 100)
             String password,
-
 
             @NotBlank
             String role
@@ -308,22 +264,14 @@ private Set<Role> roles = new HashSet<>();
 
 
     // ========================================================
-    // LOGIN REQUEST
+    // LOGIN REQUEST (Matches Frontend Login Form)
     // ========================================================
-
-    /*
-     * Matches the CURRENT frontend login form:
-     *
-     * email
-     * password
-     */
 
     public record LoginRequest(
 
             @NotBlank
             @Email
             String email,
-
 
             @NotBlank
             String password
@@ -358,120 +306,56 @@ private Set<Role> roles = new HashSet<>();
     public static class JwtService {
 
         private final SecretKey key;
-
         private final long expiration;
 
-
         public JwtService(
-
-                @Value("${app.jwt.secret}")
-                String secret,
-
-                @Value("${app.jwt.expiration-ms}")
-                long expiration
-
+                @Value("${app.jwt.secret}") String secret,
+                @Value("${app.jwt.expiration-ms}") long expiration
         ) {
-
             if (secret.length() < 32) {
-
                 throw new IllegalArgumentException(
                         "JWT secret must be at least 32 characters"
                 );
             }
 
-
-            key = Keys.hmacShaKeyFor(
+            this.key = Keys.hmacShaKeyFor(
                     secret.getBytes(StandardCharsets.UTF_8)
             );
-
-
             this.expiration = expiration;
         }
 
-
-        public String createToken(
-                UserDetails user
-        ) {
-
+        public String createToken(UserDetails user) {
             Date now = new Date();
-
-
-            Date expiry = new Date(
-                    now.getTime() + expiration
-            );
-
+            Date expiry = new Date(now.getTime() + expiration);
 
             return Jwts.builder()
-
-                    .subject(
-                            user.getUsername()
-                    )
-
+                    .subject(user.getUsername())
                     .issuedAt(now)
-
                     .expiration(expiry)
-
                     .signWith(key)
-
                     .compact();
         }
 
-
-        public String extractUsername(
-                String token
-        ) {
-
+        public String extractUsername(String token) {
             return Jwts.parser()
-
                     .verifyWith(key)
-
                     .build()
-
                     .parseSignedClaims(token)
-
                     .getPayload()
-
                     .getSubject();
         }
 
-
-        public boolean isValid(
-
-                String token,
-
-                UserDetails user
-
-        ) {
-
+        public boolean isValid(String token, UserDetails user) {
             try {
-
                 var claims = Jwts.parser()
-
                         .verifyWith(key)
-
                         .build()
-
                         .parseSignedClaims(token)
-
                         .getPayload();
 
-
-                return claims
-
-                        .getSubject()
-
-                        .equals(user.getUsername())
-
-                        && claims
-
-                        .getExpiration()
-
-                        .after(new Date());
-
-            }
-
-            catch (Exception e) {
-
+                return claims.getSubject().equals(user.getUsername())
+                        && claims.getExpiration().after(new Date());
+            } catch (Exception e) {
                 return false;
             }
         }
@@ -483,77 +367,29 @@ private Set<Role> roles = new HashSet<>();
     // ========================================================
 
     @Service
-    public static class CustomUserDetailsService
-            implements UserDetailsService {
-
+    public static class CustomUserDetailsService implements UserDetailsService {
 
         private final UserRepository repository;
 
-
-        public CustomUserDetailsService(
-                UserRepository repository
-        ) {
-
+        public CustomUserDetailsService(UserRepository repository) {
             this.repository = repository;
         }
 
-
-        /*
-         * The security layer now treats the email as the
-         * username/identity.
-         */
-
         @Override
-        public UserDetails loadUserByUsername(
+        public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
-                String email
+            MarketplaceUser user = repository.findByEmail(email)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        ) throws UsernameNotFoundException {
+            String[] roles = user.getRoles()
+                    .stream()
+                    .map(Enum::name)
+                    .toArray(String[]::new);
 
-
-            MarketplaceUser user =
-
-                    repository
-
-                            .findByEmail(email)
-
-                            .orElseThrow(
-
-                                    () -> new UsernameNotFoundException(
-                                            "User not found"
-                                    )
-                            );
-
-
-            String[] roles =
-
-                    user
-
-                            .getRoles()
-
-                            .stream()
-
-                            .map(Enum::name)
-
-                            .toArray(String[]::new);
-
-
-            return User
-
-                    .withUsername(
-                            user.getEmail()
-                    )
-
-                    .password(
-                            user.getPasswordHash()
-                    )
-
+            return User.withUsername(user.getEmail())
+                    .password(user.getPasswordHash())
                     .roles(roles)
-
-                    .disabled(
-                            !user.isEnabled()
-                    )
-
+                    .disabled(!user.isEnabled())
                     .build();
         }
     }
@@ -564,151 +400,59 @@ private Set<Role> roles = new HashSet<>();
     // ========================================================
 
     @Service
-    public static class JwtAuthenticationFilter
-            extends OncePerRequestFilter {
-
+    public static class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         private final JwtService jwtService;
-
         private final UserDetailsService userDetailsService;
 
-
         public JwtAuthenticationFilter(
-
                 JwtService jwtService,
-
                 UserDetailsService userDetailsService
-
         ) {
-
             this.jwtService = jwtService;
-
-            this.userDetailsService =
-                    userDetailsService;
+            this.userDetailsService = userDetailsService;
         }
-
 
         @Override
         protected void doFilterInternal(
-
                 HttpServletRequest request,
-
                 HttpServletResponse response,
-
                 FilterChain filterChain
-
         ) throws ServletException, IOException {
 
+            String authorizationHeader = request.getHeader("Authorization");
 
-            String authorizationHeader =
-
-                    request.getHeader(
-                            "Authorization"
-                    );
-
-
-            if (
-
-                    authorizationHeader == null
-
-                            ||
-
-                    !authorizationHeader.startsWith(
-                            "Bearer "
-                    )
-
-            ) {
-
-                filterChain.doFilter(
-                        request,
-                        response
-                );
-
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
                 return;
             }
 
-
             try {
+                String token = authorizationHeader.substring(7);
+                String email = jwtService.extractUsername(token);
 
-                String token =
+                if (org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication() == null) {
 
-                        authorizationHeader.substring(
-                                7
-                        );
+                    UserDetails user = userDetailsService.loadUserByUsername(email);
 
-
-                String email =
-
-                        jwtService.extractUsername(
-                                token
-                        );
-
-
-                if (
-
-                        org.springframework.security.core.context
-                                .SecurityContextHolder
-                                .getContext()
-                                .getAuthentication()
-                                == null
-
-                ) {
-
-
-                    UserDetails user =
-
-                            userDetailsService
-
-                                    .loadUserByUsername(
-                                            email
-                                    );
-
-
-                    if (
-
-                            jwtService.isValid(
-                                    token,
-                                    user
-                            )
-
-                    ) {
-
-
-                        UsernamePasswordAuthenticationToken
-
-                                authentication =
-
+                    if (jwtService.isValid(token, user)) {
+                        UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
-
                                         user,
-
                                         null,
-
                                         user.getAuthorities()
                                 );
 
-
-                        org.springframework.security.core.context
-                                .SecurityContextHolder
-                                .getContext()
-                                .setAuthentication(
-                                        authentication
-                                );
+                        org.springframework.security.core.context.SecurityContextHolder
+                                .getContext().setAuthentication(authentication);
                     }
                 }
-
+            } catch (Exception ignored) {
+                // Invalid token
             }
 
-            catch (Exception ignored) {
-
-                // Invalid token.
-            }
-
-
-            filterChain.doFilter(
-                    request,
-                    response
-            );
+            filterChain.doFilter(request, response);
         }
     }
 
@@ -720,221 +464,85 @@ private Set<Role> roles = new HashSet<>();
     @Configuration
     public static class SecurityConfig {
 
-
         private final JwtAuthenticationFilter jwtFilter;
-
         private final UserDetailsService userDetailsService;
 
-
         public SecurityConfig(
-
                 JwtAuthenticationFilter jwtFilter,
-
                 UserDetailsService userDetailsService
-
         ) {
-
             this.jwtFilter = jwtFilter;
-
-            this.userDetailsService =
-                    userDetailsService;
+            this.userDetailsService = userDetailsService;
         }
-
-
-        // ----------------------------------------------------
-        // PASSWORD ENCODER
-        // ----------------------------------------------------
 
         @Bean
         public PasswordEncoder passwordEncoder() {
-
             return new BCryptPasswordEncoder();
         }
 
-
-        // ----------------------------------------------------
-        // AUTHENTICATION PROVIDER
-        // ----------------------------------------------------
-
         @Bean
         public AuthenticationProvider authenticationProvider() {
-
-            DaoAuthenticationProvider provider =
-                    new DaoAuthenticationProvider();
-
-            provider.setUserDetailsService(
-                    userDetailsService
-            );
-
-            provider.setPasswordEncoder(
-                    passwordEncoder()
-            );
-
+            DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+            provider.setUserDetailsService(userDetailsService);
+            provider.setPasswordEncoder(passwordEncoder());
             return provider;
         }
 
-
-        // ----------------------------------------------------
-        // AUTHENTICATION MANAGER
-        // ----------------------------------------------------
-
         @Bean
         public AuthenticationManager authenticationManager(
-
                 AuthenticationConfiguration configuration
-
         ) throws Exception {
-
-
-            return configuration
-
-                    .getAuthenticationManager();
+            return configuration.getAuthenticationManager();
         }
 
-
-        // ----------------------------------------------------
-        // SECURITY FILTER CHAIN
-        // ----------------------------------------------------
-
         @Bean
-        public SecurityFilterChain securityFilterChain(
-
-                HttpSecurity http
-
-        ) throws Exception {
-
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
             return http
-
-                    .csrf(
-                            csrf ->
-                                    csrf.disable()
+                    .csrf(csrf -> csrf.disable())
+                    .cors(cors -> {})
+                    .sessionManagement(session ->
+                            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
-
-                    /*
-                     * Allow frontend applications to call
-                     * this backend.
-                     */
-                    .cors(
-                            cors -> {
-                            }
+                    .authorizeHttpRequests(auth ->
+                            auth
+                                    .requestMatchers(
+                                            "/",
+                                            "/index.html",
+                                            "/api/auth/**",
+                                            "/api/health"
+                                    ).permitAll()
+                                    .requestMatchers(
+                                            HttpMethod.OPTIONS,
+                                            "/**"
+                                    ).permitAll()
+                                    .anyRequest().authenticated()
                     )
-
-                    .sessionManagement(
-
-                            session ->
-
-                                    session.sessionCreationPolicy(
-
-                                            SessionCreationPolicy
-                                                    .STATELESS
-                                    )
-                    )
-
-                    .authorizeHttpRequests(
-
-                            auth ->
-
-                                    auth
-
-                                            .requestMatchers(
-
-                                                    "/",
-                                                    "/index.html",
-                                                    "/api/auth/**",
-                                                    "/api/health"
-                                            )
-
-                                            .permitAll()
-
-                                            .requestMatchers(
-                                                HttpMethod.OPTIONS,
-                                                "/**"
-                                            )
-
-                                            .permitAll()
-
-
-                                            .anyRequest()
-
-                                            .authenticated()
-                    )
-
-
-                    .authenticationProvider(
-
-                            authenticationProvider()
-                    )
-
-
+                    .authenticationProvider(authenticationProvider())
                     .addFilterBefore(
-
                             jwtFilter,
-
-                            UsernamePasswordAuthenticationFilter
-                                    .class
+                            UsernamePasswordAuthenticationFilter.class
                     )
-
-
                     .build();
         }
 
-
-        // ----------------------------------------------------
-        // CORS CONFIGURATION
-        // ----------------------------------------------------
-
         @Bean
-        public org.springframework.web.cors.CorsConfigurationSource
-        corsConfigurationSource() {
+        public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
 
             org.springframework.web.cors.CorsConfiguration configuration =
                     new org.springframework.web.cors.CorsConfiguration();
 
-
-            /*
-             * For development this allows requests from
-             * frontend applications.
-             *
-             * Later, when your leader deploys the website,
-             * this can be restricted to the actual frontend URL.
-             */
-            configuration.setAllowedOriginPatterns(
-                    java.util.List.of("*")
-            );
-
-
-            configuration.setAllowedMethods(
-                    java.util.List.of(
-                            "GET",
-                            "POST",
-                            "PUT",
-                            "DELETE",
-                            "OPTIONS"
-                    )
-            );
-
-
-            configuration.setAllowedHeaders(
-                    java.util.List.of("*")
-            );
-
-
+            configuration.setAllowedOriginPatterns(java.util.List.of("*"));
+            configuration.setAllowedMethods(java.util.List.of(
+                    "GET", "POST", "PUT", "DELETE", "OPTIONS"
+            ));
+            configuration.setAllowedHeaders(java.util.List.of("*"));
             configuration.setAllowCredentials(false);
 
+            org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
+                    new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
 
-            org.springframework.web.cors.UrlBasedCorsConfigurationSource
-                    source =
-                    new org.springframework.web.cors
-                            .UrlBasedCorsConfigurationSource();
-
-
-            source.registerCorsConfiguration(
-                    "/**",
-                    configuration
-            );
-
-
+            source.registerCorsConfiguration("/**", configuration);
             return source;
         }
     }
@@ -947,366 +555,122 @@ private Set<Role> roles = new HashSet<>();
     @Service
     public static class AuthService {
 
-
         private final UserRepository repository;
-
         private final PasswordEncoder passwordEncoder;
-
         private final AuthenticationManager authenticationManager;
-
         private final JwtService jwtService;
 
-
         public AuthService(
-
                 UserRepository repository,
-
                 PasswordEncoder passwordEncoder,
-
                 AuthenticationManager authenticationManager,
-
                 JwtService jwtService
-
         ) {
-
             this.repository = repository;
-
-            this.passwordEncoder =
-                    passwordEncoder;
-
-            this.authenticationManager =
-                    authenticationManager;
-
-            this.jwtService =
-                    jwtService;
+            this.passwordEncoder = passwordEncoder;
+            this.authenticationManager = authenticationManager;
+            this.jwtService = jwtService;
         }
 
+        // ================= REGISTER =================
+        public AuthResponse register(RegisterRequest request) {
 
-        // ====================================================
-        // REGISTER
-        // ====================================================
+            String email = request.email().trim().toLowerCase();
+            String username = request.username().trim();
 
-        public AuthResponse register(
-
-                RegisterRequest request
-
-        ) {
-
-
-            String email =
-
-                    request.email()
-
-                            .trim()
-
-                            .toLowerCase();
-
-
-            // ------------------------------------------------
-            // EMAIL CHECK
-            // ------------------------------------------------
-
-            if (
-
-                    repository.existsByEmail(
-                            email
-                    )
-
-            ) {
-
-                throw new IllegalArgumentException(
-                        "Email already exists"
-                );
+            // Check if email already exists
+            if (repository.existsByEmail(email)) {
+                throw new IllegalArgumentException("Email already exists");
             }
 
+            // Check if username already exists
+            if (repository.existsByUsername(username)) {
+                throw new IllegalArgumentException("Username already exists");
+            }
 
-            // ------------------------------------------------
-            // ROLE MAPPING
-            // ------------------------------------------------
-
-            Role role = mapFrontendRole(
-                    request.role()
-            );
-
-
-            Set<Role> roles =
-                    new HashSet<>();
-
-
+            Role role = mapFrontendRole(request.role());
+            Set<Role> roles = new HashSet<>();
             roles.add(role);
 
+            MarketplaceUser user = new MarketplaceUser();
+            user.setName(request.name().trim());
+            user.setUsername(username); // <--- Real username saved in SQL
+            user.setEmail(email);
+            user.setPhone(request.phone() != null ? request.phone().trim() : null); // <--- Real phone saved
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setRoles(roles);
 
-            // ------------------------------------------------
-            // CREATE USER
-            // ------------------------------------------------
+            MarketplaceUser savedUser = repository.save(user);
 
-            MarketplaceUser user =
-                    new MarketplaceUser();
+            UserDetails userDetails = createUserDetails(savedUser);
+            String token = jwtService.createToken(userDetails);
 
-
-            user.setName(
-                    request.name().trim()
-            );
-
-
-            /*
-             * Frontend does not provide username.
-             *
-             * Generate an internal unique username.
-             * Authentication itself uses email.
-             */
-            user.setUsername(
-                    "user_" + UUID.randomUUID()
-            );
-
-
-            user.setEmail(
-                    email
-            );
-
-
-            /*
-             * Frontend currently does not provide phone.
-             */
-            user.setPhone(
-                    null
-            );
-
-
-            user.setPasswordHash(
-
-                    passwordEncoder.encode(
-                            request.password()
-                    )
-            );
-
-
-            user.setRoles(
-                    roles
-            );
-
-
-            MarketplaceUser savedUser =
-
-                    repository.save(user);
-
-
-            UserDetails userDetails =
-
-                    createUserDetails(
-                            savedUser
-                    );
-
-
-            String token =
-
-                    jwtService.createToken(
-                            userDetails
-                    );
-
-
-            return createResponse(
-                    token,
-                    savedUser
-            );
+            return createResponse(token, savedUser);
         }
 
+        // ================= LOGIN =================
+        public AuthResponse login(LoginRequest request) {
 
-        // ====================================================
-        // LOGIN
-        // ====================================================
-
-        public AuthResponse login(
-
-                LoginRequest request
-
-        ) {
-
-
-            String email =
-
-                    request.email()
-
-                            .trim()
-
-                            .toLowerCase();
-
-
-            /*
-             * Authentication now uses EMAIL.
-             */
+            String email = request.email().trim().toLowerCase();
 
             authenticationManager.authenticate(
-
                     new UsernamePasswordAuthenticationToken(
-
                             email,
-
                             request.password()
                     )
             );
 
+            MarketplaceUser user = repository.findByEmail(email)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-            MarketplaceUser user =
+            UserDetails userDetails = createUserDetails(user);
+            String token = jwtService.createToken(userDetails);
 
-                    repository
-
-                            .findByEmail(
-                                    email
-                            )
-
-                            .orElseThrow(
-
-                                    () -> new UsernameNotFoundException(
-                                            "User not found"
-                                    )
-                            );
-
-
-            UserDetails userDetails =
-
-                    createUserDetails(
-                            user
-                    );
-
-
-            String token =
-
-                    jwtService.createToken(
-                            userDetails
-                    );
-
-
-            return createResponse(
-                    token,
-                    user
-            );
+            return createResponse(token, user);
         }
 
+        // ================= ROLE MAPPING =================
+        private Role mapFrontendRole(String frontendRole) {
 
-        // ====================================================
-        // ROLE MAPPING
-        // ====================================================
-
-        private Role mapFrontendRole(
-                String frontendRole
-        ) {
-
-            if (frontendRole == null) {
-
-                throw new IllegalArgumentException(
-                        "Role is required"
-                );
+            if (frontendRole == null || frontendRole.isBlank()) {
+                return Role.CUSTOMER;
             }
 
-
-            return switch (
-                    frontendRole
-                            .trim()
-                            .toLowerCase()
-            ) {
-
-                case "customer",
-                     "homeowner" ->
-                        Role.CUSTOMER;
-
-
-                case "contractor" ->
-                        Role.SELLER;
-
-
-                case "professional" ->
-                        Role.SERVICE_PROVIDER;
-
-
-                default ->
-                        throw new IllegalArgumentException(
-                                "Invalid role: " + frontendRole
-                        );
+            return switch (frontendRole.trim().toLowerCase()) {
+                case "customer", "homeowner" -> Role.CUSTOMER;
+                case "contractor", "seller" -> Role.SELLER;
+                case "professional", "service_provider" -> Role.SERVICE_PROVIDER;
+                default -> Role.CUSTOMER;
             };
         }
 
+        // ================= USER DETAILS HELPER =================
+        private UserDetails createUserDetails(MarketplaceUser user) {
 
-        // ====================================================
-        // CREATE USER DETAILS
-        // ====================================================
+            String[] roles = user.getRoles()
+                    .stream()
+                    .map(Enum::name)
+                    .toArray(String[]::new);
 
-        private UserDetails createUserDetails(
-
-                MarketplaceUser user
-
-        ) {
-
-
-            return User
-
-                    .withUsername(
-                            user.getEmail()
-                    )
-
-                    .password(
-                            user.getPasswordHash()
-                    )
-
-                    .roles(
-
-                            user
-
-                                    .getRoles()
-
-                                    .stream()
-
-                                    .map(Enum::name)
-
-                                    .toArray(
-                                            String[]::new
-                                    )
-                    )
-
-                    .disabled(
-                            !user.isEnabled()
-                    )
-
+            return User.withUsername(user.getEmail())
+                    .password(user.getPasswordHash())
+                    .roles(roles)
+                    .disabled(!user.isEnabled())
                     .build();
         }
 
+        // ================= RESPONSE HELPER =================
+        private AuthResponse createResponse(String token, MarketplaceUser user) {
 
-        // ====================================================
-        // RESPONSE
-        // ====================================================
-
-        private AuthResponse createResponse(
-
-                String token,
-
-                MarketplaceUser user
-
-        ) {
-
-
-            Set<String> roles =
-
-                    user
-
-                            .getRoles()
-
-                            .stream()
-
-                            .map(Enum::name)
-
-                            .collect(
-                                    Collectors.toSet()
-                            );
-
+            Set<String> roles = user.getRoles()
+                    .stream()
+                    .map(Enum::name)
+                    .collect(Collectors.toSet());
 
             return new AuthResponse(
-
                     token,
-
                     "Bearer",
-
-                    user.getEmail(),
-
+                    user.getUsername(), // Real username returned to frontend
                     roles
             );
         }
@@ -1321,55 +685,25 @@ private Set<Role> roles = new HashSet<>();
     @RequestMapping("/api/auth")
     public static class AuthController {
 
-
         private final AuthService authService;
 
-
-        public AuthController(
-                AuthService authService
-        ) {
-
-            this.authService =
-                    authService;
+        public AuthController(AuthService authService) {
+            this.authService = authService;
         }
-
-
-        // ----------------------------------------------------
-        // REGISTER
-        // ----------------------------------------------------
 
         @PostMapping("/register")
         @ResponseStatus(HttpStatus.CREATED)
         public AuthResponse register(
-
-                @Valid
-                @RequestBody
-                RegisterRequest request
-
+                @Valid @RequestBody RegisterRequest request
         ) {
-
-            return authService.register(
-                    request
-            );
+            return authService.register(request);
         }
-
-
-        // ----------------------------------------------------
-        // LOGIN
-        // ----------------------------------------------------
 
         @PostMapping("/login")
         public AuthResponse login(
-
-                @Valid
-                @RequestBody
-                LoginRequest request
-
+                @Valid @RequestBody LoginRequest request
         ) {
-
-            return authService.login(
-                    request
-            );
+            return authService.login(request);
         }
     }
 
@@ -1381,18 +715,11 @@ private Set<Role> roles = new HashSet<>();
     @RestController
     public static class HealthController {
 
-
         @GetMapping("/api/health")
         public Map<String, String> health() {
-
-
             return Map.of(
-
-                    "status",
-                    "UP",
-
-                    "service",
-                    "marketplace-backend"
+                    "status", "UP",
+                    "service", "marketplace-backend"
             );
         }
     }
@@ -1405,20 +732,12 @@ private Set<Role> roles = new HashSet<>();
     @RestController
     public static class ProfileController {
 
-
         @GetMapping("/api/me")
         public Map<String, String> currentUser(
-
-                org.springframework.security.core.Authentication
-                        authentication
-
+                org.springframework.security.core.Authentication authentication
         ) {
-
-
             return Map.of(
-
-                    "username",
-                    authentication.getName()
+                    "username", authentication.getName()
             );
         }
     }
