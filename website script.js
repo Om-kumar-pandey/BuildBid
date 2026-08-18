@@ -205,7 +205,6 @@ if (requirementForm) {
 
 }
 
-
 // ============================================================
 // LOGIN FORM
 // ============================================================
@@ -224,14 +223,8 @@ if (loginForm) {
 
 
             // ------------------------------------------------
-            // GET EMAIL
+            // GET EMAIL & PASSWORD
             // ------------------------------------------------
-
-            const usernameInput =
-                loginForm.querySelector(
-                    'input[name="username"]'
-                );
-
 
             const emailInput =
                 loginForm.querySelector(
@@ -245,18 +238,10 @@ if (loginForm) {
                 );
 
 
-            // ------------------------------------------------
-            // BACKEND REQUIRES USERNAME
-            // ------------------------------------------------
-
-            const username =
-                usernameInput
-                    ? usernameInput.value.trim()
-                    : (
-                        emailInput
-                            ? emailInput.value.trim()
-                            : ""
-                    );
+            const email =
+                emailInput
+                    ? emailInput.value.trim().toLowerCase()
+                    : "";
 
 
             const password =
@@ -269,10 +254,10 @@ if (loginForm) {
             // VALIDATION
             // ------------------------------------------------
 
-            if (!username) {
+            if (!email) {
 
                 alert(
-                    "Please enter your username."
+                    "Please enter your email address."
                 );
 
                 return;
@@ -292,27 +277,26 @@ if (loginForm) {
 
 
             // ------------------------------------------------
-            // SEND LOGIN REQUEST
+            // SEND LOGIN REQUEST (SENDING EMAIL)
             // ------------------------------------------------
 
             try {
 
-                
-                    const response = await fetch(
-    API_BASE_URL + "/api/auth/login",
-    {
-        method: "POST",
+                const response = await fetch(
+                    API_BASE_URL + "/api/auth/login",
+                    {
+                        method: "POST",
 
-        headers: {
-            "Content-Type": "application/json"
-        },
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
 
-        body: JSON.stringify({
-            username: username,
-            password: password
-        })
-    }
-);
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    }
+                );
 
 
                 const data =
@@ -328,17 +312,15 @@ if (loginForm) {
                 if (!response.ok) {
 
                     console.error(
-                        "Login response:",
+                        "Login response error:",
                         data
                     );
 
 
                     alert(
-
                         data.message ||
-
                         data.error ||
-                        "Login failed. Please check your username and password."
+                        "Login failed. Please check your email and password."
                     );
 
 
@@ -348,7 +330,7 @@ if (loginForm) {
 
 
                 // ------------------------------------------------
-                // SAVE JWT
+                // SAVE JWT & USER INFO
                 // ------------------------------------------------
 
                 if (data.token) {
@@ -361,24 +343,12 @@ if (loginForm) {
                 }
 
 
-                // ------------------------------------------------
-                // SAVE USER DATA
-                // ------------------------------------------------
-
                 localStorage.setItem(
-
                     "marketplaceUser",
-
                     JSON.stringify({
-
-                        username:
-                            data.username,
-
-                        roles:
-                            data.roles
-
+                        username: data.username,
+                        roles: data.roles
                     })
-
                 );
 
 
@@ -390,9 +360,9 @@ if (loginForm) {
                     "Login successful!"
                 );
 
+                closeAuth();
 
                 loginForm.reset();
-
 
             }
 
@@ -406,7 +376,7 @@ if (loginForm) {
 
 
                 alert(
-                    "Unable to connect to the backend."
+                    "Unable to connect to the backend server."
                 );
 
             }
