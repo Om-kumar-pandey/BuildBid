@@ -974,7 +974,27 @@
 
 </footer>
 
+<!-- ================= AUTH TOAST ================= -->
+<div id="authToast" class="auth-toast" role="alert" aria-live="polite">
+    <div class="auth-toast-icon">
+        <i id="authToastIcon" class="fa-solid fa-check"></i>
+    </div>
 
+    <div class="auth-toast-content">
+        <strong id="authToastTitle">Success</strong>
+        <span id="authToastMessage">
+            Your request was completed successfully.
+        </span>
+    </div>
+
+    <button
+        type="button"
+        class="auth-toast-close"
+        onclick="hideAuthToast()"
+        aria-label="Close notification">
+        &times;
+    </button>
+</div>
 
 <!-- ================= LOGIN / SIGNUP POPUP ================= -->
 
@@ -1631,6 +1651,10 @@
                         </div>
 
                     </div>
+                    <!-----location----->
+                    <div class="buildbid-input-wrapper">
+  <input type="text" name="location" placeholder="City, State (e.g. Lucknow, Uttar Pradesh)" required>
+</div>
 
 
 
