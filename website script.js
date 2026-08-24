@@ -779,7 +779,7 @@ const userLocation = locationInput && locationInput.value.trim()
             }
 
 
-            // ------------------------------------------------
+           // ------------------------------------------------
             // CREATE BACKEND REQUEST
             // ------------------------------------------------
 
@@ -797,6 +797,9 @@ const userLocation = locationInput && locationInput.value.trim()
                 phone:
                     phone,
 
+                location:
+                    userLocation, // <--- Add this property right here!
+
                 password:
                     password,
 
@@ -807,6 +810,7 @@ const userLocation = locationInput && locationInput.value.trim()
 
             };
 
+            
 
             console.log(
                 "Register request:",
