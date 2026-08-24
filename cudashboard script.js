@@ -47,7 +47,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.clear();
-      alert("You have logged out.");
+      let toastTimeout;
+
+function showToast(title = "Notice", message = "You have logged out successfully.") {
+  const toast = document.getElementById("custom-toast");
+  document.getElementById("toast-title").innerText = title;
+  document.getElementById("toast-message").innerText = message;
+
+  // Show Toast
+  toast.classList.add("show");
+
+  // Agar pehle se koi timer chal raha ho to clear karein
+  clearTimeout(toastTimeout);
+
+  // 2.5 seconds ke baad automatic band ho kar login page pe redirect karega
+  toastTimeout = setTimeout(() => {
+    hideToast();
+    
+    // Redirect code (apna actual login page link yahan replace karein)
+    window.location.href = "index.html"; 
+  }, 2500);
+}
+
+function hideToast() {
+  const toast = document.getElementById("custom-toast");
+  toast.classList.remove("show");
+}
       window.location.href = "index.html";
     });
   }
