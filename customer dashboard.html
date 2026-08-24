@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid - Customer Dashboard</title>
+  <link rel="stylesheet" href="cudashboard style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="#" class="brand-logo">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+        </div>
+      </a>
+    </div>
+    
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Projects</option>
+            <option>Materials</option>
+            <option>Professionals</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+        <img src="https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User" alt="Avatar" class="pill-avatar" id="navAvatar">
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Customer</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Body Layout -->
+  <div class="app-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <ul class="side-menu">
+        <li class="active"><a href="#"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li><a href="#"><i class="fa-regular fa-folder"></i> My Projects</a></li>
+        <li><a href="#"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
+        <li><a href="#"><i class="fa-regular fa-clock"></i> Materials Orders</a></li>
+        <li><a href="#"><i class="fa-solid fa-user-group"></i> Hired Professionals</a></li>
+        <li><a href="#"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="#"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        <li><a href="#"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="#"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li><a href="#"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="#"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="#"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="#" id="logoutBtn" class="logout-action">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content-area">
+      <div class="breadcrumb">
+        <a href="#">Home</a> <i class="fa-solid fa-chevron-right breadcrumb-separator"></i> <span>Profile</span>
+      </div>
+
+      <!-- Hero Profile Banner -->
+      <section class="profile-hero-banner">
+        <div class="hero-left">
+          <div class="hero-avatar-box">
+            <img src="https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User" alt="User Image" class="hero-avatar" id="heroAvatar">
+            <button class="avatar-camera-btn" title="Change Avatar"><i class="fa-solid fa-camera"></i></button>
+          </div>
+          <div class="hero-details">
+            <div class="hero-title-row">
+              <h1 id="heroName">Customer</h1>
+              <i class="fa-solid fa-circle-check badge-verified" id="heroVerifiedBadge" style="display: none;"></i>
+            </div>
+            <div class="vip-tag" id="membershipBadge">
+              <i class="fa-solid fa-crown"></i> <span id="membershipType">Standard Member</span>
+            </div>
+            <p class="hero-role" id="heroRoleDisplay">Customer</p>
+            <div class="hero-meta-items">
+              <span id="locationWrapper" style="display: none;">
+                <i class="fa-solid fa-location-dot"></i> <span id="heroLocation"></span>
+              </span>
+              <span><i class="fa-regular fa-calendar"></i> <span id="heroMemberSince">Member since 2026</span></span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-edit-profile" id="editProfileBtn">
+          <i class="fa-solid fa-pen"></i> Edit Profile
+        </button>
+      </section>
+
+      <!-- Dashboard Cards Section -->
+      <div class="dashboard-columns">
+        
+        <!-- Left Side Column -->
+        <div class="column-left">
+          
+          <!-- About Me Card -->
+          <div class="dash-card">
+            <div class="card-title-head">
+              <i class="fa-regular fa-user title-icon"></i>
+              <h3>About Me</h3>
+            </div>
+            <p class="about-bio" id="aboutBio">
+              Welcome to BuildBid!
+            </p>
+            
+            <div class="personal-data-rows">
+              <div class="data-row">
+                <div class="data-label"><i class="fa-regular fa-user"></i> Full Name</div>
+                <div class="data-val" id="dataFullName">--</div>
+              </div>
+              <div class="data-row">
+                <div class="data-label"><i class="fa-regular fa-envelope"></i> Email Address</div>
+                <div class="data-val" id="dataEmail">--</div>
+              </div>
+              <div class="data-row">
+                <div class="data-label"><i class="fa-solid fa-phone"></i> Phone Number</div>
+                <div class="data-val" id="dataPhone">--</div>
+              </div>
+              <div class="data-row">
+                <div class="data-label"><i class="fa-solid fa-globe"></i> Preferred Language</div>
+                <div class="data-val" id="dataLanguage">English, Hindi</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Card -->
+          <div class="dash-card">
+            <div class="card-title-head flex-between">
+              <div class="title-with-icon">
+                <i class="fa-regular fa-clock title-icon"></i>
+                <h3>Recent Activity</h3>
+              </div>
+              <a href="#" class="link-view-all">View All</a>
+            </div>
+
+            <div class="activity-timeline" id="activityContainer">
+              <p style="color: #94a3b8; font-size: 13px; padding: 10px 0;">Loading recent activities...</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Side Column -->
+        <div class="column-right">
+          
+          <!-- Profile Stats Card -->
+          <div class="dash-card">
+            <div class="card-title-head">
+              <i class="fa-solid fa-chart-pie title-icon"></i>
+              <h3>Profile Stats</h3>
+            </div>
+            <div class="stats-matrix">
+              <div class="stat-cell">
+                <div class="stat-number" id="statProjectsPosted">0</div>
+                <div class="stat-sub">Projects Posted</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-number" id="statBidsReceived">0</div>
+                <div class="stat-sub">Bids Received</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-number" id="statOrdersPlaced">0</div>
+                <div class="stat-sub">Orders Placed</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-number star-val">
+                  <span id="statAverageRating">5.0</span> 
+                  <i class="fa-solid fa-star gold-star"></i>
+                </div>
+                <div class="stat-sub">Average Rating</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Verification Status Card -->
+          <div class="dash-card">
+            <div class="card-title-head">
+              <i class="fa-solid fa-shield-halved title-icon"></i>
+              <h3>Verification Status</h3>
+            </div>
+            <div class="verify-checklist" id="verificationContainer">
+            </div>
+          </div>
+
+          <!-- Quick Links Card -->
+          <div class="dash-card">
+            <div class="card-title-head">
+              <i class="fa-solid fa-link title-icon"></i>
+              <h3>Quick Links</h3>
+            </div>
+            <div class="quick-links-group">
+              <a href="#" class="quick-link-row">
+                <span>Post a New Project</span>
+                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
+              </a>
+              <a href="#" class="quick-link-row">
+                <span>Browse Contractors</span>
+                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
+              </a>
+              <a href="#" class="quick-link-row">
+                <span>Order Materials</span>
+                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
+              </a>
+              <a href="#" class="quick-link-row">
+                <span>Hire Professionals</span>
+                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Bottom Promotional CTA Banner -->
+      <section class="banner-promote">
+        <div class="promote-left">
+          <div class="promote-symbol">
+            <i class="fa-solid fa-house-chimney"></i>
+          </div>
+          <div class="promote-info">
+            <h2>Build Your Dream with BuildBid</h2>
+            <p>Post your requirements, get the best quotes, hire trusted professionals and order quality materials – all in one platform.</p>
+          </div>
+        </div>
+        <button class="btn-post-action">
+          <i class="fa-solid fa-circle-plus"></i> Post New Project
+        </button>
+      </section>
+
+      <!-- Dashboard Footer -->
+      <footer class="app-footer">
+        <div class="footer-columns">
+          <div class="footer-brand-side">
+            <div class="brand-logo">
+              <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+              <div class="brand-text">
+                <span class="brand-title">BuildBid</span>
+                <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Platform</h4>
+            <a href="#">Projects</a>
+            <a href="#">Materials</a>
+            <a href="#">Professionals</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Company</h4>
+            <a href="#">About Us</a>
+            <a href="#">How It Works</a>
+            <a href="#">Contact Us</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Support</h4>
+            <a href="#">Help Center</a>
+            <a href="#">Terms & Conditions</a>
+            <a href="#">Privacy Policy</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Follow Us</h4>
+            <div class="social-links-row">
+              <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+              <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+              <a href="#"><i class="fa-brands fa-instagram"></i></a>
+              <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-copyright-note">
+          &copy; 2026 BuildBid. All rights reserved.
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <script src="cudashboard script.js"></script>
+</body>
+</html>
