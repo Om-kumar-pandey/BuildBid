@@ -445,17 +445,7 @@ try {
     console.error("erroe occured:",error);
 } 
 
-// Login ke waqt agar user data pehle se stored hai toh phone retain karein:
-const existingData = JSON.parse(localStorage.getItem("currentUser")) || {};
 
-const loggedInCustomer = {
-    name: data.name || data.username || email.split('@')[0],
-    email: email,
-    phone: existingData.phone || data.phone || "", // <-- Static number hata diya
-    location: data.location || existingData.location || ""
-};
-
-localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
             
 
 // ------------------------------------------------
@@ -476,7 +466,30 @@ setTimeout(() => {
     window.location.href = "customer dashboard.html";
 }, 1000);
 
+// ------------------------------------------------
+// LOGIN SUCCESS HANDLER
+// ------------------------------------------------
+const userEmail = email.trim().toLowerCase();
 
+// Pehle check karein kya is email ka data browser me saved hai
+const savedProfile = JSON.parse(localStorage.getItem("user_profile_" + userEmail)) || {};
+
+const loggedInCustomer = {
+  name: data.name || data.username || savedProfile.name || userEmail.split('@')[0],
+  username: data.username || savedProfile.username || userEmail.split('@')[0],
+  email: userEmail,
+  phone: data.phone || savedProfile.phone || "",       // <-- Koi hardcoded number nahi
+  location: data.location || savedProfile.location || "" // <-- Koi hardcoded Varanasi nahi
+};
+
+// Set as active user
+localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
+
+// Dashboard par redirect
+setTimeout(() => {
+  if (typeof closeAuth === "function") closeAuth();
+  window.location.href = "customer%20dashboard.html";
+}, 1000);
                 
 
             }
@@ -953,7 +966,22 @@ setTimeout(() => {
     window.location.href = "customer dashboard.html";
 }, 1200);
 
-                
+ // ------------------------------------------------
+// SIGNUP SUCCESS HANDLER
+// ------------------------------------------------
+const userProfileData = {
+  name: name,
+  username: username,
+  email: email.toLowerCase(),
+  phone: phone,
+  location: userLocation || ""
+};
+
+// 1. Current user set karein
+localStorage.setItem("currentUser", JSON.stringify(userProfileData));
+
+// 2. Email ke sath permanent save karein (taaki next time login par mil sake)
+localStorage.setItem("user_profile_" + email.toLowerCase(), JSON.stringify(userProfileData));               
 
 }     
 
