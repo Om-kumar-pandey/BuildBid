@@ -111,6 +111,9 @@ public class MarketplaceBackendApplication {
         @Column(length = 20)
         private String phone;
 
+        @Column(length = 150)
+        private String location; // <--- ADDED LOCATION FIELD
+
         @Column(nullable = false, length = 100)
         private String passwordHash;
 
@@ -141,77 +144,30 @@ public class MarketplaceBackendApplication {
         // GETTERS
         // ====================================================
 
-        public Long getId() {
-            return id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public String getPhone() {
-            return phone;
-        }
-
-        public String getPasswordHash() {
-            return passwordHash;
-        }
-
-        public String getProfilePhotoUrl() {
-            return profilePhotoUrl;
-        }
-
-        public Set<Role> getRoles() {
-            return roles;
-        }
-
-        public boolean isEnabled() {
-            return enabled;
-        }
+        public Long getId() { return id; }
+        public String getName() { return name; }
+        public String getUsername() { return username; }
+        public String getEmail() { return email; }
+        public String getPhone() { return phone; }
+        public String getLocation() { return location; } // <--- ADDED GETTER
+        public String getPasswordHash() { return passwordHash; }
+        public String getProfilePhotoUrl() { return profilePhotoUrl; }
+        public Set<Role> getRoles() { return roles; }
+        public boolean isEnabled() { return enabled; }
 
         // ====================================================
         // SETTERS
         // ====================================================
 
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
-        public void setPhone(String phone) {
-            this.phone = phone;
-        }
-
-        public void setPasswordHash(String passwordHash) {
-            this.passwordHash = passwordHash;
-        }
-
-        public void setProfilePhotoUrl(String profilePhotoUrl) {
-            this.profilePhotoUrl = profilePhotoUrl;
-        }
-
-        public void setRoles(Set<Role> roles) {
-            this.roles = roles;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
+        public void setName(String name) { this.name = name; }
+        public void setUsername(String username) { this.username = username; }
+        public void setEmail(String email) { this.email = email; }
+        public void setPhone(String phone) { this.phone = phone; }
+        public void setLocation(String location) { this.location = location; } // <--- ADDED SETTER
+        public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+        public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
+        public void setRoles(Set<Role> roles) { this.roles = roles; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
     }
 
 
@@ -220,64 +176,36 @@ public class MarketplaceBackendApplication {
     // ========================================================
 
     public interface UserRepository extends JpaRepository<MarketplaceUser, Long> {
-
         Optional<MarketplaceUser> findByUsername(String username);
-
         Optional<MarketplaceUser> findByEmail(String email);
-
         boolean existsByUsername(String username);
-
         boolean existsByEmail(String email);
     }
 
 
     // ========================================================
-    // REGISTER REQUEST (Updated with username & phone)
+    // REGISTER REQUEST (Updated with location)
     // ========================================================
 
     public record RegisterRequest(
-
-            @NotBlank
-            @Size(max = 100)
-            String name,
-
-            @NotBlank
-            @Size(min = 3, max = 50)
-            String username,
-
-            @NotBlank
-            @Email
-            @Size(max = 150)
-            String email,
-
+            @NotBlank @Size(max = 100) String name,
+            @NotBlank @Size(min = 3, max = 50) String username,
+            @NotBlank @Email @Size(max = 150) String email,
             String phone,
-
-            @NotBlank
-            @Size(min = 1, max = 100)
-            String password,
-
-            @NotBlank
-            String role
-
-    ) {
-    }
+            String location, // <--- ADDED LOCATION FIELD TO REQUEST
+            @NotBlank @Size(min = 1, max = 100) String password,
+            @NotBlank String role
+    ) {}
 
 
     // ========================================================
-    // LOGIN REQUEST (Matches Frontend Login Form)
+    // LOGIN REQUEST
     // ========================================================
 
     public record LoginRequest(
-
-            @NotBlank
-            @Email
-            String email,
-
-            @NotBlank
-            String password
-
-    ) {
-    }
+            @NotBlank @Email String email,
+            @NotBlank String password
+    ) {}
 
 
     // ========================================================
@@ -285,17 +213,11 @@ public class MarketplaceBackendApplication {
     // ========================================================
 
     public record AuthResponse(
-
             String token,
-
             String tokenType,
-
             String username,
-
             Set<String> roles
-
-    ) {
-    }
+    ) {}
 
 
     // ========================================================
@@ -304,7 +226,6 @@ public class MarketplaceBackendApplication {
 
     @Service
     public static class JwtService {
-
         private final SecretKey key;
         private final long expiration;
 
@@ -313,14 +234,9 @@ public class MarketplaceBackendApplication {
                 @Value("${app.jwt.expiration-ms}") long expiration
         ) {
             if (secret.length() < 32) {
-                throw new IllegalArgumentException(
-                        "JWT secret must be at least 32 characters"
-                );
+                throw new IllegalArgumentException("JWT secret must be at least 32 characters");
             }
-
-            this.key = Keys.hmacShaKeyFor(
-                    secret.getBytes(StandardCharsets.UTF_8)
-            );
+            this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
             this.expiration = expiration;
         }
 
@@ -368,7 +284,6 @@ public class MarketplaceBackendApplication {
 
     @Service
     public static class CustomUserDetailsService implements UserDetailsService {
-
         private final UserRepository repository;
 
         public CustomUserDetailsService(UserRepository repository) {
@@ -377,7 +292,6 @@ public class MarketplaceBackendApplication {
 
         @Override
         public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-
             MarketplaceUser user = repository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
@@ -401,14 +315,10 @@ public class MarketplaceBackendApplication {
 
     @Service
     public static class JwtAuthenticationFilter extends OncePerRequestFilter {
-
         private final JwtService jwtService;
         private final UserDetailsService userDetailsService;
 
-        public JwtAuthenticationFilter(
-                JwtService jwtService,
-                UserDetailsService userDetailsService
-        ) {
+        public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
             this.jwtService = jwtService;
             this.userDetailsService = userDetailsService;
         }
@@ -419,7 +329,6 @@ public class MarketplaceBackendApplication {
                 HttpServletResponse response,
                 FilterChain filterChain
         ) throws ServletException, IOException {
-
             String authorizationHeader = request.getHeader("Authorization");
 
             if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -448,9 +357,7 @@ public class MarketplaceBackendApplication {
                                 .getContext().setAuthentication(authentication);
                     }
                 }
-            } catch (Exception ignored) {
-                // Invalid token
-            }
+            } catch (Exception ignored) {}
 
             filterChain.doFilter(request, response);
         }
@@ -463,22 +370,16 @@ public class MarketplaceBackendApplication {
 
     @Configuration
     public static class SecurityConfig {
-
         private final JwtAuthenticationFilter jwtFilter;
         private final UserDetailsService userDetailsService;
 
-        public SecurityConfig(
-                JwtAuthenticationFilter jwtFilter,
-                UserDetailsService userDetailsService
-        ) {
+        public SecurityConfig(JwtAuthenticationFilter jwtFilter, UserDetailsService userDetailsService) {
             this.jwtFilter = jwtFilter;
             this.userDetailsService = userDetailsService;
         }
 
         @Bean
-        public PasswordEncoder passwordEncoder() {
-            return new BCryptPasswordEncoder();
-        }
+        public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
         @Bean
         public AuthenticationProvider authenticationProvider() {
@@ -489,15 +390,12 @@ public class MarketplaceBackendApplication {
         }
 
         @Bean
-        public AuthenticationManager authenticationManager(
-                AuthenticationConfiguration configuration
-        ) throws Exception {
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
             return configuration.getAuthenticationManager();
         }
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
             return http
                     .csrf(csrf -> csrf.disable())
                     .cors(cors -> {})
@@ -506,36 +404,22 @@ public class MarketplaceBackendApplication {
                     )
                     .authorizeHttpRequests(auth ->
                             auth
-                                    .requestMatchers(
-                                            "/",
-                                            "/index.html",
-                                            "/api/auth/**",
-                                            "/api/health"
-                                    ).permitAll()
-                                    .requestMatchers(
-                                            HttpMethod.OPTIONS,
-                                            "/**"
-                                    ).permitAll()
+                                    .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
+                                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                     .anyRequest().authenticated()
                     )
                     .authenticationProvider(authenticationProvider())
-                    .addFilterBefore(
-                            jwtFilter,
-                            UsernamePasswordAuthenticationFilter.class
-                    )
+                    .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                     .build();
         }
 
         @Bean
         public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-
             org.springframework.web.cors.CorsConfiguration configuration =
                     new org.springframework.web.cors.CorsConfiguration();
 
             configuration.setAllowedOriginPatterns(java.util.List.of("*"));
-            configuration.setAllowedMethods(java.util.List.of(
-                    "GET", "POST", "PUT", "DELETE", "OPTIONS"
-            ));
+            configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
             configuration.setAllowedHeaders(java.util.List.of("*"));
             configuration.setAllowCredentials(false);
 
@@ -554,7 +438,6 @@ public class MarketplaceBackendApplication {
 
     @Service
     public static class AuthService {
-
         private final UserRepository repository;
         private final PasswordEncoder passwordEncoder;
         private final AuthenticationManager authenticationManager;
@@ -572,18 +455,13 @@ public class MarketplaceBackendApplication {
             this.jwtService = jwtService;
         }
 
-        // ================= REGISTER =================
         public AuthResponse register(RegisterRequest request) {
-
             String email = request.email().trim().toLowerCase();
             String username = request.username().trim();
 
-            // Check if email already exists
             if (repository.existsByEmail(email)) {
                 throw new IllegalArgumentException("Email already exists");
             }
-
-            // Check if username already exists
             if (repository.existsByUsername(username)) {
                 throw new IllegalArgumentException("Username already exists");
             }
@@ -594,9 +472,10 @@ public class MarketplaceBackendApplication {
 
             MarketplaceUser user = new MarketplaceUser();
             user.setName(request.name().trim());
-            user.setUsername(username); // <--- Real username saved in SQL
+            user.setUsername(username);
             user.setEmail(email);
-            user.setPhone(request.phone() != null ? request.phone().trim() : null); // <--- Real phone saved
+            user.setPhone(request.phone() != null ? request.phone().trim() : null);
+            user.setLocation(request.location() != null ? request.location().trim() : null); // <--- SAVE LOCATION
             user.setPasswordHash(passwordEncoder.encode(request.password()));
             user.setRoles(roles);
 
@@ -608,16 +487,11 @@ public class MarketplaceBackendApplication {
             return createResponse(token, savedUser);
         }
 
-        // ================= LOGIN =================
         public AuthResponse login(LoginRequest request) {
-
             String email = request.email().trim().toLowerCase();
 
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            email,
-                            request.password()
-                    )
+                    new UsernamePasswordAuthenticationToken(email, request.password())
             );
 
             MarketplaceUser user = repository.findByEmail(email)
@@ -629,13 +503,10 @@ public class MarketplaceBackendApplication {
             return createResponse(token, user);
         }
 
-        // ================= ROLE MAPPING =================
         private Role mapFrontendRole(String frontendRole) {
-
             if (frontendRole == null || frontendRole.isBlank()) {
                 return Role.CUSTOMER;
             }
-
             return switch (frontendRole.trim().toLowerCase()) {
                 case "customer", "homeowner" -> Role.CUSTOMER;
                 case "contractor", "seller" -> Role.SELLER;
@@ -644,9 +515,7 @@ public class MarketplaceBackendApplication {
             };
         }
 
-        // ================= USER DETAILS HELPER =================
         private UserDetails createUserDetails(MarketplaceUser user) {
-
             String[] roles = user.getRoles()
                     .stream()
                     .map(Enum::name)
@@ -659,20 +528,13 @@ public class MarketplaceBackendApplication {
                     .build();
         }
 
-        // ================= RESPONSE HELPER =================
         private AuthResponse createResponse(String token, MarketplaceUser user) {
-
             Set<String> roles = user.getRoles()
                     .stream()
                     .map(Enum::name)
                     .collect(Collectors.toSet());
 
-            return new AuthResponse(
-                    token,
-                    "Bearer",
-                    user.getUsername(), // Real username returned to frontend
-                    roles
-            );
+            return new AuthResponse(token, "Bearer", user.getUsername(), roles);
         }
     }
 
@@ -684,25 +546,18 @@ public class MarketplaceBackendApplication {
     @RestController
     @RequestMapping("/api/auth")
     public static class AuthController {
-
         private final AuthService authService;
 
-        public AuthController(AuthService authService) {
-            this.authService = authService;
-        }
+        public AuthController(AuthService authService) { this.authService = authService; }
 
         @PostMapping("/register")
         @ResponseStatus(HttpStatus.CREATED)
-        public AuthResponse register(
-                @Valid @RequestBody RegisterRequest request
-        ) {
+        public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
             return authService.register(request);
         }
 
         @PostMapping("/login")
-        public AuthResponse login(
-                @Valid @RequestBody LoginRequest request
-        ) {
+        public AuthResponse login(@Valid @RequestBody LoginRequest request) {
             return authService.login(request);
         }
     }
@@ -714,13 +569,9 @@ public class MarketplaceBackendApplication {
 
     @RestController
     public static class HealthController {
-
         @GetMapping("/api/health")
         public Map<String, String> health() {
-            return Map.of(
-                    "status", "UP",
-                    "service", "marketplace-backend"
-            );
+            return Map.of("status", "UP", "service", "marketplace-backend");
         }
     }
 
@@ -730,35 +581,28 @@ public class MarketplaceBackendApplication {
     // ========================================================
 
     @RestController
-public static class ProfileController {
+    public static class ProfileController {
+        private final UserRepository userRepository;
 
-    private final UserRepository userRepository;
+        public ProfileController(UserRepository userRepository) { this.userRepository = userRepository; }
 
-    public ProfileController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+        @GetMapping("/api/me")
+        public Map<String, Object> currentUser(org.springframework.security.core.Authentication authentication) {
+            String email = authentication.getName();
+
+            MarketplaceUser user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            return Map.of(
+                    "id", user.getId(),
+                    "name", user.getName(),
+                    "username", user.getUsername(),
+                    "email", user.getEmail(),
+                    "phone", user.getPhone() != null ? user.getPhone() : "",
+                    "location", user.getLocation() != null ? user.getLocation() : "", // <--- RETURN LOCATION IN PROFILE API
+                    "roles", user.getRoles(),
+                    "enabled", user.isEnabled()
+            );
+        }
     }
-
-    @GetMapping("/api/me")
-    public Map<String, Object> currentUser(
-            org.springframework.security.core.Authentication authentication
-    ) {
-
-        String email = authentication.getName();
-
-        MarketplaceUser user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException("User not found")
-                );
-
-        return Map.of(
-                "id", user.getId(),
-                "name", user.getName(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "phone", user.getPhone() != null ? user.getPhone() : "",
-                "roles", user.getRoles(),
-                "enabled", user.isEnabled()
-        );
-    }
-}
 }
