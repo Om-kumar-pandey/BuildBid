@@ -147,13 +147,90 @@ function showSignup() {
 
 
 // ============================================================
-// MESSAGE
+// AUTH TOAST (MESSAGE)
 // ============================================================
 
+let authToastTimer = null;
+
+function showAuthToast(
+    title,
+    message,
+    type = "success",
+    duration = 4000
+) {
+    const toast = document.getElementById("authToast");
+    const titleElement =
+        document.getElementById("authToastTitle");
+    const messageElement =
+        document.getElementById("authToastMessage");
+    const iconElement =
+        document.getElementById("authToastIcon");
+
+    if (!toast) {
+        console.warn("Auth toast element not found.");
+        return;
+    }
+
+    if (authToastTimer) {
+        clearTimeout(authToastTimer);
+    }
+
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+
+    // Remove previous states
+    toast.classList.remove(
+        "success",
+        "error",
+        "warning",
+        "show"
+    );
+
+    // Set type
+    toast.classList.add(type);
+
+    // Set icon
+    if (type === "error") {
+        iconElement.className =
+            "fa-solid fa-circle-exclamation";
+    } else if (type === "warning") {
+        iconElement.className =
+            "fa-solid fa-triangle-exclamation";
+    } else {
+        iconElement.className =
+            "fa-solid fa-check";
+    }
+
+    // Force animation restart
+    void toast.offsetWidth;
+
+    toast.classList.add("show");
+
+    authToastTimer = setTimeout(() => {
+        hideAuthToast();
+    }, duration);
+}
+
+
+function hideAuthToast() {
+    const toast =
+        document.getElementById("authToast");
+
+    if (!toast) {
+        return;
+    }
+
+    toast.classList.remove("show");
+}
+
+
+// Keep compatibility with your existing HTML
 function showMessage(message) {
-
-    alert(message);
-
+    showAuthToast(
+        "Notice",
+        message,
+        "warning"
+    );
 }
 
 
@@ -317,11 +394,15 @@ if (loginForm) {
                     );
 
 
-                    alert(
-                        data.message ||
-                        data.error ||
-                        "Login failed. Please check your email and password."
-                    );
+                   showAuthToast(
+    "Login Failed",
+    data.message ||
+    data.error ||
+    "Please check your email and password.",
+    "error"
+);
+
+return;
 
 
                     return;
@@ -329,40 +410,74 @@ if (loginForm) {
                 }
 
 
-                // ------------------------------------------------
-                // SAVE JWT & USER INFO
-                // ------------------------------------------------
+ // ------------------------------------------------
+// SAVE JWT & USER INFO
+// ------------------------------------------------
 
-                if (data.token) {
+if (data.token) {
+    localStorage.setItem("marketplaceToken", data.token);
+}
 
-                    localStorage.setItem(
-                        "marketplaceToken",
-                        data.token
-                    );
+// User details save karein Dashboard ke liye
+localStorage.setItem(
+    "marketplaceUser",
+    JSON.stringify({
+        username: data.username,
+        roles: data.roles
+    })
+);
 
-                }
+// Fetch profile data from backend OR save available details
+try {
+    const userProfile = await fetch(API_BASE_URL + "/api/me", {
+        headers: { "Authorization": "Bearer " + data.token }
+    }).then(res => res.json()).catch(() => null);
+
+    const currentUserObj = {
+        name: (userProfile && userProfile.name) ? userProfile.name : (data.name || data.username || email.split('@')[0]),
+        email: (userProfile && userProfile.email) ? userProfile.email : email,
+        phone: (userProfile && userProfile.phone) ? userProfile.phone : "+91 98765 43210",
+        location: (userProfile && userProfile.city) ? `${userProfile.city}, India` : "Varanasi, Uttar Pradesh, India"
+    };
+
+    localStorage.setItem("currentUser", JSON.stringify(currentUserObj));
+} catch(error){
+    console.error("erroe occured:",error);
+} 
+
+// Login ke waqt agar user data pehle se stored hai toh phone retain karein:
+const existingData = JSON.parse(localStorage.getItem("currentUser")) || {};
+
+const loggedInCustomer = {
+    name: data.name || data.username || email.split('@')[0],
+    email: email,
+    phone: existingData.phone || data.phone || "", // <-- Static number hata diya
+    location: data.location || existingData.location || ""
+};
+
+localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
+            
+
+// ------------------------------------------------
+// SUCCESS & REDIRECT TO DASHBOARD
+// ------------------------------------------------
+
+showAuthToast(
+    "Login Successful",
+    "Welcome back to BuildBid!",
+    "success"
+);
+
+loginForm.reset();
+
+// 1 second baad directly Customer Dashboard open ho jayega
+setTimeout(() => {
+    closeAuth();
+    window.location.href = "customer dashboard.html";
+}, 1000);
 
 
-                localStorage.setItem(
-                    "marketplaceUser",
-                    JSON.stringify({
-                        username: data.username,
-                        roles: data.roles
-                    })
-                );
-
-
-                // ------------------------------------------------
-                // SUCCESS
-                // ------------------------------------------------
-
-                alert(
-                    "Login successful!"
-                );
-
-                closeAuth();
-
-                loginForm.reset();
+                
 
             }
 
@@ -375,9 +490,11 @@ if (loginForm) {
                 );
 
 
-                alert(
-                    "Unable to connect to the backend server."
-                );
+                showAuthToast(
+    "Connection Error",
+    "Unable to connect to the backend server. Please try again.",
+    "error"
+);
 
             }
 
@@ -440,7 +557,13 @@ if (signupForm) {
                 signupForm.querySelector(
                     "#signupSelectedRole"
                 );
+            const locationInput = signupForm.querySelector('input[name="location"]') || 
+                      signupForm.querySelector('input[name="city"]') || 
+                      signupForm.querySelector('#signupLocation');
 
+const userLocation = locationInput && locationInput.value.trim() 
+                     ? locationInput.value.trim() 
+                     : "India";
 
             // ------------------------------------------------
             // CHECK REQUIRED FIELDS
@@ -526,7 +649,7 @@ if (signupForm) {
             const password =
                 passwordInput.value;
 
-
+            
             // ------------------------------------------------
             // ROLE
             // ------------------------------------------------
@@ -549,9 +672,11 @@ if (signupForm) {
 
             if (!name) {
 
-                alert(
-                    "Please enter your name."
-                );
+                showAuthToast(
+    "Missing Information",
+    "Please enter your name.",
+    "error"
+);
 
                 return;
 
@@ -560,9 +685,11 @@ if (signupForm) {
 
             if (!username) {
 
-                alert(
-                    "Please enter your username."
-                );
+                showAuthToast(
+    "Missing Information",
+    "Please enter your username.",
+    "error"
+);
 
                 return;
 
@@ -571,9 +698,11 @@ if (signupForm) {
 
             if (!email) {
 
-                alert(
-                    "Please enter your email."
-                );
+                showAuthToast(
+    "Missing Information",
+    "Please enter your email.",
+    "error"
+);
 
                 return;
 
@@ -582,9 +711,11 @@ if (signupForm) {
 
             if (!phone) {
 
-                alert(
-                    "Please enter your phone number."
-                );
+               showAuthToast(
+    "Missing Information",
+    "Please enter your phone number.",
+    "error"
+);
 
                 return;
 
@@ -593,9 +724,11 @@ if (signupForm) {
 
             if (!password) {
 
-                alert(
-                    "Please enter your password."
-                );
+                showAuthToast(
+    "Missing Information",
+    "Please enter your password.",
+    "error"
+);
 
                 return;
 
@@ -749,12 +882,14 @@ if (signupForm) {
                     }
 
 
-                    alert(
-                        errorMessage
-                    );
+                    showAuthToast(
+    "Signup Failed",
+    errorMessage,
+    "error",
+    5000
+);
 
-
-                    return;
+return;
 
                 }
 
@@ -773,41 +908,54 @@ if (signupForm) {
                 }
 
 
-                // ------------------------------------------------
-                // SAVE USER DATA
-                // ------------------------------------------------
+// ------------------------------------------------
+// SAVE USER DATA FOR DASHBOARD
+// ------------------------------------------------
 
-                localStorage.setItem(
+localStorage.setItem(
+    "marketplaceUser",
+    JSON.stringify({
+        username: data.username,
+        roles: data.roles
+    })
+);
 
-                    "marketplaceUser",
+// Signup Form Submit hone par:
+const phoneInput = signupForm.querySelector('input[name="phone"]');
+const locationInput = signupForm.querySelector('input[name="location"]') || signupForm.querySelector('input[name="city"]');
 
-                    JSON.stringify({
+const signedUpCustomer = {
+    name: name,
+    username: username,
+    email: email,
+    phone: phoneInput ? phoneInput.value.trim() : "",
+    location: locationInput ? locationInput.value.trim() : ""
+};
 
-                        username:
-                            data.username,
+// LocalStorage me save karein
+localStorage.setItem("currentUser", JSON.stringify(signedUpCustomer));
+// ------------------------------------------------
+// SUCCESS & REDIRECT
+// ------------------------------------------------
 
-                        roles:
-                            data.roles
+showAuthToast(
+    "Account Created Successfully",
+    "Welcome to BuildBid! Redirecting to dashboard...",
+    "success",
+    2000
+);
 
-                    })
+signupForm.reset();
 
-                );
+// Signup ke baad seedha Customer Dashboard par bhejein
+setTimeout(() => {
+    closeAuth();
+    window.location.href = "customer dashboard.html";
+}, 1200);
 
+                
 
-                // ------------------------------------------------
-                // SUCCESS
-                // ------------------------------------------------
-
-                alert(
-                    "Account created successfully!"
-                );
-
-
-                signupForm.reset();
-
-
-            }
-
+}     
 
             catch (error) {
 
@@ -817,9 +965,12 @@ if (signupForm) {
                 );
 
 
-                alert(
-                    "Unable to connect to the backend."
-                );
+                showAuthToast(
+    "Connection Error",
+    "Unable to connect to the backend. Please try again.",
+    "error",
+    5000
+);
 
             }
 
@@ -966,9 +1117,7 @@ document
     );
 
 
-// ============================================================
-// SIGNUP ROLE SELECTOR
-// ============================================================
+
 
 
 
