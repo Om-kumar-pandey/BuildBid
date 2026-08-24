@@ -410,7 +410,7 @@ return;
                 }
 
 
- // ------------------------------------------------
+// ------------------------------------------------
 // SAVE JWT & USER INFO
 // ------------------------------------------------
 
@@ -418,35 +418,39 @@ if (data.token) {
     localStorage.setItem("marketplaceToken", data.token);
 }
 
-// User details save karein Dashboard ke liye
-localStorage.setItem(
-    "marketplaceUser",
-    JSON.stringify({
-        username: data.username,
-        roles: data.roles
-    })
-);
-
-// Fetch profile data from backend OR save available details
+// Fetch complete user profile from backend right after login
 try {
-    const userProfile = await fetch(API_BASE_URL + "/api/me", {
+    const profileResponse = await fetch(API_BASE_URL + "/api/me", {
+        method: "GET",
         headers: { "Authorization": "Bearer " + data.token }
-    }).then(res => res.json()).catch(() => null);
+    });
 
-    const currentUserObj = {
-        name: (userProfile && userProfile.name) ? userProfile.name : (data.name || data.username || email.split('@')[0]),
-        email: (userProfile && userProfile.email) ? userProfile.email : email,
-        phone: (userProfile && userProfile.phone) ? userProfile.phone : "+91 98765 43210",
-        location: (userProfile && userProfile.city) ? `${userProfile.city}, India` : "Varanasi, Uttar Pradesh, India"
-    };
+    if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        
+        // Save full synchronized user details for the dashboard
+        const loggedInCustomer = {
+            name: profileData.name || data.username || email.split('@')[0],
+            username: profileData.username || data.username || email.split('@')[0],
+            email: profileData.email || email,
+            phone: profileData.phone || "",
+            location: profileData.location || ""
+        };
 
-    localStorage.setItem("currentUser", JSON.stringify(currentUserObj));
-} catch(error){
-    console.error("erroe occured:",error);
-} 
-
-
-            
+        localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
+    } else {
+        // Fallback if /api/me fails
+        localStorage.setItem("currentUser", JSON.stringify({
+            name: data.username || email.split('@')[0],
+            username: data.username || email.split('@')[0],
+            email: email,
+            phone: "",
+            location: ""
+        }));
+    }
+} catch (error) {
+    console.error("Failed to fetch profile on login:", error);
+}
 
 // ------------------------------------------------
 // SUCCESS & REDIRECT TO DASHBOARD
@@ -460,7 +464,7 @@ showAuthToast(
 
 loginForm.reset();
 
-// 1 second baad directly Customer Dashboard open ho jayega
+// Redirect to Customer Dashboard after 1 second
 setTimeout(() => {
     closeAuth();
     window.location.href = "customer dashboard.html";
