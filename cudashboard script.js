@@ -78,41 +78,28 @@ function hideToast() {
   }
 });
 
-// ============================================================
-// 1. RENDER USER PROFILE DATA
-// ============================================================
 function renderUserProfile(user) {
   const fullName = user.name || user.username || "Customer";
   const firstName = fullName.split(" ")[0];
   const email = user.email || "--";
   
-  // Real Phone Number Check
-  const phone = (user.phone && user.phone.trim() !== "") ? user.phone : "--";
+  // Real Phone Number Check (Hardcoded number bilkul nahi aayega)
+  const phone = (user.phone && user.phone.trim() !== "") ? user.phone : "Not Provided";
   
   const role = (user.role || (user.roles && user.roles[0]) || "Customer").toUpperCase();
   const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(fullName)}`;
 
-  // Header
-  const navUserName = document.getElementById("navUserName");
-  if (navUserName) navUserName.textContent = firstName;
-  
-  const navUserRole = document.getElementById("navUserRole");
-  if (navUserRole) navUserRole.textContent = role;
-  
-  const navAvatar = document.getElementById("navAvatar");
-  if (navAvatar) navAvatar.src = avatarUrl;
+  // Header Updates
+  if (document.getElementById("navUserName")) document.getElementById("navUserName").textContent = firstName;
+  if (document.getElementById("navUserRole")) document.getElementById("navUserRole").textContent = role;
+  if (document.getElementById("navAvatar")) document.getElementById("navAvatar").src = avatarUrl;
 
-  // Hero Card
-  const heroName = document.getElementById("heroName");
-  if (heroName) heroName.textContent = fullName;
-  
-  const heroAvatar = document.getElementById("heroAvatar");
-  if (heroAvatar) heroAvatar.src = avatarUrl;
-  
-  const heroRoleDisplay = document.getElementById("heroRoleDisplay");
-  if (heroRoleDisplay) heroRoleDisplay.textContent = role;
+  // Hero Card Updates
+  if (document.getElementById("heroName")) document.getElementById("heroName").textContent = fullName;
+  if (document.getElementById("heroAvatar")) document.getElementById("heroAvatar").src = avatarUrl;
+  if (document.getElementById("heroRoleDisplay")) document.getElementById("heroRoleDisplay").textContent = role;
 
-  // Location Visibility (Varanasi bilkul nahi aayega agar user ne location nahi dali)
+  // Location: Agar location hai toh hi dikhaye, nahi toh hide kar de
   const locationWrapper = document.getElementById("locationWrapper");
   const heroLocation = document.getElementById("heroLocation");
   if (heroLocation && locationWrapper) {
@@ -124,38 +111,24 @@ function renderUserProfile(user) {
     }
   }
 
-  // Member Since (Current Year 2026)
+  // Member Since (2026)
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString('default', { month: 'short' });
   const currentYear = currentDate.getFullYear();
   const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleString('default', { month: 'short', year: 'numeric' }) : `${currentMonth} ${currentYear}`;
-  
-  const heroMemberSince = document.getElementById("heroMemberSince");
-  if (heroMemberSince) {
-    heroMemberSince.textContent = `Member since ${joinDate}`;
+  if (document.getElementById("heroMemberSince")) {
+    document.getElementById("heroMemberSince").textContent = `Member since ${joinDate}`;
   }
 
   // About Me Section
-  const bioName = document.getElementById("bioName");
-  if (bioName) bioName.textContent = fullName;
-
-  const aboutBio = document.getElementById("aboutBio");
-  if (aboutBio) {
-    aboutBio.textContent = user.bio || `Hi! I am ${fullName}, using BuildBid to plan and manage my construction projects efficiently. I love working with trusted professionals and quality materials to build my dream projects.`;
+  if (document.getElementById("bioName")) document.getElementById("bioName").textContent = fullName;
+  if (document.getElementById("aboutBio")) {
+    aboutBio.textContent = user.bio || `Hi! I am ${fullName}, using BuildBid to plan and manage my construction projects efficiently.`;
   }
-
-  const dataFullName = document.getElementById("dataFullName");
-  if (dataFullName) dataFullName.textContent = fullName;
-
-  const dataEmail = document.getElementById("dataEmail");
-  if (dataEmail) dataEmail.textContent = email;
-  
-  // Real Phone Number update
-  const dataPhone = document.getElementById("dataPhone");
-  if (dataPhone) dataPhone.textContent = phone;
-
-  const dataLanguage = document.getElementById("dataLanguage");
-  if (dataLanguage) dataLanguage.textContent = user.language || "English, Hindi";
+  if (document.getElementById("dataFullName")) document.getElementById("dataFullName").textContent = fullName;
+  if (document.getElementById("dataEmail")) document.getElementById("dataEmail").textContent = email;
+  if (document.getElementById("dataPhone")) document.getElementById("dataPhone").textContent = phone;
+  if (document.getElementById("dataLanguage")) document.getElementById("dataLanguage").textContent = user.language || "English, Hindi";
 }
 
 // ============================================================
