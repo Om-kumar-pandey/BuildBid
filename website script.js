@@ -410,7 +410,7 @@ return;
                 }
 
 
- // ------------------------------------------------
+// ------------------------------------------------
 // SAVE JWT & USER INFO
 // ------------------------------------------------
 
@@ -418,45 +418,39 @@ if (data.token) {
     localStorage.setItem("marketplaceToken", data.token);
 }
 
-// User details save karein Dashboard ke liye
-localStorage.setItem(
-    "marketplaceUser",
-    JSON.stringify({
-        username: data.username,
-        roles: data.roles
-    })
-);
-
-// Fetch profile data from backend OR save available details
+// Fetch complete user profile from backend right after login
 try {
-    const userProfile = await fetch(API_BASE_URL + "/api/me", {
+    const profileResponse = await fetch(API_BASE_URL + "/api/me", {
+        method: "GET",
         headers: { "Authorization": "Bearer " + data.token }
-    }).then(res => res.json()).catch(() => null);
+    });
 
-    const currentUserObj = {
-        name: (userProfile && userProfile.name) ? userProfile.name : (data.name || data.username || email.split('@')[0]),
-        email: (userProfile && userProfile.email) ? userProfile.email : email,
-        phone: (userProfile && userProfile.phone) ? userProfile.phone : "+91 98765 43210",
-        location: (userProfile && userProfile.city) ? `${userProfile.city}, India` : "Varanasi, Uttar Pradesh, India"
-    };
+    if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        
+        // Save full synchronized user details for the dashboard
+        const loggedInCustomer = {
+            name: profileData.name || data.username || email.split('@')[0],
+            username: profileData.username || data.username || email.split('@')[0],
+            email: profileData.email || email,
+            phone: profileData.phone || "",
+            location: profileData.location || ""
+        };
 
-    localStorage.setItem("currentUser", JSON.stringify(currentUserObj));
-} catch(error){
-    console.error("erroe occured:",error);
-} 
-
-// Login ke waqt agar user data pehle se stored hai toh phone retain karein:
-const existingData = JSON.parse(localStorage.getItem("currentUser")) || {};
-
-const loggedInCustomer = {
-    name: data.name || data.username || email.split('@')[0],
-    email: email,
-    phone: existingData.phone || data.phone || "", // <-- Static number hata diya
-    location: data.location || existingData.location || ""
-};
-
-localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
-            
+        localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
+    } else {
+        // Fallback if /api/me fails
+        localStorage.setItem("currentUser", JSON.stringify({
+            name: data.username || email.split('@')[0],
+            username: data.username || email.split('@')[0],
+            email: email,
+            phone: "",
+            location: ""
+        }));
+    }
+} catch (error) {
+    console.error("Failed to fetch profile on login:", error);
+}
 
 // ------------------------------------------------
 // SUCCESS & REDIRECT TO DASHBOARD
@@ -470,13 +464,36 @@ showAuthToast(
 
 loginForm.reset();
 
-// 1 second baad directly Customer Dashboard open ho jayega
+// Redirect to Customer Dashboard after 1 second
 setTimeout(() => {
     closeAuth();
     window.location.href = "customer dashboard.html";
 }, 1000);
 
+// ------------------------------------------------
+// LOGIN SUCCESS HANDLER
+// ------------------------------------------------
+const userEmail = email.trim().toLowerCase();
 
+// Pehle check karein kya is email ka data browser me saved hai
+const savedProfile = JSON.parse(localStorage.getItem("user_profile_" + userEmail)) || {};
+
+const loggedInCustomer = {
+  name: data.name || data.username || savedProfile.name || userEmail.split('@')[0],
+  username: data.username || savedProfile.username || userEmail.split('@')[0],
+  email: userEmail,
+  phone: data.phone || savedProfile.phone || "",       // <-- Koi hardcoded number nahi
+  location: data.location || savedProfile.location || "" // <-- Koi hardcoded Varanasi nahi
+};
+
+// Set as active user
+localStorage.setItem("currentUser", JSON.stringify(loggedInCustomer));
+
+// Dashboard par redirect
+setTimeout(() => {
+  if (typeof closeAuth === "function") closeAuth();
+  window.location.href = "customer%20dashboard.html";
+}, 1000);
                 
 
             }
@@ -762,7 +779,7 @@ const userLocation = locationInput && locationInput.value.trim()
             }
 
 
-            // ------------------------------------------------
+           // ------------------------------------------------
             // CREATE BACKEND REQUEST
             // ------------------------------------------------
 
@@ -780,6 +797,9 @@ const userLocation = locationInput && locationInput.value.trim()
                 phone:
                     phone,
 
+                location:
+                    userLocation, // <--- Add this property right here!
+
                 password:
                     password,
 
@@ -790,6 +810,7 @@ const userLocation = locationInput && locationInput.value.trim()
 
             };
 
+            
 
             console.log(
                 "Register request:",
@@ -953,7 +974,22 @@ setTimeout(() => {
     window.location.href = "customer dashboard.html";
 }, 1200);
 
-                
+ // ------------------------------------------------
+// SIGNUP SUCCESS HANDLER
+// ------------------------------------------------
+const userProfileData = {
+  name: name,
+  username: username,
+  email: email.toLowerCase(),
+  phone: phone,
+  location: userLocation || ""
+};
+
+// 1. Current user set karein
+localStorage.setItem("currentUser", JSON.stringify(userProfileData));
+
+// 2. Email ke sath permanent save karein (taaki next time login par mil sake)
+localStorage.setItem("user_profile_" + email.toLowerCase(), JSON.stringify(userProfileData));               
 
 }     
 
@@ -1416,3 +1452,56 @@ document.addEventListener(
 
     }
 );
+
+
+
+// ============================================================
+// FREE GPS LOCATION DETECTION (Using OpenStreetMap Nominatim)
+// ============================================================
+
+function detectUserLocation() {
+    const locationInput = document.getElementById("signupLocation");
+    
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+    }
+
+    locationInput.value = "";
+    locationInput.placeholder = "Detecting precise GPS coordinates...";
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        locationInput.placeholder = "Fetching address from OpenStreetMap...";
+
+        try {
+            // Free public reverse-geocoding API from OpenStreetMap
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: {
+                    'User-Agent': 'BuildBid-App' // Nominatim requires a user-agent header
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data && data.display_name) {
+                locationInput.value = data.display_name;
+            } else {
+                alert("Could not determine address from coordinates.");
+                locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+            }
+        } catch (error) {
+            console.error("Geocoding error:", error);
+            alert("Failed to fetch address. Please type it manually.");
+            locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+        }
+    }, (error) => {
+        console.error("Geolocation error:", error);
+        alert("Location permission denied or unavailable.");
+        locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+    }, {
+        timeout: 10000
+    });
+}
