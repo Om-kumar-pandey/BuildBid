@@ -11,6 +11,8 @@
     <!-- Font Awesome -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places" async defer></script>
 </head>
 
 <body>
@@ -1651,10 +1653,32 @@
                         </div>
 
                     </div>
-                    <!-----location----->
-                    <div class="buildbid-input-wrapper">
-  <input type="text" name="location" placeholder="City, State (e.g. Lucknow, Uttar Pradesh)" required>
-</div>
+                    
+                    <!----- DYNAMIC LOCATION FIELD ----->
+    <div class="buildbid-input-group">
+        <label for="signupLocation">
+            Location
+        </label>
+
+        <div class="buildbid-input-wrapper" style="display: flex; gap: 8px;">
+            <input
+                type="text"
+                id="signupLocation"
+                name="location"
+                placeholder="Search city or click detect"
+                autocomplete="off"
+                required
+                style="flex: 1;">
+
+            <button
+                type="button"
+                onclick="detectUserLocation()"
+                style="padding: 0 14px; background: #0D8ABC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;"
+                title="Detect Precise GPS Location">
+                <i class="fa-solid fa-location-crosshairs"></i> Detect
+            </button>
+        </div>
+    </div>
 
 
 
