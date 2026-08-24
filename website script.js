@@ -1448,3 +1448,52 @@ document.addEventListener(
 
     }
 );
+
+
+
+// ============================================================
+// GOOGLE MAPS AUTOCOMPLETE & GPS LOCATION DETECTION
+// ============================================================
+
+let autocomplete;
+
+function initAutocomplete() {
+    const inputElement = document.getElementById("signupLocation");
+    if (inputElement) {
+        autocomplete = new google.maps.places.Autocomplete(inputElement, {
+            types: ['geocode'],
+            fields: ['formatted_address']
+        });
+    }
+}
+window.addEventListener("load", initAutocomplete);
+
+function detectUserLocation() {
+    const locationInput = document.getElementById("signupLocation");
+    
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser");
+        return;
+    }
+
+    locationInput.placeholder = "Detecting your precise location...";
+
+    navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const latLng = { lat: lat, lng: lng };
+        const geocoder = new google.maps.Geocoder();
+
+        geocoder.geocode({ location: latLng }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                locationInput.value = results[0].formatted_address;
+            } else {
+                alert("Could not determine address from coordinates.");
+                locationInput.placeholder = "Enter your location manually";
+            }
+        });
+    }, () => {
+        alert("Geolocation permission denied or unavailable.");
+        locationInput.placeholder = "Enter your location manually";
+    });
+}
