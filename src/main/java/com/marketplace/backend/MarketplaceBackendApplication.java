@@ -730,15 +730,35 @@ public class MarketplaceBackendApplication {
     // ========================================================
 
     @RestController
-    public static class ProfileController {
+public static class ProfileController {
 
-        @GetMapping("/api/me")
-        public Map<String, String> currentUser(
-                org.springframework.security.core.Authentication authentication
-        ) {
-            return Map.of(
-                    "username", authentication.getName()
-            );
-        }
+    private final UserRepository userRepository;
+
+    public ProfileController(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
+
+    @GetMapping("/api/me")
+    public Map<String, Object> currentUser(
+            org.springframework.security.core.Authentication authentication
+    ) {
+
+        String email = authentication.getName();
+
+        MarketplaceUser user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found")
+                );
+
+        return Map.of(
+                "id", user.getId(),
+                "name", user.getName(),
+                "username", user.getUsername(),
+                "email", user.getEmail(),
+                "phone", user.getPhone() != null ? user.getPhone() : "",
+                "roles", user.getRoles(),
+                "enabled", user.isEnabled()
+        );
+    }
+}
 }
