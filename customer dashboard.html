@@ -319,7 +319,23 @@
       </footer>
 
     </main>
+
   </div>
+  <!-- Top-Right Floating Notification Card -->
+<div id="custom-toast" class="toast-card">
+  <div class="toast-icon">
+    <!-- Icon (Bell / Check / Exclamation) -->
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </svg>
+  </div>
+  <div class="toast-body">
+    <h4 id="toast-title" class="toast-title">Notice</h4>
+    <p id="toast-message" class="toast-message">You have logged out successfully.</p>
+  </div>
+  <button class="toast-close" onclick="hideToast()">&times;</button>
+</div>
 
   <script src="cudashboard script.js"></script>
 </body>
