@@ -1452,48 +1452,52 @@ document.addEventListener(
 
 
 // ============================================================
-// GOOGLE MAPS AUTOCOMPLETE & GPS LOCATION DETECTION
+// FREE GPS LOCATION DETECTION (Using OpenStreetMap Nominatim)
 // ============================================================
-
-let autocomplete;
-
-function initAutocomplete() {
-    const inputElement = document.getElementById("signupLocation");
-    if (inputElement) {
-        autocomplete = new google.maps.places.Autocomplete(inputElement, {
-            types: ['geocode'],
-            fields: ['formatted_address']
-        });
-    }
-}
-window.addEventListener("load", initAutocomplete);
 
 function detectUserLocation() {
     const locationInput = document.getElementById("signupLocation");
     
     if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser");
+        alert("Geolocation is not supported by your browser.");
         return;
     }
 
-    locationInput.placeholder = "Detecting your precise location...";
+    locationInput.value = "";
+    locationInput.placeholder = "Detecting precise GPS coordinates...";
 
-    navigator.geolocation.getCurrentPosition((position) => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        const latLng = { lat: lat, lng: lng };
-        const geocoder = new google.maps.Geocoder();
 
-        geocoder.geocode({ location: latLng }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                locationInput.value = results[0].formatted_address;
+        locationInput.placeholder = "Fetching address from OpenStreetMap...";
+
+        try {
+            // Free public reverse-geocoding API from OpenStreetMap
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: {
+                    'User-Agent': 'BuildBid-App' // Nominatim requires a user-agent header
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data && data.display_name) {
+                locationInput.value = data.display_name;
             } else {
                 alert("Could not determine address from coordinates.");
-                locationInput.placeholder = "Enter your location manually";
+                locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
             }
-        });
-    }, () => {
-        alert("Geolocation permission denied or unavailable.");
-        locationInput.placeholder = "Enter your location manually";
+        } catch (error) {
+            console.error("Geocoding error:", error);
+            alert("Failed to fetch address. Please type it manually.");
+            locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+        }
+    }, (error) => {
+        console.error("Geolocation error:", error);
+        alert("Location permission denied or unavailable.");
+        locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+    }, {
+        timeout: 10000
     });
 }
