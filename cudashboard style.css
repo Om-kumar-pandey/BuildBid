@@ -1,5 +1,5 @@
 /* =========================================================
-   BUILDBID CUSTOMER DASHBOARD - 101% EXACT MATCH STYLESHEET
+   BUILDBID CUSTOMER DASHBOARD
    ========================================================= */
 
 /* =========================
@@ -17,7 +17,7 @@ html {
 }
 
 /* =========================
-   PAGE BODY & BLUEPRINT BACKGROUND
+   PAGE BODY & BLUEPRINT BACKGROUND PATTERN
    ========================= */
 body {
   min-height: 100vh;
@@ -25,7 +25,7 @@ body {
   overflow-x: hidden;
   background-color: #dfeaf4;
 
-  /* बारीक और बड़े ग्रिड्स के साथ प्रोफेशनल ब्लूप्रिंट बैकग्राउंड */
+  /* टारगेट इमेज जैसा बारीक और बड़े ग्रिड्स के साथ ब्लूप्रिंट बैकग्राउंड */
   background-image:
     linear-gradient(rgba(54, 91, 128, 0.065) 1px, transparent 1px),
     linear-gradient(90deg, rgba(54, 91, 128, 0.065) 1px, transparent 1px),
@@ -47,7 +47,7 @@ body {
   background-attachment: fixed;
 }
 
-/* आर्किटेक्चरल ब्लूप्रिंट डायगोनल लाइन्स लेयर */
+/* आर्किटेक्चरल ब्लूप्रिंट डायगोनल लाइन्स और स्केचेस लेयर */
 body::before {
   content: "";
   position: fixed;
@@ -431,7 +431,7 @@ body::before {
 
 
 /* =========================================================
-   PROFILE HERO BANNER (EXACT TARGET MATCH WITH BUILDING IMAGE)
+   PROFILE HERO BANNER (टारगेट इमेज जैसी बिल्डिंग इमेज और डार्क ब्लू ग्रेडिएंट)
    ========================================================= */
 .profile-hero-banner {
   position: relative;
@@ -444,7 +444,7 @@ body::before {
   color: white;
   border-radius: 18px;
 
-  /* यहाँ हमने डायरेक्ट प्रोफेशनल बिल्डिंग फोटो और डार्क ब्लू ग्रेडिएंट सेट किया है */
+  /* यहाँ हमने टारगेट इमेज के जैसी बिल्डिंग की फोटो और डार्क ब्लू ओवरले सेट किया है */
   background-image: 
     linear-gradient(135deg, rgba(6, 20, 47, 0.85) 0%, rgba(10, 40, 85, 0.70) 100%),
     url('https://images.unsplash.com/photo-1541888946425-d0fbb18f1f58?q=80&w=1200&auto=format&fit=crop');
