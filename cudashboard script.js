@@ -190,3 +190,11 @@ function renderRecentActivities(activities) {
     </div>
   `).join('');
 }
+document.getElementById("my-projects-tab-btn").addEventListener("click", () => {
+  // 1. Profile section hide karein aur Projects section show karein
+  document.getElementById("profile-section").style.display = "none";
+  document.getElementById("projects-section").style.display = "block";
+
+  // 2. Fresh dynamic data fetch karein
+  fetchCustomerProjects();
+});
