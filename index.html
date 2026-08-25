@@ -1229,38 +1229,18 @@
 
 
 
-                <!-- LOGIN ROLE -->
-
-                <div class="buildbid-role-selector">
-
-
-                    <button
-                        type="button"
-                        class="buildbid-role-btn active"
-                        id="customerBtn"
-                        onclick="selectRole('customer')">
-
-                        <i class="fa-solid fa-user"></i>
-
-                        Customer / Homeowner
-
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="buildbid-role-btn"
-                        id="contractorBtn"
-                        onclick="selectRole('contractor')">
-
-                        <i class="fa-solid fa-hard-hat"></i>
-
-                        Contractor / Professional
-
-                    </button>
-
-
-                </div>
+               <!-- LOGIN 3 ROLES (Customer, Contractor, Service Provider / Professionals) -->
+<div class="buildbid-role-selector" style="display: flex; gap: 6px; margin-bottom: 20px;">
+    <button type="button" class="buildbid-role-btn active" id="customerBtn" onclick="selectRole('CUSTOMER')" style="flex:1; font-size:12px; padding:10px 4px;">
+        <i class="fa-solid fa-user"></i> Customer
+    </button>
+    <button type="button" class="buildbid-role-btn" id="contractorBtn" onclick="selectRole('SELLER')" style="flex:1; font-size:12px; padding:10px 4px;">
+        <i class="fa-solid fa-hard-hat"></i> Contractor
+    </button>
+    <button type="button" class="buildbid-role-btn" id="serviceProviderBtn" onclick="selectRole('SERVICE_PROVIDER')" style="flex:1; font-size:11px; padding:10px 2px;">
+        <i class="fa-solid fa-helmet-safety"></i> Service Provider / Professionals
+    </button>
+</div>
 
 
 
@@ -1446,65 +1426,21 @@
 
 
 
-                    <!-- ROLE SELECTION -->
-
-                    <div class="buildbid-input-group">
-
-                        <label>
-                            Select Role
-                        </label>
-
-
-                        <div class="buildbid-signup-roles">
-
-
-                            <!-- CUSTOMER -->
-
-                            <button
-                                type="button"
-                                class="signup-role-btn active"
-                                onclick="selectSignupRole(this, 'CUSTOMER')">
-
-                                <i class="fa-solid fa-user"></i>
-
-                                Customer
-
-                            </button>
-
-
-                            <!-- SELLER -->
-
-                            <button
-                                type="button"
-                                class="signup-role-btn"
-                                onclick="selectSignupRole(this, 'SELLER')">
-
-                                <i class="fa-solid fa-store"></i>
-
-                                Seller
-
-                            </button>
-
-
-                            <!-- SERVICE PROVIDER -->
-
-                            <button
-                                type="button"
-                                class="signup-role-btn"
-                                onclick="selectSignupRole(this, 'SERVICE_PROVIDER')">
-
-                                <i class="fa-solid fa-helmet-safety"></i>
-
-                                Service Provider
-
-                            </button>
-
-
-                        </div>
-
-                    </div>
-
-
+                   <!-- SIGNUP 3 ROLES (Customer, Contractor, Service Provider / Professionals) -->
+<div class="buildbid-input-group">
+    <label>Select Role</label>
+    <div class="buildbid-signup-roles" style="display: flex; gap: 6px;">
+        <button type="button" class="signup-role-btn active" onclick="selectSignupRole(this, 'CUSTOMER')" style="flex:1; font-size:12px; padding:10px 4px;">
+            <i class="fa-solid fa-user"></i> Customer
+        </button>
+        <button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'SELLER')" style="flex:1; font-size:12px; padding:10px 4px;">
+            <i class="fa-solid fa-hard-hat"></i> Contractor
+        </button>
+        <button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'SERVICE_PROVIDER')" style="flex:1; font-size:11px; padding:10px 2px;">
+            <i class="fa-solid fa-helmet-safety"></i> Service Provider / Professionals
+        </button>
+    </div>
+</div>
 
                     <!-- FULL NAME -->
 
