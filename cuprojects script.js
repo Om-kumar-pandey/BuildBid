@@ -1,216 +1,253 @@
 document.addEventListener("DOMContentLoaded", () => {
-  syncAndLoadUserProfile(); // Dynamic User Name, Avatar, Role Sync
-  fetchCustomerProjects();  // Dynamic Projects API Fetch
-  initFilters();
+  syncUniversalUserProfile();
+  loadCustomerProjects();
 });
 
-let allProjects = [];
+// In-Memory Project State
+let allProjectsList = [];
 
-// Dynamic User Header Synchronization
-async function syncAndLoadUserProfile() {
-  // 1. Check local session/storage for logged-in user
-  const storedUser = 
-    JSON.parse(localStorage.getItem("customerUser") || "null") ||
-    JSON.parse(localStorage.getItem("userData") || "null") ||
-    JSON.parse(localStorage.getItem("user") || "null") ||
-    JSON.parse(sessionStorage.getItem("user") || "null");
+/* =========================================================
+   1. PURE DYNAMIC LOGGED-IN USER SYNC
+   ========================================================= */
+function syncUniversalUserProfile() {
+  const storageKeys = [
+    "currentUser",
+    "customerUser",
+    "userData",
+    "user",
+    "loggedInUser",
+    "auth_user",
+    "customer"
+  ];
 
-  if (storedUser && (storedUser.name || storedUser.fullName)) {
-    applyUserDataToHeader(storedUser);
+  let activeUser = null;
+
+  for (const key of storageKeys) {
+    const rawLocal = localStorage.getItem(key);
+    const rawSession = sessionStorage.getItem(key);
+    const raw = rawLocal || rawSession;
+
+    if (raw) {
+      try {
+        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (parsed && typeof parsed === "object") {
+          activeUser = parsed;
+          break;
+        }
+      } catch (e) {
+        if (typeof raw === "string" && raw.trim().length > 0) {
+          activeUser = { name: raw };
+          break;
+        }
+      }
+    }
   }
 
-  // 2. Fetch fresh user data from Backend API
-  try {
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || "";
-    const response = await fetch("/api/customer/profile", {
+  if (activeUser) {
+    applyUserHeaderData(activeUser);
+  }
+
+  // Token Backend Fetch
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || "";
+  if (token) {
+    fetch("/api/customer/profile", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       }
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      localStorage.setItem("customerUser", JSON.stringify(userData));
-      applyUserDataToHeader(userData);
-    }
-  } catch (err) {
-    // Agar local offline/file run ho raha ho, toh stored data ya current view name maintain rahega
-    console.log("Backend offline or local file run. Using stored session user.");
+    })
+    .then(res => res.ok ? res.json() : null)
+    .then(freshUser => {
+      if (freshUser) {
+        localStorage.setItem("customerUser", JSON.stringify(freshUser));
+        applyUserHeaderData(freshUser);
+      }
+    })
+    .catch(() => {});
   }
 }
 
-function applyUserDataToHeader(user) {
+function applyUserHeaderData(user) {
   const nameElem = document.getElementById("user-display-name");
   const avatarElem = document.getElementById("user-avatar-initials");
   const roleElem = document.getElementById("user-display-role");
-  const notifBadge = document.getElementById("notification-count");
-  const msgBadge = document.getElementById("message-count");
 
-  const fullName = user.name || user.fullName || user.username || "Heman kumar";
-  
-  // First name or full name display
-  if (nameElem) {
-    nameElem.textContent = fullName.split(" ")[0] || fullName;
+  if (!user) return;
+
+  const rawName = 
+    user.name || 
+    user.fullName || 
+    user.fullname || 
+    user.username || 
+    user.userName || 
+    user.firstName || 
+    user.email?.split("@")[0] || 
+    "User";
+
+  const cleanName = String(rawName).trim();
+
+  if (nameElem && cleanName) {
+    nameElem.textContent = cleanName.split(" ")[0];
   }
-  
+
   if (roleElem) {
     roleElem.textContent = (user.role || "CUSTOMER").toUpperCase();
   }
 
-  // Initials (e.g. "Heman kumar" -> "HK")
-  if (avatarElem) {
-    const initials = fullName
-      .trim()
-      .split(" ")
-      .filter(Boolean)
-      .map(part => part[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
-    avatarElem.textContent = initials || "HK";
-  }
-
-  // Badges
-  if (notifBadge) {
-    if (user.notificationsCount && user.notificationsCount > 0) {
-      notifBadge.textContent = user.notificationsCount;
-      notifBadge.style.display = "inline-block";
-    } else {
-      notifBadge.style.display = "none";
+  if (avatarElem && cleanName) {
+    const parts = cleanName.split(" ").filter(Boolean);
+    let initials = "U";
+    if (parts.length === 1) {
+      initials = parts[0].substring(0, 2).toUpperCase();
+    } else if (parts.length > 1) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-  }
-
-  if (msgBadge) {
-    if (user.messagesCount && user.messagesCount > 0) {
-      msgBadge.textContent = user.messagesCount;
-      msgBadge.style.display = "inline-block";
-    } else {
-      msgBadge.style.display = "none";
-    }
+    avatarElem.textContent = initials;
   }
 }
 
-// Fetch Projects Data Dynamically
-async function fetchCustomerProjects() {
-  try {
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || "";
-    const response = await fetch("/api/customer/projects", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+/* =========================================================
+   2. LOAD PROJECTS (API + LOCALSTORAGE SYNC)
+   ========================================================= */
+async function loadCustomerProjects() {
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || "";
+
+  // 1. Check local storage first
+  const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");
+  allProjectsList = localProjects;
+
+  // 2. Try fetching from Backend API
+  if (token) {
+    try {
+      const response = await fetch("/api/customer/projects", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const apiProjects = await response.json();
+        if (Array.isArray(apiProjects)) {
+          allProjectsList = apiProjects;
+          localStorage.setItem("customerProjects", JSON.stringify(apiProjects));
+        }
       }
-    });
-
-    if (!response.ok) {
-      throw new Error("API call failed");
+    } catch (err) {
+      console.log("Local/Offline Mode: Showing cached projects.");
     }
-
-    const data = await response.json();
-    allProjects = data.projects || [];
-
-    updateSummaryStats(data.metrics);
-    renderProjectsTable(allProjects);
-  } catch (error) {
-    console.log("No dynamic projects loaded yet or API unavailable.");
-    renderProjectsTable([]);
   }
+
+  filterAndRenderProjects();
 }
 
-function updateSummaryStats(metrics) {
-  document.getElementById("total-projects").textContent = metrics?.totalProjects ?? 0;
-  document.getElementById("active-projects").textContent = metrics?.activeProjects ?? 0;
-  document.getElementById("completed-projects").textContent = metrics?.completedProjects ?? 0;
-  document.getElementById("total-bids").textContent = metrics?.totalBids ?? 0;
+/* =========================================================
+   3. DYNAMIC FILTER & RENDER ENGINE
+   ========================================================= */
+function filterAndRenderProjects() {
+  const searchQuery = (document.getElementById("projectSearchInput")?.value || "").toLowerCase().trim();
+  const statusFilter = document.getElementById("statusFilter")?.value || "ALL";
+  const categoryFilter = document.getElementById("categoryFilter")?.value || "ALL";
+
+  const filtered = allProjectsList.filter(proj => {
+    const matchesSearch = 
+      (proj.title && proj.title.toLowerCase().includes(searchQuery)) ||
+      (proj.location && proj.location.toLowerCase().includes(searchQuery)) ||
+      (proj.category && proj.category.toLowerCase().includes(searchQuery));
+
+    const matchesStatus = statusFilter === "ALL" || (proj.status && proj.status.toLowerCase() === statusFilter.toLowerCase());
+    const matchesCategory = categoryFilter === "ALL" || (proj.category && proj.category.toLowerCase() === categoryFilter.toLowerCase());
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  renderTableRows(filtered);
+  updateMetricsCounters(allProjectsList);
 }
 
-function renderProjectsTable(projects) {
-  const tbody = document.getElementById("projects-tbody");
-  tbody.innerHTML = "";
+function renderTableRows(projects) {
+  const tbody = document.getElementById("projectsTableBody");
+  const emptyBox = document.getElementById("emptyStateBox");
+  const countDisplay = document.getElementById("showingResultsCount");
 
   if (!projects || projects.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">No projects found. Click on "Post New Project" to create one.</td></tr>`;
-    document.getElementById("pagination-info").textContent = "Showing 0 of 0 projects";
+    tbody.innerHTML = "";
+    emptyBox.style.display = "block";
+    countDisplay.textContent = `Showing 0 of ${allProjectsList.length} projects`;
     return;
   }
 
-  projects.forEach((proj) => {
-    const statusClass = getStatusClass(proj.status);
-    const row = document.createElement("tr");
+  emptyBox.style.display = "none";
+  countDisplay.textContent = `Showing ${projects.length} of ${allProjectsList.length} projects`;
 
-    row.innerHTML = `
-      <td>
-        <div class="project-cell">
-          <img src="${proj.imageUrl || 'https://via.placeholder.com/80?text=Project'}" alt="${proj.title}">
-          <div>
-            <div class="project-name">${proj.title}</div>
-            <div class="project-meta">
-              <i class="fa-solid fa-location-dot"></i> ${proj.location} &bull; ${proj.area || ''} &bull; ${proj.category || ''}
-            </div>
+  tbody.innerHTML = projects.map(proj => {
+    const statusClass = (proj.status || "In Progress").toLowerCase().replace(" ", "-");
+    return `
+      <tr>
+        <td>
+          <div class="project-title-text">${proj.title || "Untitled Project"}</div>
+          <div class="project-sub-text">${proj.location || "N/A"} • ${proj.area || "--"} • ${proj.category || "General"}</div>
+        </td>
+        <td>
+          <span class="status-badge ${statusClass}">${proj.status || "In Progress"}</span>
+        </td>
+        <td>
+          <strong>${proj.bidsCount || 0}</strong> bids
+        </td>
+        <td>
+          <div>${proj.updatedDate || "Today"}</div>
+          <small class="project-sub-text">${proj.updatedTime || "Just now"}</small>
+        </td>
+        <td>
+          <div class="action-btn-group">
+            <button class="btn-table-action" onclick="viewProjectDetails('${proj.id}')"><i class="fa-regular fa-eye"></i> View</button>
+            <button class="btn-table-action" onclick="deleteProject('${proj.id}')"><i class="fa-regular fa-trash-can"></i></button>
           </div>
-        </div>
-      </td>
-      <td>
-        <span class="status-badge ${statusClass}">${proj.status}</span>
-      </td>
-      <td>
-        <div class="bids-count">${proj.bidsCount || 0}</div>
-        <div class="bids-sub">Bids Received</div>
-      </td>
-      <td>
-        <div class="date-info">${proj.lastUpdatedDate || 'N/A'}</div>
-        <div class="date-sub">${proj.lastUpdatedTime || ''}</div>
-      </td>
-      <td>
-        <div class="actions-cell">
-          <button class="btn-view" onclick="viewProjectDetails('${proj.id}')">View Details</button>
-          <button class="btn-more"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-        </div>
-      </td>
+        </td>
+      </tr>
     `;
-    tbody.appendChild(row);
-  });
-
-  document.getElementById("pagination-info").textContent = `Showing 1 to ${projects.length} of ${projects.length} projects`;
+  }).join("");
 }
 
-function getStatusClass(status) {
-  switch (status?.toLowerCase()) {
-    case "in progress": return "status-in-progress";
-    case "completed": return "status-completed";
-    case "pending": return "status-pending";
-    default: return "";
+/* =========================================================
+   4. METRICS CARDS COUNTER
+   ========================================================= */
+function updateMetricsCounters(list) {
+  const total = list.length;
+  const active = list.filter(p => (p.status || "").toLowerCase() === "in progress").length;
+  const completed = list.filter(p => (p.status || "").toLowerCase() === "completed").length;
+  const totalBids = list.reduce((acc, curr) => acc + (parseInt(curr.bidsCount) || 0), 0);
+
+  if (document.getElementById("totalProjectsCount")) document.getElementById("totalProjectsCount").textContent = total;
+  if (document.getElementById("activeProjectsCount")) document.getElementById("activeProjectsCount").textContent = active;
+  if (document.getElementById("completedProjectsCount")) document.getElementById("completedProjectsCount").textContent = completed;
+  if (document.getElementById("totalBidsCount")) document.getElementById("totalBidsCount").textContent = totalBids;
+}
+
+/* =========================================================
+   5. ACTIONS & HELPERS
+   ========================================================= */
+function deleteProject(id) {
+  if (confirm("Are you sure you want to delete this project?")) {
+    allProjectsList = allProjectsList.filter(p => String(p.id) !== String(id));
+    localStorage.setItem("customerProjects", JSON.stringify(allProjectsList));
+    filterAndRenderProjects();
   }
 }
 
-function viewProjectDetails(projectId) {
-  window.location.href = `/customer/project-details/${projectId}`;
+function viewProjectDetails(id) {
+  const project = allProjectsList.find(p => String(p.id) === String(id));
+  if (project) {
+    alert(`Project Details:\nTitle: ${project.title}\nCategory: ${project.category}\nStatus: ${project.status}`);
+  }
 }
 
-// Search & Filter Handlers
-function initFilters() {
-  const searchInput = document.getElementById("search-input");
-  const statusFilter = document.getElementById("status-filter");
-  const categoryFilter = document.getElementById("category-filter");
-
-  const runFilter = () => {
-    const query = searchInput.value.toLowerCase().trim();
-    const status = statusFilter.value;
-    const category = categoryFilter.value;
-
-    const filtered = allProjects.filter((p) => {
-      const matchSearch = p.title.toLowerCase().includes(query) || (p.location && p.location.toLowerCase().includes(query));
-      const matchStatus = status === "All" || p.status === status;
-      const matchCategory = category === "All" || p.category === category;
-      return matchSearch && matchStatus && matchCategory;
-    });
-
-    renderProjectsTable(filtered);
-  };
-
-  searchInput.addEventListener("input", runFilter);
-  statusFilter.addEventListener("change", runFilter);
-  categoryFilter.addEventListener("change", runFilter);
+function resetFilters() {
+  document.getElementById("projectSearchInput").value = "";
+  document.getElementById("statusFilter").value = "ALL";
+  document.getElementById("categoryFilter").value = "ALL";
+  document.getElementById("timeFilter").value = "ALL";
+  filterAndRenderProjects();
 }
