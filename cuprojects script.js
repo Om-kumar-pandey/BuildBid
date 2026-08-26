@@ -1,3 +1,8 @@
+/* =========================================================
+   BUILDBID - CUSTOMER PROJECTS DASHBOARD SCRIPT (Fully Fixed)
+   ========================================================= */
+const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+
 document.addEventListener("DOMContentLoaded", () => {
   syncUniversalUserProfile();
   loadCustomerProjects();
@@ -48,9 +53,9 @@ function syncUniversalUserProfile() {
   }
 
   // Token Backend Fetch
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || "";
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || sessionStorage.getItem("token") || "";
   if (token) {
-    fetch("/api/customer/profile", {
+    fetch(API_BASE_URL + "/api/customer/profile", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -111,16 +116,16 @@ function applyUserHeaderData(user) {
    2. LOAD PROJECTS (API + LOCALSTORAGE SYNC)
    ========================================================= */
 async function loadCustomerProjects() {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || "";
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
 
   // 1. Check local storage first
   const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");
   allProjectsList = localProjects;
 
-  // 2. Try fetching from Backend API
+  // 2. Try fetching from Backend API (Render Database Connected)
   if (token) {
     try {
-      const response = await fetch("/api/customer/projects", {
+      const response = await fetch(API_BASE_URL + "/api/customer/projects", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -152,13 +157,19 @@ function filterAndRenderProjects() {
   const categoryFilter = document.getElementById("categoryFilter")?.value || "ALL";
 
   const filtered = allProjectsList.filter(proj => {
-    const matchesSearch = 
-      (proj.title && proj.title.toLowerCase().includes(searchQuery)) ||
-      (proj.location && proj.location.toLowerCase().includes(searchQuery)) ||
-      (proj.category && proj.category.toLowerCase().includes(searchQuery));
+    // बैकएंड से आने वाले डेटा की प्रॉपर्टीज (title, city, type) के साथ सुरक्षित मिलान
+    const projTitle = proj.title || "";
+    const projLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "");
+    const projCategory = proj.type || proj.category || "";
 
-    const matchesStatus = statusFilter === "ALL" || (proj.status && proj.status.toLowerCase() === statusFilter.toLowerCase());
-    const matchesCategory = categoryFilter === "ALL" || (proj.category && proj.category.toLowerCase() === categoryFilter.toLowerCase());
+    const matchesSearch = 
+      projTitle.toLowerCase().includes(searchQuery) ||
+      projLocation.toLowerCase().includes(searchQuery) ||
+      projCategory.toLowerCase().includes(searchQuery);
+
+    const projStatus = proj.status || "In Progress";
+    const matchesStatus = statusFilter === "ALL" || projStatus.toLowerCase() === statusFilter.toLowerCase();
+    const matchesCategory = categoryFilter === "ALL" || projCategory.toLowerCase() === categoryFilter.toLowerCase();
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -172,38 +183,46 @@ function renderTableRows(projects) {
   const emptyBox = document.getElementById("emptyStateBox");
   const countDisplay = document.getElementById("showingResultsCount");
 
+  if (!tbody) return;
+
   if (!projects || projects.length === 0) {
     tbody.innerHTML = "";
-    emptyBox.style.display = "block";
-    countDisplay.textContent = `Showing 0 of ${allProjectsList.length} projects`;
+    if (emptyBox) emptyBox.style.display = "block";
+    if (countDisplay) countDisplay.textContent = `Showing 0 of ${allProjectsList.length} projects`;
     return;
   }
 
-  emptyBox.style.display = "none";
-  countDisplay.textContent = `Showing ${projects.length} of ${allProjectsList.length} projects`;
+  if (emptyBox) emptyBox.style.display = "none";
+  if (countDisplay) countDisplay.textContent = `Showing ${projects.length} of ${allProjectsList.length} projects`;
 
   tbody.innerHTML = projects.map(proj => {
-    const statusClass = (proj.status || "In Progress").toLowerCase().replace(" ", "-");
+    const statusVal = proj.status || "In Progress";
+    const statusClass = statusVal.toLowerCase().replace(" ", "-");
+    const displayLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "N/A");
+    const displayArea = proj.builtUpArea ? `${proj.builtUpArea} sq ft` : (proj.area || "--");
+    const displayCategory = proj.type || proj.category || "General";
+    const displayDate = proj.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : (proj.updatedDate || "Today");
+
     return `
       <tr>
         <td>
-          <div class="project-title-text">${proj.title || "Untitled Project"}</div>
-          <div class="project-sub-text">${proj.location || "N/A"} • ${proj.area || "--"} • ${proj.category || "General"}</div>
+          <div class="project-title-text" style="font-weight: 700; color: #1e293b; font-size: 15px;">${proj.title || "Untitled Project"}</div>
+          <div class="project-sub-text" style="font-size: 13px; color: #64748b; margin-top: 3px;">📍 ${displayLocation} • 🏗️ ${displayArea} • ${displayCategory}</div>
         </td>
         <td>
-          <span class="status-badge ${statusClass}">${proj.status || "In Progress"}</span>
+          <span class="status-badge ${statusClass}" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${statusVal}</span>
         </td>
         <td>
           <strong>${proj.bidsCount || 0}</strong> bids
         </td>
         <td>
-          <div>${proj.updatedDate || "Today"}</div>
-          <small class="project-sub-text">${proj.updatedTime || "Just now"}</small>
+          <div>${displayDate}</div>
+          <small class="project-sub-text">Just now</small>
         </td>
         <td>
-          <div class="action-btn-group">
-            <button class="btn-table-action" onclick="viewProjectDetails('${proj.id}')"><i class="fa-regular fa-eye"></i> View</button>
-            <button class="btn-table-action" onclick="deleteProject('${proj.id}')"><i class="fa-regular fa-trash-can"></i></button>
+          <div class="action-btn-group" style="display: flex; gap: 8px;">
+            <button class="btn-table-action" onclick="viewProjectDetails('${proj.id}')" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #334155; font-size: 13px;"><i class="fa-regular fa-eye"></i> View</button>
+            <button class="btn-table-action" onclick="deleteProject('${proj.id}')" style="background: #fee2e2; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #dc2626;"><i class="fa-regular fa-trash-can"></i></button>
           </div>
         </td>
       </tr>
@@ -216,7 +235,7 @@ function renderTableRows(projects) {
    ========================================================= */
 function updateMetricsCounters(list) {
   const total = list.length;
-  const active = list.filter(p => (p.status || "").toLowerCase() === "in progress").length;
+  const active = list.filter(p => (p.status || "In Progress").toLowerCase() === "in progress" || (p.status || "").toLowerCase() === "active").length;
   const completed = list.filter(p => (p.status || "").toLowerCase() === "completed").length;
   const totalBids = list.reduce((acc, curr) => acc + (parseInt(curr.bidsCount) || 0), 0);
 
@@ -240,7 +259,7 @@ function deleteProject(id) {
 function viewProjectDetails(id) {
   const project = allProjectsList.find(p => String(p.id) === String(id));
   if (project) {
-    alert(`Project Details:\nTitle: ${project.title}\nCategory: ${project.category}\nStatus: ${project.status}`);
+    alert(`Project Details:\nTitle: ${project.title}\nCategory: ${project.type || project.category}\nStatus: ${project.status || 'In Progress'}`);
   }
 }
 
