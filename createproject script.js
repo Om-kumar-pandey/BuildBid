@@ -1,3 +1,4 @@
+const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 document.addEventListener("DOMContentLoaded", () => {
   syncUniversalUserProfile();
   initRequirements();
@@ -414,6 +415,7 @@ function resetBreakdownTable() {
 /* =========================================================
    7. STEP 6 REVIEW & EVENT LISTENERS
    ========================================================= */
+
 function populateSummaryReview() {
   document.getElementById("revType").textContent = projectState.projectType || "Not Selected";
   document.getElementById("revTitle").textContent = document.getElementById("projectTitleInput").value.trim() || "Untitled Project";
@@ -459,8 +461,10 @@ function initEventListeners() {
 }
 
 /* =========================================================
-   8. BACKEND API SUBMISSION (Updated for MySQL Database)
+   8. BACKEND API SUBMISSION (Final Fix with API_BASE_URL)
    ========================================================= */
+const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+
 async function submitProject() {
   if (!projectState.projectType) {
     showToast("Incomplete Form", "Please select a project type in Step 1.", "warning");
@@ -473,7 +477,6 @@ async function submitProject() {
     return;
   }
 
-  // लॉगिन के वक्त इस्तेमाल होने वाली सही टोकन की (MarketplaceToken)
   const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
 
   if (!token) {
@@ -496,7 +499,8 @@ async function submitProject() {
   };
 
   try {
-    const response = await fetch("/api/customer/projects/create", {
+    // यहाँ हमने API_BASE_URL जोड़ दिया है ताकि यह सीधे Render सर्वर से जुड़े
+    const response = await fetch(API_BASE_URL + "/api/customer/projects/create", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
