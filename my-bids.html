@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildBid - My Project Bids</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="my-bids.css">
+</head>
+<body>
+
+    <div class="app-layout">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <img src="logo.png" alt="BuildBid Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <h2>BuildBid</h2>
+                    <span>Build Better, Bid Smarter</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="customer dashboard.html" class="nav-item">
+                    <i class="fa-regular fa-user"></i>
+                    <span>My Profile</span>
+                </a>
+                <a href="customer projects.html" class="nav-item">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span>My Projects</span>
+                </a>
+                <a href="my-bids.html" class="nav-item active">
+                    <i class="fa-regular fa-file-lines"></i>
+                    <span>My Bids</span>
+                </a>
+                <a href="materials-orders.html" class="nav-item">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Materials Orders</span>
+                </a>
+                <a href="hired-professionals.html" class="nav-item">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span>Hired Professionals</span>
+                </a>
+                <a href="saved-items.html" class="nav-item">
+                    <i class="fa-regular fa-bookmark"></i>
+                    <span>Saved Items</span>
+                </a>
+                <a href="wallet.html" class="nav-item">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>Wallet & Payments</span>
+                </a>
+                <a href="reviews.html" class="nav-item">
+                    <i class="fa-regular fa-star"></i>
+                    <span>Reviews & Ratings</span>
+                </a>
+                <a href="community.html" class="nav-item">
+                    <i class="fa-regular fa-bell"></i>
+                    <span>Community</span>
+                </a>
+                <a href="notifications.html" class="nav-item">
+                    <i class="fa-regular fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Account Settings</span>
+                </a>
+                <a href="security.html" class="nav-item">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Security</span>
+                </a>
+                <a href="support.html" class="nav-item">
+                    <i class="fa-regular fa-circle-question"></i>
+                    <span>Help & Support</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Viewport -->
+        <main class="main-viewport">
+            
+            <!-- Top Navbar -->
+            <header class="top-nav">
+                <div class="search-bar-container">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search projects, materials, professionals...">
+                    <div class="category-dropdown">
+                        <select id="searchCategory">
+                            <option value="projects">Projects</option>
+                            <option value="bids">Bids</option>
+                            <option value="contractors">Contractors</option>
+                        </select>
+                    </div>
+                    <button class="btn-search">Search</button>
+                </div>
+
+                <div class="nav-user-actions">
+                    <button class="icon-btn notification-btn" onclick="window.location.href='notifications.html'">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge" id="notificationCount" style="display: none;">0</span>
+                        <span>Notifications</span>
+                    </button>
+                    <button class="icon-btn messages-btn" onclick="window.location.href='messages.html'">
+                        <i class="fa-regular fa-comment-dots"></i>
+                        <span>Messages</span>
+                    </button>
+                    <div class="user-avatar-pill" id="userPill">
+                        <div class="avatar" id="userInitials">--</div>
+                        <div class="user-meta">
+                            <span class="user-name" id="userName">...</span>
+                            <span class="user-role" id="userRole">CUSTOMER</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Page Content -->
+            <div class="content-container">
+                
+                <!-- Dark Navy Top Header Banner -->
+                <div class="bids-header-banner">
+                    <div class="banner-content">
+                        <div class="breadcrumb-text">Home &gt; My Bids &gt; <span>Project Bids</span></div>
+                        <h1 class="banner-title">Project Bids</h1>
+                        <p class="banner-subtitle">Track all the bids received on your posted projects.</p>
+                    </div>
+                </div>
+
+                <!-- Dynamic Summary Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper icon-blue"><i class="fa-regular fa-clipboard"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Projects</span>
+                            <h3 class="stat-value" id="statTotalProjects">--</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper icon-amber"><i class="fa-solid fa-file-invoice"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Bids</span>
+                            <h3 class="stat-value" id="statTotalBids">--</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper icon-yellow"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Pending Review</span>
+                            <h3 class="stat-value" id="statPendingReview">--</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper icon-green"><i class="fa-regular fa-circle-check"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Bids Accepted</span>
+                            <h3 class="stat-value" id="statAccepted">--</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper icon-slate"><i class="fa-solid fa-award"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Completed Projects</span>
+                            <h3 class="stat-value" id="statCompleted">--</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Bids Table Card -->
+                <div class="bids-list-card">
+                    <div class="bids-items-wrapper" id="bidsListContainer"></div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-footer">
+                        <div class="pagination-info" id="paginationInfo">Showing 0 of 0 projects</div>
+                        <div class="pagination-controls" id="paginationControls"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="my-bids.js"></script>
+</body>
+</html>
