@@ -459,7 +459,7 @@ function initEventListeners() {
 }
 
 /* =========================================================
-   8. BACKEND API SUBMISSION
+   8. BACKEND API SUBMISSION (Updated for MySQL Database)
    ========================================================= */
 async function submitProject() {
   if (!projectState.projectType) {
@@ -473,7 +473,14 @@ async function submitProject() {
     return;
   }
 
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || "";
+  // लॉगिन के वक्त इस्तेमाल होने वाली सही टोकन की (MarketplaceToken)
+  const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
+
+  if (!token) {
+    showToast("Authentication Required", "Please login first to post a project.", "error");
+    return;
+  }
+
   const payload = {
     title: document.getElementById("projectTitleInput").value.trim() || `${projectState.builtUpArea} sq.ft ${projectState.projectType}`,
     type: projectState.projectType,
@@ -499,32 +506,18 @@ async function submitProject() {
     });
 
     if (response.ok) {
-      showToast("Success", "Project posted and bids requested successfully!", "success");
+      const result = await response.json();
+      showToast("Success", "Project posted and saved to database successfully!", "success");
       setTimeout(() => { window.location.href = "customer projects.html"; }, 1500);
     } else {
-      saveProjectLocally(payload);
+      const errData = await response.json().catch(() => ({}));
+      console.error("Server error response:", errData);
+      showToast("Submission Failed", errData.error || "Could not save project to database.", "error");
     }
   } catch (err) {
-    saveProjectLocally(payload);
+    console.error("Network error:", err);
+    showToast("Network Error", "Could not connect to the backend server.", "error");
   }
-}
-
-function saveProjectLocally(payload) {
-  const localList = JSON.parse(localStorage.getItem("customerProjects") || "[]");
-  localList.unshift({
-    id: Date.now(),
-    title: payload.title,
-    location: `${payload.city || 'Greater Noida'}, ${payload.state || 'UP'}`,
-    area: `${payload.builtUpArea} sq.ft`,
-    category: payload.type,
-    status: "In Progress",
-    bidsCount: 0,
-    updatedDate: "Today",
-    updatedTime: "Just now"
-  });
-  localStorage.setItem("customerProjects", JSON.stringify(localList));
-  showToast("Project Saved", "Project submitted successfully to your workspace!", "success");
-  setTimeout(() => { window.location.href = "customer projects.html"; }, 1200);
 }
 
 function saveDraft() {
