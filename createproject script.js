@@ -1,13 +1,20 @@
 /* =========================================================
-   BUILDBID - CREATE PROJECT SCRIPT (Fully Synchronized)
+   BUILDBID - PROJECT SCRIPT (Fully Synchronized & DB Connected)
    ========================================================= */
 const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 
 document.addEventListener("DOMContentLoaded", () => {
   syncUniversalUserProfile();
-  initRequirements();
-  initEventListeners();
-  setLiveDatasetDate();
+  
+  // चेक करें कि क्या यूजर 'customer projects.html' पेज पर है या नहीं
+  if (window.location.pathname.includes("customer projects.html")) {
+    fetchAndDisplayCustomerProjects();
+  } else {
+    // अगर वह क्रिएट प्रोजेक्ट पेज पर है, तो फॉर्म इनिशियलाइज करें
+    initRequirements();
+    initEventListeners();
+    setLiveDatasetDate();
+  }
 });
 
 // Dynamic Project State
@@ -367,7 +374,7 @@ function initEventListeners() {
 }
 
 /* =========================================================
-   8. BACKEND API SUBMISSION (MySQL DB Connected)
+   8. BACKEND API SUBMISSION & FETCHING (MySQL DB Connected)
    ========================================================= */
 async function submitProject() {
   if (!projectState.projectType) {
@@ -420,6 +427,52 @@ async function submitProject() {
     }
   } catch (err) {
     showToast("Network Error", "Could not connect to the backend server.", "error");
+  }
+}
+
+// यह फंक्शन 'customer projects.html' पर डेटाबेस से प्रोजेक्ट्स लोड करेगा
+async function fetchAndDisplayCustomerProjects() {
+  const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
+  if (!token) return;
+
+  try {
+    const response = await fetch(API_BASE_URL + "/api/customer/projects", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const projects = await response.json();
+      
+      // Total और Active प्रोजेक्ट्स की संख्या अपडेट करें
+      const counters = document.querySelectorAll("h2, .stat-number, .badge-count");
+      counters.forEach(el => {
+        if (el.textContent.trim() === "0") {
+          el.textContent = projects.length;
+        }
+      });
+
+      // अगर कोई टेबल या लिस्ट कंटेनर है जहाँ प्रोजेक्ट्स दिखाने हैं
+      const container = document.querySelector(".projects-list-container, tbody");
+      if (container && projects.length > 0) {
+        container.innerHTML = projects.p(p => `
+          <div style="background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="margin: 0; color: #1e293b;">${p.title || 'Project'}</h4>
+              <p style="margin: 5px 0 0; color: #64748b; font-size: 14px;">📍 ${p.city}, ${p.state} | 🏗️ ${p.builtUpArea} sq ft</p>
+            </div>
+            <div>
+              <span style="background: #e0f2fe; color: #0369a1; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">${p.type}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load customer projects:", err);
   }
 }
 
