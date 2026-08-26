@@ -430,7 +430,7 @@ async function submitProject() {
   }
 }
 
-// यह फंक्शन 'customer projects.html' पर डेटाबेस से प्रोजेक्ट्स लोड करेगा
+// यह फंक्शन 'customer projects.html' पर डेटाबेस से प्रोजेक्ट्स लोड करेगा (Fixed with .map)
 async function fetchAndDisplayCustomerProjects() {
   const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
   if (!token) return;
@@ -455,10 +455,10 @@ async function fetchAndDisplayCustomerProjects() {
         }
       });
 
-      // अगर कोई टेबल या लिस्ट कंटेनर है जहाँ प्रोजेक्ट्स दिखाने हैं
+      // यहाँ 'projects.p' की जगह बिल्कुल सही 'projects.map' का इस्तेमाल किया गया है
       const container = document.querySelector(".projects-list-container, tbody");
       if (container && projects.length > 0) {
-        container.innerHTML = projects.p(p => `
+        container.innerHTML = projects.map(p => `
           <div style="background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h4 style="margin: 0; color: #1e293b;">${p.title || 'Project'}</h4>
