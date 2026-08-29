@@ -1,16 +1,20 @@
 /* =========================================================
-   PROJECT BUILDER 2-COLUMN LAYOUT
+   BUILDBID - PROJECT BUILDER CONTENT (project_builder.css)
    ========================================================= */
+
+/* Main 2-Column Container */
 .project-builder-container {
   flex: 1;
   display: grid;
   grid-template-columns: minmax(650px, 1.8fr) minmax(360px, 1.1fr);
   gap: 24px;
   padding: 24px 32px;
-  background-color: #f8fafc;
   min-width: 0;
 }
 
+/* =========================================================
+   WIZARD MAIN CARD & HEADER
+   ========================================================= */
 .wizard-main-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -53,7 +57,7 @@
 }
 
 /* =========================================================
-   STEPPER NAVIGATION (DYNAMIC HIGHLIGHTING)
+   STEPPER NAVIGATION
    ========================================================= */
 .stepper-nav {
   display: flex;
@@ -627,95 +631,25 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 
 /* =========================================================
-   MODERN FLOATING TOAST NOTIFICATION
+   RESPONSIVE LAYOUT
    ========================================================= */
-.toast-container {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  pointer-events: none;
+@media (max-width: 1100px) {
+  .project-builder-container {
+    grid-template-columns: 1fr;
+  }
 }
 
-.toast-card {
-  pointer-events: auto;
-  min-width: 320px;
-  max-width: 400px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  position: relative;
-  overflow: hidden;
-}
-
-.toast-card.hide {
-  animation: slideOutToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes slideInToast {
-  from { opacity: 0; transform: translateX(80px) scale(0.95); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
-}
-
-@keyframes slideOutToast {
-  from { opacity: 1; transform: translateX(0) scale(1); }
-  to { opacity: 0; transform: translateX(80px) scale(0.95); }
-}
-
-.toast-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.toast-card.warning .toast-icon { background: #fef3c7; color: #d97706; }
-.toast-card.info .toast-icon    { background: #e0f2fe; color: #0284c7; }
-.toast-card.success .toast-icon { background: #dcfce7; color: #16a34a; }
-.toast-card.error .toast-icon   { background: #fee2e2; color: #ef4444; }
-
-.toast-content {
-  flex: 1;
-}
-
-.toast-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0b192c;
-  line-height: 1.2;
-}
-
-.toast-msg {
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 3px;
-  line-height: 1.4;
-}
-
-.toast-close {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px;
-  margin-left: 4px;
-  transition: color 0.15s;
-}
-
-.toast-close:hover {
-  color: #0f172a;
+@media (max-width: 768px) {
+  .project-builder-container {
+    padding: 16px;
+  }
+  .form-grid-2,
+  .input-inline-grid,
+  .quality-tier-grid {
+    grid-template-columns: 1fr;
+  }
+  .stepper-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
