@@ -1,0 +1,113 @@
+/* =========================================================
+   BUILDBID — CINEMATIC CONSTRUCTION BACKGROUND
+   animation.css
+   ========================================================= */
+
+#buildbid-canvas-animation {
+    position: fixed;
+    inset: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    display: block;
+
+    pointer-events: none;
+
+    z-index: 0;
+
+    background:
+        radial-gradient(
+            circle at 50% 45%,
+            #ffffff 0%,
+            #f4f8fb 48%,
+            #e8f0f5 100%
+        );
+
+    opacity: 1;
+
+    transform: translateZ(0);
+
+    will-change: transform;
+
+    contain: strict;
+}
+
+
+/* =========================================================
+   KEEP WEBSITE ABOVE ANIMATION
+   ========================================================= */
+
+body {
+    position: relative;
+}
+
+
+/*
+   Everything except the canvas stays above it.
+*/
+
+body > *:not(#buildbid-canvas-animation) {
+    position: relative;
+    z-index: 2;
+}
+
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.hero {
+    position: relative;
+    overflow: hidden;
+
+    background: transparent !important;
+}
+
+
+/* =========================================================
+   IMPORTANT:
+   Make large section backgrounds transparent so the
+   construction animation can remain visible.
+   ========================================================= */
+
+.hero,
+.hero-content,
+.hero-image {
+    position: relative;
+}
+
+
+/* =========================================================
+   CONTENT SHADOW / DEPTH
+   ========================================================= */
+
+.hero-content {
+    z-index: 5;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    #buildbid-canvas-animation {
+        opacity: 0.72;
+    }
+
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    #buildbid-canvas-animation {
+        opacity: 0.35;
+    }
+
+}
