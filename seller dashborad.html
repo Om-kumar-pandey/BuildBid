@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuildBid - Professional Dashboard</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+:root{
+    --blue:#4f46e5;
+    --dark:#0b1628;
+    --bg:#f7f9fc;
+    --card:#fff;
+    --text:#111827;
+    --muted:#667085;
+    --border:#e6eaf0;
+    --green:#22a06b;
+}
+
+body{
+    background:var(--bg);
+    color:var(--text);
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    width:200px;
+    background:#0b1729;
+    color:white;
+    padding:15px 12px;
+    z-index:1000;
+}
+
+.logo{
+    height:50px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding-left:8px;
+    font-size:22px;
+    font-weight:800;
+    border-bottom:1px solid #263247;
+    margin-bottom:12px;
+}
+
+.logo-icon{
+    color:#f59e0b;
+    font-size:25px;
+}
+
+.logo span{
+    color:#ff7a00;
+}
+
+/* PROFILE */
+
+.side-profile{
+    background:#142239;
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:12px;
+}
+
+.side-profile-top{
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+.side-avatar{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#f59e0b,#374151);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.side-name{
+    font-size:12px;
+    font-weight:bold;
+}
+
+.side-role{
+    font-size:9px;
+    color:#cbd5e1;
+    margin-top:3px;
+    line-height:12px;
+}
+
+.rating{
+    color:#fbbf24;
+    font-size:11px;
+    margin-top:8px;
+}
+
+/* NAV */
+
+.nav-title{
+    color:#718096;
+    font-size:9px;
+    text-transform:uppercase;
+    margin:12px 10px 7px;
+}
+
+.nav-link{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#b8c2d1;
+    padding:9px 10px;
+    border-radius:7px;
+    margin-bottom:2px;
+    text-align:left;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:11px;
+}
+
+.nav-link:hover,
+.nav-link.active{
+    background:linear-gradient(90deg,#5046e5,#6258ed);
+    color:#fff;
+}
+
+.nav-icon{
+    width:18px;
+    text-align:center;
+    font-size:14px;
+}
+
+.badge{
+    margin-left:auto;
+    background:#ef4444;
+    color:white;
+    min-width:18px;
+    height:18px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:9px;
+}
+
+.hub-badge{
+    margin-left:auto;
+    background:#ef4444;
+    padding:3px 5px;
+    border-radius:8px;
+    font-size:7px;
+}
+
+/* PREMIUM */
+
+.premium{
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:15px;
+    background:#17263d;
+    padding:10px;
+    border-radius:9px;
+}
+
+.premium-title{
+    font-size:10px;
+    font-weight:bold;
+}
+
+.premium-text{
+    font-size:8px;
+    color:#aeb9ca;
+    margin:5px 0;
+    line-height:12px;
+}
+
+.upgrade{
+    width:100%;
+    border:0;
+    background:#ffb51b;
+    color:#172033;
+    padding:7px;
+    border-radius:6px;
+    font-size:9px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+/* ================= MAIN ================= */
+
+.main{
+    margin-left:200px;
+    min-height:100vh;
+}
+
+/* TOPBAR */
+
+.topbar{
+    height:52px;
+    background:white;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    padding:0 25px;
+    gap:20px;
+}
+
+.menu-btn{
+    border:0;
+    background:none;
+    font-size:20px;
+    cursor:pointer;
+}
+
+.secure{
+    background:#e8f7ee;
+    color:#228b57;
+    padding:7px 10px;
+    border-radius:5px;
+    font-size:10px;
+    font-weight:bold;
+}
+
+.search{
+    width:275px;
+    height:32px;
+    background:#f0f1f5;
+    border:0;
+    border-radius:7px;
+    padding:0 12px;
+    outline:none;
+    margin:auto;
+}
+
+.top-right{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.top-icon{
+    position:relative;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.top-badge{
+    position:absolute;
+    right:-7px;
+    top:-6px;
+    background:#e63956;
+    color:white;
+    border-radius:50%;
+    width:14px;
+    height:14px;
+    font-size:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.user{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    border-left:1px solid #eee;
+    padding-left:15px;
+}
+
+.user-avatar{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#f59e0b,#334155);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.user-name{
+    font-size:11px;
+    font-weight:bold;
+}
+
+.user-role{
+    font-size:8px;
+    color:var(--muted);
+    margin-top:2px;
+}
+
+/* ================= CONTENT ================= */
+
+.content{
+    padding:16px 25px;
+}
+
+/* WELCOME */
+
+.welcome{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+}
+
+.welcome-small{
+    font-size:11px;
+    margin-bottom:4px;
+}
+
+.welcome h1{
+    font-size:20px;
+}
+
+.welcome p{
+    color:var(--muted);
+    font-size:11px;
+    margin-top:5px;
+}
+
+.weather{
+    margin-left:15px;
+    padding-left:15px;
+    border-left:1px solid #ddd;
+    display:inline-flex;
+    gap:7px;
+    align-items:center;
+}
+
+.weather-icon{
+    font-size:24px;
+}
+
+.weather strong{
+    font-size:11px;
+}
+
+.weather small{
+    display:block;
+    color:var(--muted);
+    font-size:9px;
+}
+
+.new-quote{
+    background:#5146dc;
+    color:white;
+    border:0;
+    border-radius:6px;
+    padding:9px 13px;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:bold;
+}
+
+/* ================= STATS ================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:13px;
+}
+
+.stat{
+    background:white;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    min-height:85px;
+}
+
+.stat-left{
+    display:flex;
+    gap:9px;
+}
+
+.stat-icon{
+    width:39px;
+    height:39px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+}
+
+.i-purple{background:#eeebff;color:#6258df;}
+.i-green{background:#e4f6ed;color:#32a56f;}
+.i-yellow{background:#fff4d6;color:#e4a900;}
+.i-red{background:#fde8ed;color:#db4963;}
+
+.stat-title{
+    color:#566176;
+    font-size:10px;
+    margin-top:2px;
+}
+
+.stat-value{
+    font-size:18px;
+    font-weight:800;
+    margin:5px 0;
+}
+
+.stat-change{
+    color:#2b9b68;
+    font-size:8px;
+}
+
+.mini-chart{
+    width:45px;
+    align-self:center;
+    font-size:25px;
+    color:#8a82dd;
+}
+
+/* ================= TWO COLUMNS ================= */
+
+.grid{
+    display:grid;
+    grid-template-columns:1.65fr 1fr;
+    gap:12px;
+}
+
+.card{
+    background:white;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:12px;
+    margin-bottom:12px;
+}
+
+.card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:9px;
+}
+
+.card-head h2{
+    font-size:13px;
+}
+
+.card-head button{
+    border:0;
+    background:none;
+    color:#4f46c8;
+    font-size:9px;
+    cursor:pointer;
+}
+
+/* PROJECT */
+
+.project{
+    display:flex;
+    align-items:center;
+    border:1px solid #edf0f4;
+    border-radius:7px;
+    padding:6px;
+    margin-bottom:5px;
+    min-height:58px;
+}
+
+.project-img{
+    width:70px;
+    height:47px;
+    border-radius:6px;
+    object-fit:cover;
+    margin-right:10px;
+}
+
+.project-info{
+    flex:1;
+}
+
+.project-title{
+    font-size:11px;
+    font-weight:bold;
+    margin-bottom:4px;
+}
+
+.project-location,
+.project-budget{
+    font-size:8px;
+    color:#657084;
+    margin-top:2px;
+}
+
+.project-status{
+    min-width:105px;
+    text-align:left;
+}
+
+.status{
+    display:inline-block;
+    padding:4px 7px;
+    border-radius:12px;
+    font-size:8px;
+    font-weight:bold;
+}
+
+.open{
+    background:#e4f6eb;
+    color:#268453;
+}
+
+.review{
+    background:#fff4d7;
+    color:#a36c00;
+}
+
+.quoted{
+    background:#eeeaff;
+    color:#6258c8;
+}
+
+.submitted{
+    background:#e2f5eb;
+    color:#258357;
+}
+
+.project-status small{
+    display:block;
+    color:#697386;
+    font-size:8px;
+    margin-top:4px;
+}
+
+.arrow{
+    font-size:17px;
+    color:#64748b;
+}
+
+/* ================= UPCOMING ================= */
+
+.job{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:9px 0;
+    border-bottom:1px solid #edf0f4;
+}
+
+.job:last-child{
+    border-bottom:0;
+}
+
+.date{
+    width:42px;
+    height:42px;
+    background:#f3f2ff;
+    border-radius:6px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:#4f46b8;
+}
+
+.date strong{
+    font-size:15px;
+}
+
+.date small{
+    font-size:7px;
+}
+
+.job-info{
+    flex:1;
+}
+
+.job-title{
+    font-size:10px;
+    font-weight:bold;
+}
+
+.job-location{
+    font-size:8px;
+    color:#667085;
+    margin-top:4px;
+}
+
+.job-time{
+    font-size:8px;
+    color:#4b5563;
+}
+
+.full-schedule{
+    width:100%;
+    margin-top:8px;
+    padding:7px;
+    border:1px solid #e2e5ea;
+    background:white;
+    border-radius:5px;
+    font-size:9px;
+}
+
+/* ================= BOTTOM ================= */
+
+.bottom-grid{
+    display:grid;
+    grid-template-columns:1.35fr 1fr 1fr;
+    gap:12px;
+}
+
+.highlight{
+    border:1px solid #edf0f4;
+    border-radius:7px;
+    padding:7px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+}
+
+.highlight-icon{
+    width:35px;
+    height:35px;
+    background:#f2f4ff;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+}
+
+.highlight-info{
+    flex:1;
+}
+
+.highlight-title{
+    font-size:10px;
+    font-weight:bold;
+}
+
+.highlight-text{
+    font-size:8px;
+    color:#667085;
+    margin-top:3px;
+}
+
+.join{
+    background:#5548df;
+    color:white;
+    border:0;
+    border-radius:5px;
+    padding:6px 9px;
+    font-size:8px;
+}
+
+/* ================= DONUT ================= */
+
+.earnings-box{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:15px;
+}
+
+.donut{
+    width:95px;
+    height:95px;
+    border-radius:50%;
+    background:
+      conic-gradient(
+        #6756db 0deg 125deg,
+        #43aa75 125deg 235deg,
+        #f3c64b 235deg 360deg
+      );
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.donut::after{
+    content:"";
+    width:57px;
+    height:57px;
+    background:white;
+    border-radius:50%;
+}
+
+.legend{
+    font-size:9px;
+    line-height:24px;
+}
+
+.dot{
+    display:inline-block;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    margin-right:5px;
+}
+
+.d1{background:#6756db;}
+.d2{background:#43aa75;}
+.d3{background:#f3c64b;}
+
+/* ================= PROFILE ================= */
+
+.profile-progress{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.progress-ring{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    background:conic-gradient(#6255d8 0deg 342deg,#eeeef3 342deg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.progress-ring::after{
+    content:"95%";
+    width:65px;
+    height:65px;
+    border-radius:50%;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:bold;
+}
+
+.check-list{
+    font-size:9px;
+    line-height:22px;
+}
+
+.check{
+    color:#22a06b;
+    font-weight:bold;
+    margin-right:4px;
+}
+
+.complete-btn{
+    width:100%;
+    border:1px solid #ddd;
+    background:white;
+    padding:7px;
+    border-radius:5px;
+    font-size:9px;
+    margin-top:8px;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media(max-width:1100px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .bottom-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:800px){
+
+    .sidebar{
+        transform:translateX(-100%);
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .main{
+        margin-left:0;
+    }
+
+    .menu-btn{
+        display:block;
+    }
+
+    .topbar{
+        padding:0 12px;
+    }
+
+    .search{
+        display:none;
+    }
+
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    .stats{
+        grid-template-columns:1fr;
+    }
+
+    .content{
+        padding:12px;
+    }
+
+    .welcome{
+        align-items:flex-start;
+        gap:10px;
+        flex-direction:column;
+    }
+}
+
+@media(min-width:801px){
+    .menu-btn{
+        display:block;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= SIDEBAR ================= -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="logo">
+        <div class="logo-icon">⌂</div>
+        Build<span>Bid</span>
+    </div>
+
+    <div class="side-profile">
+
+        <div class="side-profile-top">
+
+            <div class="side-avatar">RK</div>
+
+            <div>
+                <div class="side-name">Rohit Kumar</div>
+                <div class="side-role">
+                    Verified Professional<br>
+                    & Service Provider
+                </div>
+            </div>
+
+        </div>
+
+        <div class="rating">★ 4.9 (185 reviews)</div>
+
+    </div>
+
+    <div class="nav-title">MAIN MENU</div>
+
+    <button class="nav-link active" data-page="dashboard">
+        <span class="nav-icon">⌂</span>
+        Dashboard
+    </button>
+
+    <button class="nav-link" data-page="profile">
+        <span class="nav-icon">♙</span>
+        My Profile
+    </button>
+
+    <button class="nav-link" data-page="services">
+        <span class="nav-icon">▣</span>
+        My Services
+        <span>⌄</span>
+    </button>
+
+    <button class="nav-link" data-page="skills">
+        <span class="nav-icon">◆</span>
+        Skills
+    </button>
+
+    <button class="nav-link" data-page="portfolio">
+        <span class="nav-icon">▤</span>
+        Portfolio
+    </button>
+
+    <button class="nav-link" data-page="inventory">
+        <span class="nav-icon">▦</span>
+        Material Inventory
+    </button>
+
+    <button class="nav-link" data-page="projects">
+        <span class="nav-icon">▣</span>
+        Projects & Bids
+    </button>
+
+    <button class="nav-link" data-page="quotes">
+        <span class="nav-icon">▤</span>
+        Quotes
+    </button>
+
+    <button class="nav-link" data-page="jobs">
+        <span class="nav-icon">▣</span>
+        Bookings / Jobs
+    </button>
+
+    <button class="nav-link" data-page="earnings">
+        <span class="nav-icon">◉</span>
+        Earnings
+    </button>
+
+    <button class="nav-link" data-page="cooperative">
+        <span class="nav-icon">♧</span>
+        Cooperative Hub
+        <span class="hub-badge">hub</span>
+    </button>
+
+    <button class="nav-link" data-page="messages">
+        <span class="nav-icon">▱</span>
+        Messages
+        <span class="badge">3</span>
+    </button>
+
+    <button class="nav-link" data-page="notifications">
+        <span class="nav-icon">♢</span>
+        Notifications
+        <span class="badge">3</span>
+    </button>
+
+    <button class="nav-link" data-page="settings">
+        <span class="nav-icon">⚙</span>
+        Settings
+    </button>
+
+    <div class="premium">
+
+        <div class="premium-title">👑 Upgrade to Premium</div>
+
+        <div class="premium-text">
+            Get more leads and grow your business
+        </div>
+
+        <button class="upgrade">
+            Upgrade Now
+        </button>
+
+    </div>
+
+</aside>
+
+
+<!-- ================= MAIN ================= -->
+
+<main class="main">
+
+<header class="topbar">
+
+    <button class="menu-btn" id="menuBtn">☰</button>
+
+    <div class="secure">● Online & Secure</div>
+
+    <input
+        class="search"
+        id="search"
+        type="text"
+        placeholder="⌕  Search"
+    >
+
+    <div class="top-right">
+
+        <div class="top-icon">
+            ♧
+            <span class="top-badge">3</span>
+        </div>
+
+        <div class="top-icon">
+            ▱
+        </div>
+
+        <div class="user">
+
+            <div class="user-avatar">RK</div>
+
+            <div>
+                <div class="user-name">Rohit Kumar</div>
+                <div class="user-role">Verified Professional</div>
+            </div>
+
+            <span>⌄</span>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<section class="content">
+
+<!-- WELCOME -->
+
+<div class="welcome">
+
+    <div>
+
+        <div class="welcome-small">Welcome back,</div>
+
+        <h1>
+            Rohit Kumar 👋 - Professional & Service Provider
+        </h1>
+
+        <p>Professional Dashboard</p>
+
+        <div class="weather">
+            <span class="weather-icon">☀️</span>
+
+            <div>
+                <strong>Sunny</strong>
+                <small>Indore, MP</small>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="new-quote" id="newQuote">
+        ＋ New Quote
+    </button>
+
+</div>
+
+
+<!-- STATS -->
+
+<div class="stats">
+
+    <div class="stat">
+
+        <div class="stat-left">
+
+            <div class="stat-icon i-purple">▤</div>
+
+            <div>
+                <div class="stat-title">Total Bids</div>
+                <div class="stat-value">28</div>
+                <div class="stat-change">↑ 15% this month</div>
+            </div>
+
+        </div>
+
+        <div class="mini-chart">⌁</div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <div class="stat-left">
+
+            <div class="stat-icon i-green">▣</div>
+
+            <div>
+                <div class="stat-title">Active Projects</div>
+                <div class="stat-value">10</div>
+                <div class="stat-change">↑ 3 new this week</div>
+            </div>
+
+        </div>
+
+        <div class="mini-chart">⌁</div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <div class="stat-left">
+
+            <div class="stat-icon i-yellow">₹</div>
+
+            <div>
+                <div class="stat-title">Total Earnings</div>
+                <div class="stat-value">₹3,15,000</div>
+                <div class="stat-change">↑ 22% this month</div>
+            </div>
+
+        </div>
+
+        <div class="mini-chart">⌁</div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <div class="stat-left">
+
+            <div class="stat-icon i-red">▤</div>
+
+            <div>
+                <div class="stat-title">Material Requests Filed</div>
+                <div class="stat-value">18</div>
+                <div class="stat-change">↑ 20% this month</div>
+            </div>
+
+        </div>
+
+        <div class="mini-chart">⌁</div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= MAIN GRID ================= -->
+
+<div class="grid">
+
+<!-- PROJECTS -->
+
+<div class="card">
+
+    <div class="card-head">
+
+        <div>
+            <h2>Live Project & Material Bids</h2>
+        </div>
+
+        <button onclick="showMessage('Opening all bids...')">
+            View All
+        </button>
+
+    </div>
+
+
+    <div id="projects">
+
+        <div class="project">
+
+            <img
+                class="project-img"
+                src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=300&q=80"
+            >
+
+            <div class="project-info">
+
+                <div class="project-title">
+                    Material Supply - Bulk Cement (100 Tons)
+                </div>
+
+                <div class="project-location">
+                    Indore, Madhya Pradesh
+                </div>
+
+                <div class="project-budget">
+                    Budget: ₹4 - 5 Lakhs
+                </div>
+
+            </div>
+
+            <div class="project-status">
+
+                <span class="status open">
+                    Bidding Open
+                </span>
+
+                <small>Bid Submitted<br>2 hours ago</small>
+
+            </div>
+
+            <div class="arrow">›</div>
+
+        </div>
+
+
+        <div class="project">
+
+            <img
+                class="project-img"
+                src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=300&q=80"
+            >
+
+            <div class="project-info">
+
+                <div class="project-title">
+                    Interior Design Concept - Luxury Apartment
+                </div>
+
+                <div class="project-location">
+                    Bhopal, Madhya Pradesh
+                </div>
+
+                <div class="project-budget">
+                    Budget: ₹3 - 4 Lakhs
+                </div>
+
+            </div>
+
+            <div class="project-status">
+
+                <span class="status review">
+                    Pending Review
+                </span>
+
+                <small>Project Started<br>1 day ago</small>
+
+            </div>
+
+            <div class="arrow">›</div>
+
+        </div>
+
+
+        <div class="project">
+
+            <img
+                class="project-img"
+                src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=300&q=80"
+            >
+
+            <div class="project-info">
+
+                <div class="project-title">
+                    Structural Engineering Analysis - New Office Block
+                </div>
+
+                <div class="project-location">
+                    Engineering Bid 1
+                </div>
+
+                <div class="project-budget">
+                    Engineering Bid 2
+                </div>
+
+            </div>
+
+            <div class="project-status">
+
+                <span class="status quoted">
+                    Quoted
+                </span>
+
+                <small>Waiting for Response<br>2 days ago</small>
+
+            </div>
+
+            <div class="arrow">›</div>
+
+        </div>
+
+
+        <div class="project">
+
+            <img
+                class="project-img"
+                src="https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=300&q=80"
+            >
+
+            <div class="project-info">
+
+                <div class="project-title">
+                    Solar Panel Installation - School Project
+                </div>
+
+                <div class="project-location">
+                    Indore, Madhya Pradesh
+                </div>
+
+                <div class="project-budget">
+                    Budget: ₹12 - 15 Lakhs
+                </div>
+
+            </div>
+
+            <div class="project-status">
+
+                <span class="status submitted">
+                    Submitted
+                </span>
+
+                <small>Project Completed<br>5 days ago</small>
+
+            </div>
+
+            <div class="arrow">›</div>
+
+        </div>
+
+    </div>
+
+
+    <button
+        style="width:100%;padding:7px;border:1px solid #eee;background:white;border-radius:5px;font-size:9px;cursor:pointer;"
+        onclick="showMessage('All Bids & Quotes opened')"
+    >
+        View All Bids & Quotes
+    </button>
+
+</div>
+
+
+<!-- UPCOMING JOBS -->
+
+<div class="card">
+
+    <div class="card-head">
+
+        <h2>Upcoming Jobs</h2>
+
+        <button>View Calendar</button>
+
+    </div>
+
+
+    <div class="job">
+
+        <div class="date">
+            <strong>29</strong>
+            <small>AUG</small>
+        </div>
+
+        <div class="job-info">
+            <div class="job-title">
+                Site Visit - Structural Engineer
+            </div>
+            <div class="job-location">
+                Indore, MP
+            </div>
+        </div>
+
+        <div class="job-time">◷ 10:00 AM</div>
+
+    </div>
+
+
+    <div class="job">
+
+        <div class="date">
+            <strong>31</strong>
+            <small>AUG</small>
+        </div>
+
+        <div class="job-info">
+            <div class="job-title">
+                Design Presentation - Living Room
+            </div>
+            <div class="job-location">
+                Bhopal, MP
+            </div>
+        </div>
+
+        <div class="job-time">◷ 11:30 AM</div>
+
+    </div>
+
+
+    <div class="job">
+
+        <div class="date">
+            <strong>02</strong>
+            <small>SEP</small>
+        </div>
+
+        <div class="job-info">
+            <div class="job-title">
+                Material Delivery - Steel
+            </div>
+            <div class="job-location">
+                Ujjain, MP
+            </div>
+        </div>
+
+        <div class="job-time">◷ 04:00 PM</div>
+
+    </div>
+
+
+    <div class="job">
+
+        <div class="date">
+            <strong>05</strong>
+            <small>SEP</small>
+        </div>
+
+        <div class="job-info">
+            <div class="job-title">
+                Material Delivery - Steel
+            </div>
+            <div class="job-location">
+                Indore, MP
+            </div>
+        </div>
+
+        <div class="job-time">◷ 12:00 PM</div>
+
+    </div>
+
+
+    <button class="full-schedule">
+        View Full Schedule
+    </button>
+
+</div>
+
+</div>
+
+
+<!-- ================= BOTTOM GRID ================= -->
+
+<div class="bottom-grid">
+
+
+<!-- COOPERATIVE -->
+
+<div class="card">
+
+    <div class="card-head">
+        <h2>Cooperative Hub Highlights</h2>
+    </div>
+
+
+    <div class="highlight">
+
+        <div class="highlight-icon">♧</div>
+
+        <div class="highlight-info">
+
+            <div class="highlight-title">
+                Design Consortium Call
+            </div>
+
+            <div class="highlight-text">
+                Join a multi-disciplinary team for "Eco-Resort" project tender
+            </div>
+
+        </div>
+
+        <button class="join"
+            onclick="showMessage('Joining Design Consortium...')">
+            Join Now
+        </button>
+
+    </div>
+
+
+    <div class="highlight">
+
+        <div class="highlight-icon">▤</div>
+
+        <div class="highlight-info">
+
+            <div class="highlight-title">
+                Material Suppliers Pool
+            </div>
+
+            <div class="highlight-text">
+                Create or Join a group-buy Grade 53 Cement for bulk discounts
+            </div>
+
+        </div>
+
+        <button class="join"
+            onclick="showMessage('Opening Supplier Pool...')">
+            Form Group
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- EARNINGS -->
+
+<div class="card">
+
+    <div class="card-head">
+
+        <h2>Earnings Overview</h2>
+
+        <select style="border:1px solid #eee;padding:5px;border-radius:5px;font-size:8px;">
+            <option>This Month</option>
+            <option>This Year</option>
+        </select>
+
+    </div>
+
+
+    <div class="earnings-box">
+
+        <div class="donut"></div>
+
+        <div class="legend">
+
+            <div>
+                <span class="dot d1"></span>
+                Completed Projects
+            </div>
+
+            <div>
+                <span class="dot d2"></span>
+                Ongoing Projects
+            </div>
+
+            <div>
+                <span class="dot d3"></span>
+                Pending Payments
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- PROFILE -->
+
+<div class="card">
+
+    <div class="card-head">
+        <h2>Profile Completion</h2>
+    </div>
+
+
+    <div class="profile-progress">
+
+        <div class="progress-ring"></div>
+
+        <div class="check-list">
+
+            <div>
+                <span class="check">●</span>
+                Skills & Services Listed
+            </div>
+
+            <div>
+                <span class="check">●</span>
+                Portfolio Uploaded
+            </div>
+
+            <div>
+                <span class="check">●</span>
+                Materials Inventory
+            </div>
+
+            <div>
+                <span class="check">●</span>
+                Verification Complete
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div style="font-size:9px;color:#667085;margin-top:8px;">
+        Great! Your profile is almost complete.
+    </div>
+
+    <button class="complete-btn"
+        onclick="showMessage('Profile completion opened')">
+        Complete Profile
+    </button>
+
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+
+<!-- ================= JAVASCRIPT ================= -->
+
+<script>
+
+/* MOBILE SIDEBAR */
+
+document.getElementById("menuBtn").addEventListener("click",function(){
+
+    document.getElementById("sidebar")
+    .classList.toggle("open");
+
+});
+
+
+/* NAVIGATION */
+
+document.querySelectorAll(".nav-link").forEach(function(link){
+
+    link.addEventListener("click",function(){
+
+        document.querySelectorAll(".nav-link")
+        .forEach(function(item){
+            item.classList.remove("active");
+        });
+
+        this.classList.add("active");
+
+        let page=this.dataset.page;
+
+        if(page !== "dashboard"){
+            showMessage(
+                page.charAt(0).toUpperCase()+page.slice(1)
+                +" section selected"
+            );
+        }
+
+        if(window.innerWidth <= 800){
+            document.getElementById("sidebar")
+            .classList.remove("open");
+        }
+
+    });
+
+});
+
+
+/* NEW QUOTE */
+
+document.getElementById("newQuote")
+.addEventListener("click",function(){
+
+    showMessage("New Quote form opened!");
+
+});
+
+
+/* SEARCH */
+
+document.getElementById("search")
+.addEventListener("keyup",function(){
+
+    let value=this.value.toLowerCase();
+
+    document.querySelectorAll(".project")
+    .forEach(function(project){
+
+        project.style.display =
+            project.innerText.toLowerCase().includes(value)
+            ? "flex"
+            : "none";
+
+    });
+
+});
+
+
+/* MESSAGE */
+
+function showMessage(message){
+
+    let old=document.querySelector(".toast");
+
+    if(old) old.remove();
+
+    let toast=document.createElement("div");
+
+    toast.className="toast";
+
+    toast.innerText=message;
+
+    toast.style.position="fixed";
+    toast.style.right="25px";
+    toast.style.bottom="25px";
+    toast.style.background="#111827";
+    toast.style.color="white";
+    toast.style.padding="12px 18px";
+    toast.style.borderRadius="7px";
+    toast.style.fontSize="12px";
+    toast.style.zIndex="9999";
+    toast.style.boxShadow="0 8px 30px rgba(0,0,0,.2)";
+
+    document.body.appendChild(toast);
+
+    setTimeout(function(){
+
+        toast.remove();
+
+    },2200);
+
+}
+
+</script>
+
+</body>
+</html>
