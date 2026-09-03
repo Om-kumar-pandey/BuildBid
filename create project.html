@@ -12,7 +12,7 @@
 </head>
 <body>
 
-   <!-- Top Navbar -->
+  <!-- Top Navbar -->
   <header class="top-navbar">
     <div class="nav-left">
       <a href="#" class="brand-logo">
@@ -57,16 +57,14 @@
       </div>
 
       <div class="user-pill">
-  <!-- Avatar Initial Circle -->
-  <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">
-    --
-  </div>
-
-  <div class="pill-info">
-    <span class="pill-name" id="navUserName">Loading...</span>
-    <span class="pill-role" id="navUserRole">Customer</span>
-  </div>
-</div>
+        <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">
+          --
+        </div>
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Loading...</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -78,11 +76,11 @@
       <ul class="side-menu">
         <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
         <li class="active">
-<a href="customer projects.html" class="sidebar-item">
-  <i class="fa-solid fa-briefcase"></i>
-  <span>My Projects</span>
-</a></li>
-        
+          <a href="customer projects.html" class="sidebar-item">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>My Projects</span>
+          </a>
+        </li>
         <li><a href="my-bids.html"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
         <li><a href="material-orders.html"><i class="fa-regular fa-clock"></i> Materials Orders</a></li>
         <li><a href="hired-professionals.html"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
@@ -95,8 +93,6 @@
         <li><a href="security.html"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
         <li><a href="help.html"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
       </ul>
-
-      
     </aside>
 
     <!-- Main Wizard Grid -->
@@ -257,16 +253,14 @@
             </div>
           </div>
 
-          <div class="floor-selector-group">
-            <label>Number of Floors</label>
-            <div class="floor-pills" id="floorPillsContainer">
-              <button type="button" class="btn-floor" data-floors="1">Ground Floor only</button>
-              <button type="button" class="btn-floor" data-floors="2">G+1</button>
-              <button type="button" class="btn-floor" data-floors="3">G+2</button>
-              <button type="button" class="btn-floor" data-floors="4">G+3</button>
-              <button type="button" class="btn-floor" data-floors="5">G+4</button>
-              <button type="button" class="btn-floor" data-floors="6">More than 4</button>
+          <!-- REPLACED BUTTONS WITH MANUAL NUMBER OF FLOORS INPUT -->
+          <div class="field-group manual-floors-group">
+            <label for="floorsInput">Number of Floors</label>
+            <div class="input-with-unit">
+              <input type="number" id="floorsInput" placeholder="e.g. 1, 2, 3..." min="1" max="100" value="1">
+              <span class="unit">Floors</span>
             </div>
+            <small class="helper-text">Enter total floors (including ground floor)</small>
           </div>
 
           <!-- Dynamic Floor Breakdown Box -->
@@ -291,7 +285,13 @@
           <p class="step-subheading">Turn ON only features required for your construction scope.</p>
           
           <div class="features-grid" id="featuresContainer">
-            <!-- Dynamic toggles rendered by JS -->
+            <!-- Dynamic toggles rendered by JS based on Project Type -->
+          </div>
+
+          <!-- Custom "Others" Description Box -->
+          <div class="others-desc-container" id="othersDescBox" style="display: none;">
+            <label for="othersDescInput"><i class="fa-solid fa-pen-to-square"></i> Specify Custom Requirements & Details</label>
+            <textarea id="othersDescInput" rows="3" class="form-input" placeholder="Elaborate on specific requirements, materials, modifications, or extra works..."></textarea>
           </div>
 
           <div class="form-nav-row">
@@ -310,7 +310,7 @@
               <h4>BASIC</h4>
               <p>Standard Quality Materials (Ultratech, Primary Steel, Ceramic tiles)</p>
             </div>
-            <div class="tier-card" data-tier="standard">
+            <div class="tier-card active" data-tier="standard">
               <span class="popular-ribbon">Most Popular</span>
               <h4>STANDARD</h4>
               <p>Premium Finish & Branded Fittings (Vitrified tiles, Jaquar fittings)</p>
@@ -338,6 +338,7 @@
             <div class="review-item"><strong>Size:</strong> <span id="revSize">-- sq ft</span> (<span id="revFloors">--</span>)</div>
             <div class="review-item"><strong>Quality Tier:</strong> <span id="revQuality">--</span></div>
             <div class="review-item"><strong>Selected Requirements:</strong> <span id="revReqs">None</span></div>
+            <div class="review-item" id="revOthersRow" style="display: none;"><strong>Custom Notes:</strong> <span id="revOthers">--</span></div>
           </div>
 
           <div class="estimate-btn-container">
@@ -417,6 +418,8 @@
 
     </main>
   </div>
+
+  <div id="toastContainer" class="toast-container"></div>
 
   <script src="createproject script.js"></script>
   <script src="layout.js"></script>
