@@ -4,93 +4,117 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BuildBid - My Projects</title>
+  <link rel="stylesheet" href="layout.css">
+
   <link rel="stylesheet" href="cuprojects style.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
+  <!-- Top Navbar -->
   <header class="top-navbar">
     <div class="nav-left">
-      <a href="customer dashboard.html" class="brand-logo-container">
+      <a href="#" class="brand-logo">
         <img src="logo.png" alt="BuildBid Logo" class="site-logo">
-        <div class="logo-text-box">
-          <h2 class="brand-title">BuildBid</h2>
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
           <span class="brand-subtitle">Build Better, Bid Smarter.</span>
         </div>
       </a>
     </div>
-
-    <div class="nav-search-bar">
-      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input type="text" placeholder="Search projects, materials, professionals...">
-      <div class="category-select">Projects <i class="fa-solid fa-chevron-down"></i></div>
-      <button class="nav-search-btn">Search</button>
+    
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Projects</option>
+            <option>Materials</option>
+            <option>Professionals</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
     </div>
 
     <div class="nav-right">
-      <div class="nav-icon-badge">
-        <i class="fa-regular fa-bell"></i>
-        <span class="badge" id="notification-count" style="display: none;">0</span>
-        <span class="nav-label">Notifications</span>
-      </div>
-      <div class="nav-icon-badge">
-        <i class="fa-regular fa-comments"></i>
-        <span class="badge" id="message-count" style="display: none;">0</span>
-        <span class="nav-label">Messages</span>
-      </div>
-      <!-- Pure Dynamic User Profile Badge -->
-      <div class="user-profile-badge">
-        <div class="avatar-circle" id="user-avatar-initials">--</div>
-        <div class="user-text">
-          <span class="user-name" id="user-display-name">User</span>
-          <span class="user-role" id="user-display-role">CUSTOMER</span>
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
         </div>
+        <span class="nav-action-text">Notifications</span>
       </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+  <!-- Avatar Initial Circle -->
+  <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">
+    --
+  </div>
+
+  <div class="pill-info">
+    <span class="pill-name" id="navUserName">Loading...</span>
+    <span class="pill-role" id="navUserRole">Customer</span>
+  </div>
+</div>
     </div>
   </header>
 
-  <div class="dashboard-layout">
-    <!-- Left Sidebar Navigation -->
+  <!-- Page Body Layout -->
+  <div class="app-layout">
+    
+    <!-- Sidebar -->
     <aside class="sidebar">
-      <ul class="sidebar-menu">
-        <li><a href="customer dashboard.html" class="menu-item"><i class="fa-regular fa-user"></i> <span>My Profile</span></a></li>
-        <li><a href="customer projects.html" class="menu-item active"><i class="fa-solid fa-briefcase"></i> <span>My Projects</span></a></li>
+      <ul class="side-menu">
+        <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li class="active">
+<a href="customer projects.html" class="sidebar-item">
+  <i class="fa-solid fa-briefcase"></i>
+  <span>My Projects</span>
+</a></li>
         
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-file-lines"></i> <span>My Bids</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-clock"></i> <span>Materials Orders</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-solid fa-user-group"></i> <span>Hired Professionals</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-bookmark"></i> <span>Saved Items</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-solid fa-wallet"></i> <span>Wallet & Payments</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-star"></i> <span>Reviews & Ratings</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-bell"></i><span> Community</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-bell"></i> <span>Notifications</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-solid fa-gear"></i> <span>Account Settings</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-solid fa-shield-halved"></i> <span>Security</span></a></li>
-        <li><a href="#" class="menu-item"><i class="fa-regular fa-circle-question"></i> <span>Help & Support</span></a></li>
+        <li><a href="my-bids.html"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
+        <li><a href="material-orders.html"><i class="fa-regular fa-clock"></i> Materials Orders</a></li>
+        <li><a href="hired-professionals.html"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
+        <li><a href="saved-items.html"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="wallet.html"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        <li><a href="reviews.html"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="community.html"><i class="fa-solid fa-user-group"></i> Community</a></li>
+        <li><a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li><a href="account-settings.html"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="security.html"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="help.html"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
       </ul>
-      <div class="help-box">
-        <h4>Need Help?</h4>
-        <p>Our support team is here to help you with any queries.</p>
-        <button class="btn-help"><i class="fa-solid fa-headset"></i> Contact Support</button>
-      </div>
+
+      
     </aside>
 
     <!-- Main Projects Content Area -->
     <main class="projects-main-container">
       
-      <!-- Top Title & Action Header -->
-      <div class="projects-header-row">
-        <div>
-          <div class="breadcrumb"><span>Home</span> <i class="fa-solid fa-chevron-right"></i> <strong>My Projects</strong></div>
-          <h1 class="page-title">My Projects</h1>
-          <p class="page-subtitle">Manage and track all your construction projects in one place.</p>
-        </div>
-        <a href="create project.html" class="btn-primary-post">
-          <i class="fa-solid fa-plus"></i> Post New Project
-        </a>
-      </div>
+      <!-- Top Dark Banner Section -->
+<div class="projects-header-banner">
+    <div class="banner-content">
+        <div class="breadcrumb-text">Home &gt; <span>My Projects</span></div>
+        <h1 class="banner-title">My Projects</h1>
+        <p class="banner-subtitle">Manage and track all your construction projects in one place.</p>
+    </div>
+    <div class="banner-action">
+    <button class="btn-post-project" onclick="window.location.href='create project.html'">
+        <span class="plus-icon">+</span> Post New Project
+    </button>
+</div>
+</div>
 
       <!-- 4 Dynamic Metric Summary Cards -->
       <div class="metrics-grid">
@@ -197,5 +221,6 @@
   </div>
 
   <script src="cuprojects script.js"></script>
+  <script src="layout.js"></script>
 </body>
 </html>
