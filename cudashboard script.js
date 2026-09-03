@@ -1,11 +1,12 @@
 // ============================================================
-// DYNAMIC DASHBOARD CONTROLLER (BuildBid)
+// DYNAMIC DASHBOARD CONTROLLER (BuildBid - Fully Synced)
 // ============================================================
 
 const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+let toastTimeout;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("marketplaceToken");
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
   let user = JSON.parse(localStorage.getItem("currentUser")) || {};
 
   // 1. Initial Render with available stored data
@@ -36,21 +37,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Re-render with synced data
         renderUserProfile(user);
       }
+
+      // ** डेटाबेस से असली प्रोजेक्ट्स की संख्या फेच करके 'Projects Posted' में दिखाने के लिए **
+      const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (projResponse.ok) {
+        const dbProjects = await projResponse.json();
+        if (Array.isArray(dbProjects)) {
+          if (!user.stats) user.stats = {};
+          user.stats.projectsPosted = dbProjects.length;
+          renderUserStats(user.stats);
+        }
+      }
+
     } catch (err) {
-      console.warn("Backend /api/me unreachable, using cached data.", err);
+      console.warn("Backend sync failed, using cached data.", err);
     }
   }
 
-  // 3. Logout handler
+  // 3. Logout handler with Toast Notification
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.clear();
-      let toastTimeout;
+      showToast("Notice", "You have logged out successfully.");
+    });
+  }
+});
 
+// Toast Notification Functions
 function showToast(title = "Notice", message = "You have logged out successfully.") {
   const toast = document.getElementById("custom-toast");
+  if (!toast) {
+    localStorage.clear();
+    window.location.href = "index.html";
+    return;
+  }
+  
   document.getElementById("toast-title").innerText = title;
   document.getElementById("toast-message").innerText = message;
 
@@ -63,27 +90,23 @@ function showToast(title = "Notice", message = "You have logged out successfully
   // 2.5 seconds ke baad automatic band ho kar login page pe redirect karega
   toastTimeout = setTimeout(() => {
     hideToast();
-    
-    // Redirect code (apna actual login page link yahan replace karein)
     window.location.href = "index.html"; 
   }, 2500);
 }
 
 function hideToast() {
   const toast = document.getElementById("custom-toast");
-  toast.classList.remove("show");
-}
-      window.location.href = "index.html";
-    });
+  if (toast) {
+    toast.classList.remove("show");
   }
-});
+}
 
 function renderUserProfile(user) {
   const fullName = user.name || user.username || "Customer";
   const firstName = fullName.split(" ")[0];
   const email = user.email || "--";
   
-  // Real Phone Number Check (Hardcoded number bilkul nahi aayega)
+  // Real Phone Number Check
   const phone = (user.phone && user.phone.trim() !== "") ? user.phone : "Not Provided";
   
   const role = (user.role || (user.roles && user.roles[0]) || "Customer").toUpperCase();
@@ -99,7 +122,7 @@ function renderUserProfile(user) {
   if (document.getElementById("heroAvatar")) document.getElementById("heroAvatar").src = avatarUrl;
   if (document.getElementById("heroRoleDisplay")) document.getElementById("heroRoleDisplay").textContent = role;
 
-  // Location: Agar location hai toh hi dikhaye, nahi toh hide kar de
+  // Location Updates
   const locationWrapper = document.getElementById("locationWrapper");
   const heroLocation = document.getElementById("heroLocation");
   if (heroLocation && locationWrapper) {
@@ -111,7 +134,7 @@ function renderUserProfile(user) {
     }
   }
 
-  // Member Since (2026)
+  // Member Since
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString('default', { month: 'short' });
   const currentYear = currentDate.getFullYear();
@@ -190,11 +213,14 @@ function renderRecentActivities(activities) {
     </div>
   `).join('');
 }
-document.getElementById("my-projects-tab-btn").addEventListener("click", () => {
-  // 1. Profile section hide karein aur Projects section show karein
-  document.getElementById("profile-section").style.display = "none";
-  document.getElementById("projects-section").style.display = "block";
 
-  // 2. Fresh dynamic data fetch karein
-  fetchCustomerProjects();
-});
+// Optional tab listener if present
+const myProjectsBtn = document.getElementById("my-projects-tab-btn");
+if (myProjectsBtn) {
+  myProjectsBtn.addEventListener("click", () => {
+    const profileSec = document.getElementById("profile-section");
+    const projSec = document.getElementById("projects-section");
+    if (profileSec) profileSec.style.display = "none";
+    if (projSec) projSec.style.display = "block";
+  });
+}
