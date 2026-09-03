@@ -1,16 +1,20 @@
 /* =========================================================
-   PROJECT BUILDER 2-COLUMN LAYOUT
+   BUILDBID - PROJECT BUILDER CONTENT (project_builder.css)
    ========================================================= */
+
+/* Main 2-Column Container */
 .project-builder-container {
   flex: 1;
   display: grid;
   grid-template-columns: minmax(650px, 1.8fr) minmax(360px, 1.1fr);
   gap: 24px;
   padding: 24px 32px;
-  background-color: #f8fafc;
   min-width: 0;
 }
 
+/* =========================================================
+   WIZARD MAIN CARD & HEADER
+   ========================================================= */
 .wizard-main-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -53,7 +57,7 @@
 }
 
 /* =========================================================
-   STEPPER NAVIGATION (DYNAMIC HIGHLIGHTING)
+   STEPPER NAVIGATION
    ========================================================= */
 .stepper-nav {
   display: flex;
@@ -212,6 +216,7 @@
   font-size: 13.5px;
   outline: none;
   background: #ffffff;
+  font-family: inherit;
 }
 
 .form-input:focus {
@@ -256,27 +261,9 @@
   display: block;
 }
 
-.floor-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.btn-floor {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-floor.active {
-  background: #0b192c;
-  border-color: #0b192c;
-  color: #ffffff;
+.manual-floors-group {
+  margin-bottom: 18px;
+  max-width: 240px;
 }
 
 .floor-breakdown-box {
@@ -297,7 +284,8 @@
 
 .floor-badges {
   display: flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
   margin: 4px 0;
   font-size: 12px;
   color: #78350f;
@@ -305,7 +293,7 @@
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
@@ -317,6 +305,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.feature-toggle-card.others-card {
+  border-color: #0284c7;
+  background: #f0f9ff;
 }
 
 .feat-info strong {
@@ -362,6 +355,28 @@
 
 input:checked + .slider { background-color: #0b192c; }
 input:checked + .slider:before { transform: translateX(16px); }
+
+/* Custom "Others" Description Textarea styling */
+.others-desc-container {
+  margin-top: 16px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px dashed #0284c7;
+  border-radius: 8px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.others-desc-container label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 6px;
+}
+
+.others-desc-container textarea {
+  resize: vertical;
+}
 
 .quality-tier-grid {
   display: grid;
@@ -627,7 +642,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 
 /* =========================================================
-   MODERN FLOATING TOAST NOTIFICATION
+   TOAST NOTIFICATION STYLES
    ========================================================= */
 .toast-container {
   position: fixed;
@@ -637,85 +652,61 @@ input:checked + .slider:before { transform: translateX(16px); }
   display: flex;
   flex-direction: column;
   gap: 10px;
-  pointer-events: none;
 }
 
 .toast-card {
-  pointer-events: auto;
-  min-width: 320px;
-  max-width: 400px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  position: relative;
-  overflow: hidden;
+  border-left: 4px solid #0284c7;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 280px;
+  transition: all 0.3s ease;
 }
+
+.toast-card.warning { border-left-color: #d97706; }
+.toast-card.success { border-left-color: #16a34a; }
+.toast-card.error { border-left-color: #dc2626; }
 
 .toast-card.hide {
-  animation: slideOutToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateX(30px);
 }
 
-@keyframes slideInToast {
-  from { opacity: 0; transform: translateX(80px) scale(0.95); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
+.toast-icon { font-size: 18px; color: #0284c7; }
+.toast-card.warning .toast-icon { color: #d97706; }
+.toast-card.success .toast-icon { color: #16a34a; }
+.toast-card.error .toast-icon { color: #dc2626; }
+
+.toast-content { flex: 1; }
+.toast-title { font-size: 12.5px; font-weight: 700; color: #0f172a; }
+.toast-msg { font-size: 11px; color: #64748b; margin-top: 2px; }
+.toast-close { background: none; border: none; color: #94a3b8; cursor: pointer; }
+
+/* =========================================================
+   RESPONSIVE LAYOUT
+   ========================================================= */
+@media (max-width: 1100px) {
+  .project-builder-container {
+    grid-template-columns: 1fr;
+  }
 }
 
-@keyframes slideOutToast {
-  from { opacity: 1; transform: translateX(0) scale(1); }
-  to { opacity: 0; transform: translateX(80px) scale(0.95); }
-}
-
-.toast-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.toast-card.warning .toast-icon { background: #fef3c7; color: #d97706; }
-.toast-card.info .toast-icon    { background: #e0f2fe; color: #0284c7; }
-.toast-card.success .toast-icon { background: #dcfce7; color: #16a34a; }
-.toast-card.error .toast-icon   { background: #fee2e2; color: #ef4444; }
-
-.toast-content {
-  flex: 1;
-}
-
-.toast-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0b192c;
-  line-height: 1.2;
-}
-
-.toast-msg {
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 3px;
-  line-height: 1.4;
-}
-
-.toast-close {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px;
-  margin-left: 4px;
-  transition: color 0.15s;
-}
-
-.toast-close:hover {
-  color: #0f172a;
+@media (max-width: 768px) {
+  .project-builder-container {
+    padding: 16px;
+  }
+  .form-grid-2,
+  .input-inline-grid,
+  .quality-tier-grid {
+    grid-template-columns: 1fr;
+  }
+  .stepper-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
