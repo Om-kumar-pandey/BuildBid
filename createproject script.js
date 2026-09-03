@@ -1,11 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   syncUniversalUserProfile();
-  initRequirements();
   initEventListeners();
   setLiveDatasetDate();
 });
 
-// Dynamic Project State (100% Blank initially)
+// Dynamic Project State
 let currentStep = 1;
 const projectState = {
   projectType: null,
@@ -15,43 +14,68 @@ const projectState = {
   pincode: "",
   plotArea: null,
   builtUpArea: null,
-  floors: null,
-  qualityTier: null,
-  requirements: {
-    parking: false,
-    boundaryWall: false,
-    gate: false,
-    modularKitchen: false,
-    wardrobes: false,
-    falseCeiling: false,
-    electricalWork: false,
-    plumbing: false,
-    waterproofing: false,
-    waterTank: false,
-    borewell: false,
-    lift: false,
-    landscaping: false,
-    interiorWork: false,
-    exteriorPainting: false
-  }
+  floors: 1,
+  qualityTier: "standard",
+  requirements: {},
+  customDescription: ""
 };
 
-const reqLabels = {
-  parking: "Parking",
-  boundaryWall: "Boundary Wall",
-  gate: "Gate",
-  modularKitchen: "Modular Kitchen",
-  wardrobes: "Wardrobes",
-  falseCeiling: "False Ceiling",
-  electricalWork: "Electrical Work",
-  plumbing: "Plumbing",
-  waterproofing: "Waterproofing",
-  waterTank: "Water Tank",
-  borewell: "Borewell",
-  lift: "Lift",
-  landscaping: "Landscaping",
-  interiorWork: "Interior Work",
-  exteriorPainting: "Exterior Painting"
+/* =========================================================
+   CATEGORY-WISE DYNAMIC REQUIREMENTS CONFIGURATION
+   ========================================================= */
+const REQUIREMENTS_MAP = {
+  "New Construction": [
+    { key: "parking", label: "Parking Space", defaultCost: 100000 },
+    { key: "boundaryWall", label: "Boundary Wall", defaultCost: 150000 },
+    { key: "gate", label: "Main Entrance Gate", defaultCost: 60000 },
+    { key: "modularKitchen", label: "Modular Kitchen", defaultCost: 180000 },
+    { key: "wardrobes", label: "Wardrobes / Storage", defaultCost: 120000 },
+    { key: "falseCeiling", label: "False Ceiling", perSqFtCost: 60 },
+    { key: "electricalWork", label: "Electrical Work", perSqFtCost: 75 },
+    { key: "plumbing", label: "Plumbing & Piping", perSqFtCost: 65 },
+    { key: "waterproofing", label: "Waterproofing", perSqFtCost: 40 },
+    { key: "waterTank", label: "Underground / Overhead Tank", defaultCost: 50000 },
+    { key: "borewell", label: "Borewell Drilling", defaultCost: 120000 },
+    { key: "lift", label: "Elevator / Lift Setup", defaultCost: 450000 },
+    { key: "landscaping", label: "Landscaping & Garden", defaultCost: 80000 },
+    { key: "interiorWork", label: "Interior Woodwork", defaultCost: 200000 },
+    { key: "exteriorPainting", label: "Exterior Texture Painting", perSqFtCost: 35 }
+  ],
+  "Renovation": [
+    { key: "demolition", label: "Demolition & Debris Disposal", defaultCost: 60000 },
+    { key: "structuralRepairs", label: "Structural Repairs & Retrofitting", defaultCost: 100000 },
+    { key: "flooringReplace", label: "Flooring Replacement", perSqFtCost: 80 },
+    { key: "bathRenovation", label: "Bathroom Overhaul", defaultCost: 120000 },
+    { key: "kitchenRemodel", label: "Modular Kitchen Upgrade", defaultCost: 150000 },
+    { key: "falseCeilingRedo", label: "False Ceiling & Profile Lights", perSqFtCost: 55 },
+    { key: "waterproofingFix", label: "Waterproofing & Seelan Treatment", perSqFtCost: 45 },
+    { key: "doorWindowUpgrade", label: "Door / Window Replacement", defaultCost: 90000 },
+    { key: "electricalRewire", label: "Electrical Rewiring", perSqFtCost: 50 },
+    { key: "wallRepaint", label: "Full Wall Putty & Repainting", perSqFtCost: 30 }
+  ],
+  "Commercial": [
+    { key: "hvacSystem", label: "Central HVAC / Ventilation", perSqFtCost: 140 },
+    { key: "fireFighting", label: "Fire Safety & Sprinklers (NOC)", perSqFtCost: 60 },
+    { key: "glassFacade", label: "Glass Facade / ACP Cladding", defaultCost: 350000 },
+    { key: "powerBackup", label: "Commercial DG Set & HT Panel", defaultCost: 400000 },
+    { key: "dataCabling", label: "Server Room & LAN Cabling", defaultCost: 120000 },
+    { key: "accessControl", label: "Access Control & CCTV Network", defaultCost: 150000 },
+    { key: "restroomBlocks", label: "Commercial Multi-Stall Washrooms", defaultCost: 200000 },
+    { key: "commercialLift", label: "Commercial Passenger Lift", defaultCost: 650000 },
+    { key: "acousticsPartitions", label: "Soundproof Glass/Gypsum Partitions", defaultCost: 180000 },
+    { key: "falseCeilingComm", label: "Grid Modular Ceiling", perSqFtCost: 65 }
+  ],
+  "Industrial": [
+    { key: "pebSteel", label: "PEB / Structural Steel Frame", perSqFtCost: 280 },
+    { key: "trimixFloor", label: "Heavy Duty Trimix / FM2 Flooring", perSqFtCost: 90 },
+    { key: "loadingDocks", label: "Motorized Rolling Shutters & Docks", defaultCost: 250000 },
+    { key: "industrialPower", label: "3-Phase Power & Busbar Trunking", defaultCost: 350000 },
+    { key: "craneGantry", label: "EOT Overhead Crane Gantry", defaultCost: 500000 },
+    { key: "shedVentilation", label: "Turbo Ridge Ventilators & Louvers", defaultCost: 100000 },
+    { key: "etpStpPlant", label: "Industrial Waste / ETP Setup", defaultCost: 450000 },
+    { key: "stormDrainage", label: "Heavy Stormwater Drainage Yard", defaultCost: 180000 },
+    { key: "heavyDriveway", label: "Heavy Truck Driveway & Weighbridge", defaultCost: 300000 }
+  ]
 };
 
 /* =========================================================
@@ -132,9 +156,9 @@ function syncUniversalUserProfile() {
 }
 
 function applyUserHeaderData(user) {
-  const nameElem = document.getElementById("user-display-name");
-  const avatarElem = document.getElementById("user-avatar-initials");
-  const roleElem = document.getElementById("user-display-role");
+  const nameElem = document.getElementById("navUserName");
+  const avatarElem = document.getElementById("navUserAvatar");
+  const roleElem = document.getElementById("navUserRole");
 
   if (!user) return;
 
@@ -267,12 +291,16 @@ function goToStep(stepNumber) {
 }
 
 /* =========================================================
-   5. SELECTIONS & REQUIREMENTS TOGGLES
+   5. SELECTIONS & DYNAMIC REQUIREMENTS GENERATION
    ========================================================= */
 function selectProjectType(type, elem) {
   projectState.projectType = type;
   document.querySelectorAll(".selection-card").forEach(c => c.classList.remove("selected"));
   elem.classList.add("selected");
+
+  // Re-generate Requirements based on chosen project type
+  renderCategoryRequirements(type);
+  recalculateDynamicEstimates();
 }
 
 function updateLocationInfo() {
@@ -298,22 +326,54 @@ function updateLocationInfo() {
   }
 }
 
-function initRequirements() {
+function renderCategoryRequirements(type) {
   const container = document.getElementById("featuresContainer");
   if (!container) return;
+
+  const items = REQUIREMENTS_MAP[type] || REQUIREMENTS_MAP["New Construction"];
   
-  container.innerHTML = Object.keys(projectState.requirements).map(key => `
-    <div class="feature-toggle-card">
+  // Preserve state & reset keys
+  projectState.requirements = {};
+
+  let html = items.map(item => {
+    projectState.requirements[item.key] = false;
+    return `
+      <div class="feature-toggle-card">
+        <div class="feat-info">
+          <strong>${item.label}</strong>
+          <span id="label-${item.key}">No</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="req-${item.key}" onchange="toggleRequirement('${item.key}', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+    `;
+  }).join('');
+
+  // Append OTHERS toggle button
+  projectState.requirements["others"] = false;
+  html += `
+    <div class="feature-toggle-card others-card">
       <div class="feat-info">
-        <strong>${reqLabels[key]}</strong>
-        <span id="label-${key}">No</span>
+        <strong>Others / Custom</strong>
+        <span id="label-others">No</span>
       </div>
       <label class="switch">
-        <input type="checkbox" id="req-${key}" onchange="toggleRequirement('${key}', this.checked)">
+        <input type="checkbox" id="req-others" onchange="toggleOthersRequirement(this.checked)">
         <span class="slider"></span>
       </label>
     </div>
-  `).join('');
+  `;
+
+  container.innerHTML = html;
+
+  // Reset others text box
+  const descBox = document.getElementById("othersDescBox");
+  if (descBox) descBox.style.display = "none";
+  const descInput = document.getElementById("othersDescInput");
+  if (descInput) descInput.value = "";
+  projectState.customDescription = "";
 }
 
 function toggleRequirement(key, val) {
@@ -323,15 +383,31 @@ function toggleRequirement(key, val) {
   recalculateDynamicEstimates();
 }
 
+function toggleOthersRequirement(checked) {
+  projectState.requirements["others"] = checked;
+  const label = document.getElementById("label-others");
+  if (label) label.innerText = checked ? "Yes" : "No";
+
+  const descBox = document.getElementById("othersDescBox");
+  if (descBox) {
+    descBox.style.display = checked ? "block" : "none";
+    if (checked) {
+      document.getElementById("othersDescInput").focus();
+    }
+  }
+}
+
 /* =========================================================
    6. REAL-TIME CALCULATION ENGINE
    ========================================================= */
 function recalculateDynamicEstimates() {
   const builtUp = parseFloat(document.getElementById("builtUpAreaInput").value);
   const plotArea = parseFloat(document.getElementById("plotAreaInput").value);
+  const floorsVal = parseInt(document.getElementById("floorsInput").value);
   
   projectState.plotArea = isNaN(plotArea) ? null : plotArea;
   projectState.builtUpArea = isNaN(builtUp) ? null : builtUp;
+  projectState.floors = (!isNaN(floorsVal) && floorsVal > 0) ? floorsVal : 1;
 
   if (!builtUp || builtUp <= 0) {
     document.getElementById("costRangeDisplay").innerText = "Enter Area Details";
@@ -345,17 +421,24 @@ function recalculateDynamicEstimates() {
     return;
   }
 
+  // Base rate by project type & tier
   let ratePerSqFt = 1600;
-  if (projectState.qualityTier === "basic") ratePerSqFt = 1350;
-  if (projectState.qualityTier === "premium") ratePerSqFt = 2150;
+  if (projectState.projectType === "Renovation") ratePerSqFt = 900;
+  if (projectState.projectType === "Commercial") ratePerSqFt = 2000;
+  if (projectState.projectType === "Industrial") ratePerSqFt = 1400;
 
+  if (projectState.qualityTier === "basic") ratePerSqFt *= 0.85;
+  if (projectState.qualityTier === "premium") ratePerSqFt *= 1.35;
+
+  // Calculate dynamic addons
   let addons = 0;
-  if (projectState.requirements.lift) addons += 450000;
-  if (projectState.requirements.borewell) addons += 120000;
-  if (projectState.requirements.modularKitchen) addons += 180000;
-  if (projectState.requirements.falseCeiling) addons += (builtUp * 60);
-  if (projectState.requirements.boundaryWall) addons += 150000;
-  if (projectState.requirements.waterproofing) addons += (builtUp * 40);
+  const currentList = REQUIREMENTS_MAP[projectState.projectType || "New Construction"] || [];
+  currentList.forEach(item => {
+    if (projectState.requirements[item.key]) {
+      if (item.defaultCost) addons += item.defaultCost;
+      if (item.perSqFtCost) addons += (builtUp * item.perSqFtCost);
+    }
+  });
 
   const baseTotal = (builtUp * ratePerSqFt) + addons;
   const lowerLakh = (baseTotal * 0.95 / 100000).toFixed(1);
@@ -369,9 +452,10 @@ function recalculateDynamicEstimates() {
   document.getElementById("rangeFillBar").style.width = "60%";
   document.getElementById("rangeFillBar").style.left = "20%";
 
+  // Floor Breakdown Rendering
   const breakdownBox = document.getElementById("floorBreakdownBox");
   breakdownBox.style.display = "flex";
-  const numFloors = projectState.floors || 1;
+  const numFloors = projectState.floors;
   const perFloor = Math.round(builtUp / numFloors);
   
   let badges = `<span>Ground Floor: <b>${perFloor} sq ft</b></span>`;
@@ -419,19 +503,50 @@ function populateSummaryReview() {
   document.getElementById("revTitle").textContent = document.getElementById("projectTitleInput").value.trim() || "Untitled Project";
   document.getElementById("revLocation").textContent = projectState.city ? `${projectState.city}, ${projectState.state}` : "Not Specified";
   document.getElementById("revSize").textContent = projectState.builtUpArea ? `${projectState.builtUpArea} sq ft` : "--";
-  document.getElementById("revFloors").textContent = projectState.floors ? `${projectState.floors} Floor(s)` : "--";
-  document.getElementById("revQuality").textContent = projectState.qualityTier ? projectState.qualityTier.toUpperCase() : "Not Selected";
+  document.getElementById("revFloors").textContent = `${projectState.floors || 1} Floor(s)`;
+  document.getElementById("revQuality").textContent = projectState.qualityTier ? projectState.qualityTier.toUpperCase() : "STANDARD";
+
+  // Match requirement labels dynamically
+  const currentReqList = REQUIREMENTS_MAP[projectState.projectType] || [];
+  const reqLabelsMap = {};
+  currentReqList.forEach(r => { reqLabelsMap[r.key] = r.label; });
+  reqLabelsMap["others"] = "Custom / Others";
 
   const enabledReqs = Object.keys(projectState.requirements)
     .filter(k => projectState.requirements[k])
-    .map(k => reqLabels[k]);
+    .map(k => reqLabelsMap[k] || k);
+
   document.getElementById("revReqs").textContent = enabledReqs.length > 0 ? enabledReqs.join(", ") : "None";
+
+  // Others Description
+  const othersText = document.getElementById("othersDescInput")?.value.trim() || "";
+  projectState.customDescription = othersText;
+  const revOthersRow = document.getElementById("revOthersRow");
+  if (revOthersRow) {
+    if (projectState.requirements["others"] && othersText) {
+      revOthersRow.style.display = "block";
+      document.getElementById("revOthers").textContent = othersText;
+    } else {
+      revOthersRow.style.display = "none";
+    }
+  }
 }
 
 function initEventListeners() {
-  document.getElementById("plotAreaInput").addEventListener("input", recalculateDynamicEstimates);
-  document.getElementById("builtUpAreaInput").addEventListener("input", recalculateDynamicEstimates);
+  document.getElementById("plotAreaInput")?.addEventListener("input", recalculateDynamicEstimates);
+  document.getElementById("builtUpAreaInput")?.addEventListener("input", recalculateDynamicEstimates);
+  
+  // Manual floors input listener
+  const floorsInput = document.getElementById("floorsInput");
+  if (floorsInput) {
+    floorsInput.addEventListener("input", () => {
+      if (parseInt(floorsInput.value) < 1) floorsInput.value = 1;
+      projectState.floors = parseInt(floorsInput.value) || 1;
+      recalculateDynamicEstimates();
+    });
+  }
 
+  // Stepper clicks
   document.querySelectorAll(".step-node").forEach(node => {
     node.addEventListener("click", () => {
       const targetStep = parseInt(node.dataset.step);
@@ -439,15 +554,7 @@ function initEventListeners() {
     });
   });
 
-  document.querySelectorAll(".btn-floor").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".btn-floor").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      projectState.floors = parseInt(btn.dataset.floors);
-      recalculateDynamicEstimates();
-    });
-  });
-
+  // Quality tier cards
   document.querySelectorAll(".tier-card").forEach(card => {
     card.addEventListener("click", () => {
       document.querySelectorAll(".tier-card").forEach(c => c.classList.remove("active"));
@@ -473,6 +580,8 @@ async function submitProject() {
     return;
   }
 
+  projectState.customDescription = document.getElementById("othersDescInput")?.value.trim() || "";
+
   const token = localStorage.getItem("token") || localStorage.getItem("authToken") || "";
   const payload = {
     title: document.getElementById("projectTitleInput").value.trim() || `${projectState.builtUpArea} sq.ft ${projectState.projectType}`,
@@ -485,6 +594,7 @@ async function submitProject() {
     floors: projectState.floors || 1,
     qualityTier: projectState.qualityTier || "standard",
     requirements: projectState.requirements,
+    customDescription: projectState.customDescription,
     estimatedCost: document.getElementById("costRangeDisplay").innerText
   };
 
@@ -517,6 +627,8 @@ function saveProjectLocally(payload) {
     location: `${payload.city || 'Greater Noida'}, ${payload.state || 'UP'}`,
     area: `${payload.builtUpArea} sq.ft`,
     category: payload.type,
+    floors: payload.floors,
+    customDescription: payload.customDescription,
     status: "In Progress",
     bidsCount: 0,
     updatedDate: "Today",
@@ -528,6 +640,7 @@ function saveProjectLocally(payload) {
 }
 
 function saveDraft() {
+  projectState.customDescription = document.getElementById("othersDescInput")?.value.trim() || "";
   localStorage.setItem("projectDraft", JSON.stringify(projectState));
   showToast("Draft Saved", "Your project draft has been stored safely.", "info");
 }
