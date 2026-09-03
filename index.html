@@ -49,22 +49,29 @@
 
     <div class="nav-buttons">
 
+        <!-- Logged Out State Buttons -->
         <button
             class="login-btn"
+            id="navLoginBtn"
             onclick="openAuth()">
-
             Login
-
         </button>
-
 
         <button
             class="start-btn"
+            id="navStartBtn"
             onclick="goToRequirement()">
-
             Get Started
-
         </button>
+
+        <!-- Logged In State: Direct Dashboard Clickable Avatar -->
+        <div 
+            class="user-avatar-btn hidden" 
+            id="userAvatarBtn" 
+            onclick="navigateToDashboard()" 
+            title="Click to Open Dashboard">
+            <span id="userInitials">BB</span>
+        </div>
 
     </div>
 
@@ -116,12 +123,10 @@
 
 
             <button
-                class="secondary-btn"
-                onclick="showMessage('BuildBid introduction video coming soon!')">
-
-                ▶ Watch How It Works
-
-            </button>
+    class="secondary-btn"
+    onclick="openVideoModal()">
+    ▶ Watch How It Works
+</button>
 
         </div>
 
@@ -195,89 +200,59 @@
 <section class="services">
 
     <div class="section-heading">
-
         <span>BUILDBID SERVICES</span>
-
         <h2>Everything You Need to Build</h2>
-
-        <p>
-            One platform for your complete construction journey.
-        </p>
-
+        <p>One platform for your complete construction journey.</p>
     </div>
-
 
     <div class="service-grid">
 
         <div class="service-card customer-card">
-
             <div class="service-icon">🏠</div>
-
             <h3>Build Your Project</h3>
-
             <p>
                 Post your construction requirements and get
                 estimates from trusted professionals.
             </p>
-
-            <button onclick="goToRequirement()">
+            <button onclick="handleProtectedAction('POST_PROJECT')">
                 Post Project →
             </button>
-
         </div>
 
-
         <div class="service-card contractor-card">
-
             <div class="service-icon">👷</div>
-
             <h3>Find Contractors</h3>
-
             <p>
                 Compare verified contractors, their experience,
                 ratings and project bids.
             </p>
-
-            <button onclick="showMessage('Contractor marketplace coming soon!')">
+            <button onclick="handleProtectedAction('FIND_CONTRACTORS')">
                 Find Contractors →
             </button>
-
         </div>
 
-
         <div class="service-card material-card">
-
             <div class="service-icon">🧱</div>
-
             <h3>Buy Materials</h3>
-
             <p>
                 Compare quality building materials and suppliers
                 at competitive prices.
             </p>
-
-            <button onclick="showMessage('Materials marketplace coming soon!')">
+            <button onclick="handleProtectedAction('BUY_MATERIALS')">
                 Explore Materials →
             </button>
-
         </div>
 
-
         <div class="service-card hiring-card">
-
             <div class="service-icon">🛠️</div>
-
             <h3>Hire Professionals</h3>
-
             <p>
                 Find electricians, plumbers, painters, masons
                 and other skilled workers.
             </p>
-
-            <button onclick="showMessage('Professional hiring coming soon!')">
+            <button onclick="handleProtectedAction('HIRE_PROFESSIONALS')">
                 Hire Now →
             </button>
-
         </div>
 
     </div>
@@ -399,189 +374,90 @@
 
 
 
-<!-- ================= REQUIREMENT ================= -->
+<!-- ================= MODERN BANNER & TRUST METRICS ================= -->
+<section class="bb-banner-section" id="requirement">
+    <div class="bb-banner-wrapper">
+        
+        <!-- Ambient Glow Elements -->
+        <div class="bb-glow bb-glow-1"></div>
+        <div class="bb-glow bb-glow-2"></div>
 
-<section
-    class="requirement-section"
-    id="requirement">
+        <div class="bb-banner-inner">
+            
+            <!-- Badge -->
+            <div class="bb-tag-pill">
+                <span class="bb-tag-dot"></span>
+                <span>EFFORTLESS BIDDING & HIRING</span>
+            </div>
 
-    <div class="requirement-header">
+            <!-- Title -->
+            <h2 class="bb-banner-title">
+                Ready to Bring Your <span class="bb-highlight">Construction Vision</span> to Life?
+            </h2>
 
-        <span>START YOUR PROJECT</span>
+            <!-- Description -->
+            <p class="bb-banner-desc">
+                Post your project in under 2 minutes. Receive competitive, transparent estimates from pre-vetted contractors, buy quality materials at trade rates, and save up to 15% on overall build costs.
+            </p>
 
-        <h2>Tell Us About Your Project</h2>
+            <!-- Buttons -->
+            <div class="bb-action-group">
+                <button 
+                    type="button"
+                    class="bb-btn-primary" 
+                    onclick="handleProtectedAction('POST_PROJECT')">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    Post Project Requirement (Free)
+                    <i class="fa-solid fa-arrow-right-long"></i>
+                </button>
 
-        <p>
-            Share your requirements and take the first step
-            toward building your dream project.
-        </p>
+                <a href="#contractors" class="bb-btn-ghost">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    Explore Verified Contractors
+                </a>
+            </div>
 
+            <!-- Trust Grid -->
+            <div class="bb-trust-strip">
+                
+                <div class="bb-trust-box">
+                    <div class="bb-trust-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="bb-trust-text">
+                        <strong>100% Verified Pros</strong>
+                        <small>Strict background & license checks</small>
+                    </div>
+                </div>
+
+                <div class="bb-trust-divider"></div>
+
+                <div class="bb-trust-box">
+                    <div class="bb-trust-icon">
+                        <i class="fa-solid fa-handshake-simple"></i>
+                    </div>
+                    <div class="bb-trust-text">
+                        <strong>Zero Commission</strong>
+                        <small>Direct client-to-contractor deals</small>
+                    </div>
+                </div>
+
+                <div class="bb-trust-divider"></div>
+
+                <div class="bb-trust-box">
+                    <div class="bb-trust-icon">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                    <div class="bb-trust-text">
+                        <strong>Real-Time Estimates</strong>
+                        <small>Accurate rates for cement, steel & labor</small>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
     </div>
-
-
-    <div class="requirement-box">
-
-        <form id="requirementForm">
-
-            <div class="form-row">
-
-                <div class="form-group">
-
-                    <label>Project Name</label>
-
-                    <input
-                        type="text"
-                        placeholder="Example: My Dream House"
-                        required>
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Project Type</label>
-
-                    <select required>
-
-                        <option value="">
-                            Select Project Type
-                        </option>
-
-                        <option>House Construction</option>
-                        <option>Commercial Building</option>
-                        <option>Renovation</option>
-                        <option>Interior Design</option>
-                        <option>Road Construction</option>
-                        <option>Other</option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <div class="form-row">
-
-                <div class="form-group">
-
-                    <label>Area / Size</label>
-
-                    <input
-                        type="text"
-                        placeholder="Example: 1200 sq.ft"
-                        required>
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Location</label>
-
-                    <input
-                        type="text"
-                        placeholder="City / Area"
-                        required>
-
-                </div>
-
-            </div>
-
-
-            <div class="form-row">
-
-                <div class="form-group">
-
-                    <label>Approximate Budget</label>
-
-                    <input
-                        type="number"
-                        placeholder="Example: 2500000"
-                        required>
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Expected Start Date</label>
-
-                    <input type="date">
-
-                </div>
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>Materials Required</label>
-
-                <div class="material-options">
-
-                    <label>
-                        <input type="checkbox">
-                        Cement
-                    </label>
-
-                    <label>
-                        <input type="checkbox">
-                        Steel
-                    </label>
-
-                    <label>
-                        <input type="checkbox">
-                        Bricks
-                    </label>
-
-                    <label>
-                        <input type="checkbox">
-                        Tiles
-                    </label>
-
-                    <label>
-                        <input type="checkbox">
-                        Paint
-                    </label>
-
-                    <label>
-                        <input type="checkbox">
-                        Electrical
-                    </label>
-
-                    <label>
-                        <input type="checkbox">
-                        Plumbing
-                    </label>
-
-                </div>
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>Project Description</label>
-
-                <textarea
-                    placeholder="Tell us more about your project..."></textarea>
-
-            </div>
-
-
-            <button
-                type="submit"
-                class="project-submit-btn">
-
-                Submit Project Requirement →
-
-            </button>
-
-        </form>
-
-    </div>
-
 </section>
 
 
@@ -1661,7 +1537,18 @@
 
 </section>
 
-
+<!-- ================= VIDEO MODAL POPUP ================= -->
+<div id="videoModal" class="video-modal-overlay">
+    <div class="video-modal-container">
+        <button class="video-modal-close" onclick="closeVideoModal()">&times;</button>
+        <div class="video-wrapper">
+            <video id="buildBidVideo" controls>
+                <source src="about build bid video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+</div>
 
 <!-- ================= JAVASCRIPT ================= -->
 
