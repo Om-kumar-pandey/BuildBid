@@ -7,7 +7,6 @@
     <title>BuildBid | Build Better. Bid Smarter.</title>
 
     <link rel="stylesheet" href="website style.css">
-    
 
     <!-- Font Awesome -->
     <link rel="stylesheet"
@@ -876,666 +875,262 @@
 </div>
 
 <!-- ================= LOGIN / SIGNUP POPUP ================= -->
-
-<section
-    class="buildbid-auth"
-    id="auth">
-
-    <div
-        class="buildbid-auth-overlay"
-        onclick="closeAuth()">
-    </div>
-
+<section class="buildbid-auth" id="auth">
+    <div class="buildbid-auth-overlay" onclick="closeAuth()"></div>
 
     <div class="buildbid-login-container">
-
-
-        <!-- ====================================================
-             LEFT SIDE
-             ==================================================== -->
-
+        <!-- LEFT SIDE -->
         <div class="buildbid-login-left">
-
             <div class="buildbid-login-overlay"></div>
-
-
             <div class="buildbid-login-content">
-
-
                 <div class="buildbid-brand-header">
-
                     <div class="buildbid-custom-logo">
-
-                        <img
-                            src="logo.png"
-                            alt="BuildBid Logo"/>
-
+                        <img src="logo.png" alt="BuildBid Logo"/>
                     </div>
-
-
                     <div class="buildbid-brand-info">
-
-                        <h2>
-                            Build<span>Bid</span>
-                        </h2>
-
-                        <p>
-                            Build Better. Bid Smarter.
-                        </p>
-
+                        <h2>Build<span>Bid</span></h2>
+                        <p>Build Better. Bid Smarter.</p>
                     </div>
-
                 </div>
-
-
                 <div class="buildbid-login-hero">
-
-                    <h1>
-                        Build Better.
-                        <br>
-                        <span>Bid Smarter.</span>
-                    </h1>
-
-                    <p>
-                        BuildBid brings everything together to help you plan, build, and manage your construction projects efficiently.
-                    </p>
-
+                    <h1>Build Better.<br><span>Bid Smarter.</span></h1>
+                    <p>BuildBid brings everything together to help you plan, build, and manage your construction projects efficiently.</p>
                 </div>
-
-
                 <!-- FEATURE LIST -->
-
                 <div class="buildbid-features">
-
-
                     <div class="buildbid-feature">
-
-                        <div class="buildbid-feature-icon">
-
-                            <i class="fa-solid fa-calculator"></i>
-
-                        </div>
-
+                        <div class="buildbid-feature-icon"><i class="fa-solid fa-calculator"></i></div>
                         <div>
-
-                            <h3>
-                                Accurate Estimation
-                            </h3>
-
-                            <p>
-                                Get real-time material rates and accurate cost estimation.
-                            </p>
-
+                            <h3>Accurate Estimation</h3>
+                            <p>Get real-time material rates and accurate cost estimation.</p>
                         </div>
-
                     </div>
-
-
                     <div class="buildbid-feature">
-
-                        <div class="buildbid-feature-icon">
-
-                            <i class="fa-solid fa-user-group"></i>
-
-                        </div>
-
+                        <div class="buildbid-feature-icon"><i class="fa-solid fa-user-group"></i></div>
                         <div>
-
-                            <h3>
-                                Verified Contractors
-                            </h3>
-
-                            <p>
-                                Connect with trusted contractors and get competitive quotes.
-                            </p>
-
+                            <h3>Verified Contractors</h3>
+                            <p>Connect with trusted contractors and get competitive quotes.</p>
                         </div>
-
                     </div>
-
-
                     <div class="buildbid-feature">
-
-                        <div class="buildbid-feature-icon">
-
-                            <i class="fa-solid fa-clipboard-list"></i>
-
-                        </div>
-
+                        <div class="buildbid-feature-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                         <div>
-
-                            <h3>
-                                Manage Projects
-                            </h3>
-
-                            <p>
-                                Track progress, manage tasks and stay updated in real-time.
-                            </p>
-
+                            <h3>Manage Projects</h3>
+                            <p>Track progress, manage tasks and stay updated in real-time.</p>
                         </div>
-
                     </div>
-
-
                     <div class="buildbid-feature">
-
-                        <div class="buildbid-feature-icon">
-
-                            <i class="fa-solid fa-headset"></i>
-
-                        </div>
-
+                        <div class="buildbid-feature-icon"><i class="fa-solid fa-headset"></i></div>
                         <div>
-
-                            <h3>
-                                Expert Support
-                            </h3>
-
-                            <p>
-                                Get help from professionals whenever you need.
-                            </p>
-
+                            <h3>Expert Support</h3>
+                            <p>Get help from professionals whenever you need.</p>
                         </div>
-
                     </div>
-
-
                 </div>
-
-
                 <!-- SECURITY CARD -->
-
                 <div class="buildbid-security-card">
-
                     <i class="fa-solid fa-shield-halved"></i>
-
                     <div>
-
-                        <h4>
-                            Your data is safe with us
-                        </h4>
-
-                        <p>
-                            We use industry-standard security to protect your information.
-                        </p>
-
+                        <h4>Your data is safe with us</h4>
+                        <p>We use industry-standard security to protect your information.</p>
                     </div>
-
                 </div>
-
-
             </div>
-
         </div>
 
-
-
-        <!-- ====================================================
-             RIGHT SIDE
-             ==================================================== -->
-
+        <!-- RIGHT SIDE -->
         <div class="buildbid-login-right">
+            <button class="buildbid-close-auth" type="button" onclick="closeAuth()">&times;</button>
 
-            <button
-                class="buildbid-close-auth"
-                type="button"
-                onclick="closeAuth()">
+            <!-- ================= LOGIN FORM BOX ================= -->
+            <div class="buildbid-form-container" id="loginFormBox">
+                <span class="buildbid-welcome-small">WELCOME BACK!</span>
+                <h2>Login to your BuildBid account</h2>
 
-                &times;
-
-            </button>
-
-
-
-            <!-- =================================================
-                 LOGIN FORM BOX
-                 ================================================= -->
-
-            <div
-                class="buildbid-form-container"
-                id="loginFormBox">
-
-                <span class="buildbid-welcome-small">
-                    WELCOME BACK!
-                </span>
-
-
-                <h2>
-                    Login to your BuildBid account
-                </h2>
-
-
-
-               <!-- LOGIN 3 ROLES (Customer, Contractor, Service Provider / Professionals) -->
-<div class="buildbid-role-selector" style="display: flex; gap: 6px; margin-bottom: 20px;">
-    <button type="button" class="buildbid-role-btn active" id="customerBtn" onclick="selectRole('CUSTOMER')" style="flex:1; font-size:12px; padding:10px 4px;">
-        <i class="fa-solid fa-user"></i> Customer
-    </button>
-    <button type="button" class="buildbid-role-btn" id="contractorBtn" onclick="selectRole('SELLER')" style="flex:1; font-size:12px; padding:10px 4px;">
-        <i class="fa-solid fa-hard-hat"></i> Contractor
-    </button>
-    <button type="button" class="buildbid-role-btn" id="serviceProviderBtn" onclick="selectRole('SERVICE_PROVIDER')" style="flex:1; font-size:11px; padding:10px 2px;">
-        <i class="fa-solid fa-helmet-safety"></i> Service Provider / Professionals
-    </button>
-</div>
-
-
+                <!-- LOGIN 4 SEPARATE ROLES -->
+                <div class="buildbid-role-selector" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 20px;">
+                    <button type="button" class="buildbid-role-btn active" id="loginCustomerBtn" onclick="selectRole('CUSTOMER')" style="font-size:11.5px; padding:10px 2px;">
+                        <i class="fa-solid fa-user"></i> Customer
+                    </button>
+                    <button type="button" class="buildbid-role-btn" id="loginContractorBtn" onclick="selectRole('CONTRACTOR')" style="font-size:11.5px; padding:10px 2px;">
+                        <i class="fa-solid fa-hard-hat"></i> Contractor
+                    </button>
+                    <button type="button" class="buildbid-role-btn" id="loginMaterialSellerBtn" onclick="selectRole('MATERIAL_SELLER')" style="font-size:11px; padding:10px 2px;">
+                        <i class="fa-solid fa-boxes-stacked"></i> Material Seller
+                    </button>
+                    <button type="button" class="buildbid-role-btn" id="loginProfessionalBtn" onclick="selectRole('PROFESSIONAL')" style="font-size:11.5px; padding:10px 2px;">
+                        <i class="fa-solid fa-briefcase"></i> Professional
+                    </button>
+                </div>
 
                 <!-- LOGIN FORM -->
-
                 <form id="loginForm">
-
-
-                    <input
-                        type="hidden"
-                        id="selectedRole"
-                        name="role"
-                        value="customer">
-
-
-
-                    <!-- USERNAME -->
-
-                    <!-- EMAIL -->
+                    <input type="hidden" id="selectedRole" name="role" value="CUSTOMER">
 
                     <div class="buildbid-input-group">
-
-                        <label for="loginEmail">
-                            Email Address
-                        </label>
-
-
+                        <label for="loginEmail">Email Address</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="email"
-                                id="loginEmail"
-                                name="email"
-                                placeholder="Enter your email"
-                                autocomplete="email"
-                                required>
-
-
+                            <input type="email" id="loginEmail" name="email" placeholder="Enter your email" autocomplete="email" required>
                             <i class="fa-regular fa-envelope"></i>
-
                         </div>
-
                     </div>
-
-                    <!-- PASSWORD -->
 
                     <div class="buildbid-input-group">
-
-                        <label for="loginPassword">
-                            Password
-                        </label>
-
-
+                        <label for="loginPassword">Password</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="password"
-                                id="loginPassword"
-                                name="password"
-                                placeholder="Enter your password"
-                                autocomplete="current-password"
-                                required>
-
-
+                            <input type="password" id="loginPassword" name="password" placeholder="Enter your password" autocomplete="current-password" required>
                             <i class="fa-solid fa-eye-slash password-toggle"></i>
-
                         </div>
-
                     </div>
-
-
-
-                    <!-- OPTIONS -->
 
                     <div class="buildbid-form-options">
-
-                        <label>
-
-                            <input type="checkbox">
-
-                            Remember me
-
-                        </label>
-
-
-                        <a
-                            href="#"
-                            onclick="showMessage('Password reset feature coming soon!'); return false;">
-
-                            Forgot Password?
-
-                        </a>
-
+                        <label><input type="checkbox"> Remember me</label>
+                        <a href="#" onclick="showMessage('Password reset feature coming soon!'); return false;">Forgot Password?</a>
                     </div>
 
-
-
-                    <!-- LOGIN BUTTON -->
-
-                    <button
-                        type="submit"
-                        class="buildbid-auth-submit">
-
-                        Login
-
-                        <i class="fa-solid fa-arrow-right"></i>
-
+                    <button type="submit" class="buildbid-auth-submit">
+                        Login <i class="fa-solid fa-arrow-right"></i>
                     </button>
-
-
                 </form>
-
-
-
-                <!-- SIGNUP LINK -->
 
                 <p class="buildbid-footer-text">
-
-                    Don't have an account?
-
-                    <a
-                        href="javascript:void(0)"
-                        onclick="showSignup()">
-
-                        Sign up
-
-                    </a>
-
+                    Don't have an account? <a href="javascript:void(0)" onclick="showSignup()">Sign up</a>
                 </p>
-
-
             </div>
 
-
-
-            <!-- =================================================
-                 SIGNUP FORM BOX
-                 ================================================= -->
-
-            <div
-                class="buildbid-form-container hidden"
-                id="signupFormBox">
-
-
-                <button
-                    class="buildbid-close-auth"
-                    type="button"
-                    onclick="closeAuth()">
-
-                    &times;
-
-                </button>
-
-
-                <span class="buildbid-welcome-small">
-                    GET STARTED
-                </span>
-
-
-                <h2>
-                    Create your BuildBid account
-                </h2>
-
-
-                <p class="buildbid-subtitle">
-                    Select your account type to get started
-                </p>
-
-
+            <!-- ================= SIGNUP FORM BOX ================= -->
+            <div class="buildbid-form-container hidden" id="signupFormBox">
+                <span class="buildbid-welcome-small">GET STARTED</span>
+                <h2>Create your BuildBid account</h2>
+                <p class="buildbid-subtitle">Select your account type to get started</p>
 
                 <!-- SIGNUP FORM -->
-
                 <form id="signupForm">
+                    <input type="hidden" id="signupSelectedRole" name="roles" value="CUSTOMER">
 
+                    <!-- SIGNUP 4 SEPARATE ROLES -->
+                    <div class="buildbid-input-group">
+                        <label>Select Role</label>
+                        <div class="buildbid-signup-roles" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                            <button type="button" class="signup-role-btn active" id="signupCustomerBtn" onclick="selectSignupRole(this, 'CUSTOMER')" style="font-size:11.5px; padding:10px 2px;">
+                                <i class="fa-solid fa-user"></i> Customer
+                            </button>
+                            <button type="button" class="signup-role-btn" id="signupContractorBtn" onclick="selectSignupRole(this, 'CONTRACTOR')" style="font-size:11.5px; padding:10px 2px;">
+                                <i class="fa-solid fa-hard-hat"></i> Contractor
+                            </button>
+                            <button type="button" class="signup-role-btn" id="signupMaterialSellerBtn" onclick="selectSignupRole(this, 'MATERIAL_SELLER')" style="font-size:11px; padding:10px 2px;">
+                                <i class="fa-solid fa-boxes-stacked"></i> Material Seller
+                            </button>
+                            <button type="button" class="signup-role-btn" id="signupProfessionalBtn" onclick="selectSignupRole(this, 'PROFESSIONAL')" style="font-size:11.5px; padding:10px 2px;">
+                                <i class="fa-solid fa-briefcase"></i> Professional
+                            </button>
+                        </div>
+                    </div>
 
-                    <!-- SELECTED ROLE -->
+                    <!-- DYNAMIC FIELD: PROFESSIONAL CATEGORY -->
+                    <div class="buildbid-input-group hidden" id="professionalCategoryField">
+                        <label for="professionalCategorySelect">Profession / Service Specialization *</label>
+                        <div class="buildbid-input-wrapper">
+                            <select id="professionalCategorySelect" name="professionCategory" class="buildbid-custom-select">
+                                <option value="">Select your profession</option>
+                                <option value="Engineer">Engineer</option>
+                                <option value="Architect">Architect</option>
+                                <option value="Electrician">Electrician</option>
+                                <option value="Plumber">Plumber</option>
+                                <option value="Carpenter">Carpenter</option>
+                                <option value="Painter">Painter</option>
+                                <option value="Gardener">Gardener</option>
+                                <option value="Mason / Technician / Other">Mason / Technician / Other</option>
+                            </select>
+                        </div>
+                    </div>
 
-                    <input
-                        type="hidden"
-                        id="signupSelectedRole"
-                        name="roles"
-                        value="CUSTOMER">
-
-
-
-                   <!-- SIGNUP 3 ROLES (Customer, Contractor, Service Provider / Professionals) -->
-<div class="buildbid-input-group">
-    <label>Select Role</label>
-    <div class="buildbid-signup-roles" style="display: flex; gap: 6px;">
-        <button type="button" class="signup-role-btn active" onclick="selectSignupRole(this, 'CUSTOMER')" style="flex:1; font-size:12px; padding:10px 4px;">
-            <i class="fa-solid fa-user"></i> Customer
-        </button>
-        <button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'SELLER')" style="flex:1; font-size:12px; padding:10px 4px;">
-            <i class="fa-solid fa-hard-hat"></i> Contractor
-        </button><button type="button" class="signup-role-btn" onclick="selectSignupRole(this, 'SERVICE_PROVIDER')" style="flex:1; font-size:11px; padding:10px 2px;">
-            <i class="fa-solid fa-helmet-safety"></i> Service Provider / Professionals
-        </button>
-    </div>
-</div>
+                    <!-- DYNAMIC FIELD: MATERIAL SELLER CATEGORY -->
+                    <div class="buildbid-input-group hidden" id="sellerCategoryField">
+                        <label for="sellerCategorySelect">Primary Material Supplied *</label>
+                        <div class="buildbid-input-wrapper">
+                            <select id="sellerCategorySelect" name="materialCategory" class="buildbid-custom-select">
+                                <option value="">Select material category</option>
+                                <option value="Cement">Cement</option>
+                                <option value="TMT Steel">TMT Steel</option>
+                                <option value="Bricks">Bricks</option>
+                                <option value="Sand">Sand</option>
+                                <option value="Aggregate">Aggregate</option>
+                                <option value="Electrical Materials">Electrical Materials</option>
+                                <option value="Plumbing / Other Materials">Plumbing / Other Materials</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <!-- FULL NAME -->
-
                     <div class="buildbid-input-group">
-
-                        <label for="signupName">
-                            Full Name
-                        </label>
-
-
+                        <label for="signupName">Full Name</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="text"
-                                id="signupName"
-                                name="name"
-                                placeholder="Enter your full name"
-                                maxlength="100"
-                                autocomplete="name"
-                                required>
-
-
+                            <input type="text" id="signupName" name="name" placeholder="Enter your full name" maxlength="100" autocomplete="name" required>
                             <i class="fa-regular fa-user"></i>
-
                         </div>
-
                     </div>
-
-
 
                     <!-- USERNAME -->
-
                     <div class="buildbid-input-group">
-
-                        <label for="signupUsername">
-                            Username
-                        </label>
-
-
+                        <label for="signupUsername">Username</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="text"
-                                id="signupUsername"
-                                name="username"
-                                placeholder="Choose a username"
-                                minlength="3"
-                                maxlength="30"
-                                pattern="[A-Za-z0-9_]+"
-                                autocomplete="username"
-                                required>
-
-
+                            <input type="text" id="signupUsername" name="username" placeholder="Choose a username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" autocomplete="username" required>
                             <i class="fa-solid fa-at"></i>
-
                         </div>
-
                     </div>
-
-
 
                     <!-- EMAIL -->
-
                     <div class="buildbid-input-group">
-
-                        <label for="signupEmail">
-                            Email Address
-                        </label>
-
-
+                        <label for="signupEmail">Email Address</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="email"
-                                id="signupEmail"
-                                name="email"
-                                placeholder="Enter your email"
-                                autocomplete="email"
-                                required>
-
-
+                            <input type="email" id="signupEmail" name="email" placeholder="Enter your email" autocomplete="email" required>
                             <i class="fa-regular fa-envelope"></i>
-
                         </div>
-
                     </div>
-
-
 
                     <!-- PHONE -->
-
                     <div class="buildbid-input-group">
-
-                        <label for="signupPhone">
-                            Phone Number
-                        </label>
-
-
+                        <label for="signupPhone">Phone Number</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="tel"
-                                id="signupPhone"
-                                name="phone"
-                                placeholder="Enter your phone number"
-                                pattern="[0-9]{10,15}"
-                                minlength="10"
-                                maxlength="15"
-                                autocomplete="tel"
-                                required>
-
-
+                            <input type="tel" id="signupPhone" name="phone" placeholder="Enter your phone number" pattern="[0-9]{10,15}" minlength="10" maxlength="15" autocomplete="tel" required>
                             <i class="fa-solid fa-phone"></i>
-
                         </div>
-
                     </div>
-
-
 
                     <!-- PASSWORD -->
-
                     <div class="buildbid-input-group">
-
-                        <label for="signupPassword">
-                            Password
-                        </label>
-
-
+                        <label for="signupPassword">Password</label>
                         <div class="buildbid-input-wrapper">
-
-                            <input
-                                type="password"
-                                id="signupPassword"
-                                name="password"
-                                placeholder="Create a password"
-                                minlength="6"
-                                maxlength="50"
-                                
-                            autocomplete="new-password"
-                                required>
-
-
+                            <input type="password" id="signupPassword" name="password" placeholder="Create a password" minlength="6" maxlength="50" autocomplete="new-password" required>
                             <i class="fa-solid fa-eye-slash password-toggle"></i>
-
                         </div>
-
                     </div>
                     
-                    <!----- DYNAMIC LOCATION FIELD ----->
-    <div class="buildbid-input-group">
-        <label for="signupLocation">
-            Location
-        </label>
-
-        <div class="buildbid-input-wrapper" style="display: flex; gap: 8px;">
-            <input
-                type="text"
-                id="signupLocation"
-                name="location"
-                placeholder="Search city or click detect"
-                autocomplete="off"
-                required
-                style="flex: 1;">
-
-            <button
-                type="button"
-                onclick="detectUserLocation()"
-                style="padding: 0 14px; background: #0D8ABC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;"
-                title="Detect Precise GPS Location">
-                <i class="fa-solid fa-location-crosshairs"></i> Detect
-            </button>
-        </div>
-    </div>
-
-
+                    <!-- LOCATION -->
+                    <div class="buildbid-input-group">
+                        <label for="signupLocation">Location</label>
+                        <div class="buildbid-input-wrapper" style="display: flex; gap: 8px;">
+                            <input type="text" id="signupLocation" name="location" placeholder="Search city or click detect" autocomplete="off" required style="flex: 1;">
+                            <button type="button" onclick="detectUserLocation()" style="padding: 0 14px; background: #0D8ABC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Detect Precise GPS Location">
+                                <i class="fa-solid fa-location-crosshairs"></i> Detect
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- CREATE ACCOUNT -->
-
-                    <button
-                        type="submit"
-                        class="buildbid-auth-submit">
-
-                        Create Account
-
-                        <i class="fa-solid fa-arrow-right"></i>
-
+                    <button type="submit" class="buildbid-auth-submit">
+                        Create Account <i class="fa-solid fa-arrow-right"></i>
                     </button>
 
-
-
                     <!-- LOGIN LINK -->
-
                     <p class="buildbid-footer-text">
-
-                        Already have an account?
-
-                        <a
-                            href="#"
-                            onclick="showLogin(); return false;">
-
-                            Login
-
-                        </a>
-
+                        Already have an account? <a href="#" onclick="showLogin(); return false;">Login</a>
                     </p>
-
-
                 </form>
-
-
             </div>
-
-
         </div>
-
-
     </div>
-
 </section>
 
 <!-- ================= VIDEO MODAL POPUP ================= -->
@@ -1554,8 +1149,6 @@
 <!-- ================= JAVASCRIPT ================= -->
 
 <script src="website script.js"></script>
-
-
 
 </body>
 
