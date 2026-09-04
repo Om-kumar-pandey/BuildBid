@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.core.Authentication;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,7 +21,7 @@ public class NewFrontendController {
     private ProjectRepository projectRepository;
 
     @PostMapping("/customer/projects/create")
-    public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload, Authentication authentication) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             Project project = new Project();
