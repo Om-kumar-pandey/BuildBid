@@ -26,30 +26,64 @@ public class NewFrontendController {
             ObjectMapper mapper = new ObjectMapper();
             Project project = new Project();
 
-            project.setProjectTitle((String) payload.getOrDefault("projectTitle", "Untitled Project"));
+            // 1. Basic Fields Mapping
+            project.setProjectTitle((String) payload.getOrDefault("projectTitle", "BuildBid Project"));
             project.setProjectType((String) payload.get("projectType"));
             project.setQualityTier((String) payload.get("qualityTier"));
 
+            // 2. Total Area Mapping
             Object areaObj = payload.get("totalArea");
             if (areaObj != null) {
                 project.setTotalArea(Double.valueOf(areaObj.toString()));
             }
 
-            if (payload.containsKey("location")) project.setLocation(mapper.writeValueAsString(payload.get("location")));
-            if (payload.containsKey("budget")) project.setBudget(mapper.writeValueAsString(payload.get("budget")));
-            if (payload.containsKey("timeline")) project.setTimeline(mapper.writeValueAsString(payload.get("timeline")));
+            // 3. Location Mapping
+            if (payload.containsKey("location") && payload.get("location") != null) {
+                project.setLocation(mapper.writeValueAsString(payload.get("location")));
+            }
+
+            // 4. Budget & Timeline Mapping
+            if (payload.containsKey("budget") && payload.get("budget") != null) {
+                project.setBudget(mapper.writeValueAsString(payload.get("budget")));
+            }
+            if (payload.containsKey("timeline") && payload.get("timeline") != null) {
+                project.setTimeline(mapper.writeValueAsString(payload.get("timeline")));
+            }
             
-            if (payload.containsKey("floors")) project.setFloors(mapper.writeValueAsString(payload.get("floors")));
-            if (payload.containsKey("scopeOfWork")) project.setScopeOfWork(mapper.writeValueAsString(payload.get("scopeOfWork")));
-            if (payload.containsKey("renovationAreas")) project.setRenovationAreas(mapper.writeValueAsString(payload.get("renovationAreas")));
-            if (payload.containsKey("renovScope")) project.setRenovScope(mapper.writeValueAsString(payload.get("renovScope")));
-            if (payload.containsKey("extensionDetails")) project.setExtensionDetails(mapper.writeValueAsString(payload.get("extensionDetails")));
-            if (payload.containsKey("rooms")) project.setInteriorRooms(mapper.writeValueAsString(payload.get("rooms")));
-            if (payload.containsKey("scope")) project.setInteriorScope(mapper.writeValueAsString(payload.get("scope")));
-            if (payload.containsKey("interiorPreferences")) project.setInteriorPreferences(mapper.writeValueAsString(payload.get("interiorPreferences")));
-            if (payload.containsKey("commercial")) project.setCommercial(mapper.writeValueAsString(payload.get("commercial")));
-            if (payload.containsKey("industrial")) project.setIndustrial(mapper.writeValueAsString(payload.get("industrial")));
-            if (payload.containsKey("custom")) project.setCustomDetails(mapper.writeValueAsString(payload.get("custom")));
+            // 5. Specific Sections & Dynamic Guides Mapping
+            if (payload.containsKey("floors") && payload.get("floors") != null) {
+                project.setFloors(mapper.writeValueAsString(payload.get("floors")));
+            }
+            if (payload.containsKey("scopeOfWork") && payload.get("scopeOfWork") != null) {
+                project.setScopeOfWork(mapper.writeValueAsString(payload.get("scopeOfWork")));
+            }
+            if (payload.containsKey("renovationAreas") && payload.get("renovationAreas") != null) {
+                project.setRenovationAreas(mapper.writeValueAsString(payload.get("renovationAreas")));
+            }
+            if (payload.containsKey("renovScope") && payload.get("renovScope") != null) {
+                project.setRenovScope(mapper.writeValueAsString(payload.get("renovScope")));
+            }
+            if (payload.containsKey("extensionDetails") && payload.get("extensionDetails") != null) {
+                project.setExtensionDetails(mapper.writeValueAsString(payload.get("extensionDetails")));
+            }
+            if (payload.containsKey("rooms") && payload.get("rooms") != null) {
+                project.setInteriorRooms(mapper.writeValueAsString(payload.get("rooms")));
+            }
+            if (payload.containsKey("scope") && payload.get("scope") != null) {
+                project.setInteriorScope(mapper.writeValueAsString(payload.get("scope")));
+            }
+            if (payload.containsKey("interiorPreferences") && payload.get("interiorPreferences") != null) {
+                project.setInteriorPreferences(mapper.writeValueAsString(payload.get("interiorPreferences")));
+            }
+            if (payload.containsKey("commercial") && payload.get("commercial") != null) {
+                project.setCommercial(mapper.writeValueAsString(payload.get("commercial")));
+            }
+            if (payload.containsKey("industrial") && payload.get("industrial") != null) {
+                project.setIndustrial(mapper.writeValueAsString(payload.get("industrial")));
+            }
+            if (payload.containsKey("custom") && payload.get("custom") != null) {
+                project.setCustomDetails(mapper.writeValueAsString(payload.get("custom")));
+            }
 
             Project savedProject = projectRepository.save(project);
             return ResponseEntity.ok(savedProject);
@@ -109,7 +143,6 @@ public class NewFrontendController {
         return ResponseEntity.notFound().build();
     }
 
-    // Customer Bids Summary (/api/customer/bids-summary)
     @GetMapping("/customer/bids-summary")
     public ResponseEntity<?> getCustomerBidsSummary() {
         try {
@@ -127,7 +160,6 @@ public class NewFrontendController {
         }
     }
 
-    // Customer Project Bids List with Pagination (/api/customer/project-bids)
     @GetMapping("/customer/project-bids")
     public ResponseEntity<?> getProjectBidsList(
             @RequestParam(defaultValue = "1") int page,
