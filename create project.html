@@ -12,7 +12,7 @@
 </head>
 <body>
 
-  <!-- Top Navbar -->
+  <!-- Top Navbar (Exact original layout) -->
   <header class="top-navbar">
     <div class="nav-left">
       <a href="#" class="brand-logo">
@@ -57,9 +57,7 @@
       </div>
 
       <div class="user-pill">
-        <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">
-          --
-        </div>
+        <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">--</div>
         <div class="pill-info">
           <span class="pill-name" id="navUserName">Loading...</span>
           <span class="pill-role" id="navUserRole">Customer</span>
@@ -68,29 +66,28 @@
     </div>
   </header>
 
-  <!-- Page Body Layout -->
   <div class="app-layout">
-    
-    <!-- Sidebar -->
+    <!-- Sidebar (Exact original layout) -->
     <aside class="sidebar">
       <ul class="side-menu">
         <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
         <li class="active">
           <a href="customer projects.html" class="sidebar-item">
-            <i class="fa-solid fa-briefcase"></i>
-            <span>My Projects</span>
+            <i class="fa-solid fa-briefcase"></i> <span>My Projects</span>
           </a>
         </li>
         <li><a href="my-bids.html"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
-        <li><a href="material-orders.html"><i class="fa-regular fa-clock"></i> Materials Orders</a></li>
+        <li><a href="material-orders.html"><i class="fa-solid fa-boxes-stacked"></i> Materials Orders</a></li>
+        <li><a href="hire-professionals.html"><i class="fa-solid fa-user-plus"></i>Hire Professionals</a></li>
         <li><a href="hired-professionals.html"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
         <li><a href="saved-items.html"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
-        <li><a href="wallet.html"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        
         <li><a href="reviews.html"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
-        <li><a href="community.html"><i class="fa-solid fa-user-group"></i> Community</a></li>
+        <li><a href="common requirements.html"><i class="fa-solid fa-user-group"></i> Common Requirements</a></li>
         <li><a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications</a></li>
         <li><a href="account-settings.html"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
         <li><a href="security.html"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="my-orders.html"><i class="fa-regular fa-clock"></i>My Orders</a></li>
         <li><a href="help.html"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
       </ul>
     </aside>
@@ -98,87 +95,117 @@
     <!-- Main Wizard Grid -->
     <main class="project-builder-container">
       
-      <!-- Center: Wizard Card -->
+      <!-- Center: Wizard Main Card -->
       <section class="wizard-main-card">
         <div class="wizard-header">
           <div>
             <h2>Create New Project</h2>
-            <p>Tell us about your construction project. We'll prepare a realistic dynamic cost range and help you find certified contractors.</p>
+            <p>Post your project requirements and get competitive quotes from verified professionals.</p>
           </div>
           <div class="privacy-tag">
             <i class="fa-solid fa-lock"></i> Your project information is private
           </div>
         </div>
 
-        <!-- Stepper Navigation -->
+        <!-- 5-Step Stepper Navigation -->
         <div class="stepper-nav" id="stepperContainer">
-          <div class="step-node active" data-step="1"><span class="step-num">1</span> Project</div>
+          <div class="step-node active" data-step="1"><span class="step-num">1</span> Project Type</div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="2"><span class="step-num">2</span> Location</div>
+          <div class="step-node" data-step="2"><span class="step-num">2</span> Basic Details</div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="3"><span class="step-num">3</span> Structure</div>
+          <div class="step-node" data-step="3"><span class="step-num">3</span> Requirements</div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="4"><span class="step-num">4</span> Requirements</div>
+          <div class="step-node" data-step="4"><span class="step-num">4</span> Budget & Timeline</div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="5"><span class="step-num">5</span> Quality</div>
-          <div class="step-divider"></div>
-          <div class="step-node" data-step="6"><span class="step-num">6</span> Estimate</div>
+          <div class="step-node" data-step="5"><span class="step-num">5</span> Review & Post</div>
         </div>
 
-        <!-- ================= STEP 1: PROJECT TYPE ================= -->
+        <!-- ================= STEP 1: 7 PROJECT TYPES ================= -->
         <div class="wizard-step-pane active" id="stepPane1">
-          <h3 class="step-heading">1. Select Project Type</h3>
-          <p class="step-subheading">What kind of construction or renovation project are you planning?</p>
-          
-          <div class="project-type-grid" id="projectTypeGrid">
-            <div class="selection-card" onclick="selectProjectType('New Construction', this)">
-              <div class="card-icon"><i class="fa-solid fa-person-digging"></i></div>
+          <h3 class="step-heading">Step 1 of 5: What do you want to build or improve?</h3>
+          <p class="step-subheading">Select the type of project you want to create. This helps us customize the form for you.</p>
+
+          <div class="project-card-grid-7">
+            <!-- 1. New Construction -->
+            <div class="type-card selected" onclick="selectProjectType('New Construction', this)">
+              <div class="type-badge">Most Popular</div>
+              <div class="type-icon"><i class="fa-solid fa-trowel-bricks"></i></div>
               <h4>New Construction</h4>
-              <p>Build from scratch on fresh land or plot</p>
+              <p>Build a new property from the ground up.</p>
             </div>
-            <div class="selection-card" onclick="selectProjectType('Renovation', this)">
-              <div class="card-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-              <h4>Renovation / Remodeling</h4>
-              <p>Reconstruct, expand or remodel existing house</p>
+
+            <!-- 2. Renovation & Remodeling -->
+            <div class="type-card" onclick="selectProjectType('Renovation', this)">
+              <div class="type-icon"><i class="fa-solid fa-paint-roller"></i></div>
+              <h4>Renovation & Remodeling</h4>
+              <p>Upgrade or remodel your existing property.</p>
             </div>
-            <div class="selection-card" onclick="selectProjectType('Commercial', this)">
-              <div class="card-icon"><i class="fa-solid fa-building"></i></div>
-              <h4>Commercial Building</h4>
-              <p>Offices, shops, commercial complexes</p>
+
+            <!-- 3. Home Extension -->
+            <div class="type-card" onclick="selectProjectType('Home Extension', this)">
+              <div class="type-icon"><i class="fa-solid fa-house-chimney-crack"></i></div>
+              <h4>Home Extension</h4>
+              <p>Add new space, rooms or floors to your existing property.</p>
             </div>
-            <div class="selection-card" onclick="selectProjectType('Industrial', this)">
-              <div class="card-icon"><i class="fa-solid fa-warehouse"></i></div>
+
+            <!-- 4. Interior & Finishing -->
+            <div class="type-card" onclick="selectProjectType('Interior', this)">
+              <div class="type-icon"><i class="fa-solid fa-couch"></i></div>
+              <h4>Interior & Finishing</h4>
+              <p>Design or upgrade the interiors and finishes.</p>
+            </div>
+
+            <!-- 5. Commercial Construction -->
+            <div class="type-card" onclick="selectProjectType('Commercial', this)">
+              <div class="type-icon"><i class="fa-solid fa-city"></i></div>
+              <h4>Commercial Construction</h4>
+              <p>Build or develop commercial spaces like shops, offices, showrooms, etc.</p>
+            </div>
+
+            <!-- 6. Industrial / Warehouse -->
+            <div class="type-card" onclick="selectProjectType('Industrial', this)">
+              <div class="type-icon"><i class="fa-solid fa-warehouse"></i></div>
               <h4>Industrial / Warehouse</h4>
-              <p>Shed, factory setup, warehouse construction</p>
+              <p>Construction for factories, warehouses, industrial buildings, etc.</p>
             </div>
+
+            <!-- 7. Other -->
+            <div class="type-card" onclick="selectProjectType('Other', this)">
+              <div class="type-icon"><i class="fa-solid fa-ellipsis"></i></div>
+              <h4>Other</h4>
+              <p>Other types of projects not listed above.</p>
+            </div>
+          </div>
+
+          <div class="info-tip-box">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Don't worry! You can update these details later. Selecting the right project type helps us connect you with the right professionals.</span>
           </div>
 
           <div class="form-nav-row">
             <a href="customer projects.html" class="btn-back">&lt; Cancel</a>
-            <button type="button" class="btn-submit" onclick="goToStep(2)">Next: Location &gt;</button>
+            <button type="button" class="btn-submit" onclick="goToStep(2)">Next Step &rarr;</button>
           </div>
         </div>
 
-        <!-- ================= STEP 2: LOCATION ================= -->
+        <!-- ================= STEP 2: BASIC DETAILS ================= -->
         <div class="wizard-step-pane" id="stepPane2">
-          <h3 class="step-heading">2. Where is your project located?</h3>
-          <p class="step-subheading">Material and labour rates vary based on exact geography.</p>
+          <h3 class="step-heading">Step 2: Basic Project Details</h3>
+          <p class="step-subheading">Tell us about the property and where the work is located.</p>
 
           <div class="form-grid-2">
-            <div class="field-group">
-              <label>Project Title / Name</label>
-              <input type="text" id="projectTitleInput" class="form-input" placeholder="e.g. Modern 3BHK Villa">
+            <div class="field-group full-width">
+              <label>Project Title *</label>
+              <input type="text" id="projectTitleInput" class="form-input" placeholder="e.g. 4 BHK Residential House Construction">
             </div>
+
             <div class="field-group">
-              <label>City / District</label>
-              <input type="text" id="cityInput" class="form-input" placeholder="e.g. Noida / Greater Noida" oninput="updateLocationInfo()">
+              <label>City / District *</label>
+              <input type="text" id="cityInput" class="form-input" placeholder="e.g. Greater Noida" oninput="updateLocationInfo()">
             </div>
+
             <div class="field-group">
-              <label>Pin Code</label>
-              <input type="number" id="pincodeInput" class="form-input" placeholder="e.g. 201310">
-            </div>
-            <div class="field-group">
-              <label>State / Union Territory</label>
+              <label>State / UT *</label>
               <select id="stateSelect" class="form-input" onchange="updateLocationInfo()">
                 <option value="">Select State / UT</option>
                 <optgroup label="States">
@@ -223,132 +250,100 @@
                 </optgroup>
               </select>
             </div>
+
+            <div class="field-group">
+              <label>PIN Code *</label>
+              <input type="number" id="pincodeInput" class="form-input" placeholder="e.g. 201310">
+            </div>
+
+            <div class="field-group">
+              <label>Complete Site Address *</label>
+              <input type="text" id="addressInput" class="form-input" placeholder="Plot No., Sector, Locality">
+            </div>
           </div>
+
+          <!-- Dynamic Container for Step 2 Specifics per PDF -->
+          <div id="step2DynamicFields" class="mt-3"></div>
 
           <div class="form-nav-row">
             <button type="button" class="btn-back" onclick="goToStep(1)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(3)">Next: Structure &gt;</button>
+            <button type="button" class="btn-submit" onclick="goToStep(3)">Next: Requirements &rarr;</button>
           </div>
         </div>
 
-        <!-- ================= STEP 3: STRUCTURE ================= -->
+        <!-- ================= STEP 3: REQUIREMENTS ================= -->
         <div class="wizard-step-pane" id="stepPane3">
-          <h3 class="step-heading">3. Tell us about the building size</h3>
-          
-          <div class="input-inline-grid">
-            <div class="field-group">
-              <label>Plot Area</label>
-              <div class="input-with-unit">
-                <input type="number" id="plotAreaInput" placeholder="Enter Plot Area (e.g. 3000)" min="100">
-                <span class="unit">sq ft</span>
-              </div>
-            </div>
-            <div class="field-group">
-              <label>Built-up Area</label>
-              <div class="input-with-unit">
-                <input type="number" id="builtUpAreaInput" placeholder="Enter Built-up Area (e.g. 2200)" min="100">
-                <span class="unit">sq ft</span>
-              </div>
-              <small class="helper-text">Built-up area is total constructed floor area</small>
-            </div>
-          </div>
+          <h3 class="step-heading">Step 3: Requirements & Specifications</h3>
+          <p class="step-subheading">Provide structured floor-wise and technical details for accurate bidding.</p>
 
-          <!-- REPLACED BUTTONS WITH MANUAL NUMBER OF FLOORS INPUT -->
-          <div class="field-group manual-floors-group">
-            <label for="floorsInput">Number of Floors</label>
-            <div class="input-with-unit">
-              <input type="number" id="floorsInput" placeholder="e.g. 1, 2, 3..." min="1" max="100" value="1">
-              <span class="unit">Floors</span>
-            </div>
-            <small class="helper-text">Enter total floors (including ground floor)</small>
-          </div>
-
-          <!-- Dynamic Floor Breakdown Box -->
-          <div class="floor-breakdown-box" id="floorBreakdownBox" style="display: none;">
-            <div class="floor-icon"><i class="fa-solid fa-hotel"></i></div>
-            <div class="floor-calc-details">
-              <strong>Approximate area breakdown</strong>
-              <div class="floor-badges" id="floorBadgesContainer"></div>
-              <p>Total Built-up Area: <strong id="totalBuiltUpDisplay">-- sq ft</strong></p>
-            </div>
-          </div>
+          <div id="step3DynamicContainer"></div>
 
           <div class="form-nav-row">
             <button type="button" class="btn-back" onclick="goToStep(2)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(4)">Next: Requirements &gt;</button>
+            <button type="button" class="btn-submit" onclick="goToStep(4)">Next: Budget & Timeline &rarr;</button>
           </div>
         </div>
 
-        <!-- ================= STEP 4: REQUIREMENTS ================= -->
+        <!-- ================= STEP 4: BUDGET & TIMELINE ================= -->
         <div class="wizard-step-pane" id="stepPane4">
-          <h3 class="step-heading">4. Project Requirements & Add-ons</h3>
-          <p class="step-subheading">Turn ON only features required for your construction scope.</p>
-          
-          <div class="features-grid" id="featuresContainer">
-            <!-- Dynamic toggles rendered by JS based on Project Type -->
-          </div>
+          <h3 class="step-heading">Step 4: Budget, Timeline & Privacy</h3>
+          <p class="step-subheading">Set realistic expectations for your construction bidding.</p>
 
-          <!-- Custom "Others" Description Box -->
-          <div class="others-desc-container" id="othersDescBox" style="display: none;">
-            <label for="othersDescInput"><i class="fa-solid fa-pen-to-square"></i> Specify Custom Requirements & Details</label>
-            <textarea id="othersDescInput" rows="3" class="form-input" placeholder="Elaborate on specific requirements, materials, modifications, or extra works..."></textarea>
+          <div class="form-grid-2">
+            <div class="field-group">
+              <label>Expected Budget Range</label>
+              <div class="input-inline-grid">
+                <input type="number" id="budgetMin" class="form-input" placeholder="Min (₹)">
+                <input type="number" id="budgetMax" class="form-input" placeholder="Max (₹)">
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Target Start Date</label>
+              <select id="targetStartDate" class="form-input">
+                <option value="ASAP">Immediately (ASAP)</option>
+                <option value="Within 1 Month">Within 1 Month</option>
+                <option value="1-3 Months">1 to 3 Months</option>
+                <option value="Flexible">Flexible</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Payment Preference</label>
+              <select id="paymentPref" class="form-input">
+                <option>Milestone Based</option>
+                <option>Monthly Progress Billing</option>
+                <option>Turnkey Installments</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Project Visibility / Privacy</label>
+              <select id="privacyPref" class="form-input">
+                <option>Public to verified contractors</option>
+                <option>Show contact only after accepting bid</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-nav-row">
             <button type="button" class="btn-back" onclick="goToStep(3)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(5)">Next: Quality Level &gt;</button>
+            <button type="button" class="btn-submit" onclick="goToStep(5)">Next: Review & Post &rarr;</button>
           </div>
         </div>
 
-        <!-- ================= STEP 5: QUALITY ================= -->
+        <!-- ================= STEP 5: FINAL REVIEW ================= -->
         <div class="wizard-step-pane" id="stepPane5">
-          <h3 class="step-heading">5. Quality / Finishing Level</h3>
-          <p class="step-subheading">Choose specifications for cement, steel, tiles and sanitary fittings.</p>
-
-          <div class="quality-tier-grid" id="qualityTiers">
-            <div class="tier-card" data-tier="basic">
-              <h4>BASIC</h4>
-              <p>Standard Quality Materials (Ultratech, Primary Steel, Ceramic tiles)</p>
-            </div>
-            <div class="tier-card active" data-tier="standard">
-              <span class="popular-ribbon">Most Popular</span>
-              <h4>STANDARD</h4>
-              <p>Premium Finish & Branded Fittings (Vitrified tiles, Jaquar fittings)</p>
-            </div>
-            <div class="tier-card" data-tier="premium">
-              <h4>PREMIUM</h4>
-              <p>Luxury & High-end Specifications (Italian Marble, Kohler, Automation)</p>
-            </div>
-          </div>
-
-          <div class="form-nav-row">
-            <button type="button" class="btn-back" onclick="goToStep(4)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(6)">Next: View Estimate &gt;</button>
-          </div>
-        </div>
-
-        <!-- ================= STEP 6: ESTIMATE & SUBMISSION ================= -->
-        <div class="wizard-step-pane" id="stepPane6">
-          <h3 class="step-heading">6. Final Review & Estimate Summary</h3>
-          <p class="step-subheading">Review your parameters before posting project to contractors.</p>
+          <h3 class="step-heading">Step 5: Final Review & Post</h3>
+          <p class="step-subheading">Review your parameters before posting to contractors[cite: 8].</p>
 
           <div class="summary-review-card">
             <div class="review-item"><strong>Project:</strong> <span id="revType">--</span> (<span id="revTitle">--</span>)</div>
             <div class="review-item"><strong>Location:</strong> <span id="revLocation">--</span></div>
-            <div class="review-item"><strong>Size:</strong> <span id="revSize">-- sq ft</span> (<span id="revFloors">--</span>)</div>
-            <div class="review-item"><strong>Quality Tier:</strong> <span id="revQuality">--</span></div>
-            <div class="review-item"><strong>Selected Requirements:</strong> <span id="revReqs">None</span></div>
-            <div class="review-item" id="revOthersRow" style="display: none;"><strong>Custom Notes:</strong> <span id="revOthers">--</span></div>
-          </div>
-
-          <div class="estimate-btn-container">
-            <button type="button" class="btn-calculate-est" onclick="recalculateDynamicEstimates()">
-              <i class="fa-solid fa-calculator"></i> Recalculate Live Estimate
-            </button>
+            <div class="review-item"><strong>Scale / Area:</strong> <span id="revSize">--</span></div>
+            <div class="review-item"><strong>Quality Tier:</strong> <span id="revQuality">Standard</span></div>
+            <div class="review-item"><strong>Floors / Areas:</strong> <span id="revBreakdown">--</span></div>
           </div>
 
           <div class="form-nav-row">
-            <button type="button" class="btn-back" onclick="goToStep(5)">&lt; Back</button>
+            <button type="button" class="btn-back" onclick="goToStep(4)">&lt; Back</button>
             <div class="btn-actions-right">
               <button type="button" class="btn-secondary" onclick="saveDraft()">Save Draft</button>
               <button type="button" class="btn-submit" onclick="submitProject()">Post Project & Request Bids</button>
@@ -358,7 +353,7 @@
 
       </section>
 
-      <!-- Right: Live Cost Estimator Result Dashboard -->
+      <!-- Right: Live Cost Estimator Sidebar -->
       <aside class="estimator-sidebar-card">
         <div class="estimator-card-header">
           <h3>Cost Estimator Result Dashboard</h3>
