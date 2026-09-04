@@ -405,10 +405,11 @@ public class MarketplaceBackendApplication {
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
                     .authorizeHttpRequests(auth ->
-                            auth
-                                    .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
-                                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                    .anyRequest().authenticated()
+    auth
+        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health", "/api/customer/projects/**").permitAll() // <--- यहाँ जोड़ा गया
+        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .anyRequest().authenticated()
+
                     )
                     .authenticationProvider(authenticationProvider())
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
