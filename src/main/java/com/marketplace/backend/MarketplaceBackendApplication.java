@@ -605,4 +605,29 @@ public class MarketplaceBackendApplication {
             );
         }
     }
+
+// ========================================================
+    // PROJECT CONTROLLER 
+    // ========================================================
+
+    @RestController
+    @RequestMapping("/api/customer/projects")
+    public static class ProjectController {
+        
+        private final ProjectRepository projectRepository;
+        private final UserRepository userRepository;
+
+        public ProjectController(ProjectRepository projectRepository, UserRepository userRepository) {
+            this.projectRepository = projectRepository;
+            this.userRepository = userRepository;
+        }
+
+        @PostMapping("/create")
+        @ResponseStatus(HttpStatus.CREATED)
+        public Project createProject(@Valid @RequestBody Project project, org.springframework.security.core.Authentication authentication) {
+            // यूज़र का ईमेल निकालकर प्रोजेक्ट के साथ जोड़ सकते हैं
+            String email = authentication.getName();
+            return projectRepository.save(project);
+        }
+    }
 }
