@@ -182,6 +182,13 @@ public class MarketplaceBackendApplication {
         boolean existsByEmail(String email);
     }
 
+    // ========================================================
+    // PROJECT REPOSITORY
+    // ========================================================
+
+    public interface ProjectRepository extends JpaRepository<Project, Long> {
+    }
+
 
     // ========================================================
     // REGISTER REQUEST (Updated with location)
