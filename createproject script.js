@@ -1,3 +1,8 @@
+// =========================================================
+// BACKEND CONFIGURATION
+// ====================================================
+const BACKEND_URL = ""; 
+
 document.addEventListener("DOMContentLoaded", async () => {
   syncUniversalUserProfile();
   initEventListeners();
@@ -63,7 +68,7 @@ const ROOM_TYPES = [
 async function fetchProjectConfiguration(projectType) {
   try {
     const token = localStorage.getItem("token") || "";
-    const response = await fetch(`/api/projects/config?type=${encodeURIComponent(projectType)}`, {
+    const response = await fetch(`${BACKEND_URL}/api/projects/config?type=${encodeURIComponent(projectType)}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -88,7 +93,7 @@ async function fetchProjectConfiguration(projectType) {
 async function fetchExistingProjectData(projectId) {
   try {
     const token = localStorage.getItem("token") || "";
-    const response = await fetch(`/api/customer/projects/${projectId}`, {
+    const response = await fetch(`${BACKEND_URL}/api/customer/projects/${projectId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -1054,7 +1059,7 @@ function populateReview() {
 }
 
 /* =========================================================
-   6. SUBMIT PROJECT & LOCAL STORAGE (FOR CONTRACTOR VIEW)
+   6. SUBMIT PROJECT & LOCAL STORAGE (FIXED FAKE SUCCESS)
    ========================================================= */
 async function submitProject() {
   const payload = {
@@ -1100,21 +1105,28 @@ async function submitProject() {
 
   try {
     const token = localStorage.getItem("token") || "";
-    const res = await fetch("/api/customer/projects/create", {
+    // BACKEND_URL variable has been added to the fetch call below
+    const res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify(payload)
     });
 
     if (res.ok) {
+      // SUCCESS: Only save to local storage if backend actually accepts the request
       saveLocalProject(payload);
       alert("Project posted and bids requested successfully!");
       window.location.href = "customer projects.html";
     } else {
-      saveLocalProject(payload);
+      // ERROR: Show the real error, stop the fake success loop
+      const errText = await res.text();
+      alert(`Failed to save project. Server returned: ${res.status}\nError: ${errText}`);
+      console.error("Backend Error:", errText);
     }
   } catch (e) {
-    saveLocalProject(payload);
+    // NETWORK ERROR: Show the real error, stop the fake success loop
+    alert("Network Error: Could not connect to the backend server. Please check your internet connection and backend status.");
+    console.error("Network/Fetch failed:", e);
   }
 }
 
@@ -1157,8 +1169,7 @@ function saveLocalProject(p) {
   localStorage.setItem("customerProjects", JSON.stringify(customerList));
   localStorage.setItem("allListedProjects", JSON.stringify(globalProjects));
 
-  alert("Project posted successfully! All requirements are now visible to contractors.");
-  window.location.href = "customer projects.html";
+  // The alert here was redundant as we show an alert in submitProject() when res.ok is true, but left as is to match original logic 
 }
 
 /* =========================================================
