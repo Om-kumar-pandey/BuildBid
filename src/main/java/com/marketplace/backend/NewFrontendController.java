@@ -26,31 +26,51 @@ public class NewFrontendController {
             ObjectMapper mapper = new ObjectMapper();
             Project project = new Project();
 
-            // 1. Basic Fields Mapping
-            project.setProjectTitle((String) payload.getOrDefault("projectTitle", "BuildBid Project"));
-            project.setProjectType((String) payload.get("projectType"));
-            project.setQualityTier((String) payload.get("qualityTier"));
+            // 1. Basic & Core Text/Title Mappings
+            String titleVal = (String) payload.getOrDefault("projectTitle", "BuildBid Project");
+            project.setProjectTitle(titleVal);
+            project.setTitle(titleVal);
 
-            // 2. Total Area Mapping
+            String typeVal = (String) payload.get("projectType");
+            project.setProjectType(typeVal);
+            project.setType(typeVal);
+
+            project.setQualityTier((String) payload.get("qualityTier"));
+            project.setStatus("OPEN FOR BIDS");
+
+            // 2. Areas & Numeric Mappings
             Object areaObj = payload.get("totalArea");
             if (areaObj != null) {
-                project.setTotalArea(Double.valueOf(areaObj.toString()));
+                Double areaVal = Double.valueOf(areaObj.toString());
+                project.setTotalArea(areaVal);
+                project.setBuiltUpArea(areaVal);
             }
 
-            // 3. Location Mapping
+            // 3. Location Breakdown (City, State, Pincode, Address texts)
             if (payload.containsKey("location") && payload.get("location") != null) {
-                project.setLocation(mapper.writeValueAsString(payload.get("location")));
+                Object locObj = payload.get("location");
+                if (locObj instanceof Map) {
+                    Map<String, Object> locMap = (Map<String, Object>) locObj;
+                    project.setCity((String) locMap.get("city"));
+                    project.setState((String) locMap.get("state"));
+                    project.setPincode((String) locMap.get("pincode"));
+                    project.setLocation(mapper.writeValueAsString(locMap));
+                } else {
+                    project.setLocation(locObj.toString());
+                }
             }
 
-            // 4. Budget & Timeline Mapping
+            // 4. Budget & Timeline Text/JSON Mappings
             if (payload.containsKey("budget") && payload.get("budget") != null) {
-                project.setBudget(mapper.writeValueAsString(payload.get("budget")));
+                Object budgetObj = payload.get("budget");
+                project.setBudget(budgetObj instanceof String ? (String) budgetObj : mapper.writeValueAsString(budgetObj));
             }
             if (payload.containsKey("timeline") && payload.get("timeline") != null) {
-                project.setTimeline(mapper.writeValueAsString(payload.get("timeline")));
+                Object timelineObj = payload.get("timeline");
+                project.setTimeline(timelineObj instanceof String ? (String) timelineObj : mapper.writeValueAsString(timelineObj));
             }
             
-            // 5. Specific Sections & Dynamic Guides Mapping
+            // 5. All Specific Sections, Descriptions, Rooms, Scopes & Custom Details Mappings
             if (payload.containsKey("floors") && payload.get("floors") != null) {
                 project.setFloors(mapper.writeValueAsString(payload.get("floors")));
             }
@@ -81,8 +101,11 @@ public class NewFrontendController {
             if (payload.containsKey("industrial") && payload.get("industrial") != null) {
                 project.setIndustrial(mapper.writeValueAsString(payload.get("industrial")));
             }
+            
+            // Catch-all for custom descriptions, deliverable notes, or any extra text inputs
             if (payload.containsKey("custom") && payload.get("custom") != null) {
-                project.setCustomDetails(mapper.writeValueAsString(payload.get("custom")));
+                Object customObj = payload.get("custom");
+                project.setCustomDetails(customObj instanceof String ? (String) customObj : mapper.writeValueAsString(customObj));
             }
 
             Project savedProject = projectRepository.save(project);
@@ -104,22 +127,16 @@ public class NewFrontendController {
             for (Project p : projects) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", p.getId());
-                map.put("title", p.getProjectTitle()); 
-                map.put("type", p.getProjectType());   
-                map.put("area", p.getTotalArea());    
+                map.put("title", p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle()); 
+                map.put("type", p.getProjectType() != null ? p.getProjectType() : p.getType());   
+                map.put("area", p.getTotalArea() != null ? p.getTotalArea() : p.getBuiltUpArea());    
                 map.put("status", p.getStatus() != null ? p.getStatus() : "OPEN FOR BIDS");
                 map.put("bidsCount", 0); 
                 map.put("updatedAt", p.getCreatedAt()); 
+                map.put("city", p.getCity());
+                map.put("state", p.getState());
+                map.put("pincode", p.getPincode());
 
-                if (p.getLocation() != null) {
-                    try {
-                        Map<String, Object> loc = mapper.readValue(p.getLocation(), Map.class);
-                        map.put("city", loc.get("city"));
-                        map.put("state", loc.get("state"));
-                    } catch (Exception e) {
-                        map.put("location", "Location Data");
-                    }
-                }
                 responseList.add(map);
             }
             return ResponseEntity.ok(responseList);
@@ -171,15 +188,15 @@ public class NewFrontendController {
             for (Project p : allProjects) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", p.getId());
-                item.put("title", p.getProjectTitle());
-                item.put("category", p.getProjectType());
-                item.put("area", p.getTotalArea() != null ? p.getTotalArea() + " sq.ft" : "");
+                item.put("title", p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle());
+                item.put("category", p.getProjectType() != null ? p.getProjectType() : p.getType());
+                item.put("area", (p.getTotalArea() != null ? p.getTotalArea() : (p.getBuiltUpArea() != null ? p.getBuiltUpArea() : "")) + " sq.ft");
                 item.put("status", p.getStatus() != null ? p.getStatus() : "Open for Bids");
                 item.put("bidsCount", 3);
                 item.put("lowestBid", "₹ 1,50,000");
                 item.put("highestBid", "₹ 4,50,000");
                 item.put("postedDate", "Recently");
-                item.put("location", "Location Data");
+                item.put("location", (p.getCity() != null ? p.getCity() : "") + ", " + (p.getState() != null ? p.getState() : ""));
                 formattedList.add(item);
             }
 
