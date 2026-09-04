@@ -1,7 +1,7 @@
 // =========================================================
 // BACKEND CONFIGURATION
 // ====================================================
-const BACKEND_URL = ""; 
+const BACKEND_URL = "https://buildbid-ap3j.onrender.com"; 
 
 document.addEventListener("DOMContentLoaded", async () => {
   syncUniversalUserProfile();
