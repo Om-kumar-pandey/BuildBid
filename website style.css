@@ -2348,3 +2348,30 @@ footer {
     object-fit: contain;
     outline: none;
 }
+/* Custom Select Dropdowns */
+.buildbid-custom-select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13.5px;
+    background: #ffffff;
+    outline: none;
+    cursor: pointer;
+    color: #172033;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.buildbid-custom-select:focus {
+    border-color: #f59e0b;
+}
+
+/* 4-Role Buttons Responsive Grid */
+@media (max-width: 600px) {
+    .buildbid-role-selector,
+    .buildbid-signup-roles {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+}
