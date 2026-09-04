@@ -11,64 +11,76 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "customer_id")
+    private Long customerId;
+
+    @Column(name = "project_title")
     private String projectTitle;
 
-    @Column(nullable = false)
+    @Column(name = "project_type")
     private String projectType;
 
+    @Column(name = "total_area")
     private Double totalArea;
+
+    @Column(name = "quality_tier")
     private String qualityTier;
+
+    @Column(name = "status")
     private String status = "OPEN FOR BIDS";
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "location", columnDefinition = "TEXT")
     private String location; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "budget", columnDefinition = "TEXT")
     private String budget; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "timeline", columnDefinition = "TEXT")
     private String timeline; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "floors", columnDefinition = "TEXT")
     private String floors; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "scope_of_work", columnDefinition = "TEXT")
     private String scopeOfWork; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "renovation_areas", columnDefinition = "TEXT")
     private String renovationAreas; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "renov_scope", columnDefinition = "TEXT")
     private String renovScope; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "extension_details", columnDefinition = "TEXT")
     private String extensionDetails; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "interior_rooms", columnDefinition = "TEXT")
     private String interiorRooms; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "interior_scope", columnDefinition = "TEXT")
     private String interiorScope; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "interior_preferences", columnDefinition = "TEXT")
     private String interiorPreferences; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "commercial", columnDefinition = "TEXT")
     private String commercial; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "industrial", columnDefinition = "TEXT")
     private String industrial; 
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "custom_details", columnDefinition = "TEXT")
     private String customDetails; 
 
     @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at")
     private Date createdAt = new Date();
 
-    // Foolproof Getters and Setters (No Lombok needed)
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getCustomerId() { return customerId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
 
     public String getProjectTitle() { return projectTitle; }
     public void setProjectTitle(String projectTitle) { this.projectTitle = projectTitle; }
