@@ -1,0 +1,2087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Post Requirement - BuildBid</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,Arial,sans-serif;background:#f5f7fb;color:#172033}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+
+.sidebar{
+    position:fixed;left:0;top:0;bottom:0;width:250px;
+    background:#111827;color:#fff;overflow-y:auto
+}
+.logo{
+    height:72px;display:flex;align-items:center;padding:0 24px;
+    font-size:23px;font-weight:800;border-bottom:1px solid #273142
+}
+.logo span{color:#f59e0b}
+.nav{padding:18px 12px}
+.nav-title{
+    color:#6b7280;font-size:11px;font-weight:700;
+    text-transform:uppercase;padding:12px;letter-spacing:.8px
+}
+.nav a{
+    display:flex;align-items:center;gap:12px;color:#cbd5e1;
+    text-decoration:none;padding:11px 13px;margin:3px 0;
+    border-radius:8px;font-size:14px
+}
+.nav a:hover{background:#1f2937;color:#fff}
+.nav a.active{background:#f59e0b;color:#111827;font-weight:700}
+.nav-icon{width:22px;text-align:center}
+
+.main{
+    margin-left:250px;width:calc(100% - 250px);min-height:100vh
+}
+.topbar{
+    height:72px;background:#fff;border-bottom:1px solid #e5e7eb;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 30px;position:sticky;top:0;z-index:20
+}
+.topbar h1{font-size:21px}
+.topbar-right{display:flex;align-items:center;gap:18px}
+.notification{
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid #e5e7eb;background:#fff
+}
+.avatar{
+    width:38px;height:38px;border-radius:50%;background:#f59e0b;
+    display:grid;place-items:center;font-weight:800
+}
+
+.content{padding:30px;max-width:1500px;margin:auto}
+
+.page-header{
+    display:flex;justify-content:space-between;
+    align-items:flex-start;margin-bottom:25px
+}
+.page-header h2{font-size:27px;margin-bottom:7px}
+.page-header p{color:#6b7280;font-size:14px}
+
+.save-draft{
+    padding:10px 17px;background:#fff;
+    border:1px solid #d1d5db;border-radius:8px;font-weight:700
+}
+
+.layout{
+    display:grid;grid-template-columns:minmax(0,1fr)350px;
+    gap:24px;align-items:start
+}
+
+.wizard{
+    background:#fff;border:1px solid #e5e7eb;
+    border-radius:14px;overflow:hidden
+}
+
+.steps{
+    display:flex;padding:22px 20px;
+    border-bottom:1px solid #e5e7eb;overflow-x:auto
+}
+.step{
+    flex:1;min-width:145px;text-align:center;position:relative
+}
+.step:not(:last-child)::after{
+    content:"";position:absolute;top:18px;left:60%;
+    width:80%;height:2px;background:#e5e7eb
+}
+.step.completed:not(:last-child)::after{background:#f59e0b}
+.step-number{
+    position:relative;z-index:2;width:36px;height:36px;
+    margin:auto;border:2px solid #d1d5db;border-radius:50%;
+    background:#fff;display:grid;place-items:center;
+    color:#6b7280;font-size:13px;font-weight:800
+}
+.step.active .step-number,
+.step.completed .step-number{
+    background:#f59e0b;border-color:#f59e0b;color:#111827
+}
+.step-title{
+    margin-top:9px;font-size:12px;font-weight:700;color:#6b7280
+}
+.step.active .step-title{color:#111827}
+
+.form-area{padding:30px;min-height:600px}
+.panel{display:none}
+.panel.active{display:block}
+
+.title{font-size:21px;margin-bottom:7px}
+.subtitle{font-size:14px;color:#6b7280;margin-bottom:25px}
+
+.grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:18px
+}
+.field{margin-bottom:20px}
+.full{grid-column:1/-1}
+
+label{
+    display:block;font-size:13px;font-weight:700;margin-bottom:8px
+}
+.required{color:#ef4444}
+
+input,select,textarea{
+    width:100%;padding:11px 13px;border:1px solid #d1d5db;
+    border-radius:8px;background:#fff;outline:none
+}
+textarea{min-height:100px;resize:vertical}
+input:focus,select:focus,textarea:focus{
+    border-color:#f59e0b;
+    box-shadow:0 0 0 3px rgba(245,158,11,.12)
+}
+
+.trade-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:14px
+}
+.trade-card{
+    border:1px solid #d1d5db;border-radius:10px;
+    padding:17px;background:#fff;cursor:pointer
+}
+.trade-card:hover{border-color:#f59e0b}
+.trade-card.selected{
+    border:2px solid #f59e0b;background:#fffbeb
+}
+.trade-card input{width:auto;margin-right:8px}
+.trade-card strong{font-size:14px}
+.trade-card p{
+    color:#6b7280;font-size:11px;margin-top:8px;line-height:1.5
+}
+
+.skill-box{
+    margin-top:20px;padding:18px;
+    border:1px solid #e5e7eb;border-radius:10px
+}
+.skill-tags{display:flex;flex-wrap:wrap;gap:8px}
+.skill-tag{
+    border:1px solid #d1d5db;border-radius:20px;
+    padding:7px 12px;font-size:12px;cursor:pointer
+}
+.skill-tag.selected{
+    background:#f59e0b;border-color:#f59e0b;font-weight:700
+}
+
+.team-table{
+    width:100%;border-collapse:collapse;
+    min-width:650px
+}
+.table-wrap{
+    overflow-x:auto;border:1px solid #e5e7eb;border-radius:9px
+}
+.team-table th{
+    text-align:left;background:#f8fafc;
+    padding:12px;font-size:12px;border-bottom:1px solid #e5e7eb
+}
+.team-table td{
+    padding:10px;border-bottom:1px solid #e5e7eb
+}
+.team-table input,.team-table select{padding:9px;font-size:12px}
+
+.add-row{
+    margin-top:12px;padding:10px 15px;
+    border:1px dashed #f59e0b;background:#fffbeb;
+    color:#92400e;border-radius:8px;font-weight:700
+}
+.remove{
+    border:0;background:#fee2e2;color:#dc2626;
+    width:32px;height:32px;border-radius:7px
+}
+
+.radio-group{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:12px
+}
+.radio-card{
+    border:1px solid #d1d5db;padding:15px;border-radius:9px;
+    display:flex;gap:10px;cursor:pointer
+}
+.radio-card input{width:auto;margin-top:3px}
+.radio-card:has(input:checked){
+    border-color:#f59e0b;background:#fffbeb
+}
+.radio-card strong{display:block;font-size:13px;margin-bottom:4px}
+.radio-card small{font-size:11px;color:#6b7280}
+
+.check{
+    display:flex;gap:9px;align-items:center;
+    font-size:13px;margin:12px 0
+}
+.check input{width:auto}
+
+.review-box{
+    border:1px solid #e5e7eb;border-radius:10px;
+    overflow:hidden;margin-bottom:15px
+}
+.review-head{
+    background:#f8fafc;padding:13px 16px;
+    font-size:13px;font-weight:800
+}
+.review-body{
+    padding:16px;display:grid;
+    grid-template-columns:repeat(2,1fr);gap:15px
+}
+.review-item small{
+    display:block;color:#6b7280;font-size:11px;margin-bottom:4px
+}
+.review-item strong{font-size:13px}
+
+.footer{
+    padding:18px 25px;border-top:1px solid #e5e7eb;
+    display:flex;justify-content:space-between;background:#fff
+}
+.btn{
+    border:0;border-radius:8px;padding:11px 19px;font-weight:700
+}
+.back{background:#f3f4f6;color:#374151}
+.next{background:#f59e0b;color:#111827}
+.publish{background:#16a34a;color:#fff}
+
+.summary{
+    background:#fff;border:1px solid #e5e7eb;
+    border-radius:14px;position:sticky;top:95px;overflow:hidden
+}
+.summary-head{
+    padding:18px;border-bottom:1px solid #e5e7eb
+}
+.summary-head h3{font-size:17px;margin-bottom:4px}
+.summary-head p{font-size:12px;color:#6b7280}
+.summary-body{padding:18px}
+.summary-row{
+    display:flex;justify-content:space-between;
+    gap:15px;padding:11px 0;
+    border-bottom:1px solid #f0f0f0;font-size:12px
+}
+.summary-row span:first-child{color:#6b7280}
+.summary-row strong{text-align:right}
+
+.estimator{
+    margin-top:18px;padding:16px;background:#fffbeb;
+    border:1px solid #fde68a;border-radius:10px
+}
+.estimator h4{font-size:14px;margin-bottom:13px}
+.cost{
+    display:flex;justify-content:space-between;
+    margin:9px 0;font-size:12px
+}
+.total{
+    border-top:1px solid #f3d77b;margin-top:12px;
+    padding-top:13px;display:flex;
+    justify-content:space-between;font-weight:800;font-size:17px
+}
+.info{
+    margin-top:18px;padding:13px;background:#eff6ff;
+    color:#1e40af;border-radius:8px;font-size:11px;line-height:1.5
+}
+
+@media(max-width:1050px){
+    .layout{grid-template-columns:1fr}
+    .summary{position:static}
+}
+@media(max-width:850px){
+    .sidebar{width:72px}
+    .logo{padding:0;justify-content:center;font-size:0}
+    .logo:after{content:"BB";font-size:18px;color:#f59e0b}
+    .nav-title,.nav a span:not(.nav-icon){display:none}
+    .nav a{justify-content:center}
+    .main{margin-left:72px;width:calc(100% - 72px)}
+    .content{padding:18px}
+    .trade-grid{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:1fr}
+    .full{grid-column:auto}
+}
+@media(max-width:550px){
+    .trade-grid,.radio-group,.review-body{grid-template-columns:1fr}
+    .page-header{flex-direction:column;gap:12px}
+    .form-area{padding:20px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+    <div class="logo">Build<span>Bid</span></div>
+
+    <nav class="nav">
+
+        <div class="nav-title">Main</div>
+
+        <a href="dashboard.html">
+            <span class="nav-icon">⌂</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="projects.html">
+            <span class="nav-icon">▣</span>
+            <span>Projects</span>
+        </a>
+
+        <a href="bids.html">
+            <span class="nav-icon">◈</span>
+            <span>Bids</span>
+        </a>
+
+        <a href="contracts.html">
+            <span class="nav-icon">▤</span>
+            <span>My Contracts</span>
+        </a>
+
+        <div class="nav-title">Procurement</div>
+
+        <a href="order-material.html">
+            <span class="nav-icon">▥</span>
+            <span>Order Material</span>
+        </a>
+
+        <a href="post-requirement.html" class="active">
+            <span class="nav-icon">＋</span>
+            <span>Post Requirement</span>
+        </a>
+
+        <a href="my-orders.html">
+            <span class="nav-icon">□</span>
+            <span>My Orders</span>
+        </a>
+
+        <a href="track-material.html">
+            <span class="nav-icon">➤</span>
+            <span>Track Material</span>
+        </a>
+
+        <div class="nav-title">People</div>
+
+        <a href="hire-professionals.html">
+            <span class="nav-icon">♙</span>
+            <span>Hire Professionals</span>
+        </a>
+
+        <a href="team.html">
+            <span class="nav-icon">♟</span>
+            <span>My Team</span>
+        </a>
+
+        <a href="reviews.html">
+            <span class="nav-icon">★</span>
+            <span>Reviews & Ratings</span>
+        </a>
+
+        <div class="nav-title">Account</div>
+
+        <a href="earnings.html">
+            <span class="nav-icon">₹</span>
+            <span>Earnings</span>
+        </a>
+
+        <a href="messages.html">
+            <span class="nav-icon">✉</span>
+            <span>Messages</span>
+        </a>
+
+        <a href="notifications.html">
+            <span class="nav-icon">♢</span>
+            <span>Notifications</span>
+        </a>
+
+        <a href="get-verified.html">
+            <span class="nav-icon">✓</span>
+            <span>Get Verified</span>
+        </a>
+
+        <a href="help.html">
+            <span class="nav-icon">?</span>
+            <span>Help & Support</span>
+        </a>
+
+    </nav>
+</div>
+
+
+<div class="main">
+
+    <header class="topbar">
+
+        <h1>Post Requirement</h1>
+
+        <div class="topbar-right">
+            <button class="notification">🔔</button>
+            <div class="avatar">PP</div>
+        </div>
+
+    </header>
+
+
+    <div class="content">
+
+        <div class="page-header">
+
+            <div>
+                <h2>Post Internal Requirement</h2>
+                <p>
+                    Create a manpower requirement for your construction project.
+                </p>
+            </div>
+
+            <button class="save-draft" onclick="saveDraft()">
+                Save Draft
+            </button>
+
+        </div>
+
+
+        <div class="layout">
+
+            <section class="wizard">
+
+                <!-- STEPS -->
+
+                <div class="steps">
+
+                    <div class="step active" id="indicator1">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Project Details</div>
+                    </div>
+
+                    <div class="step" id="indicator2">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Trades & Skills</div>
+                    </div>
+
+                    <div class="step" id="indicator3">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Team & Rates</div>
+                    </div>
+
+                    <div class="step" id="indicator4">
+                        <div class="step-number">4</div>
+                        <div class="step-title">Settings</div>
+                    </div>
+
+                    <div class="step" id="indicator5">
+                        <div class="step-number">5</div>
+                        <div class="step-title">Review & Post</div>
+                    </div>
+
+                </div>
+
+
+                <div class="form-area">
+
+
+                    <!-- ================= STEP 1 ================= -->
+
+                    <div class="panel active" id="panel1">
+
+                        <h2 class="title">Project Details</h2>
+
+                        <p class="subtitle">
+                            Tell us about the project for which you need manpower.
+                        </p>
+
+                        <div class="grid">
+
+                            <div class="field">
+
+                                <label>
+                                    Project <span class="required">*</span>
+                                </label>
+
+                                <select id="project">
+                                    <option value="">Select project</option>
+                                    <option>Green Valley Residency</option>
+                                    <option>Metro Heights</option>
+                                    <option>Noida Commercial Tower</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Requirement Type
+                                </label>
+
+                                <select id="requirementType">
+                                    <option>Skilled Manpower</option>
+                                    <option>Semi-Skilled Manpower</option>
+                                    <option>Unskilled Manpower</option>
+                                    <option>Mixed Workforce</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Work Start Date <span class="required">*</span>
+                                </label>
+
+                                <input type="date" id="startDate">
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Expected Duration
+                                </label>
+
+                                <select id="duration">
+                                    <option>Less than 1 week</option>
+                                    <option>1 - 2 weeks</option>
+                                    <option>1 month</option>
+                                    <option>2 - 3 months</option>
+                                    <option>3 - 6 months</option>
+                                    <option>6+ months</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field full">
+
+                                <label>
+                                    Work Location <span class="required">*</span>
+                                </label>
+
+                                <textarea
+                                    id="location"
+                                    placeholder="Enter complete project/site location"></textarea>
+
+                            </div>
+
+
+                            <div class="field full">
+
+                                <label>
+                                    Work Description
+                                </label>
+
+                                <textarea
+                                    id="description"
+                                    placeholder="Describe the work that needs to be completed..."></textarea>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================= STEP 2 ================= -->
+
+                    <div class="panel" id="panel2">
+
+                        <h2 class="title">Select Trades & Skills</h2>
+
+                        <p class="subtitle">
+                            Select the trades required for your project.
+                        </p>
+
+
+                        <div class="trade-grid">
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Mason')">
+
+                                <input type="checkbox">
+                                <strong>Mason</strong>
+
+                                <p>
+                                    Brickwork, blockwork and masonry construction.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Carpenter')">
+
+                                <input type="checkbox">
+                                <strong>Carpenter</strong>
+
+                                <p>
+                                    Shuttering, doors, furniture and woodwork.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Electrician')">
+
+                                <input type="checkbox">
+                                <strong>Electrician</strong>
+
+                                <p>
+                                    Electrical installation and wiring work.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Plumber')">
+
+                                <input type="checkbox">
+                                <strong>Plumber</strong>
+
+                                <p>
+                                    Plumbing, piping and sanitary work.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Painter')">
+
+                                <input type="checkbox">
+                                <strong>Painter</strong>
+
+                                <p>
+                                    Interior, exterior and finishing painting.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Welder')">
+
+                                <input type="checkbox">
+                                <strong>Welder</strong>
+
+                                <p>
+                                    Welding, fabrication and structural work.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Bar Bender')">
+
+                                <input type="checkbox">
+                                <strong>Bar Bender</strong>
+
+                                <p>
+                                    Reinforcement cutting, bending and fixing.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Tile Mason')">
+
+                                <input type="checkbox">
+                                <strong>Tile Mason</strong>
+
+                                <p>
+                                    Floor and wall tile installation.
+                                </p>
+
+                            </div>
+
+
+                            <div class="trade-card"
+                                 onclick="toggleTrade(this,'Helper')">
+
+                                <input type="checkbox">
+                                <strong>Helper</strong>
+
+                                <p>
+                                    General construction support manpower.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="skill-box">
+
+                            <label>
+                                Additional Skills / Certifications
+                            </label>
+
+                            <div class="skill-tags">
+
+                                <span class="skill-tag"
+                                      onclick="toggleSkill(this)">
+                                    Safety Certified
+                                </span>
+
+                                <span class="skill-tag"
+                                      onclick="toggleSkill(this)">
+                                    Height Work
+                                </span>
+
+                                <span class="skill-tag"
+                                      onclick="toggleSkill(this)">
+                                    Drawing Reading
+                                </span>
+
+                                <span class="skill-tag"
+                                      onclick="toggleSkill(this)">
+                                    Machine Operator
+                                </span>
+
+                                <span class="skill-tag"
+                                      onclick="toggleSkill(this)">
+                                    Experienced Supervisor
+                                </span>
+
+                                <span class="skill-tag"
+                                      onclick="toggleSkill(this)">
+                                    Government Certified
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================= STEP 3 ================= -->
+
+                    <div class="panel" id="panel3">
+
+                        <h2 class="title">Team Configuration & Rates</h2>
+
+                        <p class="subtitle">
+                            Configure required manpower and expected rates.
+                        </p>
+
+
+                        <div class="table-wrap">
+
+                            <table class="team-table">
+
+                                <thead>
+
+                                    <tr>
+                                        <th>Trade</th>
+                                        <th>Workers</th>
+                                        <th>Rate Type</th>
+                                        <th>Expected Rate</th>
+                                        <th>Work Shift</th>
+                                        <th></th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="teamRows">
+
+                                    <tr>
+
+                                        <td>
+
+                                            <select class="trade">
+                                                <option>Mason</option>
+                                                <option>Carpenter</option>
+                                                <option>Electrician</option>
+                                                <option>Plumber</option>
+                                                <option>Painter</option>
+                                                <option>Welder</option>
+                                                <option>Helper</option>
+                                            </select>
+
+                                        </td>
+
+                                        <td>
+                                            <input
+                                                type="number"
+                                                class="workers"
+                                                min="1"
+                                                value="2"
+                                                oninput="calculateEstimate()">
+                                        </td>
+
+                                        <td>
+
+                                            <select class="rateType">
+                                                <option>Per Day</option>
+                                                <option>Per Month</option>
+                                                <option>Per Sq Ft</option>
+                                                <option>Fixed Contract</option>
+                                            </select>
+
+                                        </td>
+
+                                        <td>
+
+                                            <input
+                                                type="number"
+                                                class="rate"
+                                                min="0"
+                                                value="800"
+                                                oninput="calculateEstimate()">
+
+                                        </td>
+
+                                        <td>
+
+                                            <select class="shift">
+                                                <option>Day Shift</option>
+                                                <option>Night Shift</option>
+                                                <option>Flexible</option>
+                                            </select>
+
+                                        </td>
+
+                                        <td>
+
+                                            <button
+                                                class="remove"
+                                                onclick="removeTeamRow(this)">
+                                                ×
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <button class="add-row" onclick="addTeamRow()">
+                            + Add Trade
+                        </button>
+
+
+                        <div class="grid" style="margin-top:25px">
+
+                            <div class="field">
+
+                                <label>
+                                    Accommodation Required?
+                                </label>
+
+                                <select id="accommodation">
+                                    <option>No</option>
+                                    <option>Yes - Contractor Provided</option>
+                                    <option>Yes - Worker Provided</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Food / Meals
+                                </label>
+
+                                <select id="food">
+                                    <option>Not Provided</option>
+                                    <option>Provided by Contractor</option>
+                                    <option>Meal Allowance</option>
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================= STEP 4 ================= -->
+
+                    <div class="panel" id="panel4">
+
+                        <h2 class="title">
+                            Additional Settings & Logistics
+                        </h2>
+
+                        <p class="subtitle">
+                            Add site rules, logistics and workforce preferences.
+                        </p>
+
+
+                        <div class="grid">
+
+                            <div class="field">
+
+                                <label>
+                                    Working Hours
+                                </label>
+
+                                <select id="workingHours">
+                                    <option>8 Hours / Day</option>
+                                    <option>9 Hours / Day</option>
+                                    <option>10 Hours / Day</option>
+                                    <option>12 Hours / Day</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Weekly Off
+                                </label>
+
+                                <select id="weeklyOff">
+                                    <option>Sunday</option>
+                                    <option>Any One Day</option>
+                                    <option>No Weekly Off</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Safety Equipment
+                                </label>
+
+                                <select id="safety">
+                                    <option>Contractor Provided</option>
+                                    <option>Workers Bring Their Own</option>
+                                    <option>Not Required</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field">
+
+                                <label>
+                                    Payment Frequency
+                                </label>
+
+                                <select id="paymentFrequency">
+                                    <option>Weekly</option>
+                                    <option>Bi-Weekly</option>
+                                    <option>Monthly</option>
+                                </select>
+
+                            </div>
+
+
+                            <div class="field full">
+
+                                <label>
+                                    Site Rules & Instructions
+                                </label>
+
+                                <textarea
+                                    id="siteRules"
+                                    placeholder="Mention safety rules, attendance requirements, reporting time, ID requirements, etc."></textarea>
+
+                            </div>
+
+
+                            <div class="field full">
+
+                                <label>
+                                    Logistics / Transport Requirements
+                                </label>
+
+                                <textarea
+                                    id="logistics"
+                                    placeholder="Mention transport, pickup/drop, site access, parking or other requirements."></textarea>
+
+                            </div>
+
+                        </div>
+
+
+                        <label class="check">
+                            <input type="checkbox" id="backgroundCheck">
+                            Background verification required
+                        </label>
+
+                        <label class="check">
+                            <input type="checkbox" id="attendance">
+                            Daily attendance tracking required
+                        </label>
+
+                        <label class="check">
+                            <input type="checkbox" id="replacement">
+                            Replacement manpower should be available
+                        </label>
+
+                    </div>
+
+
+                    <!-- ================= STEP 5 ================= -->
+
+                    <div class="panel" id="panel5">
+
+                        <h2 class="title">
+                            Final Review & Post
+                        </h2>
+
+                        <p class="subtitle">
+                            Review your requirement before posting it.
+                        </p>
+
+
+                        <div class="review-box">
+
+                            <div class="review-head">
+                                Project Details
+                            </div>
+
+                            <div class="review-body">
+
+                                <div class="review-item">
+                                    <small>Project</small>
+                                    <strong id="reviewProject">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Requirement Type</small>
+                                    <strong id="reviewType">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Start Date</small>
+                                    <strong id="reviewStart">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Duration</small>
+                                    <strong id="reviewDuration">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Location</small>
+                                    <strong id="reviewLocation">—</strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="review-box">
+
+                            <div class="review-head">
+                                Workforce
+                            </div>
+
+                            <div class="review-body">
+
+                                <div class="review-item">
+                                    <small>Selected Trades</small>
+                                    <strong id="reviewTrades">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Total Workers</small>
+                                    <strong id="reviewWorkers">0</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Accommodation</small>
+                                    <strong id="reviewAccommodation">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Food</small>
+                                    <strong id="reviewFood">—</strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="review-box">
+
+                            <div class="review-head">
+                                Site & Payment Settings
+                            </div>
+
+                            <div class="review-body">
+
+                                <div class="review-item">
+                                    <small>Working Hours</small>
+                                    <strong id="reviewHours">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Weekly Off</small>
+                                    <strong id="reviewOff">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Safety</small>
+                                    <strong id="reviewSafety">—</strong>
+                                </div>
+
+                                <div class="review-item">
+                                    <small>Payment Frequency</small>
+                                    <strong id="reviewPayment">—</strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="info">
+                            📢 Once posted, this requirement will be available
+                            to relevant professionals/workers according to your
+                            selected trades and requirements.
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FOOTER -->
+
+                <div class="footer">
+
+                    <button
+                        class="btn back"
+                        id="backBtn"
+                        onclick="previousStep()"
+                        style="display:none">
+                        ← Back
+                    </button>
+
+                    <div></div>
+
+                    <button
+                        class="btn next"
+                        id="nextBtn"
+                        onclick="nextStep()">
+                        Continue →
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= SUMMARY ================= -->
+
+            <aside class="summary">
+
+                <div class="summary-head">
+
+                    <h3>Requirement Summary</h3>
+
+                    <p>
+                        Live overview of your manpower requirement
+                    </p>
+
+                </div>
+
+
+                <div class="summary-body">
+
+                    <div class="summary-row">
+
+                        <span>Project</span>
+
+                        <strong id="summaryProject">
+                            Not selected
+                        </strong>
+
+                    </div>
+
+
+                    <div class="summary-row">
+
+                        <span>Trades</span>
+
+                        <strong id="summaryTrades">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="summary-row">
+
+                        <span>Total Workers</span>
+
+                        <strong id="summaryWorkers">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="summary-row">
+
+                        <span>Start Date</span>
+
+                        <strong id="summaryStart">
+                            Not selected
+                        </strong>
+
+                    </div>
+
+
+                    <div class="estimator">
+
+                        <h4>Estimated Requirement Cost</h4>
+
+                        <div class="cost">
+                            <span>Estimated Manpower Cost</span>
+                            <strong id="manpowerCost">₹0</strong>
+                        </div>
+
+                        <div class="cost">
+                            <span>Accommodation</span>
+                            <strong id="accommodationCost">₹0</strong>
+                        </div>
+
+                        <div class="cost">
+                            <span>Logistics / Other</span>
+                            <strong id="logisticsCost">₹0</strong>
+                        </div>
+
+                        <div class="total">
+
+                            <span>Estimated Total</span>
+
+                            <span id="estimatedTotal">
+                                ₹0
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="info">
+
+                        💡 The estimator provides an approximate
+                        requirement cost. Final commercial terms
+                        can be decided while selecting workers.
+
+                    </div>
+
+                </div>
+
+            </aside>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   BUILD BID - POST REQUIREMENT
+   Standalone Page
+   ========================================================= */
+
+let currentStep = 1;
+const totalSteps = 5;
+
+
+/* ================= STEP NAVIGATION ================= */
+
+function nextStep(){
+
+    if(!validateStep(currentStep)){
+        return;
+    }
+
+    if(currentStep < totalSteps){
+
+        currentStep++;
+
+        showStep(currentStep);
+
+    }else{
+
+        postRequirement();
+
+    }
+}
+
+
+function previousStep(){
+
+    if(currentStep > 1){
+
+        currentStep--;
+
+        showStep(currentStep);
+
+    }
+}
+
+
+function showStep(step){
+
+    document
+        .querySelectorAll(".panel")
+        .forEach(panel => panel.classList.remove("active"));
+
+    document
+        .getElementById("panel" + step)
+        .classList.add("active");
+
+
+    for(let i=1;i<=totalSteps;i++){
+
+        const indicator =
+            document.getElementById("indicator" + i);
+
+        indicator.classList.remove("active");
+        indicator.classList.remove("completed");
+
+        if(i < step){
+            indicator.classList.add("completed");
+        }
+
+        if(i === step){
+            indicator.classList.add("active");
+        }
+
+    }
+
+
+    const back =
+        document.getElementById("backBtn");
+
+    const next =
+        document.getElementById("nextBtn");
+
+
+    back.style.display =
+        step === 1 ? "none" : "block";
+
+
+    if(step === totalSteps){
+
+        next.textContent =
+            "Post Requirement";
+
+        next.classList.add("publish");
+        next.classList.remove("next");
+
+        updateReview();
+
+    }else{
+
+        next.textContent =
+            "Continue →";
+
+        next.classList.remove("publish");
+        next.classList.add("next");
+
+    }
+
+
+    updateSummary();
+
+}
+
+
+/* ================= VALIDATION ================= */
+
+function validateStep(step){
+
+    if(step === 1){
+
+        const project =
+            document.getElementById("project").value;
+
+        const startDate =
+            document.getElementById("startDate").value;
+
+        const location =
+            document.getElementById("location").value.trim();
+
+
+        if(!project){
+
+            alert("Please select a project.");
+
+            return false;
+        }
+
+
+        if(!startDate){
+
+            alert("Please select work start date.");
+
+            return false;
+        }
+
+
+        if(!location){
+
+            alert("Please enter work location.");
+
+            return false;
+        }
+
+    }
+
+
+    if(step === 2){
+
+        const selected =
+            document.querySelectorAll(
+                ".trade-card.selected"
+            ).length;
+
+
+        if(selected === 0){
+
+            alert("Please select at least one trade.");
+
+            return false;
+        }
+
+    }
+
+
+    if(step === 3){
+
+        const rows =
+            document.querySelectorAll("#teamRows tr");
+
+        let valid = false;
+
+
+        rows.forEach(row => {
+
+            const workers =
+                Number(
+                    row.querySelector(".workers")?.value || 0
+                );
+
+            if(workers > 0){
+                valid = true;
+            }
+
+        });
+
+
+        if(!valid){
+
+            alert("Please add at least one worker.");
+
+            return false;
+        }
+
+    }
+
+
+    return true;
+
+}
+
+
+/* ================= TRADES ================= */
+
+const selectedTrades = new Set();
+
+
+function toggleTrade(card, trade){
+
+    const checkbox =
+        card.querySelector("input");
+
+
+    /*
+     * Stop the click from toggling twice when
+     * clicking directly on checkbox.
+     */
+
+    if(event && event.target === checkbox){
+
+        checkbox.checked =
+            !card.classList.contains("selected");
+
+    }else{
+
+        checkbox.checked =
+            !checkbox.checked;
+
+    }
+
+
+    if(checkbox.checked){
+
+        card.classList.add("selected");
+
+        selectedTrades.add(trade);
+
+    }else{
+
+        card.classList.remove("selected");
+
+        selectedTrades.delete(trade);
+
+    }
+
+
+    updateSummary();
+
+}
+
+
+function toggleSkill(element){
+
+    element.classList.toggle("selected");
+
+}
+
+
+/* ================= TEAM ROWS ================= */
+
+function addTeamRow(){
+
+    const tbody =
+        document.getElementById("teamRows");
+
+
+    const row =
+        document.createElement("tr");
+
+
+    row.innerHTML = `
+
+        <td>
+
+            <select class="trade">
+
+                <option>Mason</option>
+                <option>Carpenter</option>
+                <option>Electrician</option>
+                <option>Plumber</option>
+                <option>Painter</option>
+                <option>Welder</option>
+                <option>Bar Bender</option>
+                <option>Tile Mason</option>
+                <option>Helper</option>
+
+            </select>
+
+        </td>
+
+        <td>
+
+            <input
+                type="number"
+                class="workers"
+                min="1"
+                value="1"
+                oninput="calculateEstimate()">
+
+        </td>
+
+        <td>
+
+            <select class="rateType">
+
+                <option>Per Day</option>
+                <option>Per Month</option>
+                <option>Per Sq Ft</option>
+                <option>Fixed Contract</option>
+
+            </select>
+
+        </td>
+
+        <td>
+
+            <input
+                type="number"
+                class="rate"
+                min="0"
+                value="800"
+                oninput="calculateEstimate()">
+
+        </td>
+
+        <td>
+
+            <select class="shift">
+
+                <option>Day Shift</option>
+                <option>Night Shift</option>
+                <option>Flexible</option>
+
+            </select>
+
+        </td>
+
+        <td>
+
+            <button
+                class="remove"
+                onclick="removeTeamRow(this)">
+                ×
+            </button>
+
+        </td>
+
+    `;
+
+
+    tbody.appendChild(row);
+
+    calculateEstimate();
+
+}
+
+
+function removeTeamRow(button){
+
+    const rows =
+        document.querySelectorAll("#teamRows tr");
+
+
+    if(rows.length <= 1){
+
+        alert("At least one trade is required.");
+
+        return;
+    }
+
+
+    button.closest("tr").remove();
+
+    calculateEstimate();
+
+}
+
+
+/* ================= ESTIMATOR ================= */
+
+function calculateEstimate(){
+
+    let manpowerCost = 0;
+
+    let workers = 0;
+
+
+    document
+        .querySelectorAll("#teamRows tr")
+        .forEach(row => {
+
+            const count =
+                Number(
+                    row.querySelector(".workers")?.value || 0
+                );
+
+            const rate =
+                Number(
+                    row.querySelector(".rate")?.value || 0
+                );
+
+
+            workers += count;
+
+            manpowerCost += count * rate;
+
+        });
+
+
+    /*
+     * Approximate estimator.
+     * Replace these values with backend
+     * calculations later.
+     */
+
+    const accommodation =
+        document.getElementById("accommodation").value
+        .startsWith("Yes")
+        ? workers * 150
+        : 0;
+
+
+    const logistics =
+        workers * 50;
+
+
+    const total =
+        manpowerCost +
+        accommodation +
+        logistics;
+
+
+    document.getElementById("manpowerCost").textContent =
+        currency(manpowerCost);
+
+    document.getElementById("accommodationCost").textContent =
+        currency(accommodation);
+
+    document.getElementById("logisticsCost").textContent =
+        currency(logistics);
+
+    document.getElementById("estimatedTotal").textContent =
+        currency(total);
+
+
+    document.getElementById("summaryWorkers").textContent =
+        workers;
+
+}
+
+
+function currency(value){
+
+    return "₹" +
+        Number(value || 0).toLocaleString("en-IN",{
+            maximumFractionDigits:0
+        });
+
+}
+
+
+/* ================= SUMMARY ================= */
+
+function updateSummary(){
+
+    const project =
+        document.getElementById("project")?.value;
+
+    const start =
+        document.getElementById("startDate")?.value;
+
+
+    document.getElementById("summaryProject").textContent =
+        project || "Not selected";
+
+
+    document.getElementById("summaryTrades").textContent =
+        selectedTrades.size;
+
+
+    document.getElementById("summaryStart").textContent =
+        start ? formatDate(start) : "Not selected";
+
+
+    calculateEstimate();
+
+}
+
+
+function formatDate(date){
+
+    if(!date){
+        return "—";
+    }
+
+    return new Date(date + "T00:00:00")
+        .toLocaleDateString("en-IN",{
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        });
+
+}
+
+
+/* ================= REVIEW ================= */
+
+function updateReview(){
+
+    document.getElementById("reviewProject").textContent =
+        document.getElementById("project").value || "—";
+
+
+    document.getElementById("reviewType").textContent =
+        document.getElementById("requirementType").value || "—";
+
+
+    const start =
+        document.getElementById("startDate").value;
+
+    document.getElementById("reviewStart").textContent =
+        start ? formatDate(start) : "—";
+
+
+    document.getElementById("reviewDuration").textContent =
+        document.getElementById("duration").value || "—";
+
+
+    document.getElementById("reviewLocation").textContent =
+        document.getElementById("location").value || "—";
+
+
+    document.getElementById("reviewTrades").textContent =
+        selectedTrades.size
+            ? [...selectedTrades].join(", ")
+            : "—";
+
+
+    let workers = 0;
+
+
+    document
+        .querySelectorAll("#teamRows tr")
+        .forEach(row => {
+
+            workers += Number(
+                row.querySelector(".workers")?.value || 0
+            );
+
+        });
+
+
+    document.getElementById("reviewWorkers").textContent =
+        workers;
+
+
+    document.getElementById("reviewAccommodation").textContent =
+        document.getElementById("accommodation").value;
+
+
+    document.getElementById("reviewFood").textContent =
+        document.getElementById("food").value;
+
+
+    document.getElementById("reviewHours").textContent =
+        document.getElementById("workingHours").value;
+
+
+    document.getElementById("reviewOff").textContent =
+        document.getElementById("weeklyOff").value;
+
+
+    document.getElementById("reviewSafety").textContent =
+        document.getElementById("safety").value;
+
+
+    document.getElementById("reviewPayment").textContent =
+        document.getElementById("paymentFrequency").value;
+
+}
+
+
+/* ================= COLLECT DATA ================= */
+
+function collectRequirementData(){
+
+    const trades =
+        [...selectedTrades];
+
+
+    const skills =
+        [...document.querySelectorAll(".skill-tag.selected")]
+        .map(el => el.textContent.trim());
+
+
+    const team = [];
+
+
+    document
+        .querySelectorAll("#teamRows tr")
+        .forEach(row => {
+
+            team.push({
+
+                trade:
+                    row.querySelector(".trade")?.value,
+
+                workers:
+                    Number(
+                        row.querySelector(".workers")?.value || 0
+                    ),
+
+                rateType:
+                    row.querySelector(".rateType")?.value,
+
+                expectedRate:
+                    Number(
+                        row.querySelector(".rate")?.value || 0
+                    ),
+
+                shift:
+                    row.querySelector(".shift")?.value
+
+            });
+
+        });
+
+
+    return {
+
+        project:
+            document.getElementById("project").value,
+
+        requirementType:
+            document.getElementById("requirementType").value,
+
+        startDate:
+            document.getElementById("startDate").value,
+
+        duration:
+            document.getElementById("duration").value,
+
+        location:
+            document.getElementById("location").value,
+
+        description:
+            document.getElementById("description").value,
+
+        trades,
+
+        skills,
+
+        team,
+
+        accommodation:
+            document.getElementById("accommodation").value,
+
+        food:
+            document.getElementById("food").value,
+
+        workingHours:
+            document.getElementById("workingHours").value,
+
+        weeklyOff:
+            document.getElementById("weeklyOff").value,
+
+        safety:
+            document.getElementById("safety").value,
+
+        paymentFrequency:
+            document.getElementById("paymentFrequency").value,
+
+        siteRules:
+            document.getElementById("siteRules").value,
+
+        logistics:
+            document.getElementById("logistics").value,
+
+        backgroundCheck:
+            document.getElementById("backgroundCheck").checked,
+
+        attendanceTracking:
+            document.getElementById("attendance").checked,
+
+        replacementRequired:
+            document.getElementById("replacement").checked
+
+    };
+
+}
+
+
+/* ================= SAVE DRAFT ================= */
+
+function saveDraft(){
+
+    const data =
+        collectRequirementData();
+
+
+    console.log("Requirement Draft:",data);
+
+
+    /*
+     * BACKEND:
+     *
+     * POST /api/requirements/draft
+     *
+     * fetch('/api/requirements/draft',{
+     *     method:'POST',
+     *     headers:{
+     *         'Content-Type':'application/json'
+     *     },
+     *     body:JSON.stringify(data)
+     * });
+     */
+
+
+    alert("Requirement saved as draft.");
+
+}
+
+
+/* ================= POST REQUIREMENT ================= */
+
+function postRequirement(){
+
+    const data =
+        collectRequirementData();
+
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to post this requirement?"
+        );
+
+
+    if(!confirmed){
+        return;
+    }
+
+
+    console.log("Posting Requirement:",data);
+
+
+    /*
+     * BACKEND:
+     *
+     * POST /api/requirements
+     *
+     * Spring Boot example:
+     *
+     * POST /api/requirements
+     *
+     * Request Body:
+     * JSON.stringify(data)
+     *
+     * Response:
+     * {
+     *     id:"REQ-1001",
+     *     status:"POSTED"
+     * }
+     *
+     * After success:
+     *
+     * window.location.href =
+     *     "my-orders.html?id=" + response.id;
+     */
+
+
+    alert(
+        "Requirement posted successfully!"
+    );
+
+}
+
+
+/* ================= INIT ================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        calculateEstimate();
+
+        updateSummary();
+
+    }
+);
+
+</script>
+
+</body>
+</html>

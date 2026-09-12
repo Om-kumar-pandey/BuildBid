@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Team - BuildBid</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0
+}
+
+body{
+    font-family:Inter,Arial,sans-serif;
+    background:#f5f7fb;
+    color:#172033
+}
+
+button,input,select{
+    font:inherit
+}
+
+button{
+    cursor:pointer
+}
+
+.sidebar{
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    width:250px;
+    background:#111827;
+    color:#fff;
+    overflow-y:auto;
+    z-index:100
+}
+
+.logo{
+    height:72px;
+    display:flex;
+    align-items:center;
+    padding:0 24px;
+    font-size:23px;
+    font-weight:800;
+    border-bottom:1px solid #273142
+}
+
+.logo span{
+    color:#f59e0b
+}
+
+.nav{
+    padding:18px 12px
+}
+
+.nav-title{
+    color:#6b7280;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    padding:12px;
+    letter-spacing:.8px
+}
+
+.nav a{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:#cbd5e1;
+    text-decoration:none;
+    padding:11px 13px;
+    margin:3px 0;
+    border-radius:8px;
+    font-size:14px
+}
+
+.nav a:hover{
+    background:#1f2937;
+    color:#fff
+}
+
+.nav a.active{
+    background:#f59e0b;
+    color:#111827;
+    font-weight:700
+}
+
+.nav-icon{
+    width:22px;
+    text-align:center
+}
+
+.main{
+    margin-left:250px;
+    width:calc(100% - 250px);
+    min-height:100vh
+}
+
+.topbar{
+    height:72px;
+    background:#fff;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 30px;
+    position:sticky;
+    top:0;
+    z-index:50
+}
+
+.topbar h1{
+    font-size:21px
+}
+
+.topbar-right{
+    display:flex;
+    align-items:center;
+    gap:18px
+}
+
+.notification{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:1px solid #e5e7eb;
+    background:#fff
+}
+
+.avatar{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:#f59e0b;
+    display:grid;
+    place-items:center;
+    font-weight:800
+}
+
+.content{
+    padding:30px;
+    max-width:1500px;
+    margin:auto
+}
+
+/* HEADER */
+
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:24px
+}
+
+.page-header h2{
+    font-size:27px;
+    margin-bottom:7px
+}
+
+.page-header p{
+    color:#6b7280;
+    font-size:14px
+}
+
+.primary-btn{
+    border:0;
+    background:#f59e0b;
+    color:#111827;
+    padding:11px 18px;
+    border-radius:8px;
+    font-weight:700
+}
+
+/* STATS */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:22px
+}
+
+.stat{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:20px
+}
+
+.stat-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center
+}
+
+.stat-icon{
+    width:40px;
+    height:40px;
+    border-radius:9px;
+    background:#fff7df;
+    display:grid;
+    place-items:center
+}
+
+.stat-value{
+    font-size:25px;
+    font-weight:800
+}
+
+.stat-label{
+    margin-top:5px;
+    color:#6b7280;
+    font-size:12px
+}
+
+/* TOOLBAR */
+
+.toolbar{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:16px;
+    display:flex;
+    gap:12px;
+    margin-bottom:18px
+}
+
+.search{
+    flex:1;
+    position:relative
+}
+
+.search span{
+    position:absolute;
+    left:13px;
+    top:10px;
+    color:#6b7280
+}
+
+.search input{
+    width:100%;
+    padding:11px 14px 11px 38px;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    outline:none
+}
+
+.toolbar select{
+    width:180px;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    padding:10px;
+    background:#fff
+}
+
+/* TABLE */
+
+.panel{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    overflow:hidden
+}
+
+.panel-head{
+    padding:18px 20px;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    justify-content:space-between;
+    align-items:center
+}
+
+.panel-head h3{
+    font-size:16px
+}
+
+.member-count{
+    color:#6b7280;
+    font-size:12px
+}
+
+.table-wrap{
+    overflow-x:auto
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:850px
+}
+
+th{
+    text-align:left;
+    background:#f8fafc;
+    color:#6b7280;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    padding:13px 18px;
+    border-bottom:1px solid #e5e7eb
+}
+
+td{
+    padding:15px 18px;
+    border-bottom:1px solid #f0f1f3;
+    font-size:12px
+}
+
+tr:last-child td{
+    border-bottom:0
+}
+
+.member{
+    display:flex;
+    align-items:center;
+    gap:10px
+}
+
+.member-avatar{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:#eef2ff;
+    display:grid;
+    place-items:center;
+    font-size:11px;
+    font-weight:800;
+    flex-shrink:0
+}
+
+.member-name{
+    font-weight:800;
+    font-size:13px
+}
+
+.member-role{
+    color:#6b7280;
+    font-size:10px;
+    margin-top:3px
+}
+
+.badge{
+    display:inline-block;
+    padding:5px 9px;
+    border-radius:15px;
+    font-size:10px;
+    font-weight:700
+}
+
+.badge.active{
+    background:#dcfce7;
+    color:#15803d
+}
+
+.badge.leave{
+    background:#fef3c7;
+    color:#b45309
+}
+
+.badge.inactive{
+    background:#fee2e2;
+    color:#dc2626
+}
+
+.project{
+    font-weight:700
+}
+
+.project small{
+    display:block;
+    color:#6b7280;
+    font-size:10px;
+    margin-top:3px
+}
+
+.rate{
+    font-weight:800
+}
+
+.rate small{
+    color:#6b7280;
+    font-weight:400
+}
+
+.actions{
+    display:flex;
+    gap:6px
+}
+
+.btn{
+    border:1px solid #d1d5db;
+    background:#fff;
+    padding:7px 10px;
+    border-radius:6px;
+    font-size:10px;
+    font-weight:700
+}
+
+.btn:hover{
+    background:#f3f4f6
+}
+
+.btn-primary{
+    background:#f59e0b;
+    border-color:#f59e0b;
+    color:#111827
+}
+
+.btn-danger{
+    color:#dc2626;
+    border-color:#fecaca
+}
+
+/* EMPTY */
+
+.empty{
+    display:none;
+    padding:60px 20px;
+    text-align:center
+}
+
+.empty-icon{
+    font-size:42px;
+    margin-bottom:10px
+}
+
+.empty p{
+    color:#6b7280;
+    font-size:12px;
+    margin-top:5px
+}
+
+/* MODAL */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(17,24,39,.55);
+    z-index:500;
+    align-items:center;
+    justify-content:center;
+    padding:20px
+}
+
+.modal.show{
+    display:flex
+}
+
+.modal-box{
+    width:100%;
+    max-width:620px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:14px
+}
+
+.modal-head{
+    padding:20px;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    justify-content:space-between;
+    align-items:center
+}
+
+.modal-head h3{
+    font-size:18px
+}
+
+.close{
+    width:32px;
+    height:32px;
+    border:0;
+    background:#f3f4f6;
+    border-radius:7px;
+    font-size:18px
+}
+
+.modal-body{
+    padding:20px
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
+    gap:6px
+}
+
+.form-group.full{
+    grid-column:1/-1
+}
+
+.form-group label{
+    font-size:11px;
+    font-weight:700
+}
+
+.form-group input,
+.form-group select{
+    width:100%;
+    padding:10px;
+    border:1px solid #d1d5db;
+    border-radius:7px;
+    outline:none;
+    background:#fff
+}
+
+.modal-footer{
+    display:flex;
+    gap:10px;
+    margin-top:20px
+}
+
+.modal-footer button{
+    flex:1
+}
+
+/* MEMBER PROFILE */
+
+.profile{
+    display:flex;
+    gap:15px;
+    align-items:center;
+    margin-bottom:20px
+}
+
+.profile .member-avatar{
+    width:65px;
+    height:65px;
+    font-size:17px
+}
+
+.profile h3{
+    font-size:17px
+}
+
+.profile p{
+    color:#6b7280;
+    font-size:12px;
+    margin-top:4px
+}
+
+.profile-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px
+}
+
+.profile-box{
+    background:#f8fafc;
+    padding:13px;
+    border-radius:8px
+}
+
+.profile-box small{
+    display:block;
+    color:#6b7280;
+    font-size:10px;
+    margin-bottom:5px
+}
+
+.profile-box strong{
+    font-size:13px
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1100px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr)
+    }
+}
+
+@media(max-width:850px){
+
+    .sidebar{
+        width:72px
+    }
+
+    .logo{
+        padding:0;
+        justify-content:center;
+        font-size:0
+    }
+
+    .logo:after{
+        content:"BB";
+        font-size:18px;
+        color:#f59e0b
+    }
+
+    .nav-title,
+    .nav a span:not(.nav-icon){
+        display:none
+    }
+
+    .nav a{
+        justify-content:center
+    }
+
+    .main{
+        margin-left:72px;
+        width:calc(100% - 72px)
+    }
+
+    .content{
+        padding:18px
+    }
+
+    .toolbar{
+        flex-direction:column
+    }
+
+    .toolbar select{
+        width:100%
+    }
+}
+
+@media(max-width:550px){
+
+    .stats{
+        grid-template-columns:1fr
+    }
+
+    .page-header{
+        flex-direction:column;
+        gap:12px
+    }
+
+    .form-grid,
+    .profile-grid{
+        grid-template-columns:1fr
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= SIDEBAR ================= -->
+
+<aside class="sidebar">
+
+<div class="logo">
+Build<span>Bid</span>
+</div>
+
+<nav class="nav">
+
+<div class="nav-title">Main</div>
+
+<a href="dashboard.html">
+<span class="nav-icon">⌂</span>
+<span>Dashboard</span>
+</a>
+
+<a href="projects.html">
+<span class="nav-icon">▣</span>
+<span>Projects</span>
+</a>
+
+<a href="bids.html">
+<span class="nav-icon">◈</span>
+<span>Bids</span>
+</a>
+
+<a href="contracts.html">
+<span class="nav-icon">▤</span>
+<span>My Contracts</span>
+</a>
+
+<div class="nav-title">Procurement</div>
+
+<a href="order-material.html">
+<span class="nav-icon">▥</span>
+<span>Order Material</span>
+</a>
+
+<a href="post-requirement.html">
+<span class="nav-icon">＋</span>
+<span>Post Requirement</span>
+</a>
+
+<a href="my-orders.html">
+<span class="nav-icon">□</span>
+<span>My Orders</span>
+</a>
+
+<a href="track-material.html">
+<span class="nav-icon">➤</span>
+<span>Track Material</span>
+</a>
+
+<div class="nav-title">People</div>
+
+<a href="hire-professionals.html">
+<span class="nav-icon">♙</span>
+<span>Hire Professionals</span>
+</a>
+
+<a href="team.html" class="active">
+<span class="nav-icon">♟</span>
+<span>My Team</span>
+</a>
+
+<a href="reviews.html">
+<span class="nav-icon">★</span>
+<span>Reviews & Ratings</span>
+</a>
+
+<div class="nav-title">Account</div>
+
+<a href="earnings.html">
+<span class="nav-icon">₹</span>
+<span>Earnings</span>
+</a>
+
+<a href="messages.html">
+<span class="nav-icon">✉</span>
+<span>Messages</span>
+</a>
+
+<a href="notifications.html">
+<span class="nav-icon">♢</span>
+<span>Notifications</span>
+</a>
+
+<a href="get-verified.html">
+<span class="nav-icon">✓</span>
+<span>Get Verified</span>
+</a>
+
+<a href="help.html">
+<span class="nav-icon">?</span>
+<span>Help & Support</span>
+</a>
+
+</nav>
+</aside>
+
+
+<!-- ================= MAIN ================= -->
+
+<main class="main">
+
+<header class="topbar">
+
+<h1>My Team</h1>
+
+<div class="topbar-right">
+
+<button class="notification">
+🔔
+</button>
+
+<div class="avatar">
+PP
+</div>
+
+</div>
+
+</header>
+
+
+<div class="content">
+
+<!-- HEADER -->
+
+<div class="page-header">
+
+<div>
+
+<h2>My Team</h2>
+
+<p>
+Manage your workers and construction professionals across projects.
+</p>
+
+</div>
+
+<button
+class="primary-btn"
+onclick="openAddMember()">
+
++ Add Team Member
+
+</button>
+
+</div>
+
+
+<!-- STATS -->
+
+<div class="stats">
+
+<div class="stat">
+
+<div class="stat-top">
+
+<div>
+
+<div class="stat-value" id="totalMembers">
+18
+</div>
+
+<div class="stat-label">
+Total Members
+</div>
+
+</div>
+
+<div class="stat-icon">
+👷
+</div>
+
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="stat-top">
+
+<div>
+
+<div class="stat-value" id="activeMembers">
+14
+</div>
+
+<div class="stat-label">
+Active Today
+</div>
+
+</div>
+
+<div class="stat-icon">
+✓
+</div>
+
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="stat-top">
+
+<div>
+
+<div class="stat-value">
+3
+</div>
+
+<div class="stat-label">
+On Leave
+</div>
+
+</div>
+
+<div class="stat-icon">
+📅
+</div>
+
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="stat-top">
+
+<div>
+
+<div class="stat-value">
+₹21.4K
+</div>
+
+<div class="stat-label">
+Today's Labour Cost
+</div>
+
+</div>
+
+<div class="stat-icon">
+₹
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- TOOLBAR -->
+
+<div class="toolbar">
+
+<div class="search">
+
+<span>⌕</span>
+
+<input
+id="searchInput"
+type="text"
+placeholder="Search member, role or project..."
+oninput="filterMembers()">
+
+</div>
+
+
+<select
+id="roleFilter"
+onchange="filterMembers()">
+
+<option value="all">
+All Roles
+</option>
+
+<option value="plumber">
+Plumber
+</option>
+
+<option value="electrician">
+Electrician
+</option>
+
+<option value="mason">
+Mason
+</option>
+
+<option value="carpenter">
+Carpenter
+</option>
+
+<option value="painter">
+Painter
+</option>
+
+<option value="helper">
+Helper / Labour
+</option>
+
+</select>
+
+
+<select
+id="statusFilter"
+onchange="filterMembers()">
+
+<option value="all">
+All Status
+</option>
+
+<option value="active">
+Active
+</option>
+
+<option value="leave">
+On Leave
+</option>
+
+<option value="inactive">
+Inactive
+</option>
+
+</select>
+
+</div>
+
+
+<!-- TABLE -->
+
+<section class="panel">
+
+<div class="panel-head">
+
+<h3>Team Members</h3>
+
+<span
+class="member-count"
+id="memberCount">
+6 members shown
+</span>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Member</th>
+<th>Role</th>
+<th>Project</th>
+<th>Status</th>
+<th>Today's Attendance</th>
+<th>Rate</th>
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="teamTable">
+
+
+<!-- MEMBER 1 -->
+
+<tr
+data-role="plumber"
+data-status="active"
+data-search="rajesh kumar plumber green valley residency">
+
+<td>
+
+<div class="member">
+
+<div class="member-avatar">
+RK
+</div>
+
+<div>
+
+<div class="member-name">
+Rajesh Kumar
+</div>
+
+<div class="member-role">
+Senior Plumber
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+
+<td>
+Plumber
+</td>
+
+
+<td>
+
+<div class="project">
+Green Valley Residency
+<small>Site A</small>
+</div>
+
+</td>
+
+
+<td>
+
+<span class="badge active">
+Active
+</span>
+
+</td>
+
+
+<td>
+Present · 8h
+</td>
+
+
+<td>
+
+<div class="rate">
+₹1,200
+<small>/day</small>
+</div>
+
+</td>
+
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewMember('Rajesh Kumar')">
+View
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editMember('Rajesh Kumar')">
+Edit
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+
+<!-- MEMBER 2 -->
+
+<tr
+data-role="electrician"
+data-status="active"
+data-search="amit sharma electrician metro heights">
+
+<td>
+
+<div class="member">
+
+<div class="member-avatar">
+AS
+</div>
+
+<div>
+
+<div class="member-name">
+Amit Sharma
+</div>
+
+<div class="member-role">
+Electrician
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+
+<td>
+Electrician
+</td>
+
+
+<td>
+
+<div class="project">
+Metro Heights
+<small>Electrical Work</small>
+</div>
+
+</td>
+
+
+<td>
+
+<span class="badge active">
+Active
+</span>
+
+</td>
+
+
+<td>
+Present · 8h
+</td>
+
+
+<td>
+
+<div class="rate">
+₹1,400
+<small>/day</small>
+</div>
+
+</td>
+
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewMember('Amit Sharma')">
+View
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editMember('Amit Sharma')">
+Edit
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+
+<!-- MEMBER 3 -->
+
+<tr
+data-role="mason"
+data-status="active"
+data-search="rakesh yadav mason green valley residency">
+
+<td>
+
+<div class="member">
+
+<div class="member-avatar">
+RY
+</div>
+
+<div>
+
+<div class="member-name">
+Rakesh Yadav
+</div>
+
+<div class="member-role">
+Senior Mason
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+
+<td>
+Mason
+</td>
+
+
+<td>
+
+<div class="project">
+Green Valley Residency
+<small>Block B</small>
+</div>
+
+</td>
+
+
+<td>
+
+<span class="badge active">
+Active
+</span>
+
+</td>
+
+
+<td>
+Present · 9h
+</td>
+
+
+<td>
+
+<div class="rate">
+₹1,500
+<small>/day</small>
+</div>
+
+</td>
+
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewMember('Rakesh Yadav')">
+View
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editMember('Rakesh Yadav')">
+Edit
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+
+<!-- MEMBER 4 -->
+
+<tr
+data-role="carpenter"
+data-status="leave"
+data-search="suresh singh carpenter noida commercial tower">
+
+<td>
+
+<div class="member">
+
+<div class="member-avatar">
+SS
+</div>
+
+<div>
+
+<div class="member-name">
+Suresh Singh
+</div>
+
+<div class="member-role">
+Carpenter
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+
+<td>
+Carpenter
+</td>
+
+
+<td>
+
+<div class="project">
+Noida Commercial Tower
+<small>Interior Work</small>
+</div>
+
+</td>
+
+
+<td>
+
+<span class="badge leave">
+On Leave
+</span>
+
+</td>
+
+
+<td>
+Leave
+</td>
+
+
+<td>
+
+<div class="rate">
+₹1,300
+<small>/day</small>
+</div>
+
+</td>
+
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewMember('Suresh Singh')">
+View
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editMember('Suresh Singh')">
+Edit
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+
+<!-- MEMBER 5 -->
+
+<tr
+data-role="painter"
+data-status="active"
+data-search="vikas verma painter green valley residency">
+
+<td>
+
+<div class="member">
+
+<div class="member-avatar">
+VV
+</div>
+
+<div>
+
+<div class="member-name">
+Vikas Verma
+</div>
+
+<div class="member-role">
+Painter
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+
+<td>
+Painter
+</td>
+
+
+<td>
+
+<div class="project">
+Green Valley Residency
+<small>Finishing</small>
+</div>
+
+</td>
+
+
+<td>
+
+<span class="badge active">
+Active
+</span>
+
+</td>
+
+
+<td>
+Present · 7h
+</td>
+
+
+<td>
+
+<div class="rate">
+₹1,100
+<small>/day</small>
+</div>
+
+</td>
+
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewMember('Vikas Verma')">
+View
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editMember('Vikas Verma')">
+Edit
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+
+<!-- MEMBER 6 -->
+
+<tr
+data-role="helper"
+data-status="active"
+data-search="mohit kumar helper labour metro heights">
+
+<td>
+
+<div class="member">
+
+<div class="member-avatar">
+MK
+</div>
+
+<div>
+
+<div class="member-name">
+Mohit Kumar
+</div>
+
+<div class="member-role">
+Helper / Labour
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+
+<td>
+Helper
+</td>
+
+
+<td>
+
+<div class="project">
+Metro Heights
+<small>General Work</small>
+</div>
+
+</td>
+
+
+<td>
+
+<span class="badge active">
+Active
+</span>
+
+</td>
+
+
+<td>
+Present · 8h
+</td>
+
+
+<td>
+
+<div class="rate">
+₹800
+<small>/day</small>
+</div>
+
+</td>
+
+
+<td>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewMember('Mohit Kumar')">
+View
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editMember('Mohit Kumar')">
+Edit
+</button>
+
+</div>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+<div class="empty" id="emptyState">
+
+<div class="empty-icon">
+👷
+</div>
+
+<h3>No team members found</h3>
+
+<p>
+Try changing your search or filters.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+</main>
+
+
+<!-- ================= ADD MEMBER MODAL ================= -->
+
+<div class="modal" id="memberModal">
+
+<div class="modal-box">
+
+<div class="modal-head">
+
+<h3 id="modalTitle">
+Add Team Member
+</h3>
+
+<button
+class="close"
+onclick="closeModal()">
+×
+</button>
+
+</div>
+
+
+<div class="modal-body">
+
+<form id="memberForm">
+
+<div class="form-grid">
+
+
+<div class="form-group">
+
+<label>
+Full Name *
+</label>
+
+<input
+id="memberName"
+required
+placeholder="Enter full name">
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+Phone Number *
+</label>
+
+<input
+id="memberPhone"
+type="tel"
+required
+placeholder="+91 XXXXX XXXXX">
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+Role / Trade *
+</label>
+
+<select
+id="memberRole"
+required>
+
+<option value="">
+Select Role
+</option>
+
+<option value="plumber">
+Plumber
+</option>
+
+<option value="electrician">
+Electrician
+</option>
+
+<option value="mason">
+Mason
+</option>
+
+<option value="carpenter">
+Carpenter
+</option>
+
+<option value="painter">
+Painter
+</option>
+
+<option value="helper">
+Helper / Labour
+</option>
+
+</select>
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+Daily Rate *
+</label>
+
+<input
+id="memberRate"
+type="number"
+required
+placeholder="₹ per day">
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+Assign Project
+</label>
+
+<select id="memberProject">
+
+<option value="">
+Unassigned
+</option>
+
+<option>
+Green Valley Residency
+</option>
+
+<option>
+Metro Heights
+</option>
+
+<option>
+Noida Commercial Tower
+</option>
+
+</select>
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+Joining Date
+</label>
+
+<input
+id="joiningDate"
+type="date">
+
+</div>
+
+
+<div class="form-group full">
+
+<label>
+Notes
+</label>
+
+<input
+id="memberNotes"
+placeholder="Skills, experience or other notes">
+
+</div>
+
+
+</div>
+
+
+<div class="modal-footer">
+
+<button
+type="button"
+class="btn"
+onclick="closeModal()">
+
+Cancel
+
+</button>
+
+<button
+type="submit"
+class="primary-btn">
+
+Save Member
+
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ================= PROFILE MODAL ================= -->
+
+<div class="modal" id="profileModal">
+
+<div class="modal-box">
+
+<div class="modal-head">
+
+<h3>
+Member Details
+</h3>
+
+<button
+class="close"
+onclick="closeProfile()">
+×
+</button>
+
+</div>
+
+
+<div class="modal-body">
+
+<div class="profile">
+
+<div class="member-avatar"
+id="profileAvatar">
+RK
+</div>
+
+<div>
+
+<h3 id="profileName">
+Rajesh Kumar
+</h3>
+
+<p id="profileRole">
+Senior Plumber
+</p>
+
+</div>
+
+</div>
+
+
+<div class="profile-grid">
+
+<div class="profile-box">
+
+<small>
+Project
+</small>
+
+<strong id="profileProject">
+Green Valley Residency
+</strong>
+
+</div>
+
+
+<div class="profile-box">
+
+<small>
+Status
+</small>
+
+<strong id="profileStatus">
+Active
+</strong>
+
+</div>
+
+
+<div class="profile-box">
+
+<small>
+Today's Attendance
+</small>
+
+<strong>
+Present · 8h
+</strong>
+
+</div>
+
+
+<div class="profile-box">
+
+<small>
+Daily Rate
+</small>
+
+<strong id="profileRate">
+₹1,200/day
+</strong>
+
+</div>
+
+
+<div class="profile-box">
+
+<small>
+Total Days Worked
+</small>
+
+<strong>
+186 Days
+</strong>
+
+</div>
+
+
+<div class="profile-box">
+
+<small>
+Total Earnings
+</small>
+
+<strong>
+₹2,23,200
+</strong>
+
+</div>
+
+</div>
+
+
+<div class="modal-footer">
+
+<button
+class="btn"
+onclick="messageMember()">
+
+Message
+
+</button>
+
+<button
+class="btn btn-primary"
+onclick="editCurrentMember()">
+
+Edit Member
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   MY TEAM
+   ========================================================= */
+
+
+/*
+ * BACKEND API STRUCTURE
+ *
+ * GET    /api/team
+ * GET    /api/team/:id
+ * POST   /api/team
+ * PUT    /api/team/:id
+ * DELETE /api/team/:id
+ *
+ * GET    /api/team/:id/attendance
+ *
+ * POST   /api/team/:id/attendance
+ *
+ * POST   /api/team/:id/assign-project
+ *
+ * POST   /api/messages
+ */
+
+
+/* ================= STATE ================= */
+
+let currentMember = "";
+
+
+/* ================= FILTER ================= */
+
+function filterMembers(){
+
+    const search =
+        document
+        .getElementById("searchInput")
+        .value
+        .toLowerCase()
+        .trim();
+
+    const role =
+        document
+        .getElementById("roleFilter")
+        .value;
+
+    const status =
+        document
+        .getElementById("statusFilter")
+        .value;
+
+
+    const rows =
+        document.querySelectorAll(
+            "#teamTable tr"
+        );
+
+    let count = 0;
+
+
+    rows.forEach(row => {
+
+        const text =
+            row.dataset.search || "";
+
+        const rowRole =
+            row.dataset.role;
+
+        const rowStatus =
+            row.dataset.status;
+
+
+        const searchMatch =
+            !search ||
+            text.includes(search);
+
+        const roleMatch =
+            role === "all" ||
+            rowRole === role;
+
+        const statusMatch =
+            status === "all" ||
+            rowStatus === status;
+
+
+        const visible =
+            searchMatch &&
+            roleMatch &&
+            statusMatch;
+
+
+        row.style.display =
+            visible ? "" : "none";
+
+
+        if(visible){
+            count++;
+        }
+
+    });
+
+
+    document
+    .getElementById("memberCount")
+    .textContent =
+        count + " members shown";
+
+
+    document
+    .getElementById("emptyState")
+    .style.display =
+        count === 0 ? "block" : "none";
+
+}
+
+
+/* ================= ADD MEMBER ================= */
+
+function openAddMember(){
+
+    document
+    .getElementById("modalTitle")
+    .textContent =
+        "Add Team Member";
+
+
+    document
+    .getElementById("memberForm")
+    .reset();
+
+
+    document
+    .getElementById("memberModal")
+    .classList.add("show");
+
+}
+
+
+/* ================= EDIT MEMBER ================= */
+
+function editMember(name){
+
+    currentMember = name;
+
+
+    document
+    .getElementById("modalTitle")
+    .textContent =
+        "Edit Team Member";
+
+
+    document
+    .getElementById("memberName")
+    .value = name;
+
+
+    /*
+     * Backend:
+     *
+     * GET /api/team/:id
+     *
+     * Populate the complete form
+     * from the API response.
+     */
+
+
+    document
+    .getElementById("memberModal")
+    .classList.add("show");
+
+}
+
+
+/* ================= VIEW MEMBER ================= */
+
+function viewMember(name){
+
+    currentMember = name;
+
+
+    document
+    .getElementById("profileName")
+    .textContent = name;
+
+
+    document
+    .getElementById("profileModal")
+    .classList.add("show");
+
+
+    /*
+     * Backend:
+     *
+     * GET /api/team/:id
+     *
+     * Render complete profile,
+     * attendance and earnings.
+     */
+
+}
+
+
+/* ================= CLOSE ================= */
+
+function closeModal(){
+
+    document
+    .getElementById("memberModal")
+    .classList.remove("show");
+
+}
+
+
+function closeProfile(){
+
+    document
+    .getElementById("profileModal")
+    .classList.remove("show");
+
+}
+
+
+/* ================= FORM SUBMIT ================= */
+
+document
+.getElementById("memberForm")
+.addEventListener(
+    "submit",
+    async function(e){
+
+        e.preventDefault();
+
+
+        const member = {
+
+            name:
+                document
+                .getElementById("memberName")
+                .value,
+
+            phone:
+                document
+                .getElementById("memberPhone")
+                .value,
+
+            role:
+                document
+                .getElementById("memberRole")
+                .value,
+
+            dailyRate:
+                Number(
+                    document
+                    .getElementById("memberRate")
+                    .value
+                ),
+
+            project:
+                document
+                .getElementById("memberProject")
+                .value,
+
+            joiningDate:
+                document
+                .getElementById("joiningDate")
+                .value,
+
+            notes:
+                document
+                .getElementById("memberNotes")
+                .value
+
+        };
+
+
+        console.log(
+            "Team member:",
+            member
+        );
+
+
+        /*
+         * BACKEND
+         *
+         * POST /api/team
+         *
+         * For edit:
+         *
+         * PUT /api/team/:id
+         */
+
+
+        alert(
+            "Team member saved successfully."
+        );
+
+
+        closeModal();
+
+    }
+);
+
+
+/* ================= MESSAGE ================= */
+
+function messageMember(){
+
+    window.location.href =
+        "messages.html?member=" +
+        encodeURIComponent(
+            currentMember
+        );
+
+
+    /*
+     * Backend:
+     *
+     * POST /api/messages
+     */
+
+}
+
+
+/* ================= EDIT CURRENT ================= */
+
+function editCurrentMember(){
+
+    closeProfile();
+
+    editMember(currentMember);
+
+}
+
+
+/* ================= MODAL OUTSIDE CLICK ================= */
+
+document
+.getElementById("memberModal")
+.addEventListener(
+    "click",
+    function(e){
+
+        if(e.target === this){
+            closeModal();
+        }
+
+    }
+);
+
+
+document
+.getElementById("profileModal")
+.addEventListener(
+    "click",
+    function(e){
+
+        if(e.target === this){
+            closeProfile();
+        }
+
+    }
+);
+
+
+/* ================= API LOADER ================= */
+
+/*
+async function loadTeam(){
+    
+    const response =
+        await fetch("/api/team");
+
+    if(!response.ok){
+        throw new Error(
+            "Unable to load team"
+        );
+    }
+
+    const team =
+        await response.json();
+
+    renderTeam(team);
+}
+*/
+
+
+/* ================= INIT ================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        filterMembers();
+
+        /*
+         * Later:
+         *
+         * loadTeam();
+         */
+
+    }
+);
+
+</script>
+
+</body>
+</html>
