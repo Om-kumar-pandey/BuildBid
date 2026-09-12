@@ -1,6 +1,9 @@
 function getApiBaseUrl() {
     if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+            if (window.location.port && window.location.port !== "8080") {
+                return `${window.location.protocol}//${window.location.hostname}:8080`;
+            }
             return window.location.origin;
         }
         return window.location.origin;
@@ -9,6 +12,28 @@ function getApiBaseUrl() {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+
+function getCleanToken() {
+    let token = localStorage.getItem("token") || 
+                localStorage.getItem("authToken") || 
+                localStorage.getItem("marketplaceToken") || 
+                sessionStorage.getItem("token") || "";
+    if (!token) return "";
+    token = String(token).trim();
+    let changed = true;
+    while (changed) {
+        changed = false;
+        if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+            token = token.slice(1, -1).trim();
+            changed = true;
+        }
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+            changed = true;
+        }
+    }
+    return token;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
@@ -46,7 +71,7 @@ async function initUserSession() {
             sessionStorage.getItem('userData') || '{}'
         );
 
-        const token = localStorage.getItem('token') || localStorage.getItem('marketplaceToken');
+        const token = getCleanToken();
         if (token) {
             const res = await fetch(API_BASE_URL + '/api/user/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }

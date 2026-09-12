@@ -311,7 +311,8 @@ public class MarketplaceBackendApplication {
         @Override
         public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
             MarketplaceUser user = repository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+                    .orElseGet(() -> repository.findByUsername(email)
+                            .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + email)));
 
             String[] roles = user.getRoles()
                     .stream()
@@ -777,7 +778,8 @@ public class MarketplaceBackendApplication {
             String email = authentication.getName();
 
             MarketplaceUser user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                    .orElseGet(() -> userRepository.findByUsername(email)
+                            .orElseThrow(() -> new UsernameNotFoundException("User not found")));
 
             String displayName = (user.getName() != null && !user.getName().isBlank())
                     ? user.getName().trim()
@@ -786,6 +788,7 @@ public class MarketplaceBackendApplication {
             Map<String, Object> profile = new java.util.HashMap<>();
             profile.put("id", user.getId());
             profile.put("name", displayName);
+            profile.put("fullName", displayName);
             profile.put("username", user.getUsername() != null ? user.getUsername() : "");
             profile.put("email", user.getEmail() != null ? user.getEmail() : "");
             profile.put("phone", user.getPhone() != null ? user.getPhone() : "");

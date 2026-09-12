@@ -25,14 +25,17 @@ function getCleanToken() {
               sessionStorage.getItem("token") || "";
   if (!token) return "";
   token = String(token).trim();
-  if (token.startsWith('"') && token.endsWith('"')) {
-    token = token.slice(1, -1).trim();
-  }
-  if (token.startsWith("'") && token.endsWith("'")) {
-    token = token.slice(1, -1).trim();
-  }
-  if (token.startsWith("Bearer ")) {
-    token = token.substring(7).trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+      token = token.slice(1, -1).trim();
+      changed = true;
+    }
+    if (token.startsWith("Bearer ")) {
+      token = token.substring(7).trim();
+      changed = true;
+    }
   }
   return token;
 }
@@ -63,9 +66,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const parsed = JSON.parse(localStorage.getItem(key));
       if (parsed && typeof parsed === "object") {
-        user = { ...parsed, ...user };
-        if (parsed.name && parsed.name.toLowerCase() !== "customer") {
-          user.name = parsed.name;
+        user = { ...user, ...parsed };
+        const pName = parsed.name || parsed.fullName || parsed.username;
+        if (pName && pName.toLowerCase() !== "customer" && pName.toLowerCase() !== "user") {
+          user.name = pName;
         }
       }
     } catch (e) {}
@@ -142,6 +146,35 @@ document.addEventListener("DOMContentLoaded", async () => {
       showToast("Notice", "You have logged out successfully.");
     });
   }
+
+  // 4. In-page Profile click handling - NEVER LOG OUT ON PROFILE NAVIGATION
+  const profileLinks = document.querySelectorAll('a[href*="customer dashboard.html"]');
+  profileLinks.forEach(link => {
+    link.addEventListener("click", (e) => {
+      if (window.location.pathname.endsWith("customer dashboard.html") || 
+          window.location.pathname.endsWith("customer%20dashboard.html") ||
+          window.location.pathname === "/" ||
+          window.location.pathname.endsWith("/customer dashboard.html")) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const currentToken = getCleanToken();
+        if (currentToken) {
+          fetch(`${API_BASE_URL}/api/me`, {
+            headers: { "Authorization": `Bearer ${currentToken}` }
+          })
+          .then(res => res.ok ? res.json() : null)
+          .then(userData => {
+            if (userData) {
+              localStorage.setItem("currentUser", JSON.stringify(userData));
+              localStorage.setItem("customerUser", JSON.stringify(userData));
+              renderUserProfile(userData);
+            }
+          })
+          .catch(() => {});
+        }
+      }
+    });
+  });
 });
 
 // Toast Notification Functions

@@ -23,14 +23,17 @@ function getCleanToken() {
               sessionStorage.getItem("token") || "";
   if (!token) return "";
   token = String(token).trim();
-  if (token.startsWith('"') && token.endsWith('"')) {
-    token = token.slice(1, -1).trim();
-  }
-  if (token.startsWith("'") && token.endsWith("'")) {
-    token = token.slice(1, -1).trim();
-  }
-  if (token.startsWith("Bearer ")) {
-    token = token.substring(7).trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+      token = token.slice(1, -1).trim();
+      changed = true;
+    }
+    if (token.startsWith("Bearer ")) {
+      token = token.substring(7).trim();
+      changed = true;
+    }
   }
   return token;
 }
