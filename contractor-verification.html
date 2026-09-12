@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contractor Verification - BuildBid</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="contractor-dashboard.css" />
+  <link rel="stylesheet" href="contractor-verification.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Same Contractor Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+        <a href="contractor-projects.html" class="nav-item"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-users-gear"></i> Hire Professionals</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews & Ratings</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
+        <a href="contractor-verification.html" class="nav-item active"><i class="fa-solid fa-circle-check"></i> Get Verified</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications <span class="badge" id="nav-badge-notifications">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help & Support</a>
+        <a href="javascript:void(0)" class="nav-item nav-logout" onclick="logoutUser()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+      <!-- Same Navbar -->
+      <header class="top-nav">
+        <div class="nav-actions">
+          <button class="icon-btn" id="btn-notification-bell">
+            <i class="fa-regular fa-bell"></i>
+            <span class="dot" id="notif-indicator"></span>
+          </button>
+          <div class="user-profile">
+            <div class="avatar" id="top-nav-avatar">
+              <span id="top-nav-avatar-text">HK</span>
+            </div>
+            <div class="user-meta">
+              <h4 id="top-nav-name">Heman kumar</h4>
+              <span id="top-nav-badge">Contractor</span>
+            </div>
+            <i class="fa-solid fa-chevron-down drop-icon"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Verification Section Body -->
+      <div class="dashboard-content">
+        <div class="verification-hero-header">
+          <div>
+            <h2>Contractor Verification & KYC (V4)</h2>
+            <p>Complete mandatory details to earn your <strong>Verified Badge</strong> and build trust with customers.</p>
+          </div>
+          <div class="badge-status-pill" id="verification-status-pill">
+            <i class="fa-solid fa-shield-halved"></i> Status: <span id="current-badge-status">Unverified</span>
+          </div>
+        </div>
+
+        <!-- Wizard Progress Steps -->
+        <div class="stepper-wrapper">
+          <div class="step-node active" id="node-step-1">
+            <div class="circle">1</div>
+            <span>Identity</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-node" id="node-step-2">
+            <div class="circle">2</div>
+            <span>Business</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-node" id="node-step-3">
+            <div class="circle">3</div>
+            <span>Labor (Optional)</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-node" id="node-step-4">
+            <div class="circle">4</div>
+            <span>Bank</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-node" id="node-step-5">
+            <div class="circle">5</div>
+            <span>Review</span>
+          </div>
+        </div>
+
+        <!-- Multi-Step Card Form Container -->
+        <div class="form-wizard-card">
+          <!-- Step 1: Personal & Identity -->
+          <section class="wizard-panel active" id="panel-step-1">
+            <div class="panel-header">
+              <h3>Step 1: Personal & Identity Verification</h3>
+              <p>Mandatory PAN details & identity documentation.</p>
+            </div>
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label>PAN Number *</label>
+                <input type="text" id="panNumber" maxlength="10" placeholder="e.g. ABCDE1234F" style="text-transform: uppercase;" required />
+                <small class="hint-text">10-character alphanumeric PAN format.</small>
+              </div>
+
+              <div class="form-field">
+                <label>Upload PAN Card</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-id-card file-icon"></i>
+                  <input type="file" id="panFile" accept="image/*,.pdf" onchange="displayFileName(this, 'panFile-name')" />
+                  <span id="panFile-name">Choose image or PDF</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label>Character Certificate</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-file-shield file-icon"></i>
+                  <input type="file" id="characterCertFile" accept="image/*,.pdf" onchange="displayFileName(this, 'characterCertFile-name')" />
+                  <span id="characterCertFile-name">Issued by Police or Gazetted Officer</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-buttons">
+              <span></span>
+              <button type="button" class="btn-step-primary" onclick="goToStep(2)">Next: Business Details &rarr;</button>
+            </div>
+          </section>
+
+          <!-- Step 2: Business & Tax Details -->
+          <section class="wizard-panel" id="panel-step-2">
+            <div class="panel-header">
+              <h3>Step 2: Business & Tax Details</h3>
+              <p>Provide registered company and GST details.</p>
+            </div>
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label>GSTIN Number *</label>
+                <div class="input-with-action">
+                  <input type="text" id="gstinNumber" maxlength="15" placeholder="e.g. 09ABCDE1234F1Z5" style="text-transform: uppercase;" required />
+                  <button type="button" class="btn-fetch" onclick="fetchGstDetails()">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Fetch Details
+                  </button>
+                </div>
+                <small class="hint-text">Click "Fetch Details" to auto-load official registered name and address.</small>
+              </div>
+
+              <div class="form-field full-width">
+                <label>Registered Business Name *</label>
+                <input type="text" id="businessName" placeholder="Auto-filled via GST or type manually" required />
+              </div>
+
+              <div class="form-field full-width">
+                <label>Registered Business Address *</label>
+                <textarea id="registeredAddress" rows="3" placeholder="Auto-filled via GST or type complete registered location" required></textarea>
+              </div>
+
+              <div class="form-field full-width">
+                <label>Upload GST Certificate</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-file-invoice file-icon"></i>
+                  <input type="file" id="gstFile" accept="image/*,.pdf" onchange="displayFileName(this, 'gstFile-name')" />
+                  <span id="gstFile-name">Choose GST Registration Certificate</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-buttons">
+              <button type="button" class="btn-step-secondary" onclick="goToStep(1)">&larr; Back</button>
+              <button type="button" class="btn-step-primary" onclick="goToStep(3)">Next: Labor Compliance &rarr;</button>
+            </div>
+          </section>
+
+          <!-- Step 3: Labor Compliance (Optional) -->
+          <section class="wizard-panel" id="panel-step-3">
+            <div class="panel-header">
+              <div class="badge-optional">Optional</div>
+              <h3>Step 3: Labor Compliance & Licenses</h3>
+              <p>For contractors employing on-site labor. Can be skipped or completed anytime.</p>
+            </div>
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label>Labor License Number</label>
+                <div class="input-with-action">
+                  <input type="text" id="laborLicense" placeholder="State/Central Labor Reg No." />
+                  <button type="button" class="btn-fetch" onclick="fetchDummyCompliance('laborLicense')">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Fetch Details
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-field full-width">
+                <label>Upload Labor License</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-file-contract file-icon"></i>
+                  <input type="file" id="laborFile" accept="image/*,.pdf" onchange="displayFileName(this, 'laborFile-name')" />
+                  <span id="laborFile-name">Upload valid Labor License</span>
+                </div>
+              </div>
+
+              <div class="form-field full-width">
+                <label>EPF Registration No.</label>
+                <div class="input-with-action">
+                  <input type="text" id="epfNumber" placeholder="e.g. DLCPM0012345000" />
+                  <button type="button" class="btn-fetch" onclick="fetchDummyCompliance('epfNumber')">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Fetch Details
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-field full-width">
+                <label>Upload EPF Certificate</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-file-arrow-up file-icon"></i>
+                  <input type="file" id="epfFile" accept="image/*,.pdf" onchange="displayFileName(this, 'epfFile-name')" />
+                  <span id="epfFile-name">Upload EPF Registration Document</span>
+                </div>
+              </div>
+
+              <div class="form-field full-width">
+                <label>ESI Registration No.</label>
+                <div class="input-with-action">
+                  <input type="text" id="esiNumber" placeholder="17 Digit ESI Number" />
+                  <button type="button" class="btn-fetch" onclick="fetchDummyCompliance('esiNumber')">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Fetch Details
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-field full-width">
+                <label>Upload ESI Certificate</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-file-arrow-up file-icon"></i>
+                  <input type="file" id="esiFile" accept="image/*,.pdf" onchange="displayFileName(this, 'esiFile-name')" />
+                  <span id="esiFile-name">Upload ESI Document</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-buttons">
+              <button type="button" class="btn-step-secondary" onclick="goToStep(2)">&larr; Back</button>
+              <button type="button" class="btn-step-primary" onclick="goToStep(4)">Next: Bank Details &rarr;</button>
+            </div>
+          </section>
+
+          <!-- Step 4: Bank Details -->
+          <section class="wizard-panel" id="panel-step-4">
+            <div class="panel-header">
+              <h3>Step 4: Bank Details & Financials</h3>
+              <p>Account details for receiving customer payments and bid escrow.</p>
+            </div>
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label>Bank Account Name *</label>
+                <input type="text" id="accountName" placeholder="Must match your Registered Business Name" required />
+              </div>
+
+              <div class="form-field">
+                <label>Bank Account Number *</label>
+                <input type="password" id="accountNumber" placeholder="Enter Account Number" required />
+              </div>
+
+              <div class="form-field">
+                <label>Confirm Account Number *</label>
+                <input type="text" id="confirmAccountNumber" placeholder="Re-enter Account Number" required />
+              </div>
+
+              <div class="form-field full-width">
+                <label>IFSC Code *</label>
+                <div class="input-with-action">
+                  <input type="text" id="ifscCode" maxlength="11" placeholder="e.g. HDFC0000123" style="text-transform: uppercase;" required />
+                  <button type="button" class="btn-fetch" onclick="fetchIfscBranch()">
+                    <i class="fa-solid fa-building-columns"></i> Fetch Branch
+                  </button>
+                </div>
+                <small class="hint-text" id="branch-info-text">Enter 11-digit IFSC code and click Fetch Branch.</small>
+              </div>
+
+              <div class="form-field full-width">
+                <label>Upload Cancelled Cheque</label>
+                <div class="file-drop-area">
+                  <i class="fa-solid fa-money-check file-icon"></i>
+                  <input type="file" id="chequeFile" accept="image/*,.pdf" onchange="displayFileName(this, 'chequeFile-name')" />
+                  <span id="chequeFile-name">Choose Cancelled Cheque image/PDF</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-buttons">
+              <button type="button" class="btn-step-secondary" onclick="goToStep(3)">&larr; Back</button>
+              <button type="button" class="btn-step-primary" onclick="goToStep(5)">Next: Review & Submit &rarr;</button>
+            </div>
+          </section>
+
+          <!-- Step 5: Review & Submit -->
+          <section class="wizard-panel" id="panel-step-5">
+            <div class="panel-header">
+              <h3>Step 5: Review Application & Declaration</h3>
+              <p>Verify all details before submitting to the verification team.</p>
+            </div>
+
+            <div class="review-box">
+              <div class="review-row">
+                <span>Contractor ID:</span>
+                <strong id="review-contractor-id">-</strong>
+              </div>
+              <div class="review-row">
+                <span>PAN Number:</span>
+                <strong id="review-pan">-</strong>
+              </div>
+              <div class="review-row">
+                <span>GSTIN Number:</span>
+                <strong id="review-gst">-</strong>
+              </div>
+              <div class="review-row">
+                <span>Business Name:</span>
+                <strong id="review-biz-name">-</strong>
+              </div>
+              <div class="review-row">
+                <span>Bank Account:</span>
+                <strong id="review-bank-account">-</strong>
+              </div>
+              <div class="review-row">
+                <span>IFSC Branch:</span>
+                <strong id="review-bank-ifsc">-</strong>
+              </div>
+            </div>
+
+            <div class="declaration-card">
+              <label class="declaration-label">
+                <input type="checkbox" id="declaration-checkbox" required />
+                <span>
+                  I hereby declare that all documents and information provided are true. I authorize <strong>Buildbid</strong> to verify these details via official databases & third-party APIs.
+                </span>
+              </label>
+            </div>
+
+            <div class="wizard-buttons">
+              <button type="button" class="btn-step-secondary" onclick="goToStep(4)">&larr; Edit Details</button>
+              <button type="button" class="btn-submit-application" onclick="submitVerificationForm()">
+                <i class="fa-solid fa-shield-halved"></i> Submit Verification Application
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="contractor-verification.js"></script>
+</body>
+</html>

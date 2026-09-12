@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BuildBid-Contractor Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="contractor-dashboard.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item active"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+        <a href="contractor-projects.html" class="nav-item"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-users-gear"></i> Hire Professionals</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews & Ratings</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
+        <a href="contractor-verification.html" class="nav-item"><i class="fa-solid fa-circle-check"></i>Get Verified</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications <span class="badge" id="nav-badge-notifications">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help & Support</a>
+        <a href="javascript:void(0)" class="nav-item nav-logout" onclick="logoutUser()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+      <!-- Top Navbar -->
+      <header class="top-nav">
+        <div class="nav-actions">
+          <button class="icon-btn" id="btn-notification-bell">
+            <i class="fa-regular fa-bell"></i>
+            <span class="dot" id="notif-indicator"></span>
+          </button>
+          <div class="user-profile">
+            <div class="avatar" id="top-nav-avatar">
+              <i class="fa-solid fa-user-tie"></i>
+            </div>
+            <div class="user-meta">
+              <h4 id="top-nav-name">Loading...</h4>
+              <span id="top-nav-badge">Contractor</span>
+            </div>
+            <i class="fa-solid fa-chevron-down drop-icon"></i>
+          </div>
+        </div>
+      </header>
+
+      <div class="dashboard-content">
+        <!-- Hero Contractor Card -->
+        <section class="contractor-banner">
+          <div class="banner-left">
+            <div class="company-logo" id="banner-company-logo">
+              <i class="fa-solid fa-building"></i>
+              <span id="banner-logo-text">BB</span>
+              <small>CONSTRUCTION</small>
+            </div>
+            <div class="contractor-details">
+              <h3 id="banner-contractor-name">
+                Loading...
+                <i class="fa-solid fa-circle-check verified-icon" id="banner-verified-icon"></i>
+              </h3>
+              <p class="subtitle" id="banner-contractor-tagline">Civil Contractor</p>
+              <div class="contact-inline">
+                <span><i class="fa-solid fa-location-dot"></i> <span id="banner-location">-</span></span>
+                <span><i class="fa-solid fa-phone"></i> <span id="banner-phone">-</span></span>
+                <span><i class="fa-solid fa-envelope"></i> <span id="banner-email">-</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="banner-right">
+            <div class="rating-box">
+              <i class="fa-solid fa-star star-filled"></i> 
+              <strong id="banner-rating">0.0</strong> 
+              <span id="banner-reviews-count">(0 Reviews)</span>
+            </div>
+            <div class="stats-mini">
+              <div>
+                <span>Projects Completed</span> 
+                <strong id="banner-completed-projects">0</strong>
+              </div>
+              <div>
+                <span>Total Earnings</span> 
+                <strong id="banner-total-earnings">₹0</strong>
+              </div>
+            </div>
+            <button class="btn-edit-profile" onclick="openEditProfile()"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+          </div>
+        </section>
+
+        <!-- KPI Metric Cards -->
+        <section class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon blue"><i class="fa-solid fa-hammer"></i></div>
+            <div class="kpi-info">
+              <p>Total Bids</p>
+              <h3 id="stat-total-bids">0</h3>
+              <a href="#">View all bids &rarr;</a>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon green"><i class="fa-solid fa-clock"></i></div>
+            <div class="kpi-info">
+              <p>Active Bids</p>
+              <h3 id="stat-active-bids">0</h3>
+              <a href="#">View active bids &rarr;</a>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon orange"><i class="fa-solid fa-trophy"></i></div>
+            <div class="kpi-info">
+              <p>Projects Won</p>
+              <h3 id="stat-projects-won">0</h3>
+              <a href="#">View my contracts &rarr;</a>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon purple"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+            <div class="kpi-info">
+              <p>Total Earnings</p>
+              <h3 id="stat-total-earnings">₹0</h3>
+              <a href="#">View earnings &rarr;</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Dual Split Section -->
+        <div class="dashboard-split">
+          <!-- Customer Posted Projects Feed -->
+          <div class="projects-feed">
+            <div class="section-heading">
+              <div>
+                <h2>Customer Posted Projects</h2>
+                <div class="feed-tabs">
+                  <button class="tab-btn active" onclick="handleTabFilter('all', this)">All Projects</button>
+                  <button class="tab-btn" onclick="handleTabFilter('Open for Bidding', this)">Open for Bidding</button>
+                  <button class="tab-btn" onclick="handleTabFilter('Upcoming', this)">Upcoming</button>
+                  <button class="tab-btn" onclick="handleTabFilter('Won Projects', this)">Won Projects</button>
+                </div>
+              </div>
+              <a href="#" class="view-all-link">View All Projects &rarr;</a>
+            </div>
+
+            <!-- Dynamic Project Cards List -->
+            <div class="projects-list" id="projects-list">
+              <!-- Rendered via contractor-dashboard.js -->
+            </div>
+
+            <!-- Bottom Promotion Banner -->
+            <div class="promo-banner">
+              <div class="promo-left">
+                <i class="fa-solid fa-star star-box"></i>
+                <div>
+                  <h4>Get More Projects & Grow Your Business</h4>
+                  <p>Upgrade to Premium to get more leads, higher visibility and priority support.</p>
+                </div>
+              </div>
+              <button class="btn-upgrade-dark"><i class="fa-solid fa-crown"></i> Upgrade Now</button>
+            </div>
+          </div>
+
+          <!-- Right Column Performance & Notifications -->
+          <div class="side-feed">
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3>My Performance</h3>
+                <a href="#">View All &rarr;</a>
+              </div>
+              <div class="perf-list">
+                <div class="perf-row">
+                  <span class="perf-title"><i class="fa-regular fa-clock icon-perf blue"></i> Response Rate</span>
+                  <strong id="perf-response-rate">0%</strong>
+                </div>
+                <div class="perf-row">
+                  <span class="perf-title"><i class="fa-regular fa-circle-check icon-perf orange"></i> Projects Completed</span>
+                  <strong id="perf-projects-completed">0</strong>
+                </div>
+                <div class="perf-row">
+                  <span class="perf-title"><i class="fa-solid fa-truck-fast icon-perf cyan"></i> On-Time Delivery</span>
+                  <strong id="perf-ontime-delivery">0%</strong>
+                </div>
+                <div class="perf-row">
+                  <span class="perf-title"><i class="fa-regular fa-star icon-perf yellow"></i> Customer Rating</span>
+                  <strong id="perf-rating">0 / 5</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3>Recent Notifications</h3>
+                <a href="#">View All &rarr;</a>
+              </div>
+              <div class="notif-list" id="contractor-notifications-list">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="contractor-dashboard.js"></script>
+</body>
+</html>
