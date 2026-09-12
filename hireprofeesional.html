@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hire Professionals - BuildBid</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    font-family:Inter,Arial,sans-serif;
+    background:#f5f7fb;
+    color:#172033
+}
+
+button,input,select{font:inherit}
+button{cursor:pointer}
+
+.sidebar{
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    width:250px;
+    background:#111827;
+    color:#fff;
+    overflow-y:auto;
+    z-index:100
+}
+
+.logo{
+    height:72px;
+    display:flex;
+    align-items:center;
+    padding:0 24px;
+    font-size:23px;
+    font-weight:800;
+    border-bottom:1px solid #273142
+}
+
+.logo span{color:#f59e0b}
+
+.nav{padding:18px 12px}
+
+.nav-title{
+    color:#6b7280;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    padding:12px;
+    letter-spacing:.8px
+}
+
+.nav a{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:#cbd5e1;
+    text-decoration:none;
+    padding:11px 13px;
+    margin:3px 0;
+    border-radius:8px;
+    font-size:14px
+}
+
+.nav a:hover{
+    background:#1f2937;
+    color:#fff
+}
+
+.nav a.active{
+    background:#f59e0b;
+    color:#111827;
+    font-weight:700
+}
+
+.nav-icon{
+    width:22px;
+    text-align:center
+}
+
+.main{
+    margin-left:250px;
+    width:calc(100% - 250px);
+    min-height:100vh
+}
+
+.topbar{
+    height:72px;
+    background:#fff;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 30px;
+    position:sticky;
+    top:0;
+    z-index:50
+}
+
+.topbar h1{font-size:21px}
+
+.topbar-right{
+    display:flex;
+    align-items:center;
+    gap:18px
+}
+
+.notification{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:1px solid #e5e7eb;
+    background:#fff
+}
+
+.avatar{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:#f59e0b;
+    display:grid;
+    place-items:center;
+    font-weight:800
+}
+
+.content{
+    padding:30px;
+    max-width:1500px;
+    margin:auto
+}
+
+.page-header{
+    margin-bottom:24px
+}
+
+.page-header h2{
+    font-size:27px;
+    margin-bottom:7px
+}
+
+.page-header p{
+    color:#6b7280;
+    font-size:14px
+}
+
+/* SEARCH */
+
+.search-panel{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:22px
+}
+
+.search-row{
+    display:flex;
+    gap:12px
+}
+
+.search{
+    flex:1;
+    position:relative
+}
+
+.search span{
+    position:absolute;
+    left:13px;
+    top:11px;
+    color:#6b7280
+}
+
+.search input{
+    width:100%;
+    padding:11px 14px 11px 38px;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    outline:none
+}
+
+.search-row select{
+    width:190px;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    padding:10px;
+    background:#fff
+}
+
+.primary-btn{
+    border:0;
+    background:#f59e0b;
+    color:#111827;
+    padding:11px 18px;
+    border-radius:8px;
+    font-weight:700
+}
+
+.filters{
+    display:flex;
+    gap:8px;
+    margin-top:15px;
+    flex-wrap:wrap
+}
+
+.filter{
+    border:1px solid #d1d5db;
+    background:#fff;
+    padding:7px 13px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600
+}
+
+.filter.active{
+    background:#111827;
+    color:#fff;
+    border-color:#111827
+}
+
+/* LAYOUT */
+
+.main-layout{
+    display:grid;
+    grid-template-columns:1fr 300px;
+    gap:20px
+}
+
+.results-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px
+}
+
+.results-head h3{
+    font-size:16px
+}
+
+.results-head span{
+    font-size:12px;
+    color:#6b7280
+}
+
+/* PROFESSIONAL CARDS */
+
+.professionals{
+    display:grid;
+    gap:14px
+}
+
+.prof-card{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:20px
+}
+
+.prof-top{
+    display:flex;
+    gap:15px;
+    align-items:flex-start
+}
+
+.prof-avatar{
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    background:#eef2ff;
+    display:grid;
+    place-items:center;
+    font-size:20px;
+    font-weight:800;
+    flex-shrink:0
+}
+
+.prof-info{
+    flex:1
+}
+
+.prof-name{
+    font-size:16px;
+    font-weight:800;
+    display:flex;
+    gap:7px;
+    align-items:center
+}
+
+.verified{
+    font-size:10px;
+    background:#dcfce7;
+    color:#15803d;
+    padding:3px 6px;
+    border-radius:10px
+}
+
+.prof-role{
+    font-size:12px;
+    color:#6b7280;
+    margin-top:4px
+}
+
+.rating{
+    font-size:12px;
+    margin-top:7px
+}
+
+.rating strong{
+    color:#b45309
+}
+
+.availability{
+    font-size:11px;
+    background:#dcfce7;
+    color:#15803d;
+    padding:6px 9px;
+    border-radius:15px;
+    font-weight:700
+}
+
+.prof-meta{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    margin:17px 0;
+    padding-top:15px;
+    border-top:1px solid #f0f1f3
+}
+
+.meta-item{
+    font-size:11px;
+    color:#6b7280
+}
+
+.meta-item strong{
+    display:block;
+    color:#172033;
+    font-size:12px;
+    margin-top:3px
+}
+
+.skills{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap
+}
+
+.skill{
+    padding:5px 9px;
+    background:#f3f4f6;
+    border-radius:5px;
+    font-size:10px;
+    color:#4b5563
+}
+
+.prof-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:17px
+}
+
+.rate{
+    font-size:13px;
+    font-weight:800
+}
+
+.rate small{
+    color:#6b7280;
+    font-weight:400
+}
+
+.actions{
+    display:flex;
+    gap:8px
+}
+
+.btn{
+    border:1px solid #d1d5db;
+    background:#fff;
+    padding:8px 13px;
+    border-radius:7px;
+    font-size:11px;
+    font-weight:700
+}
+
+.btn-primary{
+    background:#f59e0b;
+    border-color:#f59e0b;
+    color:#111827
+}
+
+/* SIDEBAR FILTER */
+
+.filter-panel{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:20px;
+    height:max-content
+}
+
+.filter-panel h3{
+    font-size:15px;
+    margin-bottom:20px
+}
+
+.filter-group{
+    margin-bottom:20px
+}
+
+.filter-group label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    margin-bottom:8px
+}
+
+.filter-group select{
+    width:100%;
+    padding:9px;
+    border:1px solid #d1d5db;
+    border-radius:7px;
+    background:#fff;
+    font-size:12px
+}
+
+.checkbox{
+    display:flex!important;
+    align-items:center;
+    gap:8px;
+    font-weight:400!important;
+    margin:8px 0
+}
+
+.checkbox input{
+    accent-color:#f59e0b
+}
+
+.range{
+    width:100%
+}
+
+.clear-btn{
+    width:100%;
+    border:1px solid #d1d5db;
+    background:#fff;
+    padding:9px;
+    border-radius:7px;
+    font-size:12px;
+    font-weight:700
+}
+
+/* EMPTY */
+
+.empty{
+    display:none;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    text-align:center;
+    padding:60px 20px
+}
+
+.empty-icon{
+    font-size:42px;
+    margin-bottom:10px
+}
+
+.empty p{
+    color:#6b7280;
+    font-size:12px;
+    margin-top:6px
+}
+
+/* MODAL */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(17,24,39,.55);
+    z-index:500;
+    align-items:center;
+    justify-content:center;
+    padding:20px
+}
+
+.modal.show{
+    display:flex
+}
+
+.modal-box{
+    width:100%;
+    max-width:650px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:14px
+}
+
+.modal-head{
+    padding:20px;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    justify-content:space-between
+}
+
+.modal-head h3{
+    font-size:18px
+}
+
+.close{
+    width:32px;
+    height:32px;
+    border:0;
+    background:#f3f4f6;
+    border-radius:7px;
+    font-size:18px
+}
+
+.modal-body{
+    padding:20px
+}
+
+.profile-large{
+    display:flex;
+    gap:15px;
+    align-items:center;
+    margin-bottom:20px
+}
+
+.profile-large .prof-avatar{
+    width:70px;
+    height:70px
+}
+
+.detail-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px
+}
+
+.detail{
+    background:#f8fafc;
+    padding:13px;
+    border-radius:8px
+}
+
+.detail small{
+    display:block;
+    color:#6b7280;
+    font-size:10px;
+    margin-bottom:5px
+}
+
+.detail strong{
+    font-size:13px
+}
+
+.bio{
+    margin-top:18px;
+    padding-top:18px;
+    border-top:1px solid #e5e7eb
+}
+
+.bio h4{
+    font-size:13px;
+    margin-bottom:7px
+}
+
+.bio p{
+    font-size:12px;
+    color:#6b7280;
+    line-height:1.6
+}
+
+.modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px
+}
+
+.modal-actions button{
+    flex:1
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1100px){
+
+    .main-layout{
+        grid-template-columns:1fr
+    }
+
+    .filter-panel{
+        order:-1
+    }
+}
+
+@media(max-width:850px){
+
+    .sidebar{
+        width:72px
+    }
+
+    .logo{
+        padding:0;
+        justify-content:center;
+        font-size:0
+    }
+
+    .logo:after{
+        content:"BB";
+        font-size:18px;
+        color:#f59e0b
+    }
+
+    .nav-title,
+    .nav a span:not(.nav-icon){
+        display:none
+    }
+
+    .nav a{
+        justify-content:center
+    }
+
+    .main{
+        margin-left:72px;
+        width:calc(100% - 72px)
+    }
+
+    .content{
+        padding:18px
+    }
+
+    .search-row{
+        flex-direction:column
+    }
+
+    .search-row select{
+        width:100%
+    }
+}
+
+@media(max-width:550px){
+
+    .prof-top{
+        flex-wrap:wrap
+    }
+
+    .prof-footer{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:12px
+    }
+
+    .actions{
+        width:100%
+    }
+
+    .actions button{
+        flex:1
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= SIDEBAR ================= -->
+
+<aside class="sidebar">
+
+<div class="logo">
+Build<span>Bid</span>
+</div>
+
+<nav class="nav">
+
+<div class="nav-title">Main</div>
+
+<a href="dashboard.html">
+<span class="nav-icon">⌂</span>
+<span>Dashboard</span>
+</a>
+
+<a href="projects.html">
+<span class="nav-icon">▣</span>
+<span>Projects</span>
+</a>
+
+<a href="bids.html">
+<span class="nav-icon">◈</span>
+<span>Bids</span>
+</a>
+
+<a href="contracts.html">
+<span class="nav-icon">▤</span>
+<span>My Contracts</span>
+</a>
+
+<div class="nav-title">Procurement</div>
+
+<a href="order-material.html">
+<span class="nav-icon">▥</span>
+<span>Order Material</span>
+</a>
+
+<a href="post-requirement.html">
+<span class="nav-icon">＋</span>
+<span>Post Requirement</span>
+</a>
+
+<a href="my-orders.html">
+<span class="nav-icon">□</span>
+<span>My Orders</span>
+</a>
+
+<a href="track-material.html">
+<span class="nav-icon">➤</span>
+<span>Track Material</span>
+</a>
+
+<div class="nav-title">People</div>
+
+<a href="hire-professionals.html" class="active">
+<span class="nav-icon">♙</span>
+<span>Hire Professionals</span>
+</a>
+
+<a href="team.html">
+<span class="nav-icon">♟</span>
+<span>My Team</span>
+</a>
+
+<a href="reviews.html">
+<span class="nav-icon">★</span>
+<span>Reviews & Ratings</span>
+</a>
+
+<div class="nav-title">Account</div>
+
+<a href="earnings.html">
+<span class="nav-icon">₹</span>
+<span>Earnings</span>
+</a>
+
+<a href="messages.html">
+<span class="nav-icon">✉</span>
+<span>Messages</span>
+</a>
+
+<a href="notifications.html">
+<span class="nav-icon">♢</span>
+<span>Notifications</span>
+</a>
+
+<a href="get-verified.html">
+<span class="nav-icon">✓</span>
+<span>Get Verified</span>
+</a>
+
+<a href="help.html">
+<span class="nav-icon">?</span>
+<span>Help & Support</span>
+</a>
+
+</nav>
+</aside>
+
+
+<!-- ================= MAIN ================= -->
+
+<main class="main">
+
+<header class="topbar">
+
+<h1>Hire Professionals</h1>
+
+<div class="topbar-right">
+
+<button class="notification">🔔</button>
+
+<div class="avatar">PP</div>
+
+</div>
+
+</header>
+
+
+<div class="content">
+
+<div class="page-header">
+
+<h2>Hire Professionals</h2>
+
+<p>
+Find verified construction professionals for your projects.
+</p>
+
+</div>
+
+
+<!-- SEARCH -->
+
+<div class="search-panel">
+
+<div class="search-row">
+
+<div class="search">
+
+<span>⌕</span>
+
+<input
+id="searchInput"
+type="text"
+placeholder="Search plumber, electrician, mason, carpenter..."
+oninput="filterProfessionals()">
+
+</div>
+
+<select id="tradeFilter" onchange="filterProfessionals()">
+
+<option value="all">All Trades</option>
+<option value="plumber">Plumber</option>
+<option value="electrician">Electrician</option>
+<option value="mason">Mason</option>
+<option value="carpenter">Carpenter</option>
+<option value="painter">Painter</option>
+<option value="helper">Helper / Labour</option>
+
+</select>
+
+<select id="locationFilter" onchange="filterProfessionals()">
+
+<option value="all">All Locations</option>
+<option value="noida">Noida</option>
+<option value="greater noida">Greater Noida</option>
+<option value="ghaziabad">Ghaziabad</option>
+<option value="delhi">Delhi</option>
+
+</select>
+
+<button
+class="primary-btn"
+onclick="filterProfessionals()">
+
+Search
+
+</button>
+
+</div>
+
+
+<div class="filters">
+
+<button
+class="filter active"
+data-filter="all"
+onclick="quickFilter('all',this)">
+All
+</button>
+
+<button
+class="filter"
+data-filter="verified"
+onclick="quickFilter('verified',this)">
+✓ Verified
+</button>
+
+<button
+class="filter"
+data-filter="available"
+onclick="quickFilter('available',this)">
+Available Now
+</button>
+
+<button
+class="filter"
+data-filter="top"
+onclick="quickFilter('top',this)">
+Top Rated
+</button>
+
+</div>
+
+</div>
+
+
+<!-- MAIN LAYOUT -->
+
+<div class="main-layout">
+
+
+<div>
+
+<div class="results-head">
+
+<h3>
+Available Professionals
+</h3>
+
+<span id="resultCount">
+6 professionals found
+</span>
+
+</div>
+
+
+<div class="professionals" id="professionals">
+
+
+<!-- PROFESSIONAL 1 -->
+
+<div
+class="prof-card"
+data-trade="plumber"
+data-location="noida"
+data-verified="true"
+data-available="true"
+data-top="true"
+data-name="Rajesh Kumar">
+
+<div class="prof-top">
+
+<div class="prof-avatar">
+RK
+</div>
+
+<div class="prof-info">
+
+<div class="prof-name">
+Rajesh Kumar
+<span class="verified">✓ Verified</span>
+</div>
+
+<div class="prof-role">
+Senior Plumber · 9 Years Experience
+</div>
+
+<div class="rating">
+⭐ <strong>4.9</strong> · 126 Reviews
+</div>
+
+</div>
+
+<span class="availability">
+Available
+</span>
+
+</div>
+
+
+<div class="prof-meta">
+
+<div class="meta-item">
+Location
+<strong>Noida</strong>
+</div>
+
+<div class="meta-item">
+Experience
+<strong>9 Years</strong>
+</div>
+
+<div class="meta-item">
+Jobs Done
+<strong>184</strong>
+</div>
+
+</div>
+
+
+<div class="skills">
+
+<span class="skill">Pipeline</span>
+<span class="skill">Bathroom</span>
+<span class="skill">CP Fittings</span>
+<span class="skill">Water Tank</span>
+
+</div>
+
+
+<div class="prof-footer">
+
+<div class="rate">
+₹1,200 <small>/ day</small>
+</div>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewProfessional('Rajesh Kumar')">
+View Profile
+</button>
+
+<button
+class="btn btn-primary"
+onclick="hireProfessional('Rajesh Kumar')">
+Hire
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PROFESSIONAL 2 -->
+
+<div
+class="prof-card"
+data-trade="electrician"
+data-location="greater noida"
+data-verified="true"
+data-available="true"
+data-top="true"
+data-name="Amit Sharma">
+
+<div class="prof-top">
+
+<div class="prof-avatar">
+AS
+</div>
+
+<div class="prof-info">
+
+<div class="prof-name">
+Amit Sharma
+<span class="verified">✓ Verified</span>
+</div>
+
+<div class="prof-role">
+Electrician · 7 Years Experience
+</div>
+
+<div class="rating">
+⭐ <strong>4.8</strong> · 98 Reviews
+</div>
+
+</div>
+
+<span class="availability">
+Available
+</span>
+
+</div>
+
+
+<div class="prof-meta">
+
+<div class="meta-item">
+Location
+<strong>Greater Noida</strong>
+</div>
+
+<div class="meta-item">
+Experience
+<strong>7 Years</strong>
+</div>
+
+<div class="meta-item">
+Jobs Done
+<strong>143</strong>
+</div>
+
+</div>
+
+
+<div class="skills">
+
+<span class="skill">Wiring</span>
+<span class="skill">DB Installation</span>
+<span class="skill">Lighting</span>
+<span class="skill">Industrial</span>
+
+</div>
+
+
+<div class="prof-footer">
+
+<div class="rate">
+₹1,400 <small>/ day</small>
+</div>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewProfessional('Amit Sharma')">
+View Profile
+</button>
+
+<button
+class="btn btn-primary"
+onclick="hireProfessional('Amit Sharma')">
+Hire
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PROFESSIONAL 3 -->
+
+<div
+class="prof-card"
+data-trade="mason"
+data-location="ghaziabad"
+data-verified="true"
+data-available="false"
+data-top="true"
+data-name="Rakesh Yadav">
+
+<div class="prof-top">
+
+<div class="prof-avatar">
+RY
+</div>
+
+<div class="prof-info">
+
+<div class="prof-name">
+Rakesh Yadav
+<span class="verified">✓ Verified</span>
+</div>
+
+<div class="prof-role">
+Mason · 12 Years Experience
+</div>
+
+<div class="rating">
+⭐ <strong>4.9</strong> · 211 Reviews
+</div>
+
+</div>
+
+<span class="availability"
+style="background:#fee2e2;color:#dc2626">
+Busy
+</span>
+
+</div>
+
+
+<div class="prof-meta">
+
+<div class="meta-item">
+Location
+<strong>Ghaziabad</strong>
+</div>
+
+<div class="meta-item">
+Experience
+<strong>12 Years</strong>
+</div>
+
+<div class="meta-item">
+Jobs Done
+<strong>310</strong>
+</div>
+
+</div>
+
+
+<div class="skills">
+
+<span class="skill">Brickwork</span>
+<span class="skill">RCC</span>
+<span class="skill">Plaster</span>
+<span class="skill">Shuttering</span>
+
+</div>
+
+
+<div class="prof-footer">
+
+<div class="rate">
+₹1,500 <small>/ day</small>
+</div>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewProfessional('Rakesh Yadav')">
+View Profile
+</button>
+
+<button
+class="btn"
+disabled>
+Unavailable
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PROFESSIONAL 4 -->
+
+<div
+class="prof-card"
+data-trade="carpenter"
+data-location="delhi"
+data-verified="true"
+data-available="true"
+data-top="false"
+data-name="Suresh Singh">
+
+<div class="prof-top">
+
+<div class="prof-avatar">
+SS
+</div>
+
+<div class="prof-info">
+
+<div class="prof-name">
+Suresh Singh
+<span class="verified">✓ Verified</span>
+</div>
+
+<div class="prof-role">
+Carpenter · 6 Years Experience
+</div>
+
+<div class="rating">
+⭐ <strong>4.7</strong> · 84 Reviews
+</div>
+
+</div>
+
+<span class="availability">
+Available
+</span>
+
+</div>
+
+
+<div class="prof-meta">
+
+<div class="meta-item">
+Location
+<strong>Delhi</strong>
+</div>
+
+<div class="meta-item">
+Experience
+<strong>6 Years</strong>
+</div>
+
+<div class="meta-item">
+Jobs Done
+<strong>119</strong>
+</div>
+
+</div>
+
+
+<div class="skills">
+
+<span class="skill">Furniture</span>
+<span class="skill">Doors</span>
+<span class="skill">Woodwork</span>
+<span class="skill">Modular</span>
+
+</div>
+
+
+<div class="prof-footer">
+
+<div class="rate">
+₹1,300 <small>/ day</small>
+</div>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewProfessional('Suresh Singh')">
+View Profile
+</button>
+
+<button
+class="btn btn-primary"
+onclick="hireProfessional('Suresh Singh')">
+Hire
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PROFESSIONAL 5 -->
+
+<div
+class="prof-card"
+data-trade="painter"
+data-location="noida"
+data-verified="false"
+data-available="true"
+data-top="false"
+data-name="Vikas Verma">
+
+<div class="prof-top">
+
+<div class="prof-avatar">
+VV
+</div>
+
+<div class="prof-info">
+
+<div class="prof-name">
+Vikas Verma
+</div>
+
+<div class="prof-role">
+Painter · 5 Years Experience
+</div>
+
+<div class="rating">
+⭐ <strong>4.6</strong> · 62 Reviews
+</div>
+
+</div>
+
+<span class="availability">
+Available
+</span>
+
+</div>
+
+
+<div class="prof-meta">
+
+<div class="meta-item">
+Location
+<strong>Noida</strong>
+</div>
+
+<div class="meta-item">
+Experience
+<strong>5 Years</strong>
+</div>
+
+<div class="meta-item">
+Jobs Done
+<strong>91</strong>
+</div>
+
+</div>
+
+
+<div class="skills">
+
+<span class="skill">Interior</span>
+<span class="skill">Exterior</span>
+<span class="skill">Texture</span>
+<span class="skill">Putty</span>
+
+</div>
+
+
+<div class="prof-footer">
+
+<div class="rate">
+₹1,100 <small>/ day</small>
+</div>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewProfessional('Vikas Verma')">
+View Profile
+</button>
+
+<button
+class="btn btn-primary"
+onclick="hireProfessional('Vikas Verma')">
+Hire
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PROFESSIONAL 6 -->
+
+<div
+class="prof-card"
+data-trade="helper"
+data-location="greater noida"
+data-verified="true"
+data-available="true"
+data-top="false"
+data-name="Mohit Kumar">
+
+<div class="prof-top">
+
+<div class="prof-avatar">
+MK
+</div>
+
+<div class="prof-info">
+
+<div class="prof-name">
+Mohit Kumar
+<span class="verified">✓ Verified</span>
+</div>
+
+<div class="prof-role">
+Helper / Labour · 4 Years Experience
+</div>
+
+<div class="rating">
+⭐ <strong>4.7</strong> · 73 Reviews
+</div>
+
+</div>
+
+<span class="availability">
+Available
+</span>
+
+</div>
+
+
+<div class="prof-meta">
+
+<div class="meta-item">
+Location
+<strong>Greater Noida</strong>
+</div>
+
+<div class="meta-item">
+Experience
+<strong>4 Years</strong>
+</div>
+
+<div class="meta-item">
+Jobs Done
+<strong>105</strong>
+</div>
+
+</div>
+
+
+<div class="skills">
+
+<span class="skill">Material Handling</span>
+<span class="skill">Site Work</span>
+<span class="skill">Loading</span>
+<span class="skill">General Labour</span>
+
+</div>
+
+
+<div class="prof-footer">
+
+<div class="rate">
+₹800 <small>/ day</small>
+</div>
+
+<div class="actions">
+
+<button
+class="btn"
+onclick="viewProfessional('Mohit Kumar')">
+View Profile
+</button>
+
+<button
+class="btn btn-primary"
+onclick="hireProfessional('Mohit Kumar')">
+Hire
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="empty" id="emptyState">
+
+<div class="empty-icon">👷</div>
+
+<h3>No professionals found</h3>
+
+<p>
+Try another trade, location or search keyword.
+</p>
+
+</div>
+
+</div>
+
+
+<!-- FILTER PANEL -->
+
+<aside class="filter-panel">
+
+<h3>Filter Professionals</h3>
+
+
+<div class="filter-group">
+
+<label>Trade</label>
+
+<select id="sideTrade" onchange="syncFilters()">
+
+<option value="all">All Trades</option>
+<option value="plumber">Plumber</option>
+<option value="electrician">Electrician</option>
+<option value="mason">Mason</option>
+<option value="carpenter">Carpenter</option>
+<option value="painter">Painter</option>
+<option value="helper">Helper / Labour</option>
+
+</select>
+
+</div>
+
+
+<div class="filter-group">
+
+<label>Location</label>
+
+<select id="sideLocation" onchange="syncFilters()">
+
+<option value="all">All Locations</option>
+<option value="noida">Noida</option>
+<option value="greater noida">Greater Noida</option>
+<option value="ghaziabad">Ghaziabad</option>
+<option value="delhi">Delhi</option>
+
+</select>
+
+</div>
+
+
+<div class="filter-group">
+
+<label>Minimum Rating</label>
+
+<select id="ratingFilter" onchange="filterProfessionals()">
+
+<option value="0">Any Rating</option>
+<option value="4.5">4.5+</option>
+<option value="4.7">4.7+</option>
+<option value="4.9">4.9+</option>
+
+</select>
+
+</div>
+
+
+<div class="filter-group">
+
+<label>Availability</label>
+
+<label class="checkbox">
+<input
+type="checkbox"
+id="availableOnly"
+onchange="filterProfessionals()">
+Available now
+</label>
+
+<label class="checkbox">
+<input
+type="checkbox"
+id="verifiedOnly"
+onchange="filterProfessionals()">
+Verified only
+</label>
+
+</div>
+
+
+<div class="filter-group">
+
+<label>Maximum Daily Rate</label>
+
+<input
+type="range"
+class="range"
+id="rateFilter"
+min="500"
+max="3000"
+value="3000"
+step="100"
+oninput="updateRate()">
+
+<div style="font-size:11px;color:#6b7280;margin-top:6px">
+Up to ₹<span id="rateValue">3000</span>/day
+</div>
+
+</div>
+
+
+<button
+class="clear-btn"
+onclick="clearFilters()">
+
+Clear All Filters
+
+</button>
+
+</aside>
+
+</div>
+
+</div>
+
+</main>
+
+
+<!-- ================= PROFILE MODAL ================= -->
+
+<div class="modal" id="profileModal">
+
+<div class="modal-box">
+
+<div class="modal-head">
+
+<h3>Professional Profile</h3>
+
+<button
+class="close"
+onclick="closeModal()">
+×
+</button>
+
+</div>
+
+
+<div class="modal-body">
+
+<div class="profile-large">
+
+<div class="prof-avatar" id="modalAvatar">
+RK
+</div>
+
+<div>
+
+<div class="prof-name" id="modalName">
+Rajesh Kumar
+</div>
+
+<div class="prof-role" id="modalRole">
+Senior Plumber
+</div>
+
+<div class="rating">
+⭐ <strong>4.9</strong> · 126 Reviews
+</div>
+
+</div>
+
+</div>
+
+
+<div class="detail-grid">
+
+<div class="detail">
+
+<small>Experience</small>
+<strong>9 Years</strong>
+
+</div>
+
+<div class="detail">
+
+<small>Location</small>
+<strong>Noida</strong>
+
+</div>
+
+<div class="detail">
+
+<small>Jobs Completed</small>
+<strong>184</strong>
+
+</div>
+
+<div class="detail">
+
+<small>Daily Rate</small>
+<strong>₹1,200 / day</strong>
+
+</div>
+
+</div>
+
+
+<div class="bio">
+
+<h4>About Professional</h4>
+
+<p>
+Experienced construction professional with proven
+site experience. Available for residential and
+commercial projects. Work can be assigned based
+on project duration, trade requirements and agreed
+daily rates.
+</p>
+
+</div>
+
+
+<div class="modal-actions">
+
+<button
+class="btn"
+onclick="messageProfessional()">
+
+Message
+
+</button>
+
+<button
+class="btn btn-primary"
+onclick="hireFromModal()">
+
+Send Hire Request
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   HIRE PROFESSIONALS
+   ========================================================= */
+
+
+/*
+ * BACKEND API STRUCTURE
+ *
+ * GET  /api/professionals
+ * GET  /api/professionals/:id
+ * GET  /api/professionals?trade=plumber
+ * GET  /api/professionals?location=noida
+ *
+ * POST /api/hire-requests
+ *
+ * POST /api/messages
+ *
+ * Example hire request:
+ *
+ * {
+ *   professionalId,
+ *   projectId,
+ *   startDate,
+ *   duration,
+ *   rate,
+ *   message
+ * }
+ */
+
+
+/* ================= DATA ================= */
+
+let currentProfessional = "";
+
+
+/* ================= FILTER ================= */
+
+function filterProfessionals(){
+
+    const search =
+        document
+        .getElementById("searchInput")
+        .value
+        .toLowerCase()
+        .trim();
+
+    const trade =
+        document
+        .getElementById("tradeFilter")
+        .value;
+
+    const location =
+        document
+        .getElementById("locationFilter")
+        .value;
+
+    const rating =
+        Number(
+            document
+            .getElementById("ratingFilter")
+            .value
+        );
+
+    const available =
+        document
+        .getElementById("availableOnly")
+        .checked;
+
+    const verified =
+        document
+        .getElementById("verifiedOnly")
+        .checked;
+
+    const maxRate =
+        Number(
+            document
+            .getElementById("rateFilter")
+            .value
+        );
+
+
+    const cards =
+        document.querySelectorAll(".prof-card");
+
+    let count = 0;
+
+
+    cards.forEach(card => {
+
+        const text =
+            card.innerText.toLowerCase();
+
+        const cardTrade =
+            card.dataset.trade;
+
+        const cardLocation =
+            card.dataset.location;
+
+        const cardVerified =
+            card.dataset.verified === "true";
+
+        const cardAvailable =
+            card.dataset.available === "true";
+
+
+        const rateText =
+            card.querySelector(".rate")
+            ?.innerText || "";
+
+        const rate =
+            Number(
+                rateText
+                .replace(/[^\d]/g,"")
+            );
+
+
+        /*
+         * Rating is taken from card text.
+         * Backend should provide exact rating.
+         */
+
+        const ratingText =
+            card.querySelector(".rating strong")
+            ?.innerText || "0";
+
+        const cardRating =
+            Number(ratingText);
+
+
+        const matchSearch =
+            !search ||
+            text.includes(search);
+
+        const matchTrade =
+            trade === "all" ||
+            cardTrade === trade;
+
+        const matchLocation =
+            location === "all" ||
+            cardLocation === location;
+
+        const matchRating =
+            cardRating >= rating;
+
+        const matchAvailable =
+            !available ||
+            cardAvailable;
+
+        const matchVerified =
+            !verified ||
+            cardVerified;
+
+        const matchRate =
+            rate <= maxRate;
+
+
+        const visible =
+            matchSearch &&
+            matchTrade &&
+            matchLocation &&
+            matchRating &&
+            matchAvailable &&
+            matchVerified &&
+            matchRate;
+
+
+        card.style.display =
+            visible ? "block" : "none";
+
+
+        if(visible){
+            count++;
+        }
+
+    });
+
+
+    document
+    .getElementById("resultCount")
+    .textContent =
+        count + " professionals found";
+
+
+    document
+    .getElementById("emptyState")
+    .style.display =
+        count === 0 ? "block" : "none";
+
+}
+
+
+/* ================= QUICK FILTER ================= */
+
+function quickFilter(type,button){
+
+    document
+    .querySelectorAll(".filter")
+    .forEach(btn =>
+        btn.classList.remove("active")
+    );
+
+    button.classList.add("active");
+
+
+    const cards =
+        document.querySelectorAll(".prof-card");
+
+    let count = 0;
+
+
+    cards.forEach(card => {
+
+        let show = true;
+
+
+        if(type === "verified"){
+            show =
+                card.dataset.verified === "true";
+        }
+
+        if(type === "available"){
+            show =
+                card.dataset.available === "true";
+        }
+
+        if(type === "top"){
+            show =
+                card.dataset.top === "true";
+        }
+
+
+        card.style.display =
+            show ? "block" : "none";
+
+
+        if(show){
+            count++;
+        }
+
+    });
+
+
+    document
+    .getElementById("resultCount")
+    .textContent =
+        count + " professionals found";
+
+}
+
+
+/* ================= SYNC SIDEBAR ================= */
+
+function syncFilters(){
+
+    const trade =
+        document
+        .getElementById("sideTrade")
+        .value;
+
+    const location =
+        document
+        .getElementById("sideLocation")
+        .value;
+
+
+    document
+    .getElementById("tradeFilter")
+    .value = trade;
+
+
+    document
+    .getElementById("locationFilter")
+    .value = location;
+
+
+    filterProfessionals();
+
+}
+
+
+/* ================= RATE ================= */
+
+function updateRate(){
+
+    const value =
+        document
+        .getElementById("rateFilter")
+        .value;
+
+
+    document
+    .getElementById("rateValue")
+    .textContent = value;
+
+
+    filterProfessionals();
+
+}
+
+
+/* ================= CLEAR ================= */
+
+function clearFilters(){
+
+    document
+    .getElementById("searchInput")
+    .value = "";
+
+    document
+    .getElementById("tradeFilter")
+    .value = "all";
+
+    document
+    .getElementById("locationFilter")
+    .value = "all";
+
+    document
+    .getElementById("sideTrade")
+    .value = "all";
+
+    document
+    .getElementById("sideLocation")
+    .value = "all";
+
+    document
+    .getElementById("ratingFilter")
+    .value = "0";
+
+    document
+    .getElementById("availableOnly")
+    .checked = false;
+
+    document
+    .getElementById("verifiedOnly")
+    .checked = false;
+
+    document
+    .getElementById("rateFilter")
+    .value = "3000";
+
+    document
+    .getElementById("rateValue")
+    .textContent = "3000";
+
+
+    document
+    .querySelectorAll(".filter")
+    .forEach(btn =>
+        btn.classList.remove("active")
+    );
+
+    document
+    .querySelector('[data-filter="all"]')
+    .classList.add("active");
+
+
+    filterProfessionals();
+
+}
+
+
+/* ================= VIEW PROFILE ================= */
+
+function viewProfessional(name){
+
+    currentProfessional = name;
+
+
+    document
+    .getElementById("modalName")
+    .textContent = name;
+
+
+    /*
+     * Backend:
+     *
+     * GET /api/professionals/:id
+     *
+     * Replace modal data with API response.
+     */
+
+
+    document
+    .getElementById("profileModal")
+    .classList.add("show");
+
+}
+
+
+/* ================= CLOSE ================= */
+
+function closeModal(){
+
+    document
+    .getElementById("profileModal")
+    .classList.remove("show");
+
+}
+
+
+document
+.getElementById("profileModal")
+.addEventListener("click",function(e){
+
+    if(e.target === this){
+        closeModal();
+    }
+
+});
+
+
+/* ================= HIRE ================= */
+
+function hireProfessional(name){
+
+    currentProfessional = name;
+
+
+    /*
+     * Backend:
+     *
+     * POST /api/hire-requests
+     *
+     * Open a proper hire-request form
+     * with project, dates, duration,
+     * rate and message.
+     */
+
+
+    alert(
+        "Hire request started for " +
+        name +
+        "."
+    );
+
+}
+
+
+/* ================= HIRE FROM MODAL ================= */
+
+function hireFromModal(){
+
+    /*
+     * Backend:
+     *
+     * POST /api/hire-requests
+     *
+     */
+
+
+    alert(
+        "Hire request sent to " +
+        currentProfessional +
+        "."
+    );
+
+    closeModal();
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+function messageProfessional(){
+
+    /*
+     * Backend:
+     *
+     * POST /api/messages
+     *
+     */
+
+
+    window.location.href =
+        "messages.html?professional=" +
+        encodeURIComponent(
+            currentProfessional
+        );
+
+}
+
+
+/* ================= API LOADER ================= */
+
+/*
+async function loadProfessionals(){
+    
+    const params = new URLSearchParams();
+
+    const trade =
+        document.getElementById("tradeFilter").value;
+
+    const location =
+        document.getElementById("locationFilter").value;
+
+    if(trade !== "all")
+        params.set("trade",trade);
+
+    if(location !== "all")
+        params.set("location",location);
+
+    const response =
+        await fetch(
+            "/api/professionals?" +
+            params.toString()
+        );
+
+    const professionals =
+        await response.json();
+
+    renderProfessionals(professionals);
+}
+*/
+
+
+/* ================= INIT ================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        filterProfessionals();
+
+    }
+);
+
+</script>
+
+</body>
+</html>

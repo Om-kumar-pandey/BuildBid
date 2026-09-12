@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Messages | BuildBid</title>
+
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    body{
+      font-family:Inter,Arial,sans-serif;
+      background:#f5f7fb;
+      color:#172033;
+    }
+
+    a{
+      text-decoration:none;
+      color:inherit;
+    }
+
+    button,input,textarea{
+      font:inherit;
+    }
+
+    /* ================= SIDEBAR ================= */
+
+    .sidebar{
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      width:250px;
+      background:#111827;
+      color:#fff;
+      padding:22px 14px;
+      overflow-y:auto;
+      z-index:100;
+    }
+
+    .logo{
+      font-size:23px;
+      font-weight:800;
+      padding:0 14px 25px;
+    }
+
+    .logo span{
+      color:#f59e0b;
+    }
+
+    .nav-title{
+      color:#8892a6;
+      font-size:11px;
+      font-weight:700;
+      text-transform:uppercase;
+      padding:15px 14px 8px;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:11px 14px;
+      border-radius:9px;
+      color:#c8d0dd;
+      margin-bottom:3px;
+      font-size:14px;
+      transition:.2s;
+    }
+
+    .nav-item:hover{
+      background:#1f2937;
+      color:#fff;
+    }
+
+    .nav-item.active{
+      background:#f59e0b;
+      color:#111827;
+      font-weight:700;
+    }
+
+    .nav-icon{
+      width:21px;
+      text-align:center;
+    }
+
+    /* ================= MAIN ================= */
+
+    .main{
+      margin-left:250px;
+      min-height:100vh;
+    }
+
+    .topbar{
+      height:70px;
+      background:#fff;
+      border-bottom:1px solid #e5e7eb;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 30px;
+    }
+
+    .page-title{
+      font-size:21px;
+      font-weight:750;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+
+    .notification{
+      position:relative;
+      font-size:20px;
+    }
+
+    .notification-dot{
+      position:absolute;
+      right:-3px;
+      top:-2px;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#ef4444;
+    }
+
+    .profile{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .avatar{
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      background:#f59e0b;
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .profile-info strong{
+      font-size:13px;
+    }
+
+    .muted{
+      color:#7a8394;
+      font-size:12px;
+      margin-top:3px;
+    }
+
+    .content{
+      padding:25px;
+    }
+
+    /* ================= CHAT LAYOUT ================= */
+
+    .chat-container{
+      height:calc(100vh - 120px);
+      min-height:600px;
+      background:#fff;
+      border:1px solid #e4e8ef;
+      border-radius:14px;
+      overflow:hidden;
+      display:grid;
+      grid-template-columns:340px 1fr;
+      box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+
+    /* ================= CONVERSATIONS ================= */
+
+    .conversations{
+      border-right:1px solid #e5e7eb;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .conversation-header{
+      padding:18px;
+      border-bottom:1px solid #edf0f4;
+    }
+
+    .conversation-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:15px;
+    }
+
+    .conversation-title h2{
+      font-size:17px;
+    }
+
+    .new-message{
+      width:34px;
+      height:34px;
+      border:0;
+      border-radius:8px;
+      background:#f59e0b;
+      color:#111827;
+      font-size:20px;
+      cursor:pointer;
+      font-weight:700;
+    }
+
+    .search{
+      position:relative;
+    }
+
+    .search input{
+      width:100%;
+      border:1px solid #dfe3ea;
+      border-radius:8px;
+      padding:10px 12px;
+      outline:none;
+      font-size:12px;
+    }
+
+    .chat-filters{
+      display:flex;
+      gap:7px;
+      margin-top:10px;
+    }
+
+    .filter-btn{
+      border:1px solid #e0e4eb;
+      background:#fff;
+      border-radius:20px;
+      padding:6px 11px;
+      font-size:11px;
+      cursor:pointer;
+    }
+
+    .filter-btn.active{
+      background:#fff7e6;
+      border-color:#f59e0b;
+      color:#9a5d00;
+      font-weight:700;
+    }
+
+    .conversation-list{
+      overflow-y:auto;
+      flex:1;
+    }
+
+    .conversation{
+      padding:15px 17px;
+      display:flex;
+      gap:12px;
+      border-bottom:1px solid #f0f1f4;
+      cursor:pointer;
+      transition:.15s;
+    }
+
+    .conversation:hover{
+      background:#fafafa;
+    }
+
+    .conversation.active{
+      background:#fff7e6;
+      border-left:3px solid #f59e0b;
+      padding-left:14px;
+    }
+
+    .chat-avatar{
+      width:43px;
+      height:43px;
+      border-radius:50%;
+      background:#e8edf5;
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      font-size:13px;
+      flex-shrink:0;
+    }
+
+    .chat-info{
+      min-width:0;
+      flex:1;
+    }
+
+    .chat-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .chat-name{
+      font-size:13px;
+      font-weight:750;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .chat-time{
+      font-size:10px;
+      color:#8a93a3;
+      white-space:nowrap;
+    }
+
+    .chat-preview{
+      color:#7a8394;
+      font-size:11px;
+      margin-top:5px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .unread{
+      width:19px;
+      height:19px;
+      border-radius:50%;
+      background:#f59e0b;
+      color:#111827;
+      display:grid;
+      place-items:center;
+      font-size:9px;
+      font-weight:800;
+      margin-top:5px;
+    }
+
+    .online{
+      width:9px;
+      height:9px;
+      background:#22c55e;
+      border:2px solid #fff;
+      border-radius:50%;
+      position:absolute;
+      right:0;
+      bottom:0;
+    }
+
+    .avatar-wrapper{
+      position:relative;
+      width:43px;
+      height:43px;
+      flex-shrink:0;
+    }
+
+    /* ================= CHAT AREA ================= */
+
+    .chat-area{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .chat-header{
+      height:70px;
+      border-bottom:1px solid #edf0f4;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 20px;
+    }
+
+    .chat-user{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .chat-user-name{
+      font-size:14px;
+      font-weight:750;
+    }
+
+    .chat-user-status{
+      color:#16a34a;
+      font-size:11px;
+      margin-top:3px;
+    }
+
+    .chat-actions{
+      display:flex;
+      gap:7px;
+    }
+
+    .icon-btn{
+      width:35px;
+      height:35px;
+      border:1px solid #e0e4eb;
+      background:#fff;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    /* ================= PROJECT INFO ================= */
+
+    .project-bar{
+      background:#fafafa;
+      border-bottom:1px solid #edf0f4;
+      padding:10px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+    }
+
+    .project-name{
+      font-size:12px;
+      font-weight:750;
+    }
+
+    .project-label{
+      font-size:10px;
+      color:#7a8394;
+      margin-bottom:3px;
+    }
+
+    /* ================= MESSAGES ================= */
+
+    .messages{
+      flex:1;
+      overflow-y:auto;
+      padding:20px;
+      background:#f8fafc;
+    }
+
+    .date-divider{
+      text-align:center;
+      margin:5px 0 18px;
+    }
+
+    .date-divider span{
+      background:#e9edf3;
+      color:#737c8d;
+      padding:5px 10px;
+      border-radius:20px;
+      font-size:10px;
+    }
+
+    .message{
+      display:flex;
+      margin-bottom:13px;
+    }
+
+    .message.sent{
+      justify-content:flex-end;
+    }
+
+    .message-bubble{
+      max-width:65%;
+      padding:11px 14px;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid #e4e8ef;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .message.sent .message-bubble{
+      background:#f59e0b;
+      border-color:#f59e0b;
+      color:#111827;
+      border-bottom-right-radius:3px;
+    }
+
+    .message.received .message-bubble{
+      border-bottom-left-radius:3px;
+    }
+
+    .message-time{
+      font-size:9px;
+      color:#8a93a3;
+      margin-top:5px;
+      text-align:right;
+    }
+
+    .message.sent .message-time{
+      color:#705000;
+    }
+
+    .attachment{
+      display:flex;
+      align-items:center;
+      gap:9px;
+      background:#f3f4f6;
+      border-radius:8px;
+      padding:9px;
+      margin-top:6px;
+    }
+
+    .attachment-icon{
+      font-size:18px;
+    }
+
+    .attachment-name{
+      font-size:11px;
+      font-weight:700;
+    }
+
+    .attachment-size{
+      color:#7a8394;
+      font-size:9px;
+      margin-top:2px;
+    }
+
+    /* ================= COMPOSER ================= */
+
+    .composer{
+      min-height:70px;
+      border-top:1px solid #e5e7eb;
+      display:flex;
+      align-items:flex-end;
+      gap:9px;
+      padding:12px 15px;
+      background:#fff;
+    }
+
+    .attach-btn{
+      width:38px;
+      height:38px;
+      border:1px solid #dfe3ea;
+      background:#fff;
+      border-radius:8px;
+      cursor:pointer;
+      flex-shrink:0;
+    }
+
+    .message-input{
+      flex:1;
+      min-height:38px;
+      max-height:110px;
+      resize:none;
+      border:1px solid #dfe3ea;
+      border-radius:9px;
+      padding:10px 12px;
+      outline:none;
+      font-size:12px;
+    }
+
+    .send-btn{
+      width:42px;
+      height:38px;
+      border:0;
+      border-radius:8px;
+      background:#f59e0b;
+      color:#111827;
+      cursor:pointer;
+      font-weight:800;
+      flex-shrink:0;
+    }
+
+    #attachmentInput{
+      display:none;
+    }
+
+    /* ================= MODAL ================= */
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:500;
+    }
+
+    .modal.show{
+      display:flex;
+    }
+
+    .modal-box{
+      background:#fff;
+      width:100%;
+      max-width:500px;
+      border-radius:14px;
+      padding:24px;
+    }
+
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
+    }
+
+    .modal-title{
+      font-size:17px;
+      font-weight:750;
+    }
+
+    .close{
+      width:32px;
+      height:32px;
+      border:0;
+      background:#f3f4f6;
+      border-radius:50%;
+      cursor:pointer;
+      font-size:17px;
+    }
+
+    .form-group{
+      margin-bottom:15px;
+    }
+
+    .form-label{
+      display:block;
+      font-size:12px;
+      font-weight:700;
+      margin-bottom:7px;
+    }
+
+    .form-control{
+      width:100%;
+      border:1px solid #dfe3ea;
+      border-radius:8px;
+      padding:10px;
+      outline:none;
+    }
+
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:9px;
+      margin-top:20px;
+    }
+
+    .btn{
+      border:0;
+      border-radius:8px;
+      padding:9px 14px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .btn-primary{
+      background:#f59e0b;
+      color:#111827;
+    }
+
+    .btn-outline{
+      background:#fff;
+      border:1px solid #d9dee8;
+    }
+
+    /* ================= RESPONSIVE ================= */
+
+    @media(max-width:950px){
+
+      .chat-container{
+        grid-template-columns:290px 1fr;
+      }
+
+      .message-bubble{
+        max-width:78%;
+      }
+
+    }
+
+    @media(max-width:800px){
+
+      .sidebar{
+        width:70px;
+        padding:15px 8px;
+      }
+
+      .logo{
+        font-size:0;
+        text-align:center;
+        padding:10px 0 20px;
+      }
+
+      .logo::after{
+        content:"B";
+        font-size:25px;
+        color:#f59e0b;
+      }
+
+      .nav-title,
+      .nav-item span:not(.nav-icon),
+      .profile-info{
+        display:none;
+      }
+
+      .nav-item{
+        justify-content:center;
+        padding:12px 5px;
+      }
+
+      .main{
+        margin-left:70px;
+      }
+
+      .content{
+        padding:15px;
+      }
+
+      .topbar{
+        padding:0 18px;
+      }
+
+      .chat-container{
+        grid-template-columns:1fr;
+        height:calc(100vh - 100px);
+      }
+
+      .conversations{
+        display:none;
+      }
+
+      .conversations.mobile-open{
+        display:flex;
+      }
+
+    }
+
+    @media(max-width:550px){
+
+      .chat-header{
+        padding:0 12px;
+      }
+
+      .chat-actions{
+        display:none;
+      }
+
+      .project-bar{
+        padding:9px 12px;
+      }
+
+      .messages{
+        padding:14px 10px;
+      }
+
+      .message-bubble{
+        max-width:88%;
+      }
+
+      .composer{
+        padding:9px;
+      }
+
+      .page-title{
+        font-size:17px;
+      }
+
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+
+  <!-- =====================================================
+       SIDEBAR
+       ===================================================== -->
+
+  <aside class="sidebar">
+
+    <div class="logo">
+      Build<span>Bid</span>
+    </div>
+
+
+    <div class="nav-title">Main</div>
+
+    <a class="nav-item" href="dashboard.html">
+      <span class="nav-icon">▦</span>
+      <span>Dashboard</span>
+    </a>
+
+    <a class="nav-item" href="projects.html">
+      <span class="nav-icon">▣</span>
+      <span>Projects</span>
+    </a>
+
+    <a class="nav-item" href="bids.html">
+      <span class="nav-icon">◇</span>
+      <span>Bids</span>
+    </a>
+
+    <a class="nav-item" href="contracts.html">
+      <span class="nav-icon">▤</span>
+      <span>My Contracts</span>
+    </a>
+
+
+    <div class="nav-title">Procurement</div>
+
+    <a class="nav-item" href="order-material.html">
+      <span class="nav-icon">▱</span>
+      <span>Order Material</span>
+    </a>
+
+    <a class="nav-item" href="post-requirement.html">
+      <span class="nav-icon">＋</span>
+      <span>Post Requirement</span>
+    </a>
+
+    <a class="nav-item" href="my-orders.html">
+      <span class="nav-icon">▣</span>
+      <span>My Orders</span>
+    </a>
+
+    <a class="nav-item" href="track-material.html">
+      <span class="nav-icon">⌁</span>
+      <span>Track Material</span>
+    </a>
+
+
+    <div class="nav-title">People</div>
+
+    <a class="nav-item" href="hire-professionals.html">
+      <span class="nav-icon">♙</span>
+      <span>Hire Professionals</span>
+    </a>
+
+    <a class="nav-item" href="team.html">
+      <span class="nav-icon">♟</span>
+      <span>My Team</span>
+    </a>
+
+    <a class="nav-item" href="reviews.html">
+      <span class="nav-icon">★</span>
+      <span>Reviews & Ratings</span>
+    </a>
+
+
+    <div class="nav-title">Finance</div>
+
+    <a class="nav-item" href="earnings.html">
+      <span class="nav-icon">₹</span>
+      <span>Earnings</span>
+    </a>
+
+
+    <div class="nav-title">Communication</div>
+
+    <a class="nav-item active" href="messages.html">
+      <span class="nav-icon">✉</span>
+      <span>Messages</span>
+    </a>
+
+    <a class="nav-item" href="notifications.html">
+      <span class="nav-icon">♢</span>
+      <span>Notifications</span>
+    </a>
+
+
+    <div class="nav-title">Account</div>
+
+    <a class="nav-item" href="get-verified.html">
+      <span class="nav-icon">✓</span>
+      <span>Get Verified</span>
+    </a>
+
+    <a class="nav-item" href="help.html">
+      <span class="nav-icon">?</span>
+      <span>Help & Support</span>
+    </a>
+
+  </aside>
+
+
+  <!-- =====================================================
+       MAIN
+       ===================================================== -->
+
+  <main class="main">
+
+
+    <header class="topbar">
+
+      <div class="page-title">
+        Messages
+      </div>
+
+
+      <div class="top-actions">
+
+        <a href="notifications.html" class="notification">
+
+          ♢
+
+          <span class="notification-dot"></span>
+
+        </a>
+
+
+        <div class="profile">
+
+          <div class="avatar">
+            PP
+          </div>
+
+          <div class="profile-info">
+
+            <strong>
+              Pawan Prajapati
+            </strong>
+
+            <div class="muted">
+              Contractor
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+
+      <!-- =================================================
+           CHAT CONTAINER
+           ================================================= -->
+
+      <div class="chat-container">
+
+
+        <!-- =================================================
+             CONVERSATIONS
+             ================================================= -->
+
+        <div class="conversations">
+
+          <div class="conversation-header">
+
+            <div class="conversation-title">
+
+              <h2>
+                Messages
+              </h2>
+
+              <button
+                class="new-message"
+                onclick="openNewMessage()">
+
+                +
+
+              </button>
+
+            </div>
+
+
+            <div class="search">
+
+              <input
+                type="text"
+                id="conversationSearch"
+                placeholder="Search conversations..."
+                oninput="filterConversations()">
+
+            </div>
+
+
+            <div class="chat-filters">
+
+              <button
+                class="filter-btn active"
+                onclick="setChatFilter('all',this)">
+
+                All
+
+              </button>
+
+              <button
+                class="filter-btn"
+                onclick="setChatFilter('unread',this)">
+
+                Unread
+
+              </button>
+
+              <button
+                class="filter-btn"
+                onclick="setChatFilter('online',this)">
+
+                Online
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div
+            class="conversation-list"
+            id="conversationList">
+
+
+            <!-- Conversation 1 -->
+
+            <div
+              class="conversation active"
+              data-name="Rajesh Kumar"
+              data-status="online"
+              data-unread="1"
+              onclick="selectConversation(
+                'Rajesh Kumar',
+                'RK',
+                'online',
+                'Green Valley Apartments'
+              )">
+
+              <div class="avatar-wrapper">
+
+                <div class="chat-avatar">
+                  RK
+                </div>
+
+                <span class="online"></span>
+
+              </div>
+
+
+              <div class="chat-info">
+
+                <div class="chat-top">
+
+                  <span class="chat-name">
+                    Rajesh Kumar
+                  </span>
+
+                  <span class="chat-time">
+                    12:42 PM
+                  </span>
+
+                </div>
+
+                <div class="chat-preview">
+                  Please confirm the material quantity...
+                </div>
+
+                <span class="unread">
+                  2
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <!-- Conversation 2 -->
+
+            <div
+              class="conversation"
+              data-name="Amit Sharma"
+              data-status="offline"
+              data-unread="0"
+              onclick="selectConversation(
+                'Amit Sharma',
+                'AS',
+                'offline',
+                'Metro Commercial Complex'
+              )">
+
+              <div class="avatar-wrapper">
+
+                <div class="chat-avatar">
+                  AS
+                </div>
+
+              </div>
+
+
+              <div class="chat-info">
+
+                <div class="chat-top">
+
+                  <span class="chat-name">
+                    Amit Sharma
+                  </span>
+
+                  <span class="chat-time">
+                    Yesterday
+                  </span>
+
+                </div>
+
+                <div class="chat-preview">
+                  The revised quotation has been shared.
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Conversation 3 -->
+
+            <div
+              class="conversation"
+              data-name="Priya Singh"
+              data-status="online"
+              data-unread="1"
+              onclick="selectConversation(
+                'Priya Singh',
+                'PS',
+                'online',
+                'Sunrise Villa'
+              )">
+
+              <div class="avatar-wrapper">
+
+                <div class="chat-avatar">
+                  PS
+                </div>
+
+                <span class="online"></span>
+
+              </div>
+
+
+              <div class="chat-info">
+
+                <div class="chat-top">
+
+                  <span class="chat-name">
+                    Priya Singh
+                  </span>
+
+                  <span class="chat-time">
+                    Yesterday
+                  </span>
+
+                </div>
+
+                <div class="chat-preview">
+                  Can we schedule the site visit?
+                </div>
+
+                <span class="unread">
+                  1
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <!-- Conversation 4 -->
+
+            <div
+              class="conversation"
+              data-name="BuildBid Support"
+              data-status="online"
+              data-unread="0"
+              onclick="selectConversation(
+                'BuildBid Support',
+                'BB',
+                'online',
+                'Support'
+              )">
+
+              <div class="avatar-wrapper">
+
+                <div class="chat-avatar">
+                  BB
+                </div>
+
+                <span class="online"></span>
+
+              </div>
+
+
+              <div class="chat-info">
+
+                <div class="chat-top">
+
+                  <span class="chat-name">
+                    BuildBid Support
+                  </span>
+
+                  <span class="chat-time">
+                    08 Sep
+                  </span>
+
+                </div>
+
+                <div class="chat-preview">
+                  Your verification request is under review.
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Conversation 5 -->
+
+            <div
+              class="conversation"
+              data-name="Vikas Electricals"
+              data-status="offline"
+              data-unread="0"
+              onclick="selectConversation(
+                'Vikas Electricals',
+                'VE',
+                'offline',
+                'Material Order #ORD-2048'
+              )">
+
+              <div class="avatar-wrapper">
+
+                <div class="chat-avatar">
+                  VE
+                </div>
+
+              </div>
+
+
+              <div class="chat-info">
+
+                <div class="chat-top">
+
+                  <span class="chat-name">
+                    Vikas Electricals
+                  </span>
+
+                  <span class="chat-time">
+                    07 Sep
+                  </span>
+
+                </div>
+
+                <div class="chat-preview">
+                  Your electrical material is dispatched.
+                </div>
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             CHAT AREA
+             ================================================= -->
+
+        <div class="chat-area">
+
+
+          <div class="chat-header">
+
+
+            <div class="chat-user">
+
+              <div
+                class="chat-avatar"
+                id="chatAvatar">
+
+                RK
+
+              </div>
+
+
+              <div>
+
+                <div
+                  class="chat-user-name"
+                  id="chatUserName">
+
+                  Rajesh Kumar
+
+                </div>
+
+                <div
+                  class="chat-user-status"
+                  id="chatUserStatus">
+
+                  ● Online
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="chat-actions">
+
+              <button
+                class="icon-btn"
+                title="Call"
+                onclick="startCall()">
+
+                ☎
+
+              </button>
+
+              <button
+                class="icon-btn"
+                title="View Profile"
+                onclick="viewProfile()">
+
+                ♙
+
+              </button>
+
+              <button
+                class="icon-btn"
+                title="More"
+                onclick="chatOptions()">
+
+                ⋮
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- PROJECT -->
+
+          <div class="project-bar">
+
+            <div>
+
+              <div class="project-label">
+                Related Project
+              </div>
+
+              <div
+                class="project-name"
+                id="projectName">
+
+                Green Valley Apartments
+
+              </div>
+
+            </div>
+
+
+            <a
+              href="projects.html"
+              class="btn btn-outline">
+
+              View Project
+
+            </a>
+
+          </div>
+
+
+          <!-- =================================================
+               MESSAGES
+               ================================================= -->
+
+          <div
+            class="messages"
+            id="messages">
+
+
+            <div class="date-divider">
+              <span>Today</span>
+            </div>
+
+
+            <!-- Received -->
+
+            <div class="message received">
+
+              <div class="message-bubble">
+
+                Hi Pawan, can you confirm the cement quantity
+                required for the next phase?
+
+                <div class="message-time">
+                  12:36 PM
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Sent -->
+
+            <div class="message sent">
+
+              <div class="message-bubble">
+
+                Yes, we need approximately 120 bags of OPC
+                cement for this phase.
+
+                <div class="message-time">
+                  12:38 PM ✓✓
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Received -->
+
+            <div class="message received">
+
+              <div class="message-bubble">
+
+                Okay. Should we arrange delivery for tomorrow
+                morning?
+
+                <div class="message-time">
+                  12:40 PM
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Sent -->
+
+            <div class="message sent">
+
+              <div class="message-bubble">
+
+                Yes, please schedule it for 10 AM. The site
+                will be accessible from the main gate.
+
+                <div class="message-time">
+                  12:41 PM ✓✓
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Received -->
+
+            <div class="message received">
+
+              <div class="message-bubble">
+
+                Please confirm the material quantity and I'll
+                place the order.
+
+                <div class="message-time">
+                  12:42 PM
+                </div>
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <!-- =================================================
+               COMPOSER
+               ================================================= -->
+
+          <form
+            class="composer"
+            id="messageForm">
+
+
+            <button
+              type="button"
+              class="attach-btn"
+              onclick="document.getElementById('attachmentInput').click()"
+              title="Attach file">
+
+              📎
+
+            </button>
+
+
+            <input
+              type="file"
+              id="attachmentInput"
+              multiple
+              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xlsx,.zip"
+              onchange="handleAttachment(this)">
+
+
+            <textarea
+              id="messageInput"
+              class="message-input"
+              rows="1"
+              placeholder="Type a message..."
+              required></textarea>
+
+
+            <button
+              type="submit"
+              class="send-btn">
+
+              ➤
+
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================
+       NEW MESSAGE MODAL
+       ===================================================== -->
+
+  <div
+    class="modal"
+    id="newMessageModal">
+
+    <div class="modal-box">
+
+      <div class="modal-header">
+
+        <div class="modal-title">
+          New Message
+        </div>
+
+        <button
+          class="close"
+          onclick="closeNewMessage()">
+
+          ×
+
+        </button>
+
+      </div>
+
+
+      <form id="newMessageForm">
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Recipient
+          </label>
+
+          <input
+            type="text"
+            id="recipient"
+            class="form-control"
+            placeholder="Search contractor, client or supplier..."
+            required>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Related Project
+          </label>
+
+          <select
+            id="relatedProject"
+            class="form-control">
+
+            <option value="">
+              Select project
+            </option>
+
+            <option>
+              Green Valley Apartments
+            </option>
+
+            <option>
+              Metro Commercial Complex
+            </option>
+
+            <option>
+              Sunrise Villa
+            </option>
+
+            <option>
+              Royal Heights
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Message
+          </label>
+
+          <textarea
+            id="newMessageText"
+            class="form-control"
+            style="min-height:110px;resize:vertical;"
+            placeholder="Write your message..."
+            required></textarea>
+
+        </div>
+
+
+        <div class="modal-actions">
+
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="closeNewMessage()">
+
+            Cancel
+
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary">
+
+            Start Conversation
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+       ===================================================== -->
+
+  <script>
+
+    /*
+    =========================================================
+    BACKEND API STRUCTURE
+    =========================================================
+
+    GET
+    /api/messages
+
+    -> Current user's messages
+
+
+    GET
+    /api/conversations
+
+    -> Conversation list
+
+
+    GET
+    /api/conversations/:id/messages
+
+    -> Messages of a conversation
+
+
+    POST
+    /api/messages
+
+    Body:
+
+    {
+      conversationId,
+      receiverId,
+      message,
+      projectId
+    }
+
+
+    POST
+    /api/messages/attachment
+
+    -> Upload attachment
+
+
+    PUT
+    /api/conversations/:id/read
+
+    -> Mark conversation as read
+
+
+    POST
+    /api/conversations
+
+    -> Create new conversation
+
+
+    WebSocket / Socket.IO:
+
+    message:new
+    message:read
+    typing:start
+    typing:stop
+    user:online
+    user:offline
+
+    =========================================================
+    */
+
+
+    let currentConversationId = null;
+
+    let currentChatUser = {
+      id: null,
+      name: "Rajesh Kumar"
+    };
+
+
+    /* ================= SELECT CONVERSATION ================= */
+
+    function selectConversation(
+      name,
+      initials,
+      status,
+      project
+    ){
+
+      document
+        .querySelectorAll(".conversation")
+        .forEach(item => {
+
+          item.classList.remove("active");
+
+        });
+
+
+      event.currentTarget.classList.add("active");
+
+
+      document
+        .getElementById("chatAvatar")
+        .textContent = initials;
+
+
+      document
+        .getElementById("chatUserName")
+        .textContent = name;
+
+
+      document
+        .getElementById("projectName")
+        .textContent = project;
+
+
+      const statusElement =
+        document.getElementById("chatUserStatus");
+
+
+      if(status === "online"){
+
+        statusElement.textContent =
+          "● Online";
+
+        statusElement.style.color =
+          "#16a34a";
+
+      }else{
+
+        statusElement.textContent =
+          "● Offline";
+
+        statusElement.style.color =
+          "#8a93a3";
+
+      }
+
+
+      currentChatUser.name = name;
+
+
+      /*
+        Production:
+
+        currentConversationId =
+          conversationId;
+
+        loadMessages(conversationId);
+
+        markConversationRead(conversationId);
+      */
+
+    }
+
+
+    /* ================= SEND MESSAGE ================= */
+
+    document
+      .getElementById("messageForm")
+      .addEventListener(
+        "submit",
+        async function(event){
+
+          event.preventDefault();
+
+
+          const input =
+            document.getElementById("messageInput");
+
+          const text =
+            input.value.trim();
+
+
+          if(!text){
+            return;
+          }
+
+
+          /*
+          ====================================================
+          REAL API
+
+          POST /api/messages
+
+          {
+            conversationId:
+              currentConversationId,
+
+            receiverId:
+              currentChatUser.id,
+
+            message:text
+          }
+          ====================================================
+          */
+
+
+          addMessage(
+            text,
+            "sent"
+          );
+
+
+          input.value = "";
+
+          input.style.height = "38px";
+
+
+          scrollMessages();
+
+        }
+      );
+
+
+    /* ================= ADD MESSAGE ================= */
+
+    function addMessage(
+      text,
+      type
+    ){
+
+      const messages =
+        document.getElementById("messages");
+
+
+      const wrapper =
+        document.createElement("div");
+
+      wrapper.className =
+        `message ${type}`;
+
+
+      const bubble =
+        document.createElement("div");
+
+      bubble.className =
+        "message-bubble";
+
+
+      const messageText =
+        document.createElement("div");
+
+      messageText.textContent =
+        text;
+
+
+      const time =
+        document.createElement("div");
+
+      time.className =
+        "message-time";
+
+
+      const now =
+        new Date();
+
+
+      time.textContent =
+        now.toLocaleTimeString(
+          [],
+          {
+            hour:"2-digit",
+            minute:"2-digit"
+          }
+        ) +
+        (
+          type === "sent"
+            ? " ✓"
+            : ""
+        );
+
+
+      bubble.appendChild(
+        messageText
+      );
+
+      bubble.appendChild(
+        time
+      );
+
+      wrapper.appendChild(
+        bubble
+      );
+
+      messages.appendChild(
+        wrapper
+      );
+
+    }
+
+
+    /* ================= SCROLL ================= */
+
+    function scrollMessages(){
+
+      const box =
+        document.getElementById("messages");
+
+      box.scrollTop =
+        box.scrollHeight;
+
+    }
+
+
+    /* ================= SEARCH ================= */
+
+    function filterConversations(){
+
+      const search =
+        document
+          .getElementById("conversationSearch")
+          .value
+          .toLowerCase()
+          .trim();
+
+
+      document
+        .querySelectorAll(".conversation")
+        .forEach(item => {
+
+          const name =
+            item.dataset.name.toLowerCase();
+
+          const preview =
+            item.innerText.toLowerCase();
+
+
+          if(
+            name.includes(search) ||
+            preview.includes(search)
+          ){
+
+            item.style.display =
+              "flex";
+
+          }else{
+
+            item.style.display =
+              "none";
+
+          }
+
+        });
+
+    }
+
+
+    /* ================= CHAT FILTER ================= */
+
+    function setChatFilter(
+      filter,
+      button
+    ){
+
+      document
+        .querySelectorAll(".filter-btn")
+        .forEach(btn => {
+
+          btn.classList.remove("active");
+
+        });
+
+
+      button.classList.add("active");
+
+
+      document
+        .querySelectorAll(".conversation")
+        .forEach(item => {
+
+          let show = true;
+
+
+          if(filter === "unread"){
+
+            show =
+              item.dataset.unread === "1";
+
+          }
+
+
+          if(filter === "online"){
+
+            show =
+              item.dataset.status === "online";
+
+          }
+
+
+          item.style.display =
+            show ? "flex" : "none";
+
+        });
+
+    }
+
+
+    /* ================= ATTACHMENT ================= */
+
+    function handleAttachment(input){
+
+      if(!input.files.length){
+        return;
+      }
+
+
+      const file =
+        input.files[0];
+
+
+      if(file.size > 10 * 1024 * 1024){
+
+        alert(
+          "Maximum attachment size is 10 MB."
+        );
+
+        input.value = "";
+
+        return;
+      }
+
+
+      addMessage(
+        "📎 " + file.name,
+        "sent"
+      );
+
+
+      scrollMessages();
+
+
+      /*
+        Production:
+
+        1. Upload file
+        2. Receive attachment URL
+        3. POST message with attachmentUrl
+      */
+
+    }
+
+
+    /* ================= NEW MESSAGE ================= */
+
+    function openNewMessage(){
+
+      document
+        .getElementById("newMessageModal")
+        .classList.add("show");
+
+    }
+
+
+    function closeNewMessage(){
+
+      document
+        .getElementById("newMessageModal")
+        .classList.remove("show");
+
+    }
+
+
+    document
+      .getElementById("newMessageForm")
+      .addEventListener(
+        "submit",
+        async function(event){
+
+          event.preventDefault();
+
+
+          const recipient =
+            document
+              .getElementById("recipient")
+              .value
+              .trim();
+
+          const project =
+            document
+              .getElementById("relatedProject")
+              .value;
+
+          const message =
+            document
+              .getElementById("newMessageText")
+              .value
+              .trim();
+
+
+          if(
+            !recipient ||
+            !message
+          ){
+
+            alert(
+              "Please fill the required fields."
+            );
+
+            return;
+          }
+
+
+          /*
+          ====================================================
+          REAL API
+
+          POST /api/conversations
+
+          {
+            recipientId,
+            projectId,
+            initialMessage: message
+          }
+          ====================================================
+          */
+
+
+          alert(
+            "New conversation created."
+          );
+
+
+          document
+            .getElementById("newMessageForm")
+            .reset();
+
+
+          closeNewMessage();
+
+        }
+      );
+
+
+    /* ================= CALL ================= */
+
+    function startCall(){
+
+      alert(
+        "Calling feature will be connected with the backend."
+      );
+
+    }
+
+
+    /* ================= PROFILE ================= */
+
+    function viewProfile(){
+
+      alert(
+        "User profile will open here."
+      );
+
+      /*
+        Production:
+
+        window.location.href =
+          `hire-professionals.html?id=${userId}`;
+      */
+
+    }
+
+
+    /* ================= OPTIONS ================= */
+
+    function chatOptions(){
+
+      alert(
+        "Chat options: Mute, Archive, Report."
+      );
+
+    }
+
+
+    /* ================= LOAD CONVERSATIONS ================= */
+
+    async function loadConversations(){
+
+      /*
+      ======================================================
+      Production:
+
+      const token =
+        localStorage.getItem("token");
+
+      const response =
+        await fetch(
+          "/api/conversations",
+          {
+            headers:{
+              Authorization:
+                `Bearer ${token}`
+            }
+          }
+        );
+
+      const data =
+        await response.json();
+
+      Render conversations here.
+      ======================================================
+      */
+
+    }
+
+
+    /* ================= LOAD MESSAGES ================= */
+
+    async function loadMessages(
+      conversationId
+    ){
+
+      /*
+      ======================================================
+      Production:
+
+      GET
+      /api/conversations/:id/messages
+
+      Then render messages.
+
+      ======================================================
+      */
+
+    }
+
+
+    /* ================= MARK READ ================= */
+
+    async function markConversationRead(
+      conversationId
+    ){
+
+      /*
+      ======================================================
+      PUT
+      /api/conversations/:id/read
+      ======================================================
+      */
+
+    }
+
+
+    /* ================= SOCKET.IO ================= */
+
+    /*
+    Production example:
+
+    const socket =
+      io(BACKEND_URL, {
+        auth:{
+          token:
+            localStorage.getItem("token")
+        }
+      });
+
+
+    socket.on(
+      "message:new",
+      message => {
+
+        // Render new message
+
+      }
+    );
+
+
+    socket.on(
+      "user:online",
+      userId => {
+
+        // Update online status
+
+      }
+    );
+
+
+    socket.on(
+      "user:offline",
+      userId => {
+
+        // Update offline status
+
+      }
+    );
+    */
+
+
+    /* ================= TEXTAREA AUTO HEIGHT ================= */
+
+    document
+      .getElementById("messageInput")
+      .addEventListener(
+        "input",
+        function(){
+
+          this.style.height =
+            "38px";
+
+          this.style.height =
+            Math.min(
+              this.scrollHeight,
+              110
+            ) + "px";
+
+        }
+      );
+
+
+    /* ================= ENTER TO SEND ================= */
+
+    document
+      .getElementById("messageInput")
+      .addEventListener(
+        "keydown",
+        function(event){
+
+          if(
+            event.key === "Enter" &&
+            !event.shiftKey
+          ){
+
+            event.preventDefault();
+
+            document
+              .getElementById("messageForm")
+              .requestSubmit();
+
+          }
+
+        }
+      );
+
+
+    /* ================= MODAL OUTSIDE CLICK ================= */
+
+    document
+      .getElementById("newMessageModal")
+      .addEventListener(
+        "click",
+        function(event){
+
+          if(event.target === this){
+
+            closeNewMessage();
+
+          }
+
+        }
+      );
+
+
+    /* ================= INITIALIZE ================= */
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function(){
+
+        scrollMessages();
+
+        /*
+          Backend ready hone ke baad:
+
+          loadConversations();
+        */
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>

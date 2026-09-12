@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Help & Support | BuildBid</title>
+
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    body{
+      font-family:Inter,Arial,sans-serif;
+      background:#f5f7fb;
+      color:#172033;
+    }
+
+    a{
+      text-decoration:none;
+      color:inherit;
+    }
+
+    button,input,select,textarea{
+      font:inherit;
+    }
+
+    /* ================= SIDEBAR ================= */
+
+    .sidebar{
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      width:250px;
+      background:#111827;
+      color:#fff;
+      padding:22px 14px;
+      overflow-y:auto;
+      z-index:100;
+    }
+
+    .logo{
+      font-size:23px;
+      font-weight:800;
+      padding:0 14px 25px;
+    }
+
+    .logo span{
+      color:#f59e0b;
+    }
+
+    .nav-title{
+      color:#8892a6;
+      font-size:11px;
+      font-weight:700;
+      text-transform:uppercase;
+      padding:15px 14px 8px;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:11px 14px;
+      border-radius:9px;
+      color:#c8d0dd;
+      margin-bottom:3px;
+      font-size:14px;
+      transition:.2s;
+    }
+
+    .nav-item:hover{
+      background:#1f2937;
+      color:#fff;
+    }
+
+    .nav-item.active{
+      background:#f59e0b;
+      color:#111827;
+      font-weight:700;
+    }
+
+    .nav-icon{
+      width:21px;
+      text-align:center;
+    }
+
+    /* ================= MAIN ================= */
+
+    .main{
+      margin-left:250px;
+      min-height:100vh;
+    }
+
+    .topbar{
+      height:70px;
+      background:#fff;
+      border-bottom:1px solid #e5e7eb;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 30px;
+    }
+
+    .page-title{
+      font-size:21px;
+      font-weight:750;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+
+    .notification{
+      position:relative;
+      font-size:20px;
+    }
+
+    .notification-dot{
+      position:absolute;
+      right:-3px;
+      top:-2px;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#ef4444;
+    }
+
+    .profile{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .avatar{
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      background:#f59e0b;
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .profile-info strong{
+      font-size:13px;
+    }
+
+    .muted{
+      color:#7a8394;
+      font-size:12px;
+      margin-top:3px;
+    }
+
+    .content{
+      padding:30px;
+    }
+
+    /* ================= HERO ================= */
+
+    .hero{
+      background:#111827;
+      color:#fff;
+      border-radius:16px;
+      padding:30px;
+      margin-bottom:24px;
+      text-align:center;
+    }
+
+    .hero-icon{
+      width:58px;
+      height:58px;
+      background:#f59e0b;
+      color:#111827;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:27px;
+      font-weight:800;
+      margin:0 auto 15px;
+    }
+
+    .hero h1{
+      font-size:25px;
+      margin-bottom:8px;
+    }
+
+    .hero p{
+      color:#b9c1cf;
+      font-size:13px;
+      line-height:1.6;
+      max-width:650px;
+      margin:auto;
+    }
+
+    /* ================= SEARCH ================= */
+
+    .search-box{
+      max-width:700px;
+      margin:22px auto 0;
+      position:relative;
+    }
+
+    .search-box input{
+      width:100%;
+      padding:14px 18px;
+      border:0;
+      border-radius:10px;
+      outline:none;
+      font-size:14px;
+    }
+
+    /* ================= GRID ================= */
+
+    .grid{
+      display:grid;
+      grid-template-columns:2fr 1fr;
+      gap:22px;
+    }
+
+    .card{
+      background:#fff;
+      border:1px solid #e7eaf0;
+      border-radius:14px;
+      padding:22px;
+      box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+
+    .card-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+      margin-bottom:18px;
+    }
+
+    .card-title{
+      font-size:17px;
+      font-weight:750;
+    }
+
+    /* ================= CATEGORY ================= */
+
+    .categories{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .category{
+      border:1px solid #e3e7ee;
+      background:#fff;
+      border-radius:9px;
+      padding:12px 8px;
+      text-align:center;
+      cursor:pointer;
+      font-size:12px;
+      transition:.2s;
+    }
+
+    .category:hover{
+      border-color:#f59e0b;
+      background:#fffbf2;
+    }
+
+    .category.active{
+      border-color:#f59e0b;
+      background:#fff7e6;
+      font-weight:700;
+    }
+
+    .category-icon{
+      font-size:20px;
+      display:block;
+      margin-bottom:6px;
+    }
+
+    /* ================= FAQ ================= */
+
+    .faq{
+      border:1px solid #e6e9ef;
+      border-radius:10px;
+      margin-bottom:10px;
+      overflow:hidden;
+    }
+
+    .faq-question{
+      padding:15px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:700;
+      background:#fff;
+    }
+
+    .faq-question:hover{
+      background:#fafafa;
+    }
+
+    .faq-arrow{
+      font-size:16px;
+      transition:.2s;
+    }
+
+    .faq.open .faq-arrow{
+      transform:rotate(180deg);
+    }
+
+    .faq-answer{
+      display:none;
+      padding:0 15px 16px;
+      color:#687285;
+      font-size:12px;
+      line-height:1.7;
+      border-top:1px solid #f0f1f4;
+      padding-top:13px;
+    }
+
+    .faq.open .faq-answer{
+      display:block;
+    }
+
+    .no-results{
+      display:none;
+      text-align:center;
+      padding:30px;
+      color:#7a8394;
+      font-size:13px;
+    }
+
+    /* ================= SUPPORT OPTIONS ================= */
+
+    .support-option{
+      display:flex;
+      align-items:flex-start;
+      gap:13px;
+      padding:15px 0;
+      border-bottom:1px solid #edf0f4;
+    }
+
+    .support-option:last-child{
+      border-bottom:0;
+    }
+
+    .support-icon{
+      width:40px;
+      height:40px;
+      border-radius:9px;
+      background:#fff7e6;
+      display:grid;
+      place-items:center;
+      font-size:19px;
+      flex-shrink:0;
+    }
+
+    .support-title{
+      font-size:13px;
+      font-weight:750;
+    }
+
+    .support-text{
+      color:#737c8d;
+      font-size:11px;
+      line-height:1.5;
+      margin-top:4px;
+    }
+
+    /* ================= BUTTON ================= */
+
+    .btn{
+      border:0;
+      border-radius:8px;
+      padding:9px 14px;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .btn-primary{
+      background:#f59e0b;
+      color:#111827;
+    }
+
+    .btn-outline{
+      background:#fff;
+      border:1px solid #d9dee8;
+      color:#374151;
+    }
+
+    /* ================= TICKETS ================= */
+
+    .ticket{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+      padding:14px 0;
+      border-bottom:1px solid #edf0f4;
+    }
+
+    .ticket:last-child{
+      border-bottom:0;
+    }
+
+    .ticket-id{
+      font-size:11px;
+      color:#7a8394;
+      margin-bottom:4px;
+    }
+
+    .ticket-title{
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .ticket-date{
+      color:#7a8394;
+      font-size:11px;
+      margin-top:4px;
+    }
+
+    .ticket-status{
+      padding:6px 9px;
+      border-radius:20px;
+      font-size:10px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .ticket-status.open{
+      background:#dbeafe;
+      color:#1d4ed8;
+    }
+
+    .ticket-status.resolved{
+      background:#dcfce7;
+      color:#15803d;
+    }
+
+    .ticket-status.pending{
+      background:#fef3c7;
+      color:#b45309;
+    }
+
+    /* ================= MODAL ================= */
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:500;
+    }
+
+    .modal.show{
+      display:flex;
+    }
+
+    .modal-box{
+      background:#fff;
+      width:100%;
+      max-width:560px;
+      border-radius:14px;
+      padding:24px;
+      max-height:90vh;
+      overflow-y:auto;
+    }
+
+    .modal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+
+    .close{
+      width:32px;
+      height:32px;
+      border:0;
+      border-radius:50%;
+      background:#f3f4f6;
+      cursor:pointer;
+      font-size:18px;
+    }
+
+    .form-group{
+      margin-bottom:15px;
+    }
+
+    .form-label{
+      display:block;
+      font-size:12px;
+      font-weight:700;
+      margin-bottom:7px;
+    }
+
+    .form-control{
+      width:100%;
+      border:1px solid #dfe3ea;
+      border-radius:8px;
+      padding:10px;
+      outline:none;
+    }
+
+    textarea.form-control{
+      min-height:120px;
+      resize:vertical;
+    }
+
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top:20px;
+    }
+
+    /* ================= RESPONSIVE ================= */
+
+    @media(max-width:1050px){
+      .grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media(max-width:800px){
+
+      .sidebar{
+        width:70px;
+        padding:15px 8px;
+      }
+
+      .logo{
+        font-size:0;
+        text-align:center;
+        padding:10px 0 20px;
+      }
+
+      .logo::after{
+        content:"B";
+        font-size:25px;
+        color:#f59e0b;
+      }
+
+      .nav-title,
+      .nav-item span:not(.nav-icon),
+      .profile-info{
+        display:none;
+      }
+
+      .nav-item{
+        justify-content:center;
+        padding:12px 5px;
+      }
+
+      .main{
+        margin-left:70px;
+      }
+
+      .content{
+        padding:18px;
+      }
+
+      .topbar{
+        padding:0 18px;
+      }
+
+      .categories{
+        grid-template-columns:repeat(2,1fr);
+      }
+    }
+
+    @media(max-width:550px){
+
+      .hero{
+        padding:24px 18px;
+      }
+
+      .hero h1{
+        font-size:21px;
+      }
+
+      .ticket{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .ticket-status{
+        align-self:flex-start;
+      }
+
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+  <!-- =====================================================
+       SIDEBAR
+       ===================================================== -->
+
+  <aside class="sidebar">
+
+    <div class="logo">
+      Build<span>Bid</span>
+    </div>
+
+
+    <div class="nav-title">Main</div>
+
+    <a class="nav-item" href="dashboard.html">
+      <span class="nav-icon">▦</span>
+      <span>Dashboard</span>
+    </a>
+
+    <a class="nav-item" href="projects.html">
+      <span class="nav-icon">▣</span>
+      <span>Projects</span>
+    </a>
+
+    <a class="nav-item" href="bids.html">
+      <span class="nav-icon">◇</span>
+      <span>Bids</span>
+    </a>
+
+    <a class="nav-item" href="contracts.html">
+      <span class="nav-icon">▤</span>
+      <span>My Contracts</span>
+    </a>
+
+
+    <div class="nav-title">Procurement</div>
+
+    <a class="nav-item" href="order-material.html">
+      <span class="nav-icon">▱</span>
+      <span>Order Material</span>
+    </a>
+
+    <a class="nav-item" href="post-requirement.html">
+      <span class="nav-icon">＋</span>
+      <span>Post Requirement</span>
+    </a>
+
+    <a class="nav-item" href="my-orders.html">
+      <span class="nav-icon">▣</span>
+      <span>My Orders</span>
+    </a>
+
+    <a class="nav-item" href="track-material.html">
+      <span class="nav-icon">⌁</span>
+      <span>Track Material</span>
+    </a>
+
+
+    <div class="nav-title">People</div>
+
+    <a class="nav-item" href="hire-professionals.html">
+      <span class="nav-icon">♙</span>
+      <span>Hire Professionals</span>
+    </a>
+
+    <a class="nav-item" href="team.html">
+      <span class="nav-icon">♟</span>
+      <span>My Team</span>
+    </a>
+
+    <a class="nav-item" href="reviews.html">
+      <span class="nav-icon">★</span>
+      <span>Reviews & Ratings</span>
+    </a>
+
+
+    <div class="nav-title">Finance</div>
+
+    <a class="nav-item" href="earnings.html">
+      <span class="nav-icon">₹</span>
+      <span>Earnings</span>
+    </a>
+
+
+    <div class="nav-title">Communication</div>
+
+    <a class="nav-item" href="messages.html">
+      <span class="nav-icon">✉</span>
+      <span>Messages</span>
+    </a>
+
+    <a class="nav-item" href="notifications.html">
+      <span class="nav-icon">♢</span>
+      <span>Notifications</span>
+    </a>
+
+
+    <div class="nav-title">Account</div>
+
+    <a class="nav-item" href="get-verified.html">
+      <span class="nav-icon">✓</span>
+      <span>Get Verified</span>
+    </a>
+
+    <a class="nav-item active" href="help.html">
+      <span class="nav-icon">?</span>
+      <span>Help & Support</span>
+    </a>
+
+  </aside>
+
+
+  <!-- =====================================================
+       MAIN
+       ===================================================== -->
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div class="page-title">
+        Help & Support
+      </div>
+
+      <div class="top-actions">
+
+        <a href="notifications.html" class="notification">
+          ♢
+          <span class="notification-dot"></span>
+        </a>
+
+        <div class="profile">
+
+          <div class="avatar">
+            PP
+          </div>
+
+          <div class="profile-info">
+            <strong>Pawan Prajapati</strong>
+            <div class="muted">Contractor</div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+
+      <!-- =================================================
+           HERO
+           ================================================= -->
+
+      <div class="hero">
+
+        <div class="hero-icon">
+          ?
+        </div>
+
+        <h1>
+          How can we help you?
+        </h1>
+
+        <p>
+          Find answers to common questions or contact our
+          support team for help with your BuildBid account,
+          projects, payments, orders and more.
+        </p>
+
+
+        <div class="search-box">
+
+          <input
+            type="text"
+            id="faqSearch"
+            placeholder="Search your question..."
+            oninput="searchFAQs()">
+
+        </div>
+
+      </div>
+
+
+      <!-- =================================================
+           CATEGORY
+           ================================================= -->
+
+      <div class="categories">
+
+        <div
+          class="category active"
+          data-category="all"
+          onclick="filterCategory('all',this)">
+
+          <span class="category-icon">▦</span>
+          All Topics
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="account"
+          onclick="filterCategory('account',this)">
+
+          <span class="category-icon">♙</span>
+          Account
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="projects"
+          onclick="filterCategory('projects',this)">
+
+          <span class="category-icon">▣</span>
+          Projects
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="payments"
+          onclick="filterCategory('payments',this)">
+
+          <span class="category-icon">₹</span>
+          Payments
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="orders"
+          onclick="filterCategory('orders',this)">
+
+          <span class="category-icon">▱</span>
+          Orders
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="verification"
+          onclick="filterCategory('verification',this)">
+
+          <span class="category-icon">✓</span>
+          Verification
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="team"
+          onclick="filterCategory('team',this)">
+
+          <span class="category-icon">♟</span>
+          Team
+
+        </div>
+
+
+        <div
+          class="category"
+          data-category="other"
+          onclick="filterCategory('other',this)">
+
+          <span class="category-icon">?</span>
+          Other
+
+        </div>
+
+      </div>
+
+
+      <!-- =================================================
+           CONTENT GRID
+           ================================================= -->
+
+      <div class="grid">
+
+
+        <!-- ================= FAQ ================= -->
+
+        <div class="card">
+
+          <div class="card-header">
+
+            <div>
+
+              <div class="card-title">
+                Frequently Asked Questions
+              </div>
+
+              <div class="muted">
+                Find quick answers to common questions
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div id="faqList">
+
+
+            <!-- FAQ 1 -->
+
+            <div
+              class="faq"
+              data-category="account"
+              data-search="create account signup register login">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How do I create a BuildBid account?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Click on the Sign Up option and provide your
+                required account information. After completing
+                verification, you can access your contractor
+                dashboard.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 2 -->
+
+            <div
+              class="faq"
+              data-category="projects"
+              data-search="post project create project requirement">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How can I post a new project?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Go to the Projects section or Post Requirement
+                section from the sidebar. Enter the project
+                details, requirements, dates and other information
+                and submit the project.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 3 -->
+
+            <div
+              class="faq"
+              data-category="projects"
+              data-search="bid contractor bidding project">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How does the bidding process work?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Contractors can review available projects and
+                submit their bids. You can compare bids and select
+                the contractor that best matches your requirements.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 4 -->
+
+            <div
+              class="faq"
+              data-category="payments"
+              data-search="payment earning withdraw money bank">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How do I withdraw my earnings?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Go to Earnings and select Withdraw Money.
+                Your available balance can be transferred to
+                your registered bank account according to the
+                applicable payment process.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 5 -->
+
+            <div
+              class="faq"
+              data-category="orders"
+              data-search="material order delivery track">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How can I track my material order?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Open My Orders to view your orders. Select an
+                order and use Track Material to view the current
+                delivery status and tracking timeline.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 6 -->
+
+            <div
+              class="faq"
+              data-category="verification"
+              data-search="verify kyc document verification badge">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How can I get my contractor profile verified?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Open Get Verified from the sidebar. Complete
+                your profile and upload the required documents.
+                Once submitted, the verification team can review
+                your information.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 7 -->
+
+            <div
+              class="faq"
+              data-category="team"
+              data-search="team member add worker employee">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How do I add a team member?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                Open My Team and select Add Team Member.
+                Enter the member's details, role, rate and
+                project assignment and save the information.
+
+              </div>
+
+            </div>
+
+
+            <!-- FAQ 8 -->
+
+            <div
+              class="faq"
+              data-category="other"
+              data-search="message support contact help">
+
+              <div
+                class="faq-question"
+                onclick="toggleFAQ(this)">
+
+                <span>
+                  How can I contact BuildBid support?
+                </span>
+
+                <span class="faq-arrow">
+                  ▼
+                </span>
+
+              </div>
+
+              <div class="faq-answer">
+
+                You can create a support ticket using the
+                Create Support Ticket option or contact the
+                available support channels shown on this page.
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <div
+            id="noResults"
+            class="no-results">
+
+            No matching questions found.
+
+          </div>
+
+        </div>
+
+
+        <!-- ================= RIGHT ================= -->
+
+        <div>
+
+
+          <!-- Contact support -->
+
+          <div class="card">
+
+            <div class="card-header">
+
+              <div>
+
+                <div class="card-title">
+                  Contact Support
+                </div>
+
+                <div class="muted">
+                  Need help from our team?
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="support-option">
+
+              <div class="support-icon">
+                ✉
+              </div>
+
+              <div>
+
+                <div class="support-title">
+                  Email Support
+                </div>
+
+                <div class="support-text">
+                  Get help through email support.
+                </div>
+
+                <button
+                  class="btn btn-outline"
+                  style="margin-top:8px;"
+                  onclick="emailSupport()">
+
+                  Send Email
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="support-option">
+
+              <div class="support-icon">
+                💬
+              </div>
+
+              <div>
+
+                <div class="support-title">
+                  Support Ticket
+                </div>
+
+                <div class="support-text">
+                  Create a ticket for account or project issues.
+                </div>
+
+                <button
+                  class="btn btn-primary"
+                  style="margin-top:8px;"
+                  onclick="openTicketModal()">
+
+                  Create Ticket
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="support-option">
+
+              <div class="support-icon">
+                ◷
+              </div>
+
+              <div>
+
+                <div class="support-title">
+                  Support Hours
+                </div>
+
+                <div class="support-text">
+                  Monday – Saturday<br>
+                  9:00 AM – 7:00 PM
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- My tickets -->
+
+          <div class="card" style="margin-top:22px;">
+
+            <div class="card-header">
+
+              <div>
+
+                <div class="card-title">
+                  My Support Tickets
+                </div>
+
+                <div class="muted">
+                  Recent support requests
+                </div>
+
+              </div>
+
+              <button
+                class="btn btn-outline"
+                onclick="openTicketModal()">
+
+                + New
+
+              </button>
+
+            </div>
+
+
+            <div id="ticketList">
+
+
+              <div class="ticket">
+
+                <div>
+
+                  <div class="ticket-id">
+                    #BB-1042
+                  </div>
+
+                  <div class="ticket-title">
+                    Payment not reflected
+                  </div>
+
+                  <div class="ticket-date">
+                    10 Sep 2026
+                  </div>
+
+                </div>
+
+                <span class="ticket-status open">
+                  Open
+                </span>
+
+              </div>
+
+
+              <div class="ticket">
+
+                <div>
+
+                  <div class="ticket-id">
+                    #BB-1031
+                  </div>
+
+                  <div class="ticket-title">
+                    Material delivery query
+                  </div>
+
+                  <div class="ticket-date">
+                    05 Sep 2026
+                  </div>
+
+                </div>
+
+                <span class="ticket-status pending">
+                  Pending
+                </span>
+
+              </div>
+
+
+              <div class="ticket">
+
+                <div>
+
+                  <div class="ticket-id">
+                    #BB-1019
+                  </div>
+
+                  <div class="ticket-title">
+                    Profile verification
+                  </div>
+
+                  <div class="ticket-date">
+                    28 Aug 2026
+                  </div>
+
+                </div>
+
+                <span class="ticket-status resolved">
+                  Resolved
+                </span>
+
+              </div>
+
+
+            </div>
+
+          </div>
+
+
+          <!-- Quick links -->
+
+          <div class="card" style="margin-top:22px;">
+
+            <div class="card-title">
+              Quick Links
+            </div>
+
+
+            <a
+              href="get-verified.html"
+              class="btn btn-outline"
+              style="display:block;margin-top:13px;text-align:center;">
+
+              Get Verified
+
+            </a>
+
+
+            <a
+              href="messages.html"
+              class="btn btn-outline"
+              style="display:block;margin-top:9px;text-align:center;">
+
+              Open Messages
+
+            </a>
+
+
+            <a
+              href="notifications.html"
+              class="btn btn-outline"
+              style="display:block;margin-top:9px;text-align:center;">
+
+              Notifications
+
+            </a>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================
+       SUPPORT TICKET MODAL
+       ===================================================== -->
+
+  <div
+    class="modal"
+    id="ticketModal">
+
+    <div class="modal-box">
+
+      <div class="modal-header">
+
+        <div class="card-title">
+          Create Support Ticket
+        </div>
+
+        <button
+          class="close"
+          onclick="closeTicketModal()">
+
+          ×
+
+        </button>
+
+      </div>
+
+
+      <form id="ticketForm">
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Subject
+          </label>
+
+          <input
+            type="text"
+            id="ticketSubject"
+            class="form-control"
+            placeholder="What do you need help with?"
+            required>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Category
+          </label>
+
+          <select
+            id="ticketCategory"
+            class="form-control"
+            required>
+
+            <option value="">
+              Select category
+            </option>
+
+            <option value="account">
+              Account
+            </option>
+
+            <option value="projects">
+              Projects
+            </option>
+
+            <option value="payments">
+              Payments
+            </option>
+
+            <option value="orders">
+              Orders
+            </option>
+
+            <option value="verification">
+              Verification
+            </option>
+
+            <option value="team">
+              Team
+            </option>
+
+            <option value="other">
+              Other
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Priority
+          </label>
+
+          <select
+            id="ticketPriority"
+            class="form-control">
+
+            <option value="normal">
+              Normal
+            </option>
+
+            <option value="high">
+              High
+            </option>
+
+            <option value="urgent">
+              Urgent
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Description
+          </label>
+
+          <textarea
+            id="ticketDescription"
+            class="form-control"
+            placeholder="Describe your issue in detail..."
+            required></textarea>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Attachment
+          </label>
+
+          <input
+            type="file"
+            id="ticketAttachment"
+            class="form-control"
+            accept=".jpg,.jpeg,.png,.pdf">
+
+        </div>
+
+
+        <div class="modal-actions">
+
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="closeTicketModal()">
+
+            Cancel
+
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary">
+
+            Submit Ticket
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+       ===================================================== -->
+
+  <script>
+
+    /*
+    =========================================================
+    BACKEND API STRUCTURE
+    =========================================================
+
+    GET
+    /api/help/faqs
+
+    -> Load FAQ list from database
+
+
+    GET
+    /api/help/faqs?category=payments
+
+    -> Category-wise FAQs
+
+
+    POST
+    /api/support/tickets
+
+    -> Create new support ticket
+
+
+    GET
+    /api/support/tickets
+
+    -> Current user's tickets
+
+
+    GET
+    /api/support/tickets/:id
+
+    -> Ticket details
+
+
+    POST
+    /api/support/tickets/:id/reply
+
+    -> Reply to support ticket
+
+
+    POST
+    /api/support/tickets/:id/attachment
+
+    -> Upload ticket attachment
+
+
+    Authentication:
+
+    Authorization:
+    Bearer <JWT>
+
+    =========================================================
+    */
+
+
+    let currentCategory = "all";
+
+
+    /* ================= FAQ TOGGLE ================= */
+
+    function toggleFAQ(element){
+
+      const faq =
+        element.parentElement;
+
+      const allFAQs =
+        document.querySelectorAll(".faq");
+
+      allFAQs.forEach(item => {
+
+        if(item !== faq){
+          item.classList.remove("open");
+        }
+
+      });
+
+      faq.classList.toggle("open");
+
+    }
+
+
+    /* ================= CATEGORY ================= */
+
+    function filterCategory(category, element){
+
+      currentCategory = category;
+
+      document
+        .querySelectorAll(".category")
+        .forEach(item => {
+          item.classList.remove("active");
+        });
+
+      element.classList.add("active");
+
+      searchFAQs();
+
+    }
+
+
+    /* ================= FAQ SEARCH ================= */
+
+    function searchFAQs(){
+
+      const search =
+        document
+          .getElementById("faqSearch")
+          .value
+          .trim()
+          .toLowerCase();
+
+      const faqs =
+        document.querySelectorAll(".faq");
+
+      let visible = 0;
+
+
+      faqs.forEach(faq => {
+
+        const category =
+          faq.dataset.category;
+
+        const searchData =
+          (
+            faq.dataset.search +
+            " " +
+            faq.innerText
+          ).toLowerCase();
+
+
+        const categoryMatch =
+          currentCategory === "all" ||
+          category === currentCategory;
+
+
+        const searchMatch =
+          !search ||
+          searchData.includes(search);
+
+
+        if(categoryMatch && searchMatch){
+
+          faq.style.display = "block";
+
+          visible++;
+
+        }else{
+
+          faq.style.display = "none";
+
+        }
+
+      });
+
+
+      document
+        .getElementById("noResults")
+        .style.display =
+          visible === 0
+            ? "block"
+            : "none";
+
+    }
+
+
+    /* ================= TICKET MODAL ================= */
+
+    function openTicketModal(){
+
+      document
+        .getElementById("ticketModal")
+        .classList.add("show");
+
+    }
+
+
+    function closeTicketModal(){
+
+      document
+        .getElementById("ticketModal")
+        .classList.remove("show");
+
+    }
+
+
+    /* ================= EMAIL ================= */
+
+    function emailSupport(){
+
+      /*
+        Production:
+
+        window.location.href =
+          "mailto:support@buildbid.in";
+      */
+
+      alert(
+        "Email support will be connected with the official BuildBid support email."
+      );
+
+    }
+
+
+    /* ================= CREATE TICKET ================= */
+
+    document
+      .getElementById("ticketForm")
+      .addEventListener(
+        "submit",
+        async function(event){
+
+          event.preventDefault();
+
+
+          const subject =
+            document
+              .getElementById("ticketSubject")
+              .value
+              .trim();
+
+          const category =
+            document
+              .getElementById("ticketCategory")
+              .value;
+
+          const priority =
+            document
+              .getElementById("ticketPriority")
+              .value;
+
+          const description =
+            document
+              .getElementById("ticketDescription")
+              .value
+              .trim();
+
+          const attachment =
+            document
+              .getElementById("ticketAttachment")
+              .files[0];
+
+
+          if(!subject ||
+             !category ||
+             !description){
+
+            alert(
+              "Please fill all required fields."
+            );
+
+            return;
+          }
+
+
+          /*
+          ====================================================
+          REAL BACKEND REQUEST
+          ====================================================
+
+          const token =
+            localStorage.getItem("token");
+
+          const formData =
+            new FormData();
+
+          formData.append(
+            "subject",
+            subject
+          );
+
+          formData.append(
+            "category",
+            category
+          );
+
+          formData.append(
+            "priority",
+            priority
+          );
+
+          formData.append(
+            "description",
+            description
+          );
+
+          if(attachment){
+
+            formData.append(
+              "attachment",
+              attachment
+            );
+
+          }
+
+
+          const response =
+            await fetch(
+              "/api/support/tickets",
+              {
+                method:"POST",
+
+                headers:{
+                  Authorization:
+                    `Bearer ${token}`
+                },
+
+                body:formData
+              }
+            );
+
+
+          const data =
+            await response.json();
+
+
+          if(!response.ok){
+
+            alert(
+              data.message ||
+              "Unable to create ticket."
+            );
+
+            return;
+          }
+
+          ====================================================
+          */
+
+
+          alert(
+            "Support ticket created successfully."
+          );
+
+
+          document
+            .getElementById("ticketForm")
+            .reset();
+
+          closeTicketModal();
+
+
+          /*
+            Production:
+
+            loadTickets();
+          */
+
+        }
+      );
+
+
+    /* ================= OUTSIDE MODAL ================= */
+
+    document
+      .getElementById("ticketModal")
+      .addEventListener(
+        "click",
+        function(event){
+
+          if(event.target === this){
+            closeTicketModal();
+          }
+
+        }
+      );
+
+
+    /* ================= LOAD FAQ ================= */
+
+    async function loadFAQs(){
+
+      /*
+      ======================================================
+      Production API:
+
+      const token =
+        localStorage.getItem("token");
+
+      const response =
+        await fetch(
+          "/api/help/faqs",
+          {
+            headers:{
+              Authorization:
+                `Bearer ${token}`
+            }
+          }
+        );
+
+      const data =
+        await response.json();
+
+      // Render FAQ dynamically
+      ======================================================
+      */
+
+    }
+
+
+    /* ================= LOAD TICKETS ================= */
+
+    async function loadTickets(){
+
+      /*
+      ======================================================
+      Production API:
+
+      GET /api/support/tickets
+
+      Example response:
+
+      {
+        tickets:[
+          {
+            id:"BB-1042",
+            subject:"Payment not reflected",
+            category:"payments",
+            status:"open",
+            createdAt:"2026-09-10"
+          }
+        ]
+      }
+
+      Then render ticketList.
+      ======================================================
+      */
+
+    }
+
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function(){
+
+        // After backend is ready:
+
+        // loadFAQs();
+        // loadTickets();
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>

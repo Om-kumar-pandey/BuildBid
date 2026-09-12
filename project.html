@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>BuildBid - Projects</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+<body>
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
+<aside class="sidebar">
+
+    <div class="sidebar-logo">
+
+        <div class="logo-icon">
+            <i class="fa-solid fa-building"></i>
+        </div>
+
+        <div>
+            <h2>BuildBid</h2>
+            <span>Contractor Portal</span>
+        </div>
+
+    </div>
+
+
+    <nav class="sidebar-nav">
+
+        <a href="dashboard.html" class="nav-item">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="projects.html" class="nav-item active">
+            <i class="fa-solid fa-building"></i>
+            <span>Projects</span>
+        </a>
+
+        <a href="bids.html" class="nav-item">
+            <i class="fa-solid fa-gavel"></i>
+            <span>Bids</span>
+        </a>
+
+        <a href="contracts.html" class="nav-item">
+            <i class="fa-solid fa-file-contract"></i>
+            <span>My Contracts</span>
+        </a>
+
+        <a href="order-material.html" class="nav-item">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Order Material</span>
+        </a>
+
+        <a href="post-requirement.html" class="nav-item">
+            <i class="fa-solid fa-plus-circle"></i>
+            <span>Post Requirement</span>
+        </a>
+
+        <a href="my-orders.html" class="nav-item">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span>My Orders</span>
+        </a>
+
+        <a href="track-material.html" class="nav-item">
+            <i class="fa-solid fa-truck"></i>
+            <span>Track Material</span>
+        </a>
+
+        <a href="hire-professionals.html" class="nav-item">
+            <i class="fa-solid fa-user-tie"></i>
+            <span>Hire Professionals</span>
+        </a>
+
+        <a href="team.html" class="nav-item">
+            <i class="fa-solid fa-users"></i>
+            <span>My Team</span>
+        </a>
+
+        <a href="reviews.html" class="nav-item">
+            <i class="fa-solid fa-star"></i>
+            <span>Reviews & Ratings</span>
+        </a>
+
+        <a href="earnings.html" class="nav-item">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+            <span>Earnings</span>
+        </a>
+
+        <a href="messages.html" class="nav-item">
+            <i class="fa-solid fa-comments"></i>
+            <span>Messages</span>
+        </a>
+
+        <a href="notifications.html" class="nav-item">
+            <i class="fa-solid fa-bell"></i>
+            <span>Notifications</span>
+        </a>
+
+        <a href="get-verified.html" class="nav-item">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Get Verified</span>
+        </a>
+
+        <a href="help.html" class="nav-item">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>Help & Support</span>
+        </a>
+
+    </nav>
+
+
+    <div class="sidebar-user">
+
+        <div class="user-avatar">
+            PP
+        </div>
+
+        <div class="user-info">
+            <strong>Pawan Prajapati</strong>
+            <span>Contractor</span>
+        </div>
+
+        <button
+            class="logout-btn"
+            onclick="logout()"
+            title="Logout"
+        >
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+
+    </div>
+
+</aside>
+
+
+<!-- =====================================================
+     MAIN CONTENT
+===================================================== -->
+
+<main class="main-content">
+
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+
+        <div class="mobile-menu">
+
+            <button onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+        </div>
+
+
+        <div class="page-heading">
+
+            <h1>Projects</h1>
+
+            <p>
+                Manage and monitor all your construction projects.
+            </p>
+
+        </div>
+
+
+        <div class="topbar-actions">
+
+            <button
+                class="icon-btn"
+                onclick="openNotifications()"
+            >
+                <i class="fa-regular fa-bell"></i>
+                <span class="notification-dot"></span>
+            </button>
+
+
+            <button
+                class="icon-btn"
+                onclick="openMessages()"
+            >
+                <i class="fa-regular fa-comment"></i>
+            </button>
+
+
+            <div class="top-profile">
+
+                <div class="top-avatar">
+                    PP
+                </div>
+
+                <div>
+                    <strong>Pawan Prajapati</strong>
+                    <small>Contractor</small>
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- =================================================
+         PROJECT PAGE
+    ================================================== -->
+
+    <section class="projects-page">
+
+
+        <!-- PAGE HEADER -->
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>My Projects</h2>
+
+                <p>
+                    Track progress, budgets and project activities.
+                </p>
+
+            </div>
+
+
+            <a
+                href="post-requirement.html"
+                class="btn btn-primary"
+            >
+
+                <i class="fa-solid fa-plus"></i>
+
+                Create New Project
+
+            </a>
+
+        </div>
+
+
+        <!-- =================================================
+             PROJECT STATISTICS
+        ================================================== -->
+
+        <div class="stats-grid">
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon projects-icon">
+
+                    <i class="fa-solid fa-list-check"></i>
+
+                </div>
+
+                <div class="stat-content">
+
+                    <span>Total Projects</span>
+
+                    <strong id="totalProjects">
+                        24
+                    </strong>
+
+                    <small>
+                        All time
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon projects-icon">
+
+                    <i class="fa-solid fa-spinner"></i>
+
+                </div>
+
+                <div class="stat-content">
+
+                    <span>Active Projects</span>
+
+                    <strong id="activeProjects">
+                        08
+                    </strong>
+
+                    <small class="positive">
+                        2 new this month
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon contracts-icon">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                </div>
+
+                <div class="stat-content">
+
+                    <span>Completed</span>
+
+                    <strong id="completedProjects">
+                        13
+                    </strong>
+
+                    <small>
+                        Successfully completed
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon earnings-icon">
+
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+
+                </div>
+
+                <div class="stat-content">
+
+                    <span>Total Project Value</span>
+
+                    <strong id="projectValue">
+                        ₹48.6L
+                    </strong>
+
+                    <small class="positive">
+                        +12.4% this year
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             FILTER BAR
+        ================================================== -->
+
+        <div class="dashboard-card project-filter-card">
+
+            <div class="filter-row">
+
+
+                <div class="search-box">
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input
+                        type="search"
+                        id="projectSearch"
+                        placeholder="Search projects..."
+                    >
+
+                </div>
+
+
+                <select
+                    id="statusFilter"
+                    class="filter-select"
+                >
+
+                    <option value="all">
+                        All Status
+                    </option>
+
+                    <option value="active">
+                        Active
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                    <option value="delayed">
+                        Delayed
+                    </option>
+
+                    <option value="on-hold">
+                        On Hold
+                    </option>
+
+                </select>
+
+
+                <select
+                    id="typeFilter"
+                    class="filter-select"
+                >
+
+                    <option value="all">
+                        All Types
+                    </option>
+
+                    <option value="residential">
+                        Residential
+                    </option>
+
+                    <option value="commercial">
+                        Commercial
+                    </option>
+
+                    <option value="renovation">
+                        Renovation
+                    </option>
+
+                    <option value="infrastructure">
+                        Infrastructure
+                    </option>
+
+                </select>
+
+
+                <button
+                    class="filter-btn"
+                    onclick="resetFilters()"
+                >
+
+                    <i class="fa-solid fa-rotate-left"></i>
+
+                    Reset
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             PROJECT GRID
+        ================================================== -->
+
+        <div
+            class="projects-grid"
+            id="projectsGrid"
+        >
+
+
+            <!-- PROJECT 1 -->
+
+            <article
+                class="project-card"
+                data-status="active"
+                data-type="residential"
+                data-name="modern villa noida"
+            >
+
+                <div class="project-card-image">
+
+                    <div class="project-image-placeholder">
+
+                        <i class="fa-solid fa-house"></i>
+
+                    </div>
+
+
+                    <span class="status active">
+                        Active
+                    </span>
+
+                </div>
+
+
+                <div class="project-card-body">
+
+                    <div class="project-card-title">
+
+                        <div>
+
+                            <h3>
+                                Modern Villa - Noida
+                            </h3>
+
+                            <p>
+                                <i class="fa-solid fa-location-dot"></i>
+                                Sector 150, Noida
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            class="more-btn"
+                            onclick="openProjectMenu(this)"
+                        >
+
+                            <i class="fa-solid fa-ellipsis"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="project-meta">
+
+                        <span>
+
+                            <i class="fa-solid fa-house"></i>
+
+                            Residential
+
+                        </span>
+
+                        <span>
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Started 12 Jun 2026
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-header">
+
+                            <span>
+                                Progress
+                            </span>
+
+                            <strong>
+                                72%
+                            </strong>
+
+                        </div>
+
+
+                        <div class="progress-bar">
+
+                            <span
+                                style="width:72%"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <div>
+
+                            <small>
+                                Project Value
+                            </small>
+
+                            <strong>
+                                ₹18.5L
+                            </strong>
+
+                        </div>
+
+
+                        <a
+                            href="#"
+                            onclick="viewProject(event, 'PRJ001')"
+                            class="view-btn"
+                        >
+
+                            View Project
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- PROJECT 2 -->
+
+            <article
+                class="project-card"
+                data-status="active"
+                data-type="commercial"
+                data-name="commercial complex ghaziabad"
+            >
+
+                <div class="project-card-image">
+
+                    <div class="project-image-placeholder">
+
+                        <i class="fa-solid fa-building"></i>
+
+                    </div>
+
+                    <span class="status active">
+                        Active
+                    </span>
+
+                </div>
+
+
+                <div class="project-card-body">
+
+                    <div class="project-card-title">
+
+                        <div>
+
+                            <h3>
+                                Commercial Complex
+                            </h3>
+
+                            <p>
+
+                                <i class="fa-solid fa-location-dot"></i>
+
+                                NH-24, Ghaziabad
+
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="more-btn"
+                            onclick="openProjectMenu(this)"
+                        >
+
+                            <i class="fa-solid fa-ellipsis"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="project-meta">
+
+                        <span>
+
+                            <i class="fa-solid fa-building"></i>
+
+                            Commercial
+
+                        </span>
+
+                        <span>
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Started 28 Jul 2026
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-header">
+
+                            <span>
+                                Progress
+                            </span>
+
+                            <strong>
+                                48%
+                            </strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <span
+                                style="width:48%"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <div>
+
+                            <small>
+                                Project Value
+                            </small>
+
+                            <strong>
+                                ₹12.8L
+                            </strong>
+
+                        </div>
+
+
+                        <a
+                            href="#"
+                            onclick="viewProject(event, 'PRJ002')"
+                            class="view-btn"
+                        >
+
+                            View Project
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- PROJECT 3 -->
+
+            <article
+                class="project-card"
+                data-status="delayed"
+                data-type="renovation"
+                data-name="hotel renovation delhi"
+            >
+
+                <div class="project-card-image">
+
+                    <div class="project-image-placeholder">
+
+                        <i class="fa-solid fa-hotel"></i>
+
+                    </div>
+
+                    <span class="status delayed">
+                        Delayed
+                    </span>
+
+                </div>
+
+
+                <div class="project-card-body">
+
+                    <div class="project-card-title">
+
+                        <div>
+
+                            <h3>
+                                Hotel Renovation
+                            </h3>
+
+                            <p>
+
+                                <i class="fa-solid fa-location-dot"></i>
+
+                                Karol Bagh, Delhi
+
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            class="more-btn"
+                            onclick="openProjectMenu(this)"
+                        >
+
+                            <i class="fa-solid fa-ellipsis"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="project-meta">
+
+                        <span>
+
+                            <i class="fa-solid fa-hotel"></i>
+
+                            Renovation
+
+                        </span>
+
+                        <span>
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Started 05 Aug 2026
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-header">
+
+                            <span>
+                                Progress
+                            </span>
+
+                            <strong>
+                                35%
+                            </strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <span
+                                style="width:35%"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <div>
+
+                            <small>
+                                Project Value
+                            </small>
+
+                            <strong>
+                                ₹8.2L
+                            </strong>
+
+                        </div>
+
+
+                        <a
+                            href="#"
+                            onclick="viewProject(event, 'PRJ003')"
+                            class="view-btn"
+                        >
+
+                            View Project
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- PROJECT 4 -->
+
+            <article
+                class="project-card"
+                data-status="active"
+                data-type="residential"
+                data-name="residential apartment noida"
+            >
+
+                <div class="project-card-image">
+
+                    <div class="project-image-placeholder">
+
+                        <i class="fa-solid fa-city"></i>
+
+                    </div>
+
+                    <span class="status active">
+                        Active
+                    </span>
+
+                </div>
+
+
+                <div class="project-card-body">
+
+                    <div class="project-card-title">
+
+                        <div>
+
+                            <h3>
+                                Residential Apartment
+                            </h3>
+
+                            <p>
+
+                                <i class="fa-solid fa-location-dot"></i>
+
+                                Sector 137, Noida
+
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            class="more-btn"
+                            onclick="openProjectMenu(this)"
+                        >
+
+                            <i class="fa-solid fa-ellipsis"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="project-meta">
+
+                        <span>
+
+                            <i class="fa-solid fa-house"></i>
+
+                            Residential
+
+                        </span>
+
+                        <span>
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Started 19 Aug 2026
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-header">
+
+                            <span>
+                                Progress
+                            </span>
+
+                            <strong>
+                                61%
+                            </strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <span
+                                style="width:61%"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <div>
+
+                            <small>
+                                Project Value
+                            </small>
+
+                            <strong>
+                                ₹6.7L
+                            </strong>
+
+                        </div>
+
+
+                        <a
+                            href="#"
+                            onclick="viewProject(event, 'PRJ004')"
+                            class="view-btn"
+                        >
+
+                            View Project
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- PROJECT 5 -->
+
+            <article
+                class="project-card"
+                data-status="completed"
+                data-type="commercial"
+                data-name="office interior noida"
+            >
+
+                <div class="project-card-image">
+
+                    <div class="project-image-placeholder">
+
+                        <i class="fa-solid fa-briefcase"></i>
+
+                    </div>
+
+                    <span class="status completed">
+                        Completed
+                    </span>
+
+                </div>
+
+
+                <div class="project-card-body">
+
+                    <div class="project-card-title">
+
+                        <div>
+
+                            <h3>
+                                Office Interior
+                            </h3>
+
+                            <p>
+
+                                <i class="fa-solid fa-location-dot"></i>
+
+                                Sector 62, Noida
+
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            class="more-btn"
+                            onclick="openProjectMenu(this)"
+                        >
+
+                            <i class="fa-solid fa-ellipsis"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="project-meta">
+
+                        <span>
+
+                            <i class="fa-solid fa-building"></i>
+
+                            Commercial
+
+                        </span>
+
+                        <span>
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Completed 30 Jul 2026
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-header">
+
+                            <span>
+                                Progress
+                            </span>
+
+                            <strong>
+                                100%
+                            </strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <span
+                                style="width:100%"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <div>
+
+                            <small>
+                                Project Value
+                            </small>
+
+                            <strong>
+                                ₹4.8L
+                            </strong>
+
+                        </div>
+
+
+                        <a
+                            href="#"
+                            onclick="viewProject(event, 'PRJ005')"
+                            class="view-btn"
+                        >
+
+                            View Project
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- PROJECT 6 -->
+
+            <article
+                class="project-card"
+                data-status="on-hold"
+                data-type="infrastructure"
+                data-name="road development project"
+            >
+
+                <div class="project-card-image">
+
+                    <div class="project-image-placeholder">
+
+                        <i class="fa-solid fa-road"></i>
+
+                    </div>
+
+                    <span class="status on-hold">
+                        On Hold
+                    </span>
+
+                </div>
+
+
+                <div class="project-card-body">
+
+                    <div class="project-card-title">
+
+                        <div>
+
+                            <h3>
+                                Road Development Project
+                            </h3>
+
+                            <p>
+
+                                <i class="fa-solid fa-location-dot"></i>
+
+                                Greater Noida
+
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            class="more-btn"
+                            onclick="openProjectMenu(this)"
+                        >
+
+                            <i class="fa-solid fa-ellipsis"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="project-meta">
+
+                        <span>
+
+                            <i class="fa-solid fa-road"></i>
+
+                            Infrastructure
+
+                        </span>
+
+                        <span>
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Started 12 May 2026
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-header">
+
+                            <span>
+                                Progress
+                            </span>
+
+                            <strong>
+                                22%
+                            </strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <span
+                                style="width:22%"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <div>
+
+                            <small>
+                                Project Value
+                            </small>
+
+                            <strong>
+                                ₹9.6L
+                            </strong>
+
+                        </div>
+
+
+                        <a
+                            href="#"
+                            onclick="viewProject(event, 'PRJ006')"
+                            class="view-btn"
+                        >
+
+                            View Project
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+        </div>
+
+
+        <!-- =================================================
+             EMPTY STATE
+        ================================================== -->
+
+        <div
+            id="noProjects"
+            class="empty-state"
+            style="display:none;"
+        >
+
+            <div class="empty-icon">
+
+                <i class="fa-solid fa-folder-open"></i>
+
+            </div>
+
+            <h3>
+                No projects found
+            </h3>
+
+            <p>
+                Try changing your search or filters.
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             PROJECT PAGINATION
+        ================================================== -->
+
+        <div class="pagination">
+
+            <button
+                class="pagination-btn"
+                disabled
+            >
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <button class="pagination-btn active">
+                1
+            </button>
+
+            <button class="pagination-btn">
+                2
+            </button>
+
+            <button class="pagination-btn">
+                3
+            </button>
+
+            <span>...</span>
+
+            <button class="pagination-btn">
+                8
+            </button>
+
+            <button class="pagination-btn">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+        </div>
+
+
+    </section>
+
+</main>
+
+
+<!-- =====================================================
+     PROJECT DETAILS MODAL
+===================================================== -->
+
+<div
+    id="projectModal"
+    class="modal-overlay"
+    style="display:none;"
+>
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2 id="modalProjectTitle">
+                    Project Details
+                </h2>
+
+                <p id="modalProjectId">
+                    Project ID
+                </p>
+
+            </div>
+
+
+            <button
+                class="modal-close"
+                onclick="closeProjectModal()"
+            >
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+
+                    <span>Project Status</span>
+
+                    <strong id="modalStatus">
+                        Active
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <span>Project Value</span>
+
+                    <strong id="modalValue">
+                        ₹18.5L
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <span>Progress</span>
+
+                    <strong id="modalProgress">
+                        72%
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <span>Location</span>
+
+                    <strong id="modalLocation">
+                        Noida
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-section">
+
+                <h3>Project Description</h3>
+
+                <p id="modalDescription">
+
+                    Complete construction and finishing
+                    work according to the approved plan.
+
+                </p>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    class="btn btn-secondary"
+                    onclick="closeProjectModal()"
+                >
+                    Close
+                </button>
+
+                <a
+                    href="contracts.html"
+                    class="btn btn-primary"
+                >
+                    View Contract
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script src="script.js"></script>
+
+<script>
+
+const projectData = {
+
+    PRJ001: {
+        title: "Modern Villa - Noida",
+        status: "Active",
+        value: "₹18.5L",
+        progress: "72%",
+        location: "Sector 150, Noida",
+        description:
+            "Residential villa construction project including civil, electrical, plumbing and finishing work."
+    },
+
+    PRJ002: {
+        title: "Commercial Complex",
+        status: "Active",
+        value: "₹12.8L",
+        progress: "48%",
+        location: "NH-24, Ghaziabad",
+        description:
+            "Commercial construction project covering structural and finishing work."
+    },
+
+    PRJ003: {
+        title: "Hotel Renovation",
+        status: "Delayed",
+        value: "₹8.2L",
+        progress: "35%",
+        location: "Karol Bagh, Delhi",
+        description:
+            "Hotel renovation and interior improvement project."
+    },
+
+    PRJ004: {
+        title: "Residential Apartment",
+        status: "Active",
+        value: "₹6.7L",
+        progress: "61%",
+        location: "Sector 137, Noida",
+        description:
+            "Residential apartment construction and finishing project."
+    },
+
+    PRJ005: {
+        title: "Office Interior",
+        status: "Completed",
+        value: "₹4.8L",
+        progress: "100%",
+        location: "Sector 62, Noida",
+        description:
+            "Office interior design, civil and electrical work."
+    },
+
+    PRJ006: {
+        title: "Road Development Project",
+        status: "On Hold",
+        value: "₹9.6L",
+        progress: "22%",
+        location: "Greater Noida",
+        description:
+            "Infrastructure and road development project."
+    }
+
+};
+
+
+function viewProject(event, projectId) {
+
+    event.preventDefault();
+
+    const project =
+        projectData[projectId];
+
+    if (!project) {
+        return;
+    }
+
+    document.getElementById(
+        "modalProjectTitle"
+    ).textContent = project.title;
+
+    document.getElementById(
+        "modalProjectId"
+    ).textContent = projectId;
+
+    document.getElementById(
+        "modalStatus"
+    ).textContent = project.status;
+
+    document.getElementById(
+        "modalValue"
+    ).textContent = project.value;
+
+    document.getElementById(
+        "modalProgress"
+    ).textContent = project.progress;
+
+    document.getElementById(
+        "modalLocation"
+    ).textContent = project.location;
+
+    document.getElementById(
+        "modalDescription"
+    ).textContent = project.description;
+
+    document.getElementById(
+        "projectModal"
+    ).style.display = "flex";
+
+}
+
+
+function closeProjectModal() {
+
+    document.getElementById(
+        "projectModal"
+    ).style.display = "none";
+
+}
+
+
+function openProjectMenu(button) {
+
+    alert(
+        "Project options will be connected with backend."
+    );
+
+}
+
+
+function toggleSidebar() {
+
+    const sidebar =
+        document.querySelector(".sidebar");
+
+    if (sidebar) {
+        sidebar.classList.toggle("open");
+    }
+
+}
+
+
+function openNotifications() {
+
+    window.location.href =
+        "notifications.html";
+
+}
+
+
+function openMessages() {
+
+    window.location.href =
+        "messages.html";
+
+}
+
+
+function logout() {
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to logout?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    localStorage.removeItem(
+        "buildbid_user"
+    );
+
+    window.location.href =
+        "index.html";
+
+}
+
+
+function resetFilters() {
+
+    document.getElementById(
+        "projectSearch"
+    ).value = "";
+
+    document.getElementById(
+        "statusFilter"
+    ).value = "all";
+
+    document.getElementById(
+        "typeFilter"
+    ).value = "all";
+
+    filterProjects();
+
+}
+
+
+function filterProjects() {
+
+    const search =
+        document.getElementById(
+            "projectSearch"
+        ).value
+        .toLowerCase()
+        .trim();
+
+    const status =
+        document.getElementById(
+            "statusFilter"
+        ).value;
+
+    const type =
+        document.getElementById(
+            "typeFilter"
+        ).value;
+
+
+    const cards =
+        document.querySelectorAll(
+            ".project-card"
+        );
+
+
+    let visibleCount = 0;
+
+
+    cards.forEach(card => {
+
+        const name =
+            card.dataset.name || "";
+
+        const cardStatus =
+            card.dataset.status || "";
+
+        const cardType =
+            card.dataset.type || "";
+
+
+        const searchMatch =
+            !search ||
+            name.includes(search);
+
+        const statusMatch =
+            status === "all" ||
+            cardStatus === status;
+
+        const typeMatch =
+            type === "all" ||
+            cardType === type;
+
+
+        if (
+            searchMatch &&
+            statusMatch &&
+            typeMatch
+        ) {
+
+            card.style.display = "";
+
+            visibleCount++;
+
+        } else {
+
+            card.style.display =
+                "none";
+
+        }
+
+    });
+
+
+    document.getElementById(
+        "noProjects"
+    ).style.display =
+        visibleCount === 0
+            ? "block"
+            : "none";
+
+}
+
+
+document.getElementById(
+    "projectSearch"
+).addEventListener(
+    "input",
+    filterProjects
+);
+
+
+document.getElementById(
+    "statusFilter"
+).addEventListener(
+    "change",
+    filterProjects
+);
+
+
+document.getElementById(
+    "typeFilter"
+).addEventListener(
+    "change",
+    filterProjects
+);
+
+
+document.getElementById(
+    "projectModal"
+).addEventListener(
+    "click",
+    function(event) {
+
+        if (
+            event.target === this
+        ) {
+
+            closeProjectModal();
+
+        }
+
+    }
+);
+
+
+/*
+==========================================================
+BACKEND INTEGRATION
+==========================================================
+
+Later replace static project data with:
+
+fetch("/api/projects")
+    .then(response => response.json())
+    .then(data => {
+
+        // render projects from database
+
+    });
+
+
+For creating a project:
+
+fetch("/api/projects", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(projectData)
+});
+
+
+For updating a project:
+
+fetch("/api/projects/PRJ001", {
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(updatedData)
+});
+
+==========================================================
+*/
+
+</script>
+
+</body>
+</html>
