@@ -1585,7 +1585,7 @@ async function submitProject() {
       payload.id = confirmedProjectId;
       payload.projectId = confirmedProjectId;
       saveLocalProject(payload);
-      alert("Project posted and saved to Cloud MySQL successfully!");
+      alert("Project posted and saved to Cloud MySQL successfully!\nProject ID: " + confirmedProjectId);
       window.location.href = "customer projects.html";
     } else {
       const errText = await res.text();
@@ -1605,6 +1605,7 @@ function saveLocalProject(p) {
 
   const projectRecord = {
     id: p.id || p.projectId || ("PRJ-" + Date.now()),
+    projectId: p.projectId || p.id || ("PRJ-" + Date.now()),
     title: p.projectTitle,
     category: p.projectType,
     customerName: JSON.parse(localStorage.getItem("currentUser") || "{}").name || "Customer",

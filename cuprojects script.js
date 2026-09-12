@@ -272,11 +272,15 @@ function renderTableRows(projects) {
     const displayArea = proj.builtUpArea ? `${proj.builtUpArea} sq ft` : (proj.area || "--");
     const displayCategory = proj.type || proj.projectType || proj.category || "General";
     const displayDate = proj.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : (proj.updatedDate || "Today");
+    const displayProjectId = proj.projectId || (proj.id ? `PRJ-${proj.id}` : "");
 
     return `
       <tr>
         <td>
-          <div class="project-title-text" style="font-weight: 700; color: #1e293b; font-size: 15px;">${proj.title || proj.projectTitle || "Untitled Project"}</div>
+          <div class="project-title-text" style="font-weight: 700; color: #1e293b; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+            <span>${proj.title || proj.projectTitle || "Untitled Project"}</span>
+            ${displayProjectId ? `<span class="project-id-badge" style="background: #e2e8f0; color: #334155; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${displayProjectId}</span>` : ''}
+          </div>
           <div class="project-sub-text" style="font-size: 13px; color: #64748b; margin-top: 3px;">📍 ${displayLocation} • 🏗️ ${displayArea} • ${displayCategory}</div>
         </td>
         <td>
@@ -323,16 +327,17 @@ function updateMetricsCounters(list) {
    ========================================================= */
 function deleteProject(id) {
   if (confirm("Are you sure you want to delete this project?")) {
-    allProjectsList = allProjectsList.filter(p => String(p.id) !== String(id));
+    allProjectsList = allProjectsList.filter(p => String(p.id) !== String(id) && String(p.projectId) !== String(id));
     localStorage.setItem("customerProjects", JSON.stringify(allProjectsList));
     filterAndRenderProjects();
   }
 }
 
 function viewProjectDetails(id) {
-  const project = allProjectsList.find(p => String(p.id) === String(id));
+  const project = allProjectsList.find(p => String(p.id) === String(id) || String(p.projectId) === String(id));
   if (project) {
-    alert(`Project Details:\nTitle: ${project.title}\nCategory: ${project.type || project.category}\nStatus: ${project.status || 'In Progress'}`);
+    const pId = project.projectId || (project.id ? `PRJ-${project.id}` : 'N/A');
+    alert(`Project Details:\nProject ID: ${pId}\nTitle: ${project.title || project.projectTitle}\nCategory: ${project.type || project.category || project.projectType}\nStatus: ${project.status || 'In Progress'}`);
   }
 }
 
