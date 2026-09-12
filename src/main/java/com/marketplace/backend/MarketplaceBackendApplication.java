@@ -77,11 +77,17 @@ public class MarketplaceBackendApplication {
 
 
     // ========================================================
-    // USER ROLES
+    // USER ROLES (Supports both legacy database values and new 4 roles)
     // ========================================================
 
     public enum Role {
+        // Active 4 Roles
         CUSTOMER,
+        CONTRACTOR,
+        MATERIAL_SELLER,
+        PROFESSIONAL,
+
+        // Backward compatibility (prevents crash on old database records)
         SELLER,
         SERVICE_PROVIDER
     }
@@ -112,7 +118,7 @@ public class MarketplaceBackendApplication {
         private String phone;
 
         @Column(length = 150)
-        private String location; // <--- ADDED LOCATION FIELD
+        private String location;
 
         @Column(nullable = false, length = 100)
         private String passwordHash;
@@ -149,7 +155,7 @@ public class MarketplaceBackendApplication {
         public String getUsername() { return username; }
         public String getEmail() { return email; }
         public String getPhone() { return phone; }
-        public String getLocation() { return location; } // <--- ADDED GETTER
+        public String getLocation() { return location; }
         public String getPasswordHash() { return passwordHash; }
         public String getProfilePhotoUrl() { return profilePhotoUrl; }
         public Set<Role> getRoles() { return roles; }
@@ -163,7 +169,7 @@ public class MarketplaceBackendApplication {
         public void setUsername(String username) { this.username = username; }
         public void setEmail(String email) { this.email = email; }
         public void setPhone(String phone) { this.phone = phone; }
-        public void setLocation(String location) { this.location = location; } // <--- ADDED SETTER
+        public void setLocation(String location) { this.location = location; }
         public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
         public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
         public void setRoles(Set<Role> roles) { this.roles = roles; }
@@ -184,7 +190,7 @@ public class MarketplaceBackendApplication {
 
 
     // ========================================================
-    // REGISTER REQUEST (Updated with location)
+    // REGISTER REQUEST
     // ========================================================
 
     public record RegisterRequest(
@@ -192,7 +198,7 @@ public class MarketplaceBackendApplication {
             @NotBlank @Size(min = 3, max = 50) String username,
             @NotBlank @Email @Size(max = 150) String email,
             String phone,
-            String location, // <--- ADDED LOCATION FIELD TO REQUEST
+            String location,
             @NotBlank @Size(min = 1, max = 100) String password,
             @NotBlank String role
     ) {}
@@ -406,7 +412,7 @@ public class MarketplaceBackendApplication {
                             auth
                                     .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
                                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                    .requestMatchers("/api/customer/projects/**").permitAll()
+                                    .requestMatchers("/api/customer/projects/**", "/api/customer/hiring/**").permitAll()
                                     .anyRequest().authenticated()
                     )
                     .authenticationProvider(authenticationProvider())
@@ -476,7 +482,7 @@ public class MarketplaceBackendApplication {
             user.setUsername(username);
             user.setEmail(email);
             user.setPhone(request.phone() != null ? request.phone().trim() : null);
-            user.setLocation(request.location() != null ? request.location().trim() : null); // <--- SAVE LOCATION
+            user.setLocation(request.location() != null ? request.location().trim() : null);
             user.setPasswordHash(passwordEncoder.encode(request.password()));
             user.setRoles(roles);
 
@@ -504,14 +510,19 @@ public class MarketplaceBackendApplication {
             return createResponse(token, user);
         }
 
+        // ====================================================
+        // SAFE 4-ROLE MAPPING (Prevents breakdown of existing frontend)
+        // ====================================================
         private Role mapFrontendRole(String frontendRole) {
             if (frontendRole == null || frontendRole.isBlank()) {
                 return Role.CUSTOMER;
             }
-            return switch (frontendRole.trim().toLowerCase()) {
+            String formatted = frontendRole.trim().toLowerCase().replace(" ", "_");
+            return switch (formatted) {
                 case "customer", "homeowner" -> Role.CUSTOMER;
-                case "contractor", "seller" -> Role.SELLER;
-                case "professional", "service_provider" -> Role.SERVICE_PROVIDER;
+                case "contractor" -> Role.CONTRACTOR;
+                case "material_seller", "materialseller", "seller" -> Role.MATERIAL_SELLER;
+                case "professional", "service_provider" -> Role.PROFESSIONAL;
                 default -> Role.CUSTOMER;
             };
         }
@@ -600,7 +611,7 @@ public class MarketplaceBackendApplication {
                     "username", user.getUsername(),
                     "email", user.getEmail(),
                     "phone", user.getPhone() != null ? user.getPhone() : "",
-                    "location", user.getLocation() != null ? user.getLocation() : "", // <--- RETURN LOCATION IN PROFILE API
+                    "location", user.getLocation() != null ? user.getLocation() : "",
                     "roles", user.getRoles(),
                     "enabled", user.isEnabled()
             );
