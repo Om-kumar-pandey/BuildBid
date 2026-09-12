@@ -1,18 +1,16 @@
 // ============================================================
-// BUILD BID - FRONTEND JAVASCRIPT (CORRECTED & FULLY STABLE)
+// BUILD BID - FRONTEND JAVASCRIPT (PRODUCTION READY)
 // BACKEND: SPRING BOOT + MYSQL + JWT
 // ============================================================
 
 function getApiBaseUrl() {
-    if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+    if (typeof window !== "undefined" && window.location) {
+        // Sirf local development ke waqt localhost use karein
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-            if (window.location.port && window.location.port !== "8080") {
-                return `${window.location.protocol}//${window.location.hostname}:8080`;
-            }
-            return window.location.origin;
+            return "http://localhost:8080";
         }
-        return window.location.origin;
     }
+    // GitHub Pages ya live domain par hamesha Render backend call karein
     return "https://buildbid-ap3j.onrender.com";
 }
 
@@ -44,6 +42,9 @@ function resolvePath(fileName) {
     return encodeURI(fileName);
 }
 
+// ============================================================
+// UI & NAVIGATION HELPERS
+// ============================================================
 function goToRequirement() {
     const requirement = document.querySelector("#requirement");
     if (requirement) {
@@ -88,7 +89,7 @@ function showSignup() {
 
 let authToastTimer = null;
 
-function showAuthToast(title, message, type = "success", duration = 4000) {
+function showAuthToast(title, message, type = "success", duration = 4500) {
     const toast = document.getElementById("authToast");
     const titleElement = document.getElementById("authToastTitle");
     const messageElement = document.getElementById("authToastMessage");
@@ -193,6 +194,8 @@ function navigateToDashboard() {
             .toUpperCase();
     }
 
+    console.log("Navigating to dashboard for role:", role);
+
     if (role === "CONTRACTOR") {
         window.location.href = resolvePath("dashborad.html");
     } else if (role === "MATERIAL_SELLER" || role === "SELLER") {
@@ -236,6 +239,9 @@ function handleProtectedAction(actionType) {
     }
 }
 
+// ============================================================
+// ROLE SELECTION HANDLERS
+// ============================================================
 function selectRole(role) {
     const buttons = {
         CUSTOMER: document.querySelector("#loginCustomerBtn"),
@@ -312,7 +318,7 @@ function toggleSignupCategoryFields(role) {
 }
 
 // ============================================================
-// LOGIN FORM EVENT LISTENER
+// LOGIN FORM HANDLER
 // ============================================================
 const loginForm = document.querySelector("#loginForm");
 
@@ -327,7 +333,7 @@ if (loginForm) {
         const password = passwordInput ? passwordInput.value : "";
 
         if (!email || !password) {
-            showAuthToast("Missing Info", "Please fill in all required fields.", "error");
+            showAuthToast("Missing Info", "Please enter your email and password.", "error");
             return;
         }
 
@@ -336,6 +342,7 @@ if (loginForm) {
 
         const submitBtn = loginForm.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn ? submitBtn.innerHTML : "Login";
+
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Logging in...`;
@@ -344,8 +351,16 @@ if (loginForm) {
         try {
             const response = await fetch(API_BASE_URL + "/api/auth/login", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password, role: chosenRole })
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({ 
+                    email: email, 
+                    username: email, 
+                    password: password, 
+                    role: chosenRole 
+                })
             });
 
             const data = await getResponseData(response);
@@ -396,7 +411,7 @@ if (loginForm) {
             }
         } catch (error) {
             console.error("Login error:", error);
-            showAuthToast("Connection Error", "Unable to connect to the server. Please try again.", "error");
+            showAuthToast("Connection Error", "Unable to connect to the backend server.", "error");
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -407,7 +422,7 @@ if (loginForm) {
 }
 
 // ============================================================
-// SIGNUP FORM EVENT LISTENER (WITH SILENT AUTO-LOGIN)
+// SIGNUP FORM HANDLER (WITH AUTO LOGIN ON SUCCESS)
 // ============================================================
 const signupForm = document.querySelector("#signupForm");
 
@@ -462,17 +477,20 @@ if (signupForm) {
         }
 
         try {
-            // STEP 1: Registration
+            // 1. Send Registration Request to Render Backend
             const response = await fetch(API_BASE_URL + "/api/auth/register", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
                 body: JSON.stringify(registerData)
             });
 
             const data = await getResponseData(response);
 
             if (!response.ok) {
-                let errorMessage = data.error || data.message || "Account creation failed.";
+                let errorMessage = data.message || data.error || "Account creation failed.";
                 if (data.errors && Array.isArray(data.errors)) {
                     errorMessage = data.errors.map(err => err.defaultMessage || err.message || "Invalid field").join("\n");
                 }
@@ -480,15 +498,23 @@ if (signupForm) {
                 return;
             }
 
-            // STEP 2: Obtain Auth Token via Direct or Auto-Login
+            // 2. Obtain Token (If register endpoint doesn't return one, do auto-login)
             let token = data.token || data.accessToken || "";
 
             if (!token) {
                 try {
                     const loginRes = await fetch(API_BASE_URL + "/api/auth/login", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: email, password: password, role: selectedRole })
+                        headers: { 
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({ 
+                            email: email, 
+                            username: email,
+                            password: password, 
+                            role: selectedRole 
+                        })
                     });
                     if (loginRes.ok) {
                         const loginData = await loginRes.json();
@@ -536,7 +562,7 @@ if (signupForm) {
             }
         } catch (error) {
             console.error("Signup error:", error);
-            showAuthToast("Connection Error", "Unable to connect to the backend. Please try again.", "error", 5000);
+            showAuthToast("Connection Error", "Unable to connect to backend server.", "error", 5000);
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -546,6 +572,9 @@ if (signupForm) {
     });
 }
 
+// ============================================================
+// PASSWORD VISIBILITY & MODAL CLOSE HANDLERS
+// ============================================================
 document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
         closeAuth();
@@ -581,6 +610,9 @@ document.addEventListener("DOMContentLoaded", function() {
     updateNavbarAuthState();
 });
 
+// ============================================================
+// GEOLOCATION DETECTION
+// ============================================================
 function detectUserLocation() {
     const locationInput = document.getElementById("signupLocation");
     if (!navigator.geolocation) {
@@ -606,20 +638,23 @@ function detectUserLocation() {
             if (data && data.display_name) {
                 locationInput.value = data.display_name;
             } else {
-                locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+                locationInput.placeholder = "City, State (e.g. Greater Noida, Uttar Pradesh)";
             }
         } catch (error) {
             console.error("Geocoding error:", error);
-            locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+            locationInput.placeholder = "City, State (e.g. Greater Noida, Uttar Pradesh)";
         }
     }, (error) => {
         console.error("Geolocation error:", error);
-        locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
+        locationInput.placeholder = "City, State (e.g. Greater Noida, Uttar Pradesh)";
     }, {
         timeout: 10000
     });
 }
 
+// ============================================================
+// VIDEO MODAL HANDLERS
+// ============================================================
 function openVideoModal() {
     const modal = document.getElementById("videoModal");
     const video = document.getElementById("buildBidVideo");
