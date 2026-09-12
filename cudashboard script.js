@@ -109,9 +109,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Re-render with database synced data
       renderUserProfile(user);
 
-      // Enforce role isolation: if logged in as CONTRACTOR, route to contractor dashboard
-      if (user.role === "CONTRACTOR") {
+      // Enforce correct role isolation smoothly without breaking navigation loops
+      const activeRole = user.role;
+      if (activeRole === "CONTRACTOR") {
         window.location.href = "dashborad.html";
+        return;
+      } else if (activeRole === "MATERIAL_SELLER" || activeRole === "SELLER") {
+        window.location.href = "material seller dashboard.html";
+        return;
+      } else if (activeRole === "PROFESSIONAL" || activeRole === "SERVICE_PROVIDER") {
+        window.location.href = "professional dashboard.html";
         return;
       }
     } else {
@@ -266,7 +273,6 @@ function renderUserProfile(user) {
   const bioName = document.getElementById("bioName");
   if (bioName) bioName.textContent = fullName;
 
-  // Safely update aboutBio
   const aboutBioElem = document.getElementById("aboutBio");
   if (aboutBioElem) {
     aboutBioElem.textContent = user.bio || `Hi! I am ${fullName}, using BuildBid to plan and manage my construction projects efficiently.`;
