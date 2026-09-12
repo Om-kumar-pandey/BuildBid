@@ -1,5 +1,6 @@
 package com.marketplace.backend;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
@@ -17,9 +18,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -193,14 +197,16 @@ public class MarketplaceBackendApplication {
     // REGISTER REQUEST
     // ========================================================
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record RegisterRequest(
-            @NotBlank @Size(max = 100) String name,
-            @NotBlank @Size(min = 3, max = 50) String username,
-            @NotBlank @Email @Size(max = 150) String email,
+            @NotBlank(message = "Name is required") @Size(max = 100) String name,
+            String username,
+            @NotBlank(message = "Email is required") @Email(message = "Invalid email format") @Size(max = 150) String email,
             String phone,
             String location,
-            @NotBlank @Size(min = 1, max = 100) String password,
-            @NotBlank String role
+            @NotBlank(message = "Password is required") @Size(min = 1, max = 100) String password,
+            String role,
+            String category
     ) {}
 
 
@@ -208,9 +214,11 @@ public class MarketplaceBackendApplication {
     // LOGIN REQUEST
     // ========================================================
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record LoginRequest(
-            @NotBlank @Email String email,
-            @NotBlank String password
+            @NotBlank(message = "Email is required") @Email(message = "Invalid email format") String email,
+            @NotBlank(message = "Password is required") String password,
+            String role
     ) {}
 
 
@@ -410,7 +418,7 @@ public class MarketplaceBackendApplication {
                     )
                    .authorizeHttpRequests(auth ->
     auth
-        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
+        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health", "/error").permitAll()
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
         .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
@@ -466,25 +474,39 @@ public class MarketplaceBackendApplication {
 
         public AuthResponse register(RegisterRequest request) {
             String email = request.email().trim().toLowerCase();
-            String username = request.username().trim();
 
             if (repository.existsByEmail(email)) {
-                throw new IllegalArgumentException("Email already exists");
+                throw new IllegalArgumentException("Email already exists. Please login instead.");
             }
+
+            String username = (request.username() != null && !request.username().isBlank())
+                    ? request.username().trim()
+                    : email.split("@")[0] + "_" + (System.currentTimeMillis() % 10000);
+
             if (repository.existsByUsername(username)) {
-                throw new IllegalArgumentException("Username already exists");
+                throw new IllegalArgumentException("Username already exists. Please choose a different username.");
             }
 
             Role role = mapFrontendRole(request.role());
             Set<Role> roles = new HashSet<>();
             roles.add(role);
 
+            String phone = request.phone() != null ? request.phone().trim() : null;
+            if (phone != null && phone.length() > 20) {
+                phone = phone.substring(0, 20);
+            }
+
+            String location = request.location() != null ? request.location().trim() : null;
+            if (location != null && location.length() > 150) {
+                location = location.substring(0, 150);
+            }
+
             MarketplaceUser user = new MarketplaceUser();
             user.setName(request.name().trim());
             user.setUsername(username);
             user.setEmail(email);
-            user.setPhone(request.phone() != null ? request.phone().trim() : null);
-            user.setLocation(request.location() != null ? request.location().trim() : null);
+            user.setPhone(phone);
+            user.setLocation(location);
             user.setPasswordHash(passwordEncoder.encode(request.password()));
             user.setRoles(roles);
 
@@ -504,12 +526,37 @@ public class MarketplaceBackendApplication {
             );
 
             MarketplaceUser user = repository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                    .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+
+            // Verify requested role against user's stored roles in database
+            if (request.role() != null && !request.role().isBlank()) {
+                Role requestedRole = mapFrontendRole(request.role());
+                boolean matches = isMatchingRole(user.getRoles(), requestedRole);
+                if (!matches) {
+                    throw new IllegalArgumentException("Invalid role for this account");
+                }
+            }
 
             UserDetails userDetails = createUserDetails(user);
             String token = jwtService.createToken(userDetails);
 
             return createResponse(token, user);
+        }
+
+        private boolean isMatchingRole(Set<Role> userRoles, Role requestedRole) {
+            if (userRoles == null || userRoles.isEmpty()) {
+                return false;
+            }
+            if (userRoles.contains(requestedRole)) {
+                return true;
+            }
+            for (Role r : userRoles) {
+                if (r == requestedRole) return true;
+                if (requestedRole == Role.MATERIAL_SELLER && r == Role.SELLER) return true;
+                if (requestedRole == Role.CONTRACTOR && r == Role.SELLER) return true;
+                if (requestedRole == Role.PROFESSIONAL && r == Role.SERVICE_PROVIDER) return true;
+            }
+            return false;
         }
 
         // ====================================================
@@ -525,7 +572,12 @@ public class MarketplaceBackendApplication {
                 case "contractor" -> Role.CONTRACTOR;
                 case "material_seller", "materialseller", "seller" -> Role.MATERIAL_SELLER;
                 case "professional", "service_provider" -> Role.PROFESSIONAL;
-                default -> Role.CUSTOMER;
+                default -> {
+                    if (formatted.contains("contractor")) yield Role.CONTRACTOR;
+                    if (formatted.contains("material") || formatted.contains("seller")) yield Role.MATERIAL_SELLER;
+                    if (formatted.contains("profess") || formatted.contains("service")) yield Role.PROFESSIONAL;
+                    yield Role.CUSTOMER;
+                }
             };
         }
 
@@ -573,6 +625,51 @@ public class MarketplaceBackendApplication {
         @PostMapping("/login")
         public AuthResponse login(@Valid @RequestBody LoginRequest request) {
             return authService.login(request);
+        }
+
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", ex.getMessage(),
+                    "message", ex.getMessage()
+            ));
+        }
+
+        @ExceptionHandler(BadCredentialsException.class)
+        public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Invalid email or password",
+                    "message", "Invalid email or password"
+            ));
+        }
+
+        @ExceptionHandler(UsernameNotFoundException.class)
+        public ResponseEntity<Map<String, String>> handleUserNotFound(UsernameNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Invalid email or password",
+                    "message", "Invalid email or password"
+            ));
+        }
+
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
+            String msg = ex.getBindingResult().getFieldErrors().stream()
+                    .map(err -> (err.getDefaultMessage() != null ? err.getDefaultMessage() : err.getField() + " is invalid"))
+                    .findFirst()
+                    .orElse("Validation failed");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", msg,
+                    "message", msg
+            ));
+        }
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<Map<String, String>> handleGeneralException(Exception ex) {
+            String msg = (ex.getMessage() != null && !ex.getMessage().isBlank()) ? ex.getMessage() : "Authentication request failed";
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", msg,
+                    "message", msg
+            ));
         }
     }
 

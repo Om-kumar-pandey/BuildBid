@@ -318,17 +318,21 @@ if (loginForm) {
             return;
         }
 
+        const selectedRoleInput = loginForm.querySelector('#selectedRole');
+        const chosenRole = selectedRoleInput ? selectedRoleInput.value.trim().toUpperCase() : "CUSTOMER";
+
         try {
             const response = await fetch(API_BASE_URL + "/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, role: chosenRole })
             });
 
             const data = await getResponseData(response);
 
             if (!response.ok) {
-                showAuthToast("Login Failed", data.message || data.error || "Please check your credentials.", "error");
+                const errorMessage = data.error || data.message || "Please check your credentials.";
+                showAuthToast("Login Failed", errorMessage, "error", 5000);
                 return;
             }
 
@@ -337,61 +341,43 @@ if (loginForm) {
                 localStorage.setItem("token", data.token);
             }
 
-            // Fetch complete user profile from backend
-            let userProfile = null;
+            // Read verified roles returned by the backend
+            const backendRoles = (data.roles && data.roles.length > 0) ? Array.from(data.roles) : [chosenRole];
+            const primaryRole = (backendRoles[0] || chosenRole).replace("ROLE_", "").toUpperCase();
+
+            // Store User Data
+            localStorage.setItem("marketplaceUser", JSON.stringify({
+                username: data.username || email.split('@')[0],
+                roles: backendRoles
+            }));
+
+            const loggedInUser = {
+                name: data.username || email.split('@')[0],
+                username: data.username || email.split('@')[0],
+                email: email,
+                phone: "",
+                location: "",
+                role: primaryRole
+            };
+            localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
+
+            // Fetch profile if available
             try {
                 const profileResponse = await fetch(API_BASE_URL + "/api/me", {
                     method: "GET",
                     headers: { "Authorization": "Bearer " + data.token }
                 });
                 if (profileResponse.ok) {
-                    userProfile = await profileResponse.json();
+                    const userProfile = await profileResponse.json();
+                    loggedInUser.name = userProfile.name || loggedInUser.name;
+                    loggedInUser.username = userProfile.username || loggedInUser.username;
+                    loggedInUser.phone = userProfile.phone || "";
+                    loggedInUser.location = userProfile.location || "";
+                    localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
                 }
             } catch (error) {
-                console.error("Failed to fetch profile on login:", error);
+                console.warn("Profile fetch skipped:", error);
             }
-
-            const userRoles = (userProfile && userProfile.roles) || data.roles || [];
-            const selectedRoleInput = loginForm.querySelector('#selectedRole');
-            const chosenRole = selectedRoleInput ? selectedRoleInput.value.trim().toUpperCase() : "CUSTOMER";
-
-            const roleAliases = {
-                "CONTRACTOR": ["CONTRACTOR", "SELLER"],
-                "MATERIAL_SELLER": ["MATERIAL_SELLER", "SELLER"],
-                "PROFESSIONAL": ["PROFESSIONAL", "SERVICE_PROVIDER"],
-                "CUSTOMER": ["CUSTOMER", "HOMEOUTER"]
-            };
-
-            const hasMatchingRole = userRoles.some(r => {
-                const clean = (typeof r === "string" ? r : r.name || "").replace("ROLE_", "").toUpperCase();
-                return clean === chosenRole || (roleAliases[chosenRole] && roleAliases[chosenRole].includes(clean));
-            });
-
-            if (!hasMatchingRole && userRoles.length > 0) {
-                showAuthToast(
-                    "Role Mismatch",
-                    `This email is registered under a different role. Please select your correct role tab to login.`,
-                    "error",
-                    5000
-                );
-                return;
-            }
-
-            // Store User Data
-            localStorage.setItem("marketplaceUser", JSON.stringify({
-                username: data.username || (userProfile && userProfile.username) || email.split('@')[0],
-                roles: userRoles.length > 0 ? userRoles : [chosenRole]
-            }));
-
-            const loggedInUser = {
-                name: (userProfile && userProfile.name) || data.name || data.username || email.split('@')[0],
-                username: (userProfile && userProfile.username) || data.username || email.split('@')[0],
-                email: (userProfile && userProfile.email) || email,
-                phone: (userProfile && userProfile.phone) || "",
-                location: (userProfile && userProfile.location) || "",
-                role: chosenRole
-            };
-            localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
 
             showAuthToast("Login Successful", `Welcome back, ${loggedInUser.name}!`, "success");
 
@@ -485,7 +471,7 @@ if (signupForm) {
             const data = await getResponseData(response);
 
             if (!response.ok) {
-                let errorMessage = data.message || data.error || "Account creation failed.";
+                let errorMessage = data.error || data.message || "Account creation failed.";
                 if (data.errors && Array.isArray(data.errors)) {
                     errorMessage = data.errors.map(err => err.defaultMessage || err.message || "Invalid field").join("\n");
                 }

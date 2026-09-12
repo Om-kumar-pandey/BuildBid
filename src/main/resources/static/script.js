@@ -250,6 +250,9 @@ if (loginForm) {
             // CONNECT TO BACKEND
             // ------------------------------------------------
 
+            const roleInput = document.querySelector("#selectedRole");
+            const role = roleInput ? roleInput.value : "customer";
+
             try {
 
                 const response =
@@ -269,7 +272,9 @@ if (loginForm) {
 
                                 email: email,
 
-                                password: password
+                                password: password,
+
+                                role: role
 
                             })
                         }
@@ -287,9 +292,9 @@ if (loginForm) {
                 if (!response.ok) {
 
                     alert(
-                        data.message ||
                         data.error ||
-                        "Login failed. Please check your email and password."
+                        data.message ||
+                        "Login failed. Please check your credentials."
                     );
 
                     return;
@@ -492,6 +497,8 @@ if (signupForm) {
 
                                 name: name,
 
+                                username: email.split('@')[0],
+
                                 email: email,
 
                                 password: password,
@@ -514,8 +521,8 @@ if (signupForm) {
                 if (!response.ok) {
 
                     alert(
-                        data.message ||
                         data.error ||
+                        data.message ||
                         "Account creation failed."
                     );
 
