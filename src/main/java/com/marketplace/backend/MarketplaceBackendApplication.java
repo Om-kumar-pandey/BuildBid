@@ -81,17 +81,14 @@ public class MarketplaceBackendApplication {
 
 
     // ========================================================
-    // USER ROLES (Supports both legacy database values and new 4 roles)
+    // USER ROLES
     // ========================================================
 
     public enum Role {
-        // Active 4 Roles
         CUSTOMER,
         CONTRACTOR,
         MATERIAL_SELLER,
         PROFESSIONAL,
-
-        // Backward compatibility (prevents crash on old database records)
         SELLER,
         SERVICE_PROVIDER
     }
@@ -150,10 +147,6 @@ public class MarketplaceBackendApplication {
             createdAt = LocalDateTime.now();
         }
 
-        // ====================================================
-        // GETTERS
-        // ====================================================
-
         public Long getId() { return id; }
         public String getName() { return name; }
         public String getUsername() { return username; }
@@ -164,10 +157,6 @@ public class MarketplaceBackendApplication {
         public String getProfilePhotoUrl() { return profilePhotoUrl; }
         public Set<Role> getRoles() { return roles; }
         public boolean isEnabled() { return enabled; }
-
-        // ====================================================
-        // SETTERS
-        // ====================================================
 
         public void setName(String name) { this.name = name; }
         public void setUsername(String username) { this.username = username; }
@@ -312,7 +301,7 @@ public class MarketplaceBackendApplication {
         public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
             MarketplaceUser user = repository.findByEmail(email)
                     .orElseGet(() -> repository.findByUsername(email)
-                            .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + email)));
+                            .orElseThrow(() -> new UsernameNotFoundException("Please sign up first, then login.")));
 
             String[] roles = user.getRoles()
                     .stream()
@@ -431,7 +420,6 @@ public class MarketplaceBackendApplication {
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
                     .authorizeHttpRequests(auth -> auth
-                            // Static resources served publicly from classpath:/static/
                             .requestMatchers(
                                     "/",
                                     "/index.html",
@@ -468,10 +456,8 @@ public class MarketplaceBackendApplication {
                                     "/hero-building.jpg",
                                     "/logo.png"
                             ).permitAll()
-                            // Public Auth, Health & Error
                             .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                            // Protected Business APIs
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
@@ -509,7 +495,7 @@ public class MarketplaceBackendApplication {
 
 
     // ========================================================
-    // AUTH SERVICE
+    // AUTH SERVICE (FIXED: REMOVED STRICT ROLE MISMATCH BLOCK)
     // ========================================================
 
     @Service
@@ -591,14 +577,7 @@ public class MarketplaceBackendApplication {
             MarketplaceUser user = repository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("Please sign up first, then login."));
 
-            // Verify requested role against user's stored roles in database
-            if (request.role() != null && !request.role().isBlank()) {
-                Role requestedRole = mapFrontendRole(request.role());
-                boolean matches = isMatchingRole(user.getRoles(), requestedRole);
-                if (!matches) {
-                    throw new IllegalArgumentException("Invalid role for this account");
-                }
-            }
+            // NOTE: Strict role check removed here to allow smooth direct login and redirection.
 
             UserDetails userDetails = createUserDetails(user);
             String token = jwtService.createToken(userDetails);
@@ -606,25 +585,6 @@ public class MarketplaceBackendApplication {
             return createResponse(token, user);
         }
 
-        private boolean isMatchingRole(Set<Role> userRoles, Role requestedRole) {
-            if (userRoles == null || userRoles.isEmpty()) {
-                return false;
-            }
-            if (userRoles.contains(requestedRole)) {
-                return true;
-            }
-            for (Role r : userRoles) {
-                if (r == requestedRole) return true;
-                if (requestedRole == Role.MATERIAL_SELLER && r == Role.SELLER) return true;
-                if (requestedRole == Role.CONTRACTOR && r == Role.SELLER) return true;
-                if (requestedRole == Role.PROFESSIONAL && r == Role.SERVICE_PROVIDER) return true;
-            }
-            return false;
-        }
-
-        // ====================================================
-        // SAFE 4-ROLE MAPPING (Prevents breakdown of existing frontend)
-        // ====================================================
         private Role mapFrontendRole(String frontendRole) {
             if (frontendRole == null || frontendRole.isBlank()) {
                 return Role.CUSTOMER;
@@ -801,7 +761,7 @@ public class MarketplaceBackendApplication {
 
 
     // ========================================================
-    // WEB CONFIGURATION (Strict Classpath Static Handler)
+    // WEB CONFIGURATION
     // ========================================================
 
     @Configuration
