@@ -5,6 +5,15 @@
 
 const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 
+// Helper function to resolve relative paths whether on root or inside /website/
+function resolvePath(fileName) {
+    const isInsideWebsiteFolder = window.location.pathname.includes("/website/");
+    if (isInsideWebsiteFolder) {
+        return fileName;
+    }
+    return "website/" + fileName;
+}
+
 // ============================================================
 // GET STARTED / REQUIREMENT
 // ============================================================
@@ -143,29 +152,43 @@ function updateNavbarAuthState() {
     }
 }
 
-// Role-based navigation to appropriate dashboard
+// Role-based navigation to appropriate dashboard with precise path resolving
 function navigateToDashboard() {
     const userJson = localStorage.getItem("marketplaceUser");
-    if (!userJson) {
+    const currentJson = localStorage.getItem("currentUser");
+
+    if (!userJson && !currentJson) {
         openAuth();
         return;
     }
 
-    const user = JSON.parse(userJson);
+    const user = userJson ? JSON.parse(userJson) : {};
+    const currentUser = currentJson ? JSON.parse(currentJson) : {};
+
     let role = "CUSTOMER";
 
-    if (user.roles && user.roles.length > 0) {
-        role = user.roles[0].replace("ROLE_", "").toUpperCase();
+    // 1. Check from currentUser first (saved during login/signup)
+    if (currentUser.role) {
+        role = currentUser.role.replace("ROLE_", "").toUpperCase();
+    } 
+    // 2. Check from marketplaceUser roles array
+    else if (user.roles && user.roles.length > 0) {
+        const primaryRole = user.roles[0];
+        role = (typeof primaryRole === "string" ? primaryRole : primaryRole.name || "")
+            .replace("ROLE_", "")
+            .toUpperCase();
     }
 
-    if (role === "CONTRACTOR" || role === "SELLER") {
-        window.location.href = "dashboard.html";
-    } else if (role === "MATERIAL_SELLER") {
-        window.location.href = "material seller dashboard.html";
+    console.log("Navigating for user role:", role);
+
+    if (role === "CONTRACTOR") {
+        window.location.href = resolvePath("contractor dashboard.html");
+    } else if (role === "MATERIAL_SELLER" || role === "SELLER") {
+        window.location.href = resolvePath("material seller dashboard.html");
     } else if (role === "PROFESSIONAL" || role === "SERVICE_PROVIDER") {
-        window.location.href = "professional dashboard.html";
+        window.location.href = resolvePath("professional dashboard.html");
     } else {
-        window.location.href = "customer dashboard.html";
+        window.location.href = resolvePath("customer dashboard.html");
     }
 }
 
@@ -176,7 +199,7 @@ function isUserLoggedIn() {
 function handleProtectedAction(actionType) {
     if (!isUserLoggedIn()) {
         if (actionType === "POST_PROJECT") {
-            sessionStorage.setItem("pendingRedirect", "create project.html");
+            sessionStorage.setItem("pendingRedirect", resolvePath("create project.html"));
         }
         showAuthToast("Login Required", "Please login or create an account to access this feature.", "warning", 4000);
         openAuth();
@@ -185,7 +208,7 @@ function handleProtectedAction(actionType) {
 
     switch (actionType) {
         case "POST_PROJECT":
-            window.location.href = "create project.html";
+            window.location.href = resolvePath("create project.html");
             break;
         case "FIND_CONTRACTORS":
             showMessage("Contractor marketplace coming soon!");
@@ -194,10 +217,10 @@ function handleProtectedAction(actionType) {
             showMessage("Materials marketplace coming soon!");
             break;
         case "HIRE_PROFESSIONALS":
-            showMessage("Professional hiring coming soon!");
+            window.location.href = resolvePath("hire-professionals.html");
             break;
         default:
-            window.location.href = "create project.html";
+            window.location.href = resolvePath("create project.html");
     }
 }
 
@@ -266,7 +289,6 @@ function toggleSignupCategoryFields(role) {
             profSelect.value = "";
         }
     } else {
-        // CUSTOMER or CONTRACTOR
         profBox.classList.add("hidden");
         sellerBox.classList.add("hidden");
         if (profSelect) {
@@ -336,14 +358,15 @@ if (loginForm) {
             const selectedRoleInput = loginForm.querySelector('#selectedRole');
             const chosenRole = selectedRoleInput ? selectedRoleInput.value.trim().toUpperCase() : "CUSTOMER";
 
-            // Map old roles if backend still has them
             const roleAliases = {
-                "SELLER": ["CONTRACTOR", "SELLER"],
-                "SERVICE_PROVIDER": ["PROFESSIONAL", "SERVICE_PROVIDER"]
+                "CONTRACTOR": ["CONTRACTOR", "SELLER"],
+                "MATERIAL_SELLER": ["MATERIAL_SELLER", "SELLER"],
+                "PROFESSIONAL": ["PROFESSIONAL", "SERVICE_PROVIDER"],
+                "CUSTOMER": ["CUSTOMER", "HOMEOUTER"]
             };
 
             const hasMatchingRole = userRoles.some(r => {
-                const clean = r.replace("ROLE_", "").toUpperCase();
+                const clean = (typeof r === "string" ? r : r.name || "").replace("ROLE_", "").toUpperCase();
                 return clean === chosenRole || (roleAliases[chosenRole] && roleAliases[chosenRole].includes(clean));
             });
 
@@ -368,7 +391,8 @@ if (loginForm) {
                 username: (userProfile && userProfile.username) || data.username || email.split('@')[0],
                 email: (userProfile && userProfile.email) || email,
                 phone: (userProfile && userProfile.phone) || "",
-                location: (userProfile && userProfile.location) || ""
+                location: (userProfile && userProfile.location) || "",
+                role: chosenRole
             };
             localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
 
@@ -429,7 +453,6 @@ if (signupForm) {
             selectedRole = "CUSTOMER";
         }
 
-        // Validate dynamic category choices
         if (selectedRole === "PROFESSIONAL" && (!profSelect || !profSelect.value)) {
             showAuthToast("Selection Required", "Please select your profession / specialization.", "error");
             return;
