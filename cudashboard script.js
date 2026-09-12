@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderVerificationStatus(user.verifications);
   renderRecentActivities(user.activities);
 
-  // 2. Fetch fresh details from backend
+  // 2. Fetch fresh details from backend safely
   try {
     const response = await fetch(`${API_BASE_URL}/api/me`, {
       headers: { "Authorization": `Bearer ${token}` }
@@ -92,15 +92,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       user = {
         ...user,
         ...liveUserData,
-        name: (liveUserData.name && liveUserData.name.trim() !== "") ? liveUserData.name : (user.name || ""),
+        name: (liveUserData.name && liveUserData.name.trim() !== "") ? liveUserData.name : (user.name || "Customer"),
         email: (liveUserData.email && liveUserData.email.trim() !== "") ? liveUserData.email : (user.email || ""),
         phone: (liveUserData.phone && liveUserData.phone.trim() !== "") ? liveUserData.phone : (user.phone || ""),
         location: (liveUserData.location && liveUserData.location.trim() !== "") ? liveUserData.location : (user.location || "")
       };
 
-      const primaryRole = (liveUserData.roles && liveUserData.roles.length > 0)
-        ? (typeof liveUserData.roles[0] === "string" ? liveUserData.roles[0] : liveUserData.roles[0].name || "")
-        : (user.role || "CUSTOMER");
+      const rolesArray = liveUserData.roles || user.roles || ["CUSTOMER"];
+      const primaryRole = (rolesArray.length > 0)
+        ? (typeof rolesArray[0] === "string" ? rolesArray[0] : rolesArray[0].name || "CUSTOMER")
+        : "CUSTOMER";
+      
       user.role = primaryRole.replace("ROLE_", "").toUpperCase();
 
       localStorage.setItem("currentUser", JSON.stringify(user));
@@ -109,7 +111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Re-render with database synced data
       renderUserProfile(user);
 
-      // Enforce correct role isolation smoothly without breaking navigation loops
+      // Safe role routing (Only redirect if strictly another role, otherwise stay on customer dashboard)
       const activeRole = user.role;
       if (activeRole === "CONTRACTOR") {
         window.location.href = "dashborad.html";
