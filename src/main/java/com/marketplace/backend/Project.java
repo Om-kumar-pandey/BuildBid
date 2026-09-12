@@ -1,5 +1,6 @@
 package com.marketplace.backend;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -12,6 +13,7 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String projectId; // Unique Project ID (e.g. PRJ-...)
     private String title;
     private String type;
     private String city;
@@ -29,6 +31,12 @@ public class Project {
     private Double budgetMax;
     private String targetStartDate;
 
+    private String paymentPreference;
+    private String privacyPreference;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @ElementCollection
     @CollectionTable(name = "project_requirements", joinColumns = @JoinColumn(name = "project_id"))
     @MapKeyColumn(name = "requirement_name")
@@ -38,9 +46,10 @@ public class Project {
     private String status = "OPEN";
 
     // पूरा डायनेमिक JSON डेटा सेव करने के लिए
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String completeDataJson;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private MarketplaceBackendApplication.MarketplaceUser customer;
@@ -57,6 +66,9 @@ public class Project {
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getProjectId() { return projectId; }
+    public void setProjectId(String projectId) { this.projectId = projectId; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -100,6 +112,15 @@ public class Project {
     public String getTargetStartDate() { return targetStartDate; }
     public void setTargetStartDate(String targetStartDate) { this.targetStartDate = targetStartDate; }
 
+    public String getPaymentPreference() { return paymentPreference; }
+    public void setPaymentPreference(String paymentPreference) { this.paymentPreference = paymentPreference; }
+
+    public String getPrivacyPreference() { return privacyPreference; }
+    public void setPrivacyPreference(String privacyPreference) { this.privacyPreference = privacyPreference; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
     public Map<String, Boolean> getRequirements() { return requirements; }
     public void setRequirements(Map<String, Boolean> requirements) { this.requirements = requirements; }
 
@@ -115,3 +136,4 @@ public class Project {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
+

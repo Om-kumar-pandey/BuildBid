@@ -338,6 +338,7 @@ if (loginForm) {
 
             if (data.token) {
                 localStorage.setItem("marketplaceToken", data.token);
+                localStorage.setItem("token", data.token);
             }
 
             // Fetch complete user profile from backend
@@ -496,6 +497,7 @@ if (signupForm) {
 
             if (data.token) {
                 localStorage.setItem("marketplaceToken", data.token);
+                localStorage.setItem("token", data.token);
             }
 
             localStorage.setItem("marketplaceUser", JSON.stringify({

@@ -66,9 +66,17 @@ const BASEMENT_FEATURES = [
 /* =========================================================
    BACKEND FETCH ENGINE
    ========================================================= */
+function getAuthToken() {
+  return localStorage.getItem("token") ||
+         localStorage.getItem("marketplaceToken") ||
+         localStorage.getItem("authToken") ||
+         sessionStorage.getItem("token") ||
+         "";
+}
+
 async function fetchProjectConfiguration(projectType) {
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = getAuthToken();
     const response = await fetch(`${BACKEND_URL}/api/projects/config?type=${encodeURIComponent(projectType)}`, {
       method: "GET",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
@@ -82,7 +90,7 @@ async function fetchProjectConfiguration(projectType) {
 
 async function fetchExistingProjectData(projectId) {
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = getAuthToken();
     const response = await fetch(`${BACKEND_URL}/api/customer/projects/${projectId}`, {
       method: "GET",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
@@ -1464,17 +1472,32 @@ function populateReview() {
    SUBMIT PROJECT & STORAGE
    ========================================================= */
 async function submitProject() {
+  const token = getAuthToken();
+  if (!token) {
+    alert("Authentication required. Please login as a customer to post a project.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const generatedProjectId = "PRJ-" + Date.now();
   const payload = {
-    projectTitle: document.getElementById("projectTitleInput")?.value || "BuildBid Project",
+    projectId: generatedProjectId,
+    projectTitle: document.getElementById("projectTitleInput")?.value || projectState.title || "BuildBid Project",
     projectType: projectState.projectType,
     location: {
-      city: document.getElementById("cityInput")?.value,
-      state: document.getElementById("stateSelect")?.value,
-      pincode: document.getElementById("pincodeInput")?.value,
-      address: document.getElementById("addressInput")?.value
+      city: document.getElementById("cityInput")?.value || projectState.city || "",
+      state: document.getElementById("stateSelect")?.value || projectState.state || "",
+      pincode: document.getElementById("pincodeInput")?.value || projectState.pincode || "",
+      address: document.getElementById("addressInput")?.value || projectState.address || ""
     },
-    totalArea: projectState.calculatedArea,
-    qualityTier: projectState.qualityTier,
+    totalArea: projectState.calculatedArea || parseFloat(document.getElementById("builtUpAreaInput")?.value) || 0,
+    plotArea: parseFloat(document.getElementById("plotAreaInput")?.value) || 0,
+    floors: parseInt(document.getElementById("numFloorsSelect")?.value) || projectState.floorsCount || 1,
+    qualityTier: projectState.qualityTier || "Standard",
+    estimatedCost: document.getElementById("costRangeDisplay")?.textContent || "",
+    description: document.getElementById("ncDescription")?.value || document.getElementById("otherDesc")?.value || "",
+    paymentPreference: document.getElementById("paymentPref")?.value || "Milestone Based",
+    privacyPreference: document.getElementById("privacyPref")?.value || "Public to verified contractors",
     budget: {
       min: parseFloat(document.getElementById("budgetMin")?.value) || 0,
       max: parseFloat(document.getElementById("budgetMax")?.value) || 0
@@ -1489,11 +1512,17 @@ async function submitProject() {
     payload.basementDetails = projectState.hasBasement ? projectState.basementData : null;
     payload.floors = projectState.floorsData;
     payload.scopeOfWork = projectState.scopeOfWork;
+    payload.purpose = document.getElementById("ncPurpose")?.value || "";
+    payload.plotFacing = document.getElementById("ncPlotFacing")?.value || "";
+    payload.cornerPlot = document.getElementById("ncCornerPlot")?.value || "No";
   } else if (projectState.projectType === "Renovation") {
     payload.renovationAreas = Object.entries(projectState.renovationAreas).map(([k, v]) => ({ areaName: k, ...v }));
     payload.renovScope = projectState.renovScope;
+    payload.propertyType = document.getElementById("renovPropertyType")?.value || "";
+    payload.propertyAge = document.getElementById("renovAge")?.value || "";
   } else if (projectState.projectType === "Home Extension") {
     payload.extensionDetails = projectState.extensionData;
+    payload.existingType = document.getElementById("extExistingType")?.value || "";
   } else if (projectState.projectType === "Interior") {
     payload.rooms = projectState.interiorRooms;
     payload.scope = projectState.interiorScope;
@@ -1507,7 +1536,6 @@ async function submitProject() {
   }
 
   try {
-    const token = localStorage.getItem("token") || "";
     const res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -1515,16 +1543,18 @@ async function submitProject() {
     });
 
     if (res.ok) {
+      const respData = await res.json().catch(() => ({}));
+      const confirmedProjectId = respData.projectId || generatedProjectId;
+      payload.id = confirmedProjectId;
+      payload.projectId = confirmedProjectId;
       saveLocalProject(payload);
-      alert("Project posted and bids requested successfully!");
+      alert("Project posted and saved to Cloud MySQL successfully!");
       window.location.href = "customer projects.html";
     } else {
       const errText = await res.text();
-        console.error("Backend Error Status:", res.status);
-        console.error("Backend Error Response Body:", errText); 
-        
-      
-        alert("Server Error (" + res.status + "): " + errText);
+      console.error("Backend Error Status:", res.status);
+      console.error("Backend Error Response Body:", errText);
+      alert("Server Error (" + res.status + "): " + (errText || "Could not save project."));
     }
   } catch (e) {
     console.error("Network/Fetch Error:", e);
@@ -1537,7 +1567,7 @@ function saveLocalProject(p) {
   const globalProjects = JSON.parse(localStorage.getItem("allListedProjects") || "[]");
 
   const projectRecord = {
-    id: "PRJ-" + Date.now(),
+    id: p.id || p.projectId || ("PRJ-" + Date.now()),
     title: p.projectTitle,
     category: p.projectType,
     customerName: JSON.parse(localStorage.getItem("currentUser") || "{}").name || "Customer",
