@@ -1,5 +1,5 @@
 // ============================================================
-// BUILD BID - FRONTEND JAVASCRIPT
+// BUILD BID - FRONTEND JAVASCRIPT (CORRECTED & OPTIMIZED)
 // BACKEND: SPRING BOOT + MYSQL + JWT
 // ============================================================
 
@@ -40,14 +40,10 @@ function getCleanToken() {
     return token;
 }
 
-// Helper function to resolve relative paths directly
 function resolvePath(fileName) {
     return fileName;
 }
 
-// ============================================================
-// GET STARTED / REQUIREMENT
-// ============================================================
 function goToRequirement() {
     const requirement = document.querySelector("#requirement");
     if (requirement) {
@@ -55,9 +51,6 @@ function goToRequirement() {
     }
 }
 
-// ============================================================
-// LOGIN POPUP
-// ============================================================
 function openAuth() {
     const auth = document.querySelector("#auth");
     if (auth) {
@@ -93,9 +86,6 @@ function showSignup() {
     }
 }
 
-// ============================================================
-// AUTH TOAST (MESSAGE)
-// ============================================================
 let authToastTimer = null;
 
 function showAuthToast(title, message, type = "success", duration = 4000) {
@@ -147,9 +137,6 @@ async function getResponseData(response) {
     }
 }
 
-// ============================================================
-// USER AVATAR & NAVBAR AUTH STATE HANDLERS
-// ============================================================
 function getInitials(name) {
     if (!name || typeof name !== "string") return "BB";
     const parts = name.trim().split(/\s+/);
@@ -167,10 +154,10 @@ function updateNavbarAuthState() {
     const userAvatarBtn = document.getElementById("userAvatarBtn");
     const userInitials = document.getElementById("userInitials");
 
-    if (token && userJson) {
-        const user = JSON.parse(userJson);
-        const customer = customerJson ? JSON.parse(customerJson) : null;
-        const displayName = (customer && customer.name) ? customer.name : (user.username || "User");
+    if (token && (userJson || customerJson)) {
+        const user = userJson ? JSON.parse(userJson) : {};
+        const customer = customerJson ? JSON.parse(customerJson) : {};
+        const displayName = customer.name || user.username || "User";
 
         if (navLoginBtn) navLoginBtn.classList.add("hidden");
         if (navStartBtn) navStartBtn.classList.add("hidden");
@@ -183,12 +170,11 @@ function updateNavbarAuthState() {
     }
 }
 
-// Role-based navigation to appropriate dashboard with precise path resolving
 function navigateToDashboard() {
     const userJson = localStorage.getItem("marketplaceUser");
     const currentJson = localStorage.getItem("currentUser");
 
-    if (!userJson && !currentJson) {
+    if (!getCleanToken()) {
         openAuth();
         return;
     }
@@ -198,12 +184,9 @@ function navigateToDashboard() {
 
     let role = "CUSTOMER";
 
-    // 1. Check from currentUser first (saved during login/signup)
     if (currentUser.role) {
         role = currentUser.role.replace("ROLE_", "").toUpperCase();
-    } 
-    // 2. Check from marketplaceUser roles array
-    else if (user.roles && user.roles.length > 0) {
+    } else if (user.roles && user.roles.length > 0) {
         const primaryRole = user.roles[0];
         role = (typeof primaryRole === "string" ? primaryRole : primaryRole.name || "")
             .replace("ROLE_", "")
@@ -242,10 +225,10 @@ function handleProtectedAction(actionType) {
             window.location.href = resolvePath("create project.html");
             break;
         case "FIND_CONTRACTORS":
-            showMessage("Contractor marketplace coming soon!");
+            window.location.href = resolvePath("contactor.html");
             break;
         case "BUY_MATERIALS":
-            showMessage("Materials marketplace coming soon!");
+            window.location.href = resolvePath("material seller dashboard.html");
             break;
         case "HIRE_PROFESSIONALS":
             window.location.href = resolvePath("hire-professionals.html");
@@ -255,9 +238,6 @@ function handleProtectedAction(actionType) {
     }
 }
 
-// ============================================================
-// ROLE SELECTOR HANDLERS (4 ROLES)
-// ============================================================
 function selectRole(role) {
     const buttons = {
         CUSTOMER: document.querySelector("#loginCustomerBtn"),
@@ -334,7 +314,7 @@ function toggleSignupCategoryFields(role) {
 }
 
 // ============================================================
-// LOGIN FORM (WITH ROLE MISMATCH CHECK & REDIRECT FLOW)
+// LOGIN FORM EVENT LISTENER (FIXED AUTO-LOGOUT & REDIRECT)
 // ============================================================
 const loginForm = document.querySelector("#loginForm");
 
@@ -349,7 +329,7 @@ if (loginForm) {
         const password = passwordInput ? passwordInput.value : "";
 
         if (!email || !password) {
-            alert("Please fill all required fields.");
+            showAuthToast("Missing Info", "Please fill in all required fields.", "error");
             return;
         }
 
@@ -366,7 +346,7 @@ if (loginForm) {
             const data = await getResponseData(response);
 
             if (!response.ok) {
-                const errorMessage = data.error || data.message || "Please check your credentials.";
+                const errorMessage = data.error || data.message || "Invalid email or password.";
                 showAuthToast("Login Failed", errorMessage, "error", 5000);
                 return;
             }
@@ -376,11 +356,9 @@ if (loginForm) {
                 localStorage.setItem("token", data.token);
             }
 
-            // Read verified roles returned by the backend
             const backendRoles = (data.roles && data.roles.length > 0) ? Array.from(data.roles) : [chosenRole];
             const primaryRole = (backendRoles[0] || chosenRole).replace("ROLE_", "").toUpperCase();
 
-            // Store User Data
             localStorage.setItem("marketplaceUser", JSON.stringify({
                 username: data.username || email.split('@')[0],
                 roles: backendRoles
@@ -396,25 +374,6 @@ if (loginForm) {
             };
             localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
 
-            // Fetch live profile to ensure everything is in sync
-            try {
-                const profileResponse = await fetch(API_BASE_URL + "/api/me", {
-                    method: "GET",
-                    headers: { "Authorization": "Bearer " + data.token }
-                });
-                if (profileResponse.ok) {
-                    const userProfile = await profileResponse.json();
-                    loggedInUser.name = userProfile.name || loggedInUser.name;
-                    loggedInUser.username = userProfile.username || loggedInUser.username;
-                    loggedInUser.email = userProfile.email || loggedInUser.email;
-                    loggedInUser.phone = userProfile.phone || loggedInUser.phone;
-                    loggedInUser.location = userProfile.location || loggedInUser.location;
-                    localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
-                }
-            } catch (error) {
-                console.warn("Profile fetch skipped:", error);
-            }
-
             showAuthToast("Login Successful", `Welcome back, ${loggedInUser.name}!`, "success");
 
             loginForm.reset();
@@ -424,9 +383,9 @@ if (loginForm) {
             const pendingUrl = sessionStorage.getItem("pendingRedirect");
             if (pendingUrl) {
                 sessionStorage.removeItem("pendingRedirect");
-                setTimeout(() => { window.location.href = pendingUrl; }, 800);
+                setTimeout(() => { window.location.href = pendingUrl; }, 500);
             } else {
-                setTimeout(() => { navigateToDashboard(); }, 800);
+                setTimeout(() => { navigateToDashboard(); }, 500);
             }
         } catch (error) {
             console.error("Login error:", error);
@@ -436,7 +395,7 @@ if (loginForm) {
 }
 
 // ============================================================
-// SIGNUP FORM (WITH 4-ROLE & DYNAMIC CATEGORIES)
+// SIGNUP FORM EVENT LISTENER
 // ============================================================
 const signupForm = document.querySelector("#signupForm");
 
@@ -455,34 +414,19 @@ if (signupForm) {
         const profSelect = document.getElementById("professionalCategorySelect");
         const sellerSelect = document.getElementById("sellerCategorySelect");
 
-        if (!nameInput || !usernameInput || !emailInput || !phoneInput || !passwordInput) {
+        if (!nameInput || !emailInput || !passwordInput) {
             showAuthToast("Missing Information", "Please fill all required fields.", "error");
             return;
         }
 
         const name = nameInput.value.trim();
-        const username = usernameInput.value.trim();
+        const username = usernameInput ? usernameInput.value.trim() : emailInput.value.trim().split("@")[0];
         const email = emailInput.value.trim().toLowerCase();
-        const phone = phoneInput.value.trim();
+        const phone = phoneInput ? phoneInput.value.trim() : "";
         const password = passwordInput.value;
         const userLocation = locationInput && locationInput.value.trim() ? locationInput.value.trim() : "India";
 
         let selectedRole = roleInput ? roleInput.value.trim().toUpperCase() : "CUSTOMER";
-
-        const allowedRoles = ["CUSTOMER", "CONTRACTOR", "MATERIAL_SELLER", "PROFESSIONAL"];
-        if (!allowedRoles.includes(selectedRole)) {
-            selectedRole = "CUSTOMER";
-        }
-
-        if (selectedRole === "PROFESSIONAL" && (!profSelect || !profSelect.value)) {
-            showAuthToast("Selection Required", "Please select your profession / specialization.", "error");
-            return;
-        }
-
-        if (selectedRole === "MATERIAL_SELLER" && (!sellerSelect || !sellerSelect.value)) {
-            showAuthToast("Selection Required", "Please select the primary material supplied.", "error");
-            return;
-        }
 
         const registerData = {
             name: name,
@@ -493,8 +437,8 @@ if (signupForm) {
             password: password,
             role: selectedRole.toLowerCase(),
             category: selectedRole === "PROFESSIONAL" 
-                        ? profSelect.value 
-                        : (selectedRole === "MATERIAL_SELLER" ? sellerSelect.value : null)
+                    ? (profSelect ? profSelect.value : null) 
+                    : (selectedRole === "MATERIAL_SELLER" ? (sellerSelect ? sellerSelect.value : null) : null)
         };
 
         try {
@@ -508,9 +452,6 @@ if (signupForm) {
 
             if (!response.ok) {
                 let errorMessage = data.error || data.message || "Account creation failed.";
-                if (data.errors && Array.isArray(data.errors)) {
-                    errorMessage = data.errors.map(err => err.defaultMessage || err.message || "Invalid field").join("\n");
-                }
                 showAuthToast("Signup Failed", errorMessage, "error", 5000);
                 return;
             }
@@ -543,13 +484,7 @@ if (signupForm) {
             closeAuth();
             updateNavbarAuthState();
 
-            const pendingUrl = sessionStorage.getItem("pendingRedirect");
-            if (pendingUrl) {
-                sessionStorage.removeItem("pendingRedirect");
-                setTimeout(() => { window.location.href = pendingUrl; }, 800);
-            } else {
-                setTimeout(() => { navigateToDashboard(); }, 800);
-            }
+            setTimeout(() => { navigateToDashboard(); }, 500);
         } catch (error) {
             console.error("Signup error:", error);
             showAuthToast("Connection Error", "Unable to connect to the backend. Please try again.", "error", 5000);
@@ -557,18 +492,12 @@ if (signupForm) {
     });
 }
 
-// ============================================================
-// ESC KEY CLOSE AUTH MODAL
-// ============================================================
 document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
         closeAuth();
     }
 });
 
-// ============================================================
-// PASSWORD EYE TOGGLE
-// ============================================================
 function togglePasswordVisibility(iconElement) {
     if (!iconElement) return;
     const wrapper = iconElement.closest(".buildbid-input-wrapper");
@@ -593,38 +522,11 @@ document.addEventListener("click", function(event) {
     }
 });
 
-// ============================================================
-// GET CURRENT LOGGED-IN USER & INITIAL CHECK
-// ============================================================
-async function getCurrentUser() {
-    const token = getCleanToken();
-    if (!token) return null;
-
-    try {
-        const response = await fetch(API_BASE_URL + "/api/me", {
-            method: "GET",
-            headers: { "Authorization": "Bearer " + token }
-        });
-
-        if (!response.ok) {
-            return null;
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error("Profile error:", error);
-        return null;
-    }
-}
-
 document.addEventListener("DOMContentLoaded", function() {
     console.log("BuildBid frontend loaded.");
     updateNavbarAuthState();
 });
 
-// ============================================================
-// FREE GPS LOCATION DETECTION
-// ============================================================
 function detectUserLocation() {
     const locationInput = document.getElementById("signupLocation");
     if (!navigator.geolocation) {
@@ -650,26 +552,20 @@ function detectUserLocation() {
             if (data && data.display_name) {
                 locationInput.value = data.display_name;
             } else {
-                alert("Could not determine address from coordinates.");
                 locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
             }
         } catch (error) {
             console.error("Geocoding error:", error);
-            alert("Failed to fetch address. Please type it manually.");
             locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
         }
     }, (error) => {
         console.error("Geolocation error:", error);
-        alert("Location permission denied or unavailable.");
         locationInput.placeholder = "City, State (e.g. Lucknow, Uttar Pradesh)";
     }, {
         timeout: 10000
     });
 }
 
-// ============================================================
-// VIDEO MODAL HANDLERS
-// ============================================================
 function openVideoModal() {
     const modal = document.getElementById("videoModal");
     const video = document.getElementById("buildBidVideo");
@@ -694,12 +590,6 @@ function closeVideoModal() {
 document.addEventListener("click", function(event) {
     const modal = document.getElementById("videoModal");
     if (event.target === modal) {
-        closeVideoModal();
-    }
-});
-
-document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
         closeVideoModal();
     }
 });
