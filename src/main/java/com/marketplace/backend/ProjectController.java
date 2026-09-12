@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @RestController
 @RequestMapping("/api/customer/projects")
@@ -53,37 +54,60 @@ public class ProjectController {
                 project.setProjectId("PRJ-" + System.currentTimeMillis());
             }
 
-            // Map basic fields safely from frontend payload
-            if (payload.get("projectTitle") != null) {
-                project.setTitle(payload.get("projectTitle").toString());
-            } else if (payload.get("title") != null) {
-                project.setTitle(payload.get("title").toString());
+            // Map Title & Project Title (Satisfies Cloud MySQL project_title NOT NULL constraint)
+            String title = "BuildBid Project";
+            if (payload.get("projectTitle") != null && !payload.get("projectTitle").toString().isBlank()) {
+                title = payload.get("projectTitle").toString();
+            } else if (payload.get("title") != null && !payload.get("title").toString().isBlank()) {
+                title = payload.get("title").toString();
             }
+            project.setProjectTitle(title);
+            project.setTitle(title);
 
-            if (payload.get("projectType") != null) {
-                project.setType(payload.get("projectType").toString());
-            } else if (payload.get("type") != null) {
-                project.setType(payload.get("type").toString());
+            // Map Type & Project Type (Satisfies Cloud MySQL project_type NOT NULL constraint)
+            String type = "New Construction";
+            if (payload.get("projectType") != null && !payload.get("projectType").toString().isBlank()) {
+                type = payload.get("projectType").toString();
+            } else if (payload.get("type") != null && !payload.get("type").toString().isBlank()) {
+                type = payload.get("type").toString();
             }
+            project.setProjectType(type);
+            project.setType(type);
 
             if (payload.get("qualityTier") != null) {
                 project.setQualityTier(payload.get("qualityTier").toString());
             }
 
+            // Map Areas
+            Double areaVal = null;
             if (payload.get("totalArea") instanceof Number) {
-                project.setBuiltUpArea(((Number) payload.get("totalArea")).doubleValue());
+                areaVal = ((Number) payload.get("totalArea")).doubleValue();
             } else if (payload.get("builtUpArea") instanceof Number) {
-                project.setBuiltUpArea(((Number) payload.get("builtUpArea")).doubleValue());
+                areaVal = ((Number) payload.get("builtUpArea")).doubleValue();
+            }
+            if (areaVal != null) {
+                project.setTotalArea(areaVal);
+                project.setBuiltUpArea(areaVal);
             }
 
             if (payload.get("plotArea") instanceof Number) {
                 project.setPlotArea(((Number) payload.get("plotArea")).doubleValue());
             }
 
-            if (payload.get("floors") instanceof Number) {
-                project.setFloors(((Number) payload.get("floors")).intValue());
-            } else if (payload.get("floorsCount") instanceof Number) {
-                project.setFloors(((Number) payload.get("floorsCount")).intValue());
+            // Map Floors (Cloud MySQL floors column is TEXT)
+            if (payload.get("floors") != null) {
+                Object f = payload.get("floors");
+                if (f instanceof String) {
+                    project.setFloors((String) f);
+                } else {
+                    try {
+                        project.setFloors(objectMapper.writeValueAsString(f));
+                    } catch (Exception ignored) {
+                        project.setFloors(f.toString());
+                    }
+                }
+            } else if (payload.get("floorsCount") != null) {
+                project.setFloors(payload.get("floorsCount").toString());
             }
 
             if (payload.get("estimatedCost") != null) {
@@ -110,9 +134,26 @@ public class ProjectController {
                 if (location.get("state") != null) project.setState(location.get("state").toString());
                 if (location.get("pincode") != null) project.setPincode(location.get("pincode").toString());
                 if (location.get("address") != null) project.setAddress(location.get("address").toString());
+
+                StringBuilder sb = new StringBuilder();
+                if (location.get("address") != null && !location.get("address").toString().isBlank()) {
+                    sb.append(location.get("address")).append(", ");
+                }
+                if (location.get("city") != null && !location.get("city").toString().isBlank()) {
+                    sb.append(location.get("city")).append(", ");
+                }
+                if (location.get("state") != null && !location.get("state").toString().isBlank()) {
+                    sb.append(location.get("state")).append(" ");
+                }
+                if (location.get("pincode") != null && !location.get("pincode").toString().isBlank()) {
+                    sb.append(location.get("pincode"));
+                }
+                project.setLocation(sb.toString().trim());
+            } else if (locationObj != null) {
+                project.setLocation(locationObj.toString());
             }
 
-            // Map budget range
+            // Map budget
             Object budgetObj = payload.get("budget");
             if (budgetObj instanceof Map) {
                 Map<?, ?> budget = (Map<?, ?>) budgetObj;
@@ -122,26 +163,47 @@ public class ProjectController {
                 if (budget.get("max") instanceof Number) {
                     project.setBudgetMax(((Number) budget.get("max")).doubleValue());
                 }
+                project.setBudget(budget.get("min") + " - " + budget.get("max"));
+            } else if (budgetObj != null) {
+                project.setBudget(budgetObj.toString());
             }
 
-            // Map timeline/start date
+            // Map timeline
             Object timelineObj = payload.get("timeline");
             if (timelineObj instanceof Map) {
                 Map<?, ?> timeline = (Map<?, ?>) timelineObj;
                 if (timeline.get("startDate") != null) {
                     project.setTargetStartDate(timeline.get("startDate").toString());
+                    project.setTimeline(timeline.get("startDate").toString());
                 }
+            } else if (timelineObj != null) {
+                project.setTimeline(timelineObj.toString());
+            }
+            if (payload.get("targetStartDate") != null) {
+                project.setTargetStartDate(payload.get("targetStartDate").toString());
             }
 
-            // Store entire complex dynamic payload as JSON text in cloud database
+            // Map dynamic category-specific fields into designated database columns
+            setJsonOrString(payload.get("scopeOfWork"), project::setScopeOfWork);
+            setJsonOrString(payload.get("renovationAreas"), project::setRenovationAreas);
+            setJsonOrString(payload.get("renovScope"), project::setRenovScope);
+            setJsonOrString(payload.get("extensionDetails"), project::setExtensionDetails);
+            setJsonOrString(payload.get("rooms") != null ? payload.get("rooms") : payload.get("interiorRooms"), project::setInteriorRooms);
+            setJsonOrString(payload.get("scope") != null ? payload.get("scope") : payload.get("interiorScope"), project::setInteriorScope);
+            setJsonOrString(payload.get("interiorPreferences"), project::setInteriorPreferences);
+            setJsonOrString(payload.get("commercial"), project::setCommercial);
+            setJsonOrString(payload.get("industrial"), project::setIndustrial);
+            setJsonOrString(payload.get("custom") != null ? payload.get("custom") : payload.get("customDetails"), project::setCustomDetails);
+
+            // Store entire complete dynamic payload as JSON text in cloud database
             try {
                 String completeJson = objectMapper.writeValueAsString(payload);
                 project.setCompleteDataJson(completeJson);
             } catch (Exception e) {
-                System.err.println("Failed to serialize payload JSON for cloud DB: " + e.getMessage());
+                System.err.println("Failed to serialize payload JSON for completeDataJson: " + e.getMessage());
             }
 
-            // Persist entity to Cloud MySQL (visible via MySQL Workbench)
+            // Persist entity to Cloud MySQL
             Project savedProject = projectRepository.save(project);
 
             Map<String, Object> response = new HashMap<>();
@@ -151,11 +213,23 @@ public class ProjectController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            // Detailed exception logged on backend only (never leak credentials, SQL, or stack trace to client)
             System.err.println("Database error while saving project: " + e.getMessage());
             e.printStackTrace();
-            Throwable root = e;
-            while (root.getCause() != null) root = root.getCause();
-            return ResponseEntity.status(500).body(Map.of("error", "Database error: " + (root.getMessage() != null ? root.getMessage() : e.getMessage())));
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to save project to database. Please check your inputs and try again."));
+        }
+    }
+
+    private void setJsonOrString(Object value, Consumer<String> consumer) {
+        if (value == null) return;
+        if (value instanceof String) {
+            consumer.accept((String) value);
+        } else {
+            try {
+                consumer.accept(objectMapper.writeValueAsString(value));
+            } catch (Exception ignored) {
+                consumer.accept(value.toString());
+            }
         }
     }
 
@@ -178,23 +252,6 @@ public class ProjectController {
         List<Project> projects = projectRepository.findByCustomer(user);
 
         return ResponseEntity.ok(projects);
-    }
-
-    @jakarta.persistence.PersistenceContext
-    private jakarta.persistence.EntityManager entityManager;
-
-    @GetMapping("/schema-info")
-    public ResponseEntity<?> getSchemaInfo() {
-        try {
-            List<?> rows = entityManager.createNativeQuery(
-                "SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLUMN_DEFAULT " +
-                "FROM INFORMATION_SCHEMA.COLUMNS " +
-                "WHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE()"
-            ).getResultList();
-            return ResponseEntity.ok(rows);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
-        }
     }
 
     @GetMapping("/{id}")
@@ -221,4 +278,3 @@ public class ProjectController {
         return ResponseEntity.status(404).body(Map.of("error", "Project not found"));
     }
 }
-
