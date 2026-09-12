@@ -408,13 +408,15 @@ public class MarketplaceBackendApplication {
                     .sessionManagement(session ->
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
-                    .authorizeHttpRequests(auth ->
-                            auth
-                                    .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
-                                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                    .requestMatchers("/api/customer/projects/**", "/api/customer/hiring/**").permitAll()
-                                    .anyRequest().authenticated()
-                    )
+                   .authorizeHttpRequests(auth ->
+    auth
+        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
+        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
+        .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
+        .requestMatchers("/api/customer/hiring/**").permitAll()
+        .anyRequest().authenticated()
+)
                     .authenticationProvider(authenticationProvider())
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                     .build();
