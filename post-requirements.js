@@ -427,12 +427,57 @@ function populateReviewStep() {
 /* =========================================================
    SUBMIT SPRING BOOT PAYLOAD
    ========================================================= */
+function getApiBaseUrl() {
+  if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      if (window.location.port && window.location.port !== "8080") {
+        return `${window.location.protocol}//${window.location.hostname}:8080`;
+      }
+      return window.location.origin;
+    }
+    return window.location.origin;
+  }
+  return "https://buildbid-ap3j.onrender.com";
+}
+
+function getCleanToken() {
+  let token = localStorage.getItem("token") || 
+              localStorage.getItem("authToken") || 
+              localStorage.getItem("marketplaceToken") || 
+              sessionStorage.getItem("token") || "";
+  if (!token) return "";
+  token = String(token).trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+      token = token.slice(1, -1).trim();
+      changed = true;
+    }
+    if (token.startsWith("Bearer ")) {
+      token = token.substring(7).trim();
+      changed = true;
+    }
+  }
+  return token;
+}
+
 async function submitHireRequirement() {
+  const token = getCleanToken();
+  if (!token) {
+    alert("Authentication required. Please login as a customer to post your requirements.");
+    window.location.href = "index.html";
+    return;
+  }
+
   const payload = {
-    projectTitle: hireState.projectTitle,
-    projectCategory: hireState.projectCategory,
+    projectId: "HIRE-" + Date.now(),
+    projectTitle: hireState.projectTitle || "Hiring Requirement",
+    projectType: hireState.projectCategory || "Home Maintenance",
+    projectCategory: hireState.projectCategory || "Home Maintenance",
     location: hireState.location,
     startDate: hireState.startDate,
+    targetStartDate: hireState.startDate,
     description: hireState.description,
     requestedProfessionals: hireState.requestedProfessionals.map(p => ({
       role: p.role,
@@ -449,8 +494,7 @@ async function submitHireRequirement() {
   };
 
   try {
-    const token = localStorage.getItem("token") || "";
-    const res = await fetch("/api/customer/hiring/create", {
+    const res = await fetch(`${getApiBaseUrl()}/api/customer/hiring/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -460,18 +504,22 @@ async function submitHireRequirement() {
     });
 
     if (res.ok) {
+      const respData = await res.json().catch(() => ({}));
+      payload.id = respData.projectId || ("HIRE-" + Date.now());
       saveLocalHireProject(payload);
-      alert("Hiring requirement posted successfully! Trade professionals are now notified.");
-      window.location.href = "hired-professionals.html";
+      alert("Hiring requirement posted and saved to Cloud MySQL successfully! Trade professionals are now notified.");
+      window.location.href = "customer projects.html";
       return;
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.error || errData.message || `Server error (${res.status})`;
+      console.error("Backend Error:", res.status, errMsg);
+      alert("Error saving requirement: " + errMsg);
     }
   } catch (err) {
-    console.warn("Backend API offline, saving locally:", err);
+    console.error("Failed to reach server:", err);
+    alert("Network Error: Could not connect to the backend server.");
   }
-
-  saveLocalHireProject(payload);
-  alert("Requirement posted successfully to marketplace!");
-  window.location.href = "hired-professionals.html";
 }
 
 function saveLocalHireProject(p) {
