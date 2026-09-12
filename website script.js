@@ -314,7 +314,7 @@ function toggleSignupCategoryFields(role) {
 }
 
 // ============================================================
-// LOGIN FORM EVENT LISTENER (FIXED AUTO-LOGOUT & REDIRECT)
+// LOGIN FORM EVENT LISTENER (FIXED DIRECT DASHBOARD REDIRECT)
 // ============================================================
 const loginForm = document.querySelector("#loginForm");
 
@@ -380,12 +380,15 @@ if (loginForm) {
             closeAuth();
             updateNavbarAuthState();
 
+            // Direct Dashboard Navigation Flow
             const pendingUrl = sessionStorage.getItem("pendingRedirect");
             if (pendingUrl) {
                 sessionStorage.removeItem("pendingRedirect");
-                setTimeout(() => { window.location.href = pendingUrl; }, 500);
+                setTimeout(() => { window.location.href = pendingUrl; }, 300);
             } else {
-                setTimeout(() => { navigateToDashboard(); }, 500);
+                setTimeout(() => { 
+                    navigateToDashboard(); 
+                }, 300);
             }
         } catch (error) {
             console.error("Login error:", error);
@@ -484,7 +487,7 @@ if (signupForm) {
             closeAuth();
             updateNavbarAuthState();
 
-            setTimeout(() => { navigateToDashboard(); }, 500);
+            setTimeout(() => { navigateToDashboard(); }, 300);
         } catch (error) {
             console.error("Signup error:", error);
             showAuthToast("Connection Error", "Unable to connect to the backend. Please try again.", "error", 5000);
