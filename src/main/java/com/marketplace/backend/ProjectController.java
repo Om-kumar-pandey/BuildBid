@@ -43,7 +43,7 @@ public class ProjectController {
         Project project = new Project();
         project.setCustomer(user);
 
-        // Pull out the basic fields
+        // Pull out the basic fields safely
         if (payload.get("projectTitle") != null) project.setTitle(payload.get("projectTitle").toString());
         if (payload.get("projectType") != null) project.setType(payload.get("projectType").toString());
         if (payload.get("qualityTier") != null) project.setQualityTier(payload.get("qualityTier").toString());
@@ -52,13 +52,35 @@ public class ProjectController {
             project.setBuiltUpArea(((Number) payload.get("totalArea")).doubleValue());
         }
 
-        // Pull out the location fields safely
+        // Pull out the location fields safely (including address)
         Object locationObj = payload.get("location");
         if (locationObj instanceof Map) {
             Map<?, ?> location = (Map<?, ?>) locationObj;
             if (location.get("city") != null) project.setCity(location.get("city").toString());
             if (location.get("state") != null) project.setState(location.get("state").toString());
             if (location.get("pincode") != null) project.setPincode(location.get("pincode").toString());
+            if (location.get("address") != null) project.setAddress(location.get("address").toString());
+        }
+
+        // Pull out budget fields safely
+        Object budgetObj = payload.get("budget");
+        if (budgetObj instanceof Map) {
+            Map<?, ?> budget = (Map<?, ?>) budgetObj;
+            if (budget.get("min") instanceof Number) {
+                project.setBudgetMin(((Number) budget.get("min")).doubleValue());
+            }
+            if (budget.get("max") instanceof Number) {
+                project.setBudgetMax(((Number) budget.get("max")).doubleValue());
+            }
+        }
+
+        // Pull out timeline fields safely
+        Object timelineObj = payload.get("timeline");
+        if (timelineObj instanceof Map) {
+            Map<?, ?> timeline = (Map<?, ?>) timelineObj;
+            if (timeline.get("startDate") != null) {
+                project.setTargetStartDate(timeline.get("startDate").toString());
+            }
         }
 
         // Save the ENTIRE payload (all dynamic JS data) as a JSON string
