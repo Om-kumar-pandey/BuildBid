@@ -463,7 +463,7 @@ public class MarketplaceBackendApplication {
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             // Protected Business APIs
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
-                            .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
                             .anyRequest().authenticated()
                     )
@@ -570,12 +570,16 @@ public class MarketplaceBackendApplication {
         public AuthResponse login(LoginRequest request) {
             String email = request.email().trim().toLowerCase();
 
+            if (!repository.existsByEmail(email)) {
+                throw new UsernameNotFoundException("Please sign up first, then login.");
+            }
+
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, request.password())
             );
 
             MarketplaceUser user = repository.findByEmail(email)
-                    .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+                    .orElseThrow(() -> new UsernameNotFoundException("Please sign up first, then login."));
 
             // Verify requested role against user's stored roles in database
             if (request.role() != null && !request.role().isBlank()) {
@@ -703,9 +707,10 @@ public class MarketplaceBackendApplication {
 
         @ExceptionHandler(UsernameNotFoundException.class)
         public ResponseEntity<Map<String, String>> handleUserNotFound(UsernameNotFoundException ex) {
+            String msg = (ex.getMessage() != null && !ex.getMessage().isBlank()) ? ex.getMessage() : "Please sign up first, then login.";
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "Invalid email or password",
-                    "message", "Invalid email or password"
+                    "error", msg,
+                    "message", msg
             ));
         }
 

@@ -13,14 +13,36 @@ function getApiBaseUrl() {
 
 const API_BASE_URL = getApiBaseUrl();
 
+function performSelectiveLogout() {
+  localStorage.removeItem("marketplaceToken");
+  localStorage.removeItem("token");
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("customerUser");
+  localStorage.removeItem("buildbid_user");
+  sessionStorage.removeItem("pendingRedirect");
+  sessionStorage.removeItem("userData");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
   if (!token) {
+    performSelectiveLogout();
     window.location.href = "index.html";
     return;
   }
   syncUniversalUserProfile();
   loadCustomerProjects();
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      performSelectiveLogout();
+      window.location.href = "index.html";
+    });
+  }
 });
 
 // In-Memory Project State
@@ -77,9 +99,17 @@ function syncUniversalUserProfile() {
         "Authorization": `Bearer ${token}`
       }
     })
-    .then(res => res.ok ? res.json() : null)
+    .then(res => {
+      if (res.status === 401 || res.status === 403) {
+        performSelectiveLogout();
+        window.location.href = "index.html";
+        return null;
+      }
+      return res.ok ? res.json() : null;
+    })
     .then(freshUser => {
       if (freshUser) {
+        localStorage.setItem("currentUser", JSON.stringify(freshUser));
         localStorage.setItem("customerUser", JSON.stringify(freshUser));
         applyUserHeaderData(freshUser);
       }
@@ -89,9 +119,9 @@ function syncUniversalUserProfile() {
 }
 
 function applyUserHeaderData(user) {
-  const nameElem = document.getElementById("user-display-name");
-  const avatarElem = document.getElementById("user-avatar-initials");
-  const roleElem = document.getElementById("user-display-role");
+  const nameElem = document.getElementById("navUserName") || document.getElementById("user-display-name");
+  const avatarElem = document.getElementById("navUserAvatar") || document.getElementById("user-avatar-initials");
+  const roleElem = document.getElementById("navUserRole") || document.getElementById("user-display-role");
 
   if (!user) return;
 
@@ -103,21 +133,25 @@ function applyUserHeaderData(user) {
     user.userName || 
     user.firstName || 
     user.email?.split("@")[0] || 
-    "User";
+    "Customer";
 
   const cleanName = String(rawName).trim();
 
   if (nameElem && cleanName) {
-    nameElem.textContent = cleanName.split(" ")[0];
+    const firstName = cleanName.split(" ")[0];
+    nameElem.textContent = firstName.charAt(0).toUpperCase() + firstName.slice(1);
   }
 
   if (roleElem) {
-    roleElem.textContent = (user.role || "CUSTOMER").toUpperCase();
+    const primaryRole = (user.role || (user.roles && user.roles[0]) || "CUSTOMER");
+    roleElem.textContent = (typeof primaryRole === "string" ? primaryRole : primaryRole.name || "CUSTOMER")
+      .replace("ROLE_", "")
+      .toUpperCase();
   }
 
   if (avatarElem && cleanName) {
     const parts = cleanName.split(" ").filter(Boolean);
-    let initials = "U";
+    let initials = "C";
     if (parts.length === 1) {
       initials = parts[0].substring(0, 2).toUpperCase();
     } else if (parts.length > 1) {
