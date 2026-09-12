@@ -31,6 +31,10 @@ public class Project {
 
     private String status = "OPEN";
 
+    // NEW COLUMN FOR ALL DYNAMIC JS DATA
+    @Column(columnDefinition = "TEXT")
+    private String completeDataJson;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private MarketplaceBackendApplication.MarketplaceUser customer;
@@ -71,6 +75,11 @@ public class Project {
     public void setRequirements(Map<String, Boolean> requirements) { this.requirements = requirements; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    
+    // Getter and Setter for the new column
+    public String getCompleteDataJson() { return completeDataJson; }
+    public void setCompleteDataJson(String completeDataJson) { this.completeDataJson = completeDataJson; }
+
     public MarketplaceBackendApplication.MarketplaceUser getCustomer() { return customer; }
     public void setCustomer(MarketplaceBackendApplication.MarketplaceUser customer) { this.customer = customer; }
     public LocalDateTime getCreatedAt() { return createdAt; }
