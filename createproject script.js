@@ -1507,7 +1507,7 @@ async function submitProject() {
   }
 
   try {
-    const token = localStorage.getItem("marketplaceToken") || "";;
+    const token = localStorage.getItem("token") || "";
     const res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
