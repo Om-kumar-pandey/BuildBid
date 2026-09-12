@@ -26,10 +26,23 @@ public class NewFrontendController {
             ObjectMapper mapper = new ObjectMapper();
             Project project = new Project();
 
+            // ---> ADDED: Catching Customer Details from Frontend <---
+            if (payload.containsKey("customerId") && payload.get("customerId") != null) {
+                project.setCustomerId((String) payload.get("customerId"));
+            }
+            if (payload.containsKey("customerName") && payload.get("customerName") != null) {
+                project.setCustomerName((String) payload.get("customerName"));
+            }
+
             // 1. Basic & Core Text/Title Mappings
             String titleVal = (String) payload.getOrDefault("projectTitle", "BuildBid Project");
             project.setProjectTitle(titleVal);
             project.setTitle(titleVal);
+
+            // ---> ADDED: Catching Description from Frontend <---
+            if (payload.containsKey("description") && payload.get("description") != null) {
+                project.setDescription((String) payload.get("description"));
+            }
 
             String typeVal = (String) payload.get("projectType");
             project.setProjectType(typeVal);
@@ -49,8 +62,8 @@ public class NewFrontendController {
             // 3. Location Breakdown (City, State, Pincode, Address texts)
             if (payload.containsKey("location") && payload.get("location") != null) {
                 Object locObj = payload.get("location");
-                if (locObj instanceof Map) {
-                    Map<String, Object> locMap = (Map<String, Object>) locObj;
+                if (locObj instanceof Map<?, ?>) {
+                    Map<?, ?> locMap = (Map<?, ?>) locObj;
                     project.setCity((String) locMap.get("city"));
                     project.setState((String) locMap.get("state"));
                     project.setPincode((String) locMap.get("pincode"));
@@ -71,6 +84,15 @@ public class NewFrontendController {
             }
             
             // 5. All Specific Sections, Descriptions, Rooms, Scopes & Custom Details Mappings
+
+            // ---> ADDED: Basement Details Mapping <---
+            if (payload.containsKey("hasBasement") && payload.get("hasBasement") != null) {
+                project.setHasBasement((Boolean) payload.get("hasBasement"));
+            }
+            if (payload.containsKey("basementDetails") && payload.get("basementDetails") != null) {
+                Object basementObj = payload.get("basementDetails");
+                project.setBasementDetails(basementObj instanceof String ? (String) basementObj : mapper.writeValueAsString(basementObj));
+            }
             if (payload.containsKey("floors") && payload.get("floors") != null) {
                 project.setFloors(mapper.writeValueAsString(payload.get("floors")));
             }
@@ -102,7 +124,7 @@ public class NewFrontendController {
                 project.setIndustrial(mapper.writeValueAsString(payload.get("industrial")));
             }
             
-            // Catch-all for custom descriptions, deliverable notes, or any extra text inputs
+            // Catch-all for custom descriptions
             if (payload.containsKey("custom") && payload.get("custom") != null) {
                 Object customObj = payload.get("custom");
                 project.setCustomDetails(customObj instanceof String ? (String) customObj : mapper.writeValueAsString(customObj));
@@ -127,6 +149,10 @@ public class NewFrontendController {
             for (Project p : projects) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", p.getId());
+                // ---> ADDED: Sending Customer Details to Frontend <---
+                map.put("customerId", p.getCustomerId());
+                map.put("customerName", p.getCustomerName());
+
                 map.put("title", p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle()); 
                 map.put("type", p.getProjectType() != null ? p.getProjectType() : p.getType());   
                 map.put("area", p.getTotalArea() != null ? p.getTotalArea() : p.getBuiltUpArea());    
@@ -188,6 +214,10 @@ public class NewFrontendController {
             for (Project p : allProjects) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", p.getId());
+                // ---> ADDED: Sending Customer Details to Frontend <---
+                item.put("customerId", p.getCustomerId());
+                item.put("customerName", p.getCustomerName());
+
                 item.put("title", p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle());
                 item.put("category", p.getProjectType() != null ? p.getProjectType() : p.getType());
                 item.put("area", (p.getTotalArea() != null ? p.getTotalArea() : (p.getBuiltUpArea() != null ? p.getBuiltUpArea() : "")) + " sq.ft");

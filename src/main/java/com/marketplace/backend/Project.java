@@ -50,7 +50,19 @@ public class Project {
     private String type;
 
     @Column(name = "customer_id")
-    private Long customerId;
+    private String customerId;
+
+    @Column(name = "customer_name")
+    private String customerName;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "has_basement")
+    private Boolean hasBasement;
+
+    @Column(name = "basement_details", columnDefinition = "TEXT")
+    private String basementDetails;
 
     @Column(name = "budget", columnDefinition = "TEXT")
     private String budget;
@@ -143,8 +155,20 @@ public class Project {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public Long getCustomerId() { return customerId; }
-    public void setCustomerId(Long customerId) { this.customerId = customerId; }
+    public String getCustomerId() { return customerId; }
+    public void setCustomerId(String customerId) { this.customerId = customerId; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public Boolean getHasBasement() { return hasBasement; }
+    public void setHasBasement(Boolean hasBasement) { this.hasBasement = hasBasement; }
+
+    public String getBasementDetails() { return basementDetails; }
+    public void setBasementDetails(String basementDetails) { this.basementDetails = basementDetails; }
 
     public String getBudget() { return budget; }
     public void setBudget(String budget) { this.budget = budget; }

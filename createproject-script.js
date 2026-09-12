@@ -1,21 +1,16 @@
-// =========================================================
-// BACKEND CONFIGURATION
-// ====================================================
-const BACKEND_URL = "https://buildbid-ap3j.onrender.com"; 
+const BACKEND_URL = "https://buildbid-ap3j.onrender.com";
 
 document.addEventListener("DOMContentLoaded", async () => {
   syncUniversalUserProfile();
   initEventListeners();
   setLiveDatasetDate();
 
-  // Check if URL has a project ID to fetch from backend (e.g., createproject.html?projectId=123)
   const urlParams = new URLSearchParams(window.location.search);
   const existingProjectId = urlParams.get("projectId") || urlParams.get("id");
 
   if (existingProjectId) {
     await fetchExistingProjectData(existingProjectId);
   } else {
-    // Default initial render
     renderProjectSpecificSections("New Construction");
     recalculateDynamicEstimates();
   }
@@ -31,25 +26,21 @@ const projectState = {
   address: "",
   calculatedArea: 0,
   qualityTier: "Standard",
-  // PDF 1: New Construction Data
+  hasBasement: false,
+  basementData: { approxArea: 0, rooms: {}, roomAreas: {}, features: [], specialRequirements: "" },
+  floorsCount: 1,
   floorsData: [],
   scopeOfWork: [],
   materialResponsibility: {},
   siteReadiness: {},
-  // PDF 2: Renovation Data
   renovationAreas: {},
   renovScope: [],
-  // PDF 3: Home Extension Data
   extensionData: { type: "Vertical", area: 0, rooms: {}, auditDone: "No", roofType: "RCC Slab", staircase: "Internal Staircase", spaceAvailable: "Backyard", excavationAccess: "Easy access" },
-  // PDF 4: Interior & Finishing Data
   interiorRooms: {},
   interiorScope: [],
   interiorPreferences: { theme: "Modern Minimalist", woodwork: "Factory-made Modular", condition: "Builder Finished" },
-  // PDF 5: Commercial Construction Data
   commercialData: { category: "Office Space", totalArea: 0, floors: "", hvac: "Centralized AC", fireSafety: [], electricalLoad: "Standard", passengerLifts: 1, serviceLifts: 0, parkingType: "Basement", bays: 20 },
-  // PDF 6: Industrial Data
   industrialData: { purpose: "General Warehouse", structuralType: "PEB", totalArea: 0, clearHeight: 10, flooringType: "VDF", loadCapacity: 5, eotCrane: "No", loadingDocks: 4, fireSafety: [] },
-  // PDF 7: Other Projects Data
   otherData: { customCategory: "Demolition", description: "", deliverables: [], approximateSize: 0, unit: "sq.ft." }
 };
 
@@ -58,66 +49,57 @@ const ROOM_TYPES = [
   "Kitchen", "Pooja Room", "Study Room", "Store Room", "Balcony", "Parking", "Utility/Wash Area"
 ];
 
-/* =========================================================
-   BACKEND DATA FETCHING ENGINE (GET REQUESTS)
-   ========================================================= */
+const BASEMENT_ROOM_TYPES = [
+  "Parking Space", "Store Room", "Gym / Fitness Area", "Home Theatre", 
+  "Multi-purpose Hall", "Powder Room / Toilet", "Pantry / Bar Area", "Servant / Driver Room"
+];
 
-/**
- * 1. Fetch live dynamic configurations / rates from Spring Boot
- */
+const BASEMENT_FEATURES = [
+  "Box-type Waterproofing",
+  "RCC Retaining Shear Walls",
+  "Drainage Sump & Submersible Pump",
+  "Mechanical Exhaust / Ventilation Shaft",
+  "Emergency Egress / Secondary Exit",
+  "Sewage Lifting / Ejector Pump"
+];
+
+/* =========================================================
+   BACKEND FETCH ENGINE
+   ========================================================= */
 async function fetchProjectConfiguration(projectType) {
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = localStorage.getItem("token") || "Bearer mock-token-bypass";
     const response = await fetch(`${BACKEND_URL}/api/projects/config?type=${encodeURIComponent(projectType)}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
     });
-
-    if (response.ok) {
-      const configData = await response.json();
-      console.log("Configuration loaded from backend:", configData);
-      return configData;
-    }
+    if (response.ok) return await response.json();
   } catch (error) {
-    console.warn("Backend unavailable, falling back to local configurations:", error);
+    console.warn("Backend unavailable:", error);
   }
   return null;
 }
 
-/**
- * 2. Fetch existing saved project / draft from Spring Boot
- */
 async function fetchExistingProjectData(projectId) {
   try {
     const token = localStorage.getItem("token") || "";
     const response = await fetch(`${BACKEND_URL}/api/customer/projects/${projectId}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
     });
 
     if (response.ok) {
       const project = await response.json();
-      console.log("Fetched existing project from backend:", project);
-
-      // Populate State
       projectState.projectType = project.projectType || "New Construction";
       projectState.title = project.projectTitle || "";
       projectState.calculatedArea = project.totalArea || 0;
       projectState.qualityTier = project.qualityTier || "Standard";
 
-      // Populate Location
       if (project.location) {
         projectState.city = project.location.city || "";
         projectState.state = project.location.state || "";
         projectState.pincode = project.location.pincode || "";
         projectState.address = project.location.address || "";
-
         if (document.getElementById("cityInput")) document.getElementById("cityInput").value = projectState.city;
         if (document.getElementById("stateSelect")) document.getElementById("stateSelect").value = projectState.state;
         if (document.getElementById("pincodeInput")) document.getElementById("pincodeInput").value = projectState.pincode;
@@ -125,40 +107,43 @@ async function fetchExistingProjectData(projectId) {
         updateLocationInfo();
       }
 
-      // Populate Project Title
       if (document.getElementById("projectTitleInput")) {
         document.getElementById("projectTitleInput").value = projectState.title;
       }
 
-      // Highlight active project card
       document.querySelectorAll(".type-card").forEach(c => {
         const text = c.querySelector("h4")?.textContent.trim();
         c.classList.toggle("selected", text === projectState.projectType);
       });
 
-      // Render category specific sections & fill requirements
       renderProjectSpecificSections(projectState.projectType);
 
       if (document.getElementById("builtUpAreaInput")) {
         document.getElementById("builtUpAreaInput").value = projectState.calculatedArea || "";
       }
 
-      // Restore specific payload sections
-      if (project.floors) projectState.floorsData = project.floors;
-      if (project.scopeOfWork) projectState.scopeOfWork = project.scopeOfWork;
-      if (project.extensionDetails) projectState.extensionData = project.extensionDetails;
-      if (project.commercial) projectState.commercialData = project.commercial;
-      if (project.industrial) projectState.industrialData = project.industrial;
-      if (project.custom) projectState.otherData = project.custom;
+      if (project.hasBasement !== undefined) {
+        projectState.hasBasement = project.hasBasement;
+        const bSelect = document.getElementById("basementSelect");
+        if (bSelect) {
+          bSelect.value = projectState.hasBasement ? "Yes" : "No";
+          toggleBasement(projectState.hasBasement ? "Yes" : "No");
+        }
+      }
+
+      if (project.floors) {
+        projectState.floorsData = project.floors;
+        projectState.floorsCount = project.floors.length || 1;
+        renderTabsAndPanes();
+      }
 
       recalculateDynamicEstimates();
       return;
     }
   } catch (error) {
-    console.warn("Could not fetch project from backend, checking local storage:", error);
+    console.warn("Local storage check fallback:", error);
   }
 
-  // Fallback to local storage if backend request fails
   const localList = JSON.parse(localStorage.getItem("allListedProjects") || "[]");
   const localProj = localList.find(p => p.id === projectId);
   if (localProj) {
@@ -168,23 +153,18 @@ async function fetchExistingProjectData(projectId) {
   }
 }
 
-/* =========================================================
-   1. PROJECT TYPE SELECTOR (CARDS)
-   ========================================================= */
 async function selectProjectType(type, elem) {
   projectState.projectType = type;
   document.querySelectorAll(".type-card").forEach(c => c.classList.remove("selected"));
   if (elem) elem.classList.add("selected");
 
-  // Optional backend hook: fetch dynamic rates/rules for selected type
   await fetchProjectConfiguration(type);
-
   renderProjectSpecificSections(type);
   recalculateDynamicEstimates();
 }
 
 /* =========================================================
-   2. DYNAMIC FORM SECTIONS ENGINE (ALL 7 GUIDES)
+   DYNAMIC FORM ENGINE
    ========================================================= */
 function renderProjectSpecificSections(type) {
   const step2Box = document.getElementById("step2DynamicFields");
@@ -194,7 +174,7 @@ function renderProjectSpecificSections(type) {
   step2Box.innerHTML = "";
   step3Box.innerHTML = "";
 
-  /* ---------------- 1. NEW CONSTRUCTION (PDF Guide 1) ---------------- */
+  /* 1. NEW CONSTRUCTION */
   if (type === "New Construction") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -233,8 +213,8 @@ function renderProjectSpecificSections(type) {
         </div>
       </div>
       <div class="field-group full-width mt-3">
-        <label>Project Description *</label>
-        <textarea id="ncDescription" rows="3" class="form-input" placeholder="Describe what you want to build..."></textarea>
+        <label>Project Description (Optional)</label>
+        <textarea id="ncDescription" rows="3" class="form-input" placeholder="Describe what you want to build (Optional)..."></textarea>
       </div>
     `;
 
@@ -246,10 +226,36 @@ function renderProjectSpecificSections(type) {
             <label>Total Built-up Area (sq.ft.) *</label>
             <input type="number" id="builtUpAreaInput" class="form-input" placeholder="e.g. 2400" oninput="recalculateDynamicEstimates()">
           </div>
+
           <div class="field-group">
             <label>Number of Floors *</label>
-            <select id="numFloorsSelect" class="form-input" onchange="generateFloorTabs(this.value)">
-              <option value="1">Ground Floor Only</option><option value="2">G + 1 Floor</option><option value="3">G + 2 Floors</option><option value="4">G + 3 Floors</option><option value="5">G + 4 Floors</option>
+            <div class="floor-selection-container" style="display: flex; gap: 8px;">
+              <select id="numFloorsSelect" class="form-input" onchange="handleFloorSelectionChange(this.value)">
+                <option value="1">Ground Floor Only</option>
+                <option value="2">G + 1 Floor</option>
+                <option value="3">G + 2 Floors</option>
+                <option value="4">G + 3 Floors</option>
+                <option value="5">G + 4 Floors</option>
+                <option value="custom">Custom (Specify)</option>
+              </select>
+              <input 
+                type="number" 
+                id="customFloorsInput" 
+                class="form-input" 
+                placeholder="Count" 
+                min="1" 
+                max="50" 
+                style="display:none; width: 110px;" 
+                oninput="handleCustomFloorInput(this.value)"
+              />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Basement Required? *</label>
+            <select id="basementSelect" class="form-input" onchange="toggleBasement(this.value)">
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
             </select>
           </div>
         </div>
@@ -316,7 +322,7 @@ function renderProjectSpecificSections(type) {
     generateFloorTabs(1);
   }
 
-  /* ---------------- 2. RENOVATION & REMODELING (PDF Guide 2) ---------------- */
+  /* 2. RENOVATION */
   else if (type === "Renovation") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -336,8 +342,8 @@ function renderProjectSpecificSections(type) {
     step3Box.innerHTML = `
       <div class="spec-section">
         <div class="room-header"><i class="fa-solid fa-vector-square"></i> Areas to Renovate *</div>
-        <p class="helper-text" style="margin-bottom:10px;">Select areas to expand room-wise work scope and area calculator.</p>
-        <div class="room-pill-grid">
+        <p class="helper-text" style="margin-bottom:10px;">Select at least one area to renovate and specify its dimensions.</p>
+        <div class="room-pill-grid" id="renovationAreaCheckboxes">
           ${["Kitchen", "Bathroom(s)", "Living Room", "Bedroom(s)", "Exterior", "Entire Property"].map(area => `
             <label class="checkbox-pill">
               <input type="checkbox" onchange="toggleRenovationAreaTab('${area}', this.checked)">
@@ -381,7 +387,7 @@ function renderProjectSpecificSections(type) {
     projectState.renovationAreas = {};
   }
 
-  /* ---------------- 3. HOME EXTENSION (PDF Guide 3) ---------------- */
+  /* 3. HOME EXTENSION */
   else if (type === "Home Extension") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -445,7 +451,7 @@ function renderProjectSpecificSections(type) {
     toggleExtensionDirection("Vertical");
   }
 
-  /* ---------------- 4. INTERIOR & FINISHING (PDF Guide 4) ---------------- */
+  /* 4. INTERIOR */
   else if (type === "Interior") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -515,7 +521,7 @@ function renderProjectSpecificSections(type) {
     projectState.interiorRooms = {};
   }
 
-  /* ---------------- 5. COMMERCIAL CONSTRUCTION (PDF Guide 5) ---------------- */
+  /* 5. COMMERCIAL */
   else if (type === "Commercial") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -589,7 +595,7 @@ function renderProjectSpecificSections(type) {
     `;
   }
 
-  /* ---------------- 6. INDUSTRIAL / WAREHOUSE (PDF Guide 6) ---------------- */
+  /* 6. INDUSTRIAL */
   else if (type === "Industrial") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -665,7 +671,7 @@ function renderProjectSpecificSections(type) {
     `;
   }
 
-  /* ---------------- 7. OTHER PROJECTS (PDF Guide 7) ---------------- */
+  /* 7. OTHER */
   else if (type === "Other") {
     step2Box.innerHTML = `
       <div class="form-grid-2">
@@ -677,7 +683,7 @@ function renderProjectSpecificSections(type) {
         </div>
         <div class="field-group" id="customSpecifyBox" style="display:none;">
           <label>Specify Category *</label>
-          <input type="text" class="form-input" placeholder="Type category...">
+          <input type="text" id="customSpecifyInput" class="form-input" placeholder="Type category...">
         </div>
         <div class="field-group">
           <label>Property Type</label>
@@ -722,61 +728,172 @@ function renderProjectSpecificSections(type) {
 }
 
 /* =========================================================
-   3. SUB-MODULES & ACCORDION HELPERS
+   SUB-MODULES & DYNAMIC INDIVIDUAL ROOM AREAS
    ========================================================= */
+function handleFloorSelectionChange(val) {
+  const customInp = document.getElementById("customFloorsInput");
+  if (val === "custom") {
+    if (customInp) {
+      customInp.style.display = "block";
+      customInp.value = 6;
+      customInp.focus();
+    }
+    generateFloorTabs(6);
+  } else {
+    if (customInp) {
+      customInp.style.display = "none";
+      customInp.value = "";
+    }
+    generateFloorTabs(parseInt(val) || 1);
+  }
+}
 
-// Floor tabs for New Construction
+function handleCustomFloorInput(val) {
+  let count = parseInt(val);
+  if (isNaN(count) || count < 1) count = 1;
+  if (count > 50) count = 50;
+  generateFloorTabs(count);
+}
+
+function toggleBasement(val) {
+  projectState.hasBasement = (val === "Yes" || val === true);
+  renderTabsAndPanes();
+}
+
 function generateFloorTabs(num) {
   num = parseInt(num) || 1;
+  projectState.floorsCount = num;
+
+  const floorNames = [
+    "Ground Floor", "1st Floor", "2nd Floor", "3rd Floor", 
+    "4th Floor", "5th Floor", "6th Floor", "7th Floor", 
+    "8th Floor", "9th Floor", "10th Floor"
+  ];
+
+  const oldData = [...projectState.floorsData];
+  projectState.floorsData = [];
+
+  for (let i = 0; i < num; i++) {
+    const fName = i < floorNames.length ? floorNames[i] : `${i}th Floor`;
+    const existing = oldData[i] || {};
+    projectState.floorsData.push({
+      floorName: fName,
+      approxArea: existing.approxArea || 0,
+      rooms: existing.rooms || {},
+      roomAreas: existing.roomAreas || {},
+      specialRequirements: existing.specialRequirements || ""
+    });
+  }
+
+  renderTabsAndPanes();
+}
+
+function renderTabsAndPanes() {
   const tabBar = document.getElementById("floorTabBar");
   const panes = document.getElementById("floorPanesContainer");
   if (!tabBar || !panes) return;
 
   tabBar.innerHTML = "";
   panes.innerHTML = "";
-  projectState.floorsData = [];
 
-  const floorNames = ["Ground Floor", "First Floor", "Second Floor", "Third Floor", "Fourth Floor"];
+  let allTabs = [];
 
-  for (let i = 0; i < num; i++) {
-    const fName = floorNames[i] || `Floor ${i}`;
-    projectState.floorsData.push({ floorName: fName, approxArea: 0, rooms: {}, specialRequirements: "" });
+  if (projectState.hasBasement) {
+    allTabs.push({ type: "basement", name: "Basement", data: projectState.basementData });
+  }
 
+  projectState.floorsData.forEach((f, idx) => {
+    allTabs.push({ type: "floor", index: idx, name: f.floorName, data: f });
+  });
+
+  allTabs.forEach((tab, i) => {
     const tabBtn = document.createElement("button");
     tabBtn.type = "button";
-    tabBtn.className = `tab-btn ${i === 0 ? 'active' : ''}`;
-    tabBtn.textContent = fName;
+    tabBtn.className = `tab-btn ${i === 0 ? "active" : ""}`;
+    tabBtn.textContent = tab.name;
     tabBtn.onclick = () => switchFloorTab(i);
     tabBar.appendChild(tabBtn);
 
     const pane = document.createElement("div");
-    pane.className = `floor-pane ${i === 0 ? 'active' : ''}`;
+    pane.className = `floor-pane ${i === 0 ? "active" : ""}`;
     pane.id = `floorPane-${i}`;
-    pane.innerHTML = `
-      <div class="field-group mt-2">
-        <label>Approx. Area for ${fName} (sq.ft.)</label>
-        <input type="number" class="form-input" placeholder="e.g. 1200" oninput="projectState.floorsData[${i}].approxArea = parseFloat(this.value)||0">
-      </div>
-      <label class="mt-2 block" style="font-size:12px; font-weight:700; color:#334155;">Rooms Required on ${fName}:</label>
-      <div class="room-counter-grid">
-        ${ROOM_TYPES.map(room => `
-          <div class="room-counter-item">
-            <span>${room}</span>
-            <div class="qty-control">
-              <button type="button" class="qty-btn" onclick="adjustRoomQty(${i}, '${room}', -1)">-</button>
-              <span class="qty-val" id="qty-${i}-${room.replace(/[^a-zA-Z]/g, '')}">0</span>
-              <button type="button" class="qty-btn" onclick="adjustRoomQty(${i}, '${room}', 1)">+</button>
+
+    if (tab.type === "basement") {
+      pane.innerHTML = `
+        <div class="field-group mt-2">
+          <label>Approx. Basement Area (sq.ft.)</label>
+          <input type="number" class="form-input" placeholder="e.g. 1000" value="${tab.data.approxArea || ''}" oninput="projectState.basementData.approxArea = parseFloat(this.value)||0">
+        </div>
+
+        <label class="mt-2 block" style="font-size:12px; font-weight:700; color:#334155;">Basement Spaces & Facilities:</label>
+        <div class="room-counter-grid">
+          ${BASEMENT_ROOM_TYPES.map(room => `
+            <div class="room-counter-item">
+              <span>${room}</span>
+              <div class="qty-control">
+                <button type="button" class="qty-btn" onclick="adjustBasementRoomQty('${room}', -1)">-</button>
+                <span class="qty-val" id="qty-basement-${room.replace(/[^a-zA-Z]/g, '')}">${tab.data.rooms[room] || 0}</span>
+                <button type="button" class="qty-btn" onclick="adjustBasementRoomQty('${room}', 1)">+</button>
+              </div>
             </div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="field-group mt-2">
-        <label>Special Requirements for ${fName}</label>
-        <textarea class="form-input" rows="2" placeholder="e.g. Attached bath in bedroom, island counter in kitchen" oninput="projectState.floorsData[${i}].specialRequirements = this.value"></textarea>
-      </div>
-    `;
+          `).join('')}
+        </div>
+
+        <!-- Dynamic Basement Room Individual Area Inputs Container -->
+        <div id="basementRoomAreaContainer"></div>
+
+        <label class="mt-3 block" style="font-size:12px; font-weight:700; color:#334155;">Critical Basement Civil Scope & Provisions:</label>
+        <div class="room-pill-grid mt-1">
+          ${BASEMENT_FEATURES.map(feat => `
+            <label class="checkbox-pill">
+              <input type="checkbox" ${(projectState.basementData.features || []).includes(feat) ? 'checked' : ''} onchange="toggleBasementFeature('${feat}', this.checked)">
+              <span>${feat}</span>
+            </label>
+          `).join('')}
+        </div>
+
+        <div class="field-group mt-3">
+          <label>Additional Basement Specifications (e.g. clear headroom, ramp slope, moisture treatment)</label>
+          <textarea class="form-input" rows="2" placeholder="e.g. Minimum 9ft clear ceiling height, heavy waterproofing" oninput="projectState.basementData.specialRequirements = this.value">${tab.data.specialRequirements || ''}</textarea>
+        </div>
+      `;
+    } else {
+      const idx = tab.index;
+      pane.innerHTML = `
+        <div class="field-group mt-2">
+          <label>Approx. Area for ${tab.name} (sq.ft.)</label>
+          <input type="number" class="form-input" placeholder="e.g. 1200" value="${tab.data.approxArea || ''}" oninput="projectState.floorsData[${idx}].approxArea = parseFloat(this.value)||0">
+        </div>
+        <label class="mt-2 block" style="font-size:12px; font-weight:700; color:#334155;">Rooms Required on ${tab.name}:</label>
+        <div class="room-counter-grid">
+          ${ROOM_TYPES.map(room => `
+            <div class="room-counter-item">
+              <span>${room}</span>
+              <div class="qty-control">
+                <button type="button" class="qty-btn" onclick="adjustRoomQty(${idx}, '${room}', -1)">-</button>
+                <span class="qty-val" id="qty-${idx}-${room.replace(/[^a-zA-Z]/g, '')}">${tab.data.rooms[room] || 0}</span>
+                <button type="button" class="qty-btn" onclick="adjustRoomQty(${idx}, '${room}', 1)">+</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Dynamic Floor Room Individual Area Inputs Container -->
+        <div id="roomAreaContainer-${idx}"></div>
+
+        <div class="field-group mt-2">
+          <label>Special Requirements for ${tab.name}</label>
+          <textarea class="form-input" rows="2" placeholder="e.g. Attached bath in bedroom, island counter in kitchen" oninput="projectState.floorsData[${idx}].specialRequirements = this.value">${tab.data.specialRequirements || ''}</textarea>
+        </div>
+      `;
+    }
+
     panes.appendChild(pane);
-  }
+  });
+
+  // Re-render any existing room area fields
+  if (projectState.hasBasement) renderBasementIndividualRoomAreas();
+  projectState.floorsData.forEach((_, idx) => renderFloorIndividualRoomAreas(idx));
 }
 
 function switchFloorTab(idx) {
@@ -784,17 +901,160 @@ function switchFloorTab(idx) {
   document.querySelectorAll(".floor-pane").forEach((p, i) => p.classList.toggle("active", i === idx));
 }
 
+// Adjust Room Quantity on Floors
 function adjustRoomQty(floorIndex, roomName, delta) {
   const floor = projectState.floorsData[floorIndex];
   if (!floor) return;
   const current = floor.rooms[roomName] || 0;
   const next = Math.max(0, current + delta);
   floor.rooms[roomName] = next;
+
   const el = document.getElementById(`qty-${floorIndex}-${roomName.replace(/[^a-zA-Z]/g, '')}`);
   if (el) el.textContent = next;
+
+  if (!floor.roomAreas) floor.roomAreas = {};
+
+  // Clean-up deleted rooms from state
+  for (let i = next + 1; i <= current; i++) {
+    delete floor.roomAreas[`${roomName}_${i}`];
+  }
+
+  renderFloorIndividualRoomAreas(floorIndex);
 }
 
-// Renovation area accordions
+// Render dynamic area input boxes for each selected room on standard floors
+function renderFloorIndividualRoomAreas(floorIndex) {
+  const container = document.getElementById(`roomAreaContainer-${floorIndex}`);
+  if (!container) return;
+
+  const floor = projectState.floorsData[floorIndex];
+  if (!floor) return;
+
+  const activeRooms = Object.entries(floor.rooms).filter(([_, count]) => count > 0);
+
+  if (activeRooms.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  let html = `
+    <div class="room-breakdown-wrapper">
+      <div class="room-breakdown-title">
+        <i class="fa-solid fa-ruler-combined" style="color: #0284c7;"></i> Specify Individual Room Dimensions (sq.ft.):
+      </div>
+      <div class="room-breakdown-grid">
+  `;
+
+  activeRooms.forEach(([roomName, count]) => {
+    for (let i = 1; i <= count; i++) {
+      const fieldKey = `${roomName}_${i}`;
+      const label = count === 1 ? `${roomName} Area` : `${roomName} ${i} Area`;
+      const val = (floor.roomAreas && floor.roomAreas[fieldKey]) || "";
+
+      html += `
+        <div class="room-individual-item">
+          <label>${label} (sq.ft.)</label>
+          <input 
+            type="number" 
+            placeholder="e.g. 150" 
+            value="${val}" 
+            oninput="saveFloorRoomArea(${floorIndex}, '${fieldKey}', this.value)"
+          />
+        </div>
+      `;
+    }
+  });
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
+
+function saveFloorRoomArea(floorIndex, fieldKey, val) {
+  const floor = projectState.floorsData[floorIndex];
+  if (!floor) return;
+  if (!floor.roomAreas) floor.roomAreas = {};
+  floor.roomAreas[fieldKey] = parseFloat(val) || 0;
+}
+
+// Adjust Room Quantity on Basement
+function adjustBasementRoomQty(roomName, delta) {
+  const current = projectState.basementData.rooms[roomName] || 0;
+  const next = Math.max(0, current + delta);
+  projectState.basementData.rooms[roomName] = next;
+
+  const el = document.getElementById(`qty-basement-${roomName.replace(/[^a-zA-Z]/g, '')}`);
+  if (el) el.textContent = next;
+
+  if (!projectState.basementData.roomAreas) projectState.basementData.roomAreas = {};
+
+  for (let i = next + 1; i <= current; i++) {
+    delete projectState.basementData.roomAreas[`${roomName}_${i}`];
+  }
+
+  renderBasementIndividualRoomAreas();
+}
+
+// Render dynamic area input boxes for each selected room in basement
+function renderBasementIndividualRoomAreas() {
+  const container = document.getElementById("basementRoomAreaContainer");
+  if (!container) return;
+
+  const activeRooms = Object.entries(projectState.basementData.rooms).filter(([_, count]) => count > 0);
+
+  if (activeRooms.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  let html = `
+    <div class="room-breakdown-wrapper">
+      <div class="room-breakdown-title">
+        <i class="fa-solid fa-ruler-combined" style="color: #0284c7;"></i> Specify Individual Basement Space Dimensions (sq.ft.):
+      </div>
+      <div class="room-breakdown-grid">
+  `;
+
+  activeRooms.forEach(([roomName, count]) => {
+    for (let i = 1; i <= count; i++) {
+      const fieldKey = `${roomName}_${i}`;
+      const label = count === 1 ? `${roomName} Area` : `${roomName} ${i} Area`;
+      const val = (projectState.basementData.roomAreas && projectState.basementData.roomAreas[fieldKey]) || "";
+
+      html += `
+        <div class="room-individual-item">
+          <label>${label} (sq.ft.)</label>
+          <input 
+            type="number" 
+            placeholder="e.g. 180" 
+            value="${val}" 
+            oninput="saveBasementRoomArea('${fieldKey}', this.value)"
+          />
+        </div>
+      `;
+    }
+  });
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
+
+function saveBasementRoomArea(fieldKey, val) {
+  if (!projectState.basementData.roomAreas) projectState.basementData.roomAreas = {};
+  projectState.basementData.roomAreas[fieldKey] = parseFloat(val) || 0;
+}
+
+function toggleBasementFeature(featureName, isChecked) {
+  if (!projectState.basementData.features) projectState.basementData.features = [];
+  if (isChecked) {
+    if (!projectState.basementData.features.includes(featureName)) {
+      projectState.basementData.features.push(featureName);
+    }
+  } else {
+    projectState.basementData.features = projectState.basementData.features.filter(f => f !== featureName);
+  }
+}
+
+/* Renovation Helpers */
 function toggleRenovationAreaTab(areaName, isChecked) {
   const container = document.getElementById("renovationDynamicAreaTabsContainer");
   if (!container) return;
@@ -809,7 +1069,7 @@ function toggleRenovationAreaTab(areaName, isChecked) {
       <div class="room-header"><i class="fa-solid fa-toolbox"></i> ${areaName} Specifications</div>
       <div class="field-group">
         <label>Approx. Area to Renovate (sq.ft.) *</label>
-        <input type="number" class="form-input renov-sqft-input" placeholder="e.g. 200" oninput="updateRenovationAreaSize('${areaName}', this.value)">
+        <input type="number" id="area-input-${areaName.replace(/[^a-zA-Z]/g, '')}" class="form-input renov-sqft-input" placeholder="e.g. 200" oninput="updateRenovationAreaSize('${areaName}', this.value)">
       </div>
       <label class="mt-2 block" style="font-size:12px; font-weight:700; color:#334155;">Scope of Work for ${areaName}:</label>
       <div class="room-pill-grid mt-1">
@@ -844,7 +1104,6 @@ function toggleRenovWork(areaName, work, checked) {
   else area.workRequired = area.workRequired.filter(w => w !== work);
 }
 
-// Extension Direction Toggle
 function toggleExtensionDirection(dir) {
   projectState.extensionData.type = dir;
   const container = document.getElementById("extensionDynamicSection");
@@ -893,7 +1152,6 @@ function adjustExtensionRoom(r, delta) {
   if (el) el.textContent = nxt;
 }
 
-// Interior Room Accordion
 function toggleInteriorRoomAccordion(roomName, isChecked) {
   const container = document.getElementById("interiorRoomsContainer");
   if (!container) return;
@@ -947,7 +1205,7 @@ function updateTier(tier) {
 }
 
 /* =========================================================
-   4. REAL-TIME COST ESTIMATION ENGINE (SIDEBAR)
+   COST ESTIMATION ENGINE
    ========================================================= */
 function recalculateDynamicEstimates() {
   const type = projectState.projectType;
@@ -1014,10 +1272,152 @@ function recalculateDynamicEstimates() {
 }
 
 /* =========================================================
-   5. STEPPER FLOW & REVIEW MODAL
+   STEPPER FLOW & STEP VALIDATION
    ========================================================= */
+function markInvalidField(element, message) {
+  if (!element) return;
+  element.style.borderColor = "#ef4444";
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  element.focus();
+
+  const clearBorder = () => {
+    element.style.borderColor = "";
+    element.removeEventListener("input", clearBorder);
+    element.removeEventListener("change", clearBorder);
+  };
+  element.addEventListener("input", clearBorder);
+  element.addEventListener("change", clearBorder);
+
+  showToast(message || "Please fill the required details *", "error");
+}
+
+function validateCurrentStep(step) {
+  if (step === 1) {
+    if (!projectState.projectType) {
+      showToast("Please select a project type to continue.", "error");
+      return false;
+    }
+    return true;
+  }
+
+  if (step === 2) {
+    const title = document.getElementById("projectTitleInput");
+    if (!title || !title.value.trim()) {
+      markInvalidField(title, "Please enter Project Title *");
+      return false;
+    }
+
+    const city = document.getElementById("cityInput");
+    if (!city || !city.value.trim()) {
+      markInvalidField(city, "Please enter City / District *");
+      return false;
+    }
+
+    const state = document.getElementById("stateSelect");
+    if (!state || !state.value.trim()) {
+      markInvalidField(state, "Please select State / UT *");
+      return false;
+    }
+
+    const pin = document.getElementById("pincodeInput");
+    if (!pin || !pin.value.trim() || pin.value.trim().length < 6) {
+      markInvalidField(pin, "Please enter a valid 6-digit PIN Code *");
+      return false;
+    }
+
+    const addr = document.getElementById("addressInput");
+    if (!addr || !addr.value.trim()) {
+      markInvalidField(addr, "Please enter Complete Site Address *");
+      return false;
+    }
+
+    if (projectState.projectType === "Other") {
+      const otherCat = document.getElementById("otherCategorySelect")?.value;
+      if (otherCat === "Completely Custom") {
+        const customInput = document.getElementById("customSpecifyInput");
+        if (!customInput || !customInput.value.trim()) {
+          markInvalidField(customInput, "Please specify your custom category *");
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  if (step === 3) {
+    const type = projectState.projectType;
+
+    if (type === "Renovation") {
+      const activeAreas = Object.keys(projectState.renovationAreas);
+      if (activeAreas.length === 0) {
+        showToast("Please select at least one Area to Renovate *", "error");
+        const container = document.getElementById("renovationAreaCheckboxes");
+        if (container) container.scrollIntoView({ behavior: "smooth", block: "center" });
+        return false;
+      }
+
+      for (const areaName of activeAreas) {
+        const areaData = projectState.renovationAreas[areaName];
+        if (!areaData || !areaData.squareFootage || areaData.squareFootage <= 0) {
+          const inputEl = document.getElementById(`area-input-${areaName.replace(/[^a-zA-Z]/g, '')}`);
+          markInvalidField(inputEl, `Please enter area (sq.ft.) for ${areaName} *`);
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (type === "Other") {
+      const desc = document.getElementById("otherDetailedDesc");
+      if (!desc || !desc.value.trim()) {
+        markInvalidField(desc, "Please describe your project scope & deliverables *");
+        return false;
+      }
+      return true;
+    }
+
+    const area = document.getElementById("builtUpAreaInput");
+    if (area && (!area.value.trim() || parseFloat(area.value) <= 0)) {
+      markInvalidField(area, "Please enter Total Built-up / Carpet Area in sq.ft. *");
+      return false;
+    }
+
+    if (type === "New Construction") {
+      const floorSelect = document.getElementById("numFloorsSelect");
+      const customFloor = document.getElementById("customFloorsInput");
+      if (floorSelect && floorSelect.value === "custom") {
+        if (!customFloor || !customFloor.value.trim() || parseInt(customFloor.value) < 1) {
+          markInvalidField(customFloor, "Please enter valid number of floors *");
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  if (step === 4) {
+    const minBudget = parseFloat(document.getElementById("budgetMin")?.value) || 0;
+    const maxBudget = parseFloat(document.getElementById("budgetMax")?.value) || 0;
+
+    if (minBudget > 0 && maxBudget > 0 && minBudget > maxBudget) {
+      showToast("Maximum budget cannot be less than Minimum budget.", "error");
+      return false;
+    }
+    return true;
+  }
+
+  return true;
+}
+
 function goToStep(step) {
+  if (step > currentStep) {
+    const isValid = validateCurrentStep(currentStep);
+    if (!isValid) return;
+  }
+
   currentStep = step;
+
   for (let i = 1; i <= 5; i++) {
     const pane = document.getElementById(`stepPane${i}`);
     if (pane) pane.classList.toggle("active", i === currentStep);
@@ -1044,7 +1444,9 @@ function populateReview() {
   let summary = "";
 
   if (type === "New Construction") {
-    summary = projectState.floorsData.map(f => `${f.floorName} (${Object.values(f.rooms).reduce((a,b)=>a+b, 0)} rooms)`).join(', ');
+    const floorsSummary = projectState.floorsData.map(f => `${f.floorName} (${Object.values(f.rooms).reduce((a,b)=>a+b, 0)} rooms)`).join(', ');
+    const basementSummary = projectState.hasBasement ? "Includes Basement, " : "";
+    summary = basementSummary + floorsSummary;
   } else if (type === "Renovation") {
     summary = Object.keys(projectState.renovationAreas).join(', ');
   } else if (type === "Home Extension") {
@@ -1059,7 +1461,7 @@ function populateReview() {
 }
 
 /* =========================================================
-   6. SUBMIT PROJECT & LOCAL STORAGE (FIXED FAKE SUCCESS)
+   SUBMIT PROJECT & STORAGE
    ========================================================= */
 async function submitProject() {
   const payload = {
@@ -1082,8 +1484,9 @@ async function submitProject() {
     }
   };
 
-  // Specific payload mappings per PDF specifications
   if (projectState.projectType === "New Construction") {
+    payload.hasBasement = projectState.hasBasement;
+    payload.basementDetails = projectState.hasBasement ? projectState.basementData : null;
     payload.floors = projectState.floorsData;
     payload.scopeOfWork = projectState.scopeOfWork;
   } else if (projectState.projectType === "Renovation") {
@@ -1105,7 +1508,6 @@ async function submitProject() {
 
   try {
     const token = localStorage.getItem("token") || "";
-    // BACKEND_URL variable has been added to the fetch call below
     const res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -1113,20 +1515,17 @@ async function submitProject() {
     });
 
     if (res.ok) {
-      // SUCCESS: Only save to local storage if backend actually accepts the request
       saveLocalProject(payload);
       alert("Project posted and bids requested successfully!");
       window.location.href = "customer projects.html";
     } else {
-      // ERROR: Show the real error, stop the fake success loop
       const errText = await res.text();
-      alert(`Failed to save project. Server returned: ${res.status}\nError: ${errText}`);
-      console.error("Backend Error:", errText);
+      console.error("Backend Error:", res.status, errText);
+      alert("Failed to save project to database. Please login again or check console.");
     }
   } catch (e) {
-    // NETWORK ERROR: Show the real error, stop the fake success loop
-    alert("Network Error: Could not connect to the backend server. Please check your internet connection and backend status.");
-    console.error("Network/Fetch failed:", e);
+    console.error("Network/Fetch Error:", e);
+    alert("Network Error: Could not connect to the backend server.");
   }
 }
 
@@ -1148,8 +1547,8 @@ function saveLocalProject(p) {
     targetDate: p.timeline.startDate,
     status: "OPEN FOR BIDS",
     postedDate: "Just now",
-    
-    // Detailed Requirements Payload
+    hasBasement: p.hasBasement || false,
+    basementDetails: p.basementDetails || null,
     floors: p.floors || [],
     scopeOfWork: p.scopeOfWork || [],
     renovationAreas: p.renovationAreas || [],
@@ -1168,13 +1567,29 @@ function saveLocalProject(p) {
 
   localStorage.setItem("customerProjects", JSON.stringify(customerList));
   localStorage.setItem("allListedProjects", JSON.stringify(globalProjects));
-
-  // The alert here was redundant as we show an alert in submitProject() when res.ok is true, but left as is to match original logic 
 }
 
 /* =========================================================
-   7. UTILITIES
+   UTILITIES & TOASTS
    ========================================================= */
+function showToast(message, type = "info") {
+  const container = document.getElementById("toastContainer");
+  if (!container) {
+    alert(message);
+    return;
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast-msg ${type}`;
+  toast.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> <span>${message}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("fade-out");
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
 function updateLocationInfo() {
   const city = document.getElementById("cityInput")?.value.trim();
   const state = document.getElementById("stateSelect")?.value;
