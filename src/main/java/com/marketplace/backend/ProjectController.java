@@ -17,9 +17,7 @@ public class ProjectController {
 
     private final ProjectRepository projectRepository;
     private final MarketplaceBackendApplication.UserRepository userRepository;
-    
-    // This converts the JavaScript data into a string for SQL
-    private final ObjectMapper objectMapper = new ObjectMapper(); 
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public ProjectController(ProjectRepository projectRepository, MarketplaceBackendApplication.UserRepository userRepository) {
@@ -29,13 +27,16 @@ public class ProjectController {
 
     @PostMapping("/create")
     public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload, Authentication authentication) {
-        
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized. Please login again."));
+        }
+
         String email = authentication.getName();
         Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email);
-        
+
         if (userOptional.isEmpty()) {
             Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "User not found. Please login again.");
+            errorResponse.put("error", "User not found in cloud database. Please login again.");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
@@ -43,16 +44,22 @@ public class ProjectController {
         Project project = new Project();
         project.setCustomer(user);
 
-        // Pull out the basic fields safely
-        if (payload.get("projectTitle") != null) project.setTitle(payload.get("projectTitle").toString());
-        if (payload.get("projectType") != null) project.setType(payload.get("projectType").toString());
-        if (payload.get("qualityTier") != null) project.setQualityTier(payload.get("qualityTier").toString());
-        
+        // Map basic fields safely from frontend payload
+        if (payload.get("projectTitle") != null) {
+            project.setTitle(payload.get("projectTitle").toString());
+        }
+        if (payload.get("projectType") != null) {
+            project.setType(payload.get("projectType").toString());
+        }
+        if (payload.get("qualityTier") != null) {
+            project.setQualityTier(payload.get("qualityTier").toString());
+        }
+
         if (payload.get("totalArea") instanceof Number) {
             project.setBuiltUpArea(((Number) payload.get("totalArea")).doubleValue());
         }
 
-        // Pull out the location fields safely (including address)
+        // Map location details
         Object locationObj = payload.get("location");
         if (locationObj instanceof Map) {
             Map<?, ?> location = (Map<?, ?>) locationObj;
@@ -62,7 +69,7 @@ public class ProjectController {
             if (location.get("address") != null) project.setAddress(location.get("address").toString());
         }
 
-        // Pull out budget fields safely
+        // Map budget range
         Object budgetObj = payload.get("budget");
         if (budgetObj instanceof Map) {
             Map<?, ?> budget = (Map<?, ?>) budgetObj;
@@ -74,7 +81,7 @@ public class ProjectController {
             }
         }
 
-        // Pull out timeline fields safely
+        // Map timeline/start date
         Object timelineObj = payload.get("timeline");
         if (timelineObj instanceof Map) {
             Map<?, ?> timeline = (Map<?, ?>) timelineObj;
@@ -83,32 +90,36 @@ public class ProjectController {
             }
         }
 
-        // Save the ENTIRE payload (all dynamic JS data) as a JSON string
+        // Store entire complex dynamic payload as JSON text in cloud database
         try {
             String completeJson = objectMapper.writeValueAsString(payload);
             project.setCompleteDataJson(completeJson);
         } catch (Exception e) {
-            System.err.println("Failed to convert payload to JSON: " + e.getMessage());
+            System.err.println("Failed to serialize payload JSON for cloud DB: " + e.getMessage());
         }
 
-        // Save to SQL Database
+        // Persist entity to Cloud MySQL (visible via MySQL Workbench)
         Project savedProject = projectRepository.save(project);
-        
+
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Project created successfully!");
+        response.put("message", "Project posted and saved to Cloud MySQL successfully!");
         response.put("projectId", savedProject.getId());
-        
+
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<?> getCustomerProjects(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
         String email = authentication.getName();
         Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isEmpty()) {
             Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "User not found. Please login again.");
+            errorResponse.put("error", "User not found.");
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
