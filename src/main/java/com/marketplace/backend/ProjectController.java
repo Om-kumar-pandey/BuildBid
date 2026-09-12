@@ -151,10 +151,11 @@ public class ProjectController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // Log full exception on backend console without leaking database credentials or internals to client
             System.err.println("Database error while saving project: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to save project to database. Please check your inputs and try again."));
+            Throwable root = e;
+            while (root.getCause() != null) root = root.getCause();
+            return ResponseEntity.status(500).body(Map.of("error", "Database error: " + (root.getMessage() != null ? root.getMessage() : e.getMessage())));
         }
     }
 
@@ -177,6 +178,23 @@ public class ProjectController {
         List<Project> projects = projectRepository.findByCustomer(user);
 
         return ResponseEntity.ok(projects);
+    }
+
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
+    @GetMapping("/schema-info")
+    public ResponseEntity<?> getSchemaInfo() {
+        try {
+            List<?> rows = entityManager.createNativeQuery(
+                "SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLUMN_DEFAULT " +
+                "FROM INFORMATION_SCHEMA.COLUMNS " +
+                "WHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE()"
+            ).getResultList();
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")
