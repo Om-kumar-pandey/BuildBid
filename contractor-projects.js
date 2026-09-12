@@ -19,7 +19,9 @@ function setupContractorSession() {
   const displayName = user.name || user.username || "Contractor";
   const initials = displayName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "HK";
 
-  document.getElementById("top-nav-name").textContent = displayName;
+  const nameElem = document.getElementById("top-nav-name");
+  if (nameElem) nameElem.textContent = displayName;
+  
   const avatarText = document.getElementById("top-nav-avatar-text");
   if (avatarText) avatarText.textContent = initials;
 
@@ -97,7 +99,7 @@ function renderLiveProjectsGrid(projectsToDisplay) {
           ${
             hasAlreadyBid 
               ? `<button class="btn-bid-now btn-already-bid" disabled><i class="fa-solid fa-check"></i> Quotation Sent</button>`
-              : `<button class="btn-bid-now" onclick="openBidModal('${project.id}')"><i class="fa-solid fa-file-invoice-dollar"></i> Send Quotation</button>`
+              : `<button class="btn-bid-now" onclick="openQuotationModal('${project.id}')"><i class="fa-solid fa-file-invoice-dollar"></i> Send Quotation</button>`
           }
         </div>
       </div>
@@ -106,83 +108,19 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   });
 }
 
-// 5. Open Quotation Modal
-function openBidModal(projectId) {
+// 5. Open Detailed Bid Builder Page
+function openQuotationModal(projectId) {
   const projects = getLiveProjects();
-  const project = projects.find(p => p.id === projectId);
-  if (!project) return;
-
-  document.getElementById("modal-project-id").value = project.id;
-  document.getElementById("modal-project-title").textContent = project.title;
-  document.getElementById("modal-project-location").textContent = `Location: ${project.location || 'Not Specified'}`;
-  document.getElementById("modal-customer-budget").value = project.budget || 'Negotiable';
+  const project = projects.find(p => String(p.id) === String(projectId));
   
-  // Clear previous form inputs
-  document.getElementById("bid-amount").value = "";
-  document.getElementById("bid-timeline").value = "";
-  document.getElementById("bid-notes").value = "";
-
-  document.getElementById("bid-modal").classList.add("active");
-}
-
-function closeBidModal() {
-  document.getElementById("bid-modal").classList.remove("active");
-}
-
-// 6. Submit Contractor Quotation / Bid
-function submitContractorQuotation(e) {
-  e.preventDefault();
-
-  const projectId = document.getElementById("modal-project-id").value;
-  const amount = document.getElementById("bid-amount").value;
-  const timeline = document.getElementById("bid-timeline").value;
-  const materialType = document.getElementById("bid-material-type").value;
-  const notes = document.getElementById("bid-notes").value;
-  const user = setupContractorSession();
-
-  const quotationPayload = {
-    quotationId: "quot-" + Date.now(),
-    projectId: projectId,
-    contractorId: user.email || user.username,
-    contractorName: user.name || user.companyName,
-    contractorPhone: user.phone || "",
-    amount: "₹" + Number(amount).toLocaleString('en-IN'),
-    timeline: timeline,
-    materialType: materialType,
-    notes: notes,
-    submittedDate: "Today",
-    status: "Pending Review"
-  };
-
-  // 1. Save Quotation locally
-  const bids = getContractorBids();
-  bids.unshift(quotationPayload);
-  localStorage.setItem("buildbid_contractor_bids", JSON.stringify(bids));
-
-  // 2. Increment project bid counter
-  const projects = getLiveProjects();
-  const targetIndex = projects.findIndex(p => p.id === projectId);
-  if (targetIndex !== -1) {
-    projects[targetIndex].bidsCount = (projects[targetIndex].bidsCount || 0) + 1;
-    localStorage.setItem("buildbid_customer_projects", JSON.stringify(projects));
+  if (project) {
+    sessionStorage.setItem("selectedProject", JSON.stringify(project));
   }
-
-  // 3. Update contractor's active bids metric in currentUser stats
-  const rawUser = localStorage.getItem("currentUser");
-  if (rawUser) {
-    const parsedUser = JSON.parse(rawUser);
-    parsedUser.stats = parsedUser.stats || {};
-    parsedUser.stats.totalBids = (parsedUser.stats.totalBids || 0) + 1;
-    parsedUser.stats.activeBids = (parsedUser.stats.activeBids || 0) + 1;
-    localStorage.setItem("currentUser", JSON.stringify(parsedUser));
-  }
-
-  alert("Quotation successfully submitted to the customer!");
-  closeBidModal();
-  renderLiveProjectsGrid(getLiveProjects());
+  
+  window.location.href = `contractor-bid-builder.html?projectId=${encodeURIComponent(projectId)}`;
 }
 
-// 7. Search Filter
+// 6. Search Filter
 function handleSearchProjects() {
   const query = document.getElementById("project-search-input").value.toLowerCase();
   const projects = getLiveProjects();
@@ -196,7 +134,7 @@ function handleSearchProjects() {
   renderLiveProjectsGrid(filtered);
 }
 
-// 8. Tab Filters
+// 7. Tab Filters
 function filterLiveProjects(type, btn) {
   document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
   if (btn) btn.classList.add("active");
