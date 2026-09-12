@@ -1,0 +1,79 @@
+package com.marketplace.backend;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "*") // Cross-Origin allow karne ke liye taaki frontend block na ho
+public class ProjectController {
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    // 1. Create Project API (Frontend ka POST request yahan aayega)
+    @PostMapping("/customer/projects/create")
+    public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Project project = new Project();
+
+            // Basic Fields
+            project.setProjectTitle((String) payload.getOrDefault("projectTitle", "Untitled Project"));
+            project.setProjectType((String) payload.get("projectType"));
+            project.setQualityTier((String) payload.get("qualityTier"));
+
+            // Safely handling number conversion for Area
+            Object areaObj = payload.get("totalArea");
+            if (areaObj != null) {
+                project.setTotalArea(Double.valueOf(areaObj.toString()));
+            }
+
+            // Nested Objects ko JSON String mein convert karke save karna
+            if (payload.containsKey("location")) project.setLocation(mapper.writeValueAsString(payload.get("location")));
+            if (payload.containsKey("budget")) project.setBudget(mapper.writeValueAsString(payload.get("budget")));
+            if (payload.containsKey("timeline")) project.setTimeline(mapper.writeValueAsString(payload.get("timeline")));
+            
+            // Dynamic Data (Alag-alag project types ke hisaab se)
+            if (payload.containsKey("floors")) project.setFloors(mapper.writeValueAsString(payload.get("floors")));
+            if (payload.containsKey("scopeOfWork")) project.setScopeOfWork(mapper.writeValueAsString(payload.get("scopeOfWork")));
+            if (payload.containsKey("renovationAreas")) project.setRenovationAreas(mapper.writeValueAsString(payload.get("renovationAreas")));
+            if (payload.containsKey("renovScope")) project.setRenovScope(mapper.writeValueAsString(payload.get("renovScope")));
+            if (payload.containsKey("extensionDetails")) project.setExtensionDetails(mapper.writeValueAsString(payload.get("extensionDetails")));
+            if (payload.containsKey("rooms")) project.setInteriorRooms(mapper.writeValueAsString(payload.get("rooms")));
+            if (payload.containsKey("scope")) project.setInteriorScope(mapper.writeValueAsString(payload.get("scope")));
+            if (payload.containsKey("interiorPreferences")) project.setInteriorPreferences(mapper.writeValueAsString(payload.get("interiorPreferences")));
+            if (payload.containsKey("commercial")) project.setCommercial(mapper.writeValueAsString(payload.get("commercial")));
+            if (payload.containsKey("industrial")) project.setIndustrial(mapper.writeValueAsString(payload.get("industrial")));
+            if (payload.containsKey("custom")) project.setCustomDetails(mapper.writeValueAsString(payload.get("custom")));
+
+            Project savedProject = projectRepository.save(project);
+            return ResponseEntity.ok(savedProject);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error saving project: " + e.getMessage()));
+        }
+    }
+
+    // 2. Config API (Frontend jab configuration maangta hai)
+    @GetMapping("/projects/config")
+    public ResponseEntity<?> getProjectConfig(@RequestParam(required = false) String type) {
+        // Frontend fetch hook ko satisfy karne ke liye ek simple response
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Configuration loaded", "type", type != null ? type : "all"));
+    }
+
+    // 3. Fetch Single Project (Draft/Existing data dikhane ke liye)
+    @GetMapping("/customer/projects/{id}")
+    public ResponseEntity<?> getProjectById(@PathVariable Long id) {
+        Optional<Project> project = projectRepository.findById(id);
+        if (project.isPresent()) {
+            return ResponseEntity.ok(project.get());
+        }
+        return ResponseEntity.notFound().build();
+    }
+}
