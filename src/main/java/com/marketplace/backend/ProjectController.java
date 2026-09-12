@@ -99,13 +99,30 @@ public class ProjectController {
         }
 
         // Persist entity to Cloud MySQL (visible via MySQL Workbench)
-        Project savedProject = projectRepository.save(project);
+        try {
+            Project savedProject = projectRepository.save(project);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Project posted and saved to Cloud MySQL successfully!");
-        response.put("projectId", savedProject.getId());
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Project posted and saved to Cloud MySQL successfully!");
+            response.put("projectId", savedProject.getId());
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("Error saving project to DB: " + e.getMessage());
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Database error: " + e.getMessage());
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getProjectById(@PathVariable("id") Long id) {
+        Optional<Project> projectOptional = projectRepository.findById(id);
+        if (projectOptional.isEmpty()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Project not found with id: " + id));
+        }
+        return ResponseEntity.ok(projectOptional.get());
     }
 
     @GetMapping

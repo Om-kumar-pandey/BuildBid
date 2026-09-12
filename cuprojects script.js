@@ -53,7 +53,7 @@ function syncUniversalUserProfile() {
   }
 
   // Token Backend Fetch
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || sessionStorage.getItem("token") || "";
+  const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || "";
   if (token) {
     fetch(API_BASE_URL + "/api/customer/profile", {
       method: "GET",
@@ -116,7 +116,7 @@ function applyUserHeaderData(user) {
    2. LOAD PROJECTS (API + LOCALSTORAGE SYNC)
    ========================================================= */
 async function loadCustomerProjects() {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
 
   // 1. Check local storage first
   const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");

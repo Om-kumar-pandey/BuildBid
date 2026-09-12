@@ -12,14 +12,34 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "title")
     private String title;
+
+    @Column(name = "project_title")
+    private String projectTitle;
+
+    @Column(name = "type")
     private String type;
+
+    @Column(name = "project_type")
+    private String projectType;
+
+    @Column(name = "city")
     private String city;
     private String state;
     private String pincode;
     private String address; // <--- फ्रंटएंड के एड्रेस के लिए जोड़ा गया
     private Double plotArea;
+    
+    @Column(name = "built_up_area")
     private Double builtUpArea;
+
+    @Column(name = "total_area")
+    private Double totalArea;
+
+    @Column(name = "customer_name")
+    private String customerName;
+
     private Integer floors;
     private String qualityTier;
     private String estimatedCost;
@@ -50,6 +70,13 @@ public class Project {
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.projectTitle == null && this.title != null) this.projectTitle = this.title;
+        if (this.title == null && this.projectTitle != null) this.title = this.projectTitle;
+        if (this.projectType == null && this.type != null) this.projectType = this.type;
+        if (this.type == null && this.projectType != null) this.type = this.projectType;
+        if (this.totalArea == null && this.builtUpArea != null) this.totalArea = this.builtUpArea;
+        if (this.builtUpArea == null && this.totalArea != null) this.builtUpArea = this.totalArea;
+        if (this.customerName == null && this.customer != null) this.customerName = this.customer.getName();
     }
 
     public Project() {}
@@ -58,11 +85,29 @@ public class Project {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public String getTitle() { return title != null ? title : projectTitle; }
+    public void setTitle(String title) { 
+        this.title = title; 
+        this.projectTitle = title;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public String getProjectTitle() { return projectTitle != null ? projectTitle : title; }
+    public void setProjectTitle(String projectTitle) { 
+        this.projectTitle = projectTitle; 
+        this.title = projectTitle;
+    }
+
+    public String getType() { return type != null ? type : projectType; }
+    public void setType(String type) { 
+        this.type = type; 
+        this.projectType = type;
+    }
+
+    public String getProjectType() { return projectType != null ? projectType : type; }
+    public void setProjectType(String projectType) { 
+        this.projectType = projectType; 
+        this.type = projectType;
+    }
 
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
@@ -79,8 +124,20 @@ public class Project {
     public Double getPlotArea() { return plotArea; }
     public void setPlotArea(Double plotArea) { this.plotArea = plotArea; }
 
-    public Double getBuiltUpArea() { return builtUpArea; }
-    public void setBuiltUpArea(Double builtUpArea) { this.builtUpArea = builtUpArea; }
+    public Double getBuiltUpArea() { return builtUpArea != null ? builtUpArea : totalArea; }
+    public void setBuiltUpArea(Double builtUpArea) { 
+        this.builtUpArea = builtUpArea; 
+        this.totalArea = builtUpArea;
+    }
+
+    public Double getTotalArea() { return totalArea != null ? totalArea : builtUpArea; }
+    public void setTotalArea(Double totalArea) { 
+        this.totalArea = totalArea; 
+        this.builtUpArea = totalArea;
+    }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
 
     public Integer getFloors() { return floors; }
     public void setFloors(Integer floors) { this.floors = floors; }
@@ -110,7 +167,12 @@ public class Project {
     public void setCompleteDataJson(String completeDataJson) { this.completeDataJson = completeDataJson; }
 
     public MarketplaceBackendApplication.MarketplaceUser getCustomer() { return customer; }
-    public void setCustomer(MarketplaceBackendApplication.MarketplaceUser customer) { this.customer = customer; }
+    public void setCustomer(MarketplaceBackendApplication.MarketplaceUser customer) { 
+        this.customer = customer; 
+        if (customer != null && customer.getName() != null) {
+            this.customerName = customer.getName();
+        }
+    }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

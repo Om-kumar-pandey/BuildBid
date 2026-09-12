@@ -343,24 +343,26 @@ public class MarketplaceBackendApplication {
             }
 
             try {
-                String token = authorizationHeader.substring(7);
-                String email = jwtService.extractUsername(token);
+                String token = authorizationHeader.substring(7).trim();
+                if (!token.isEmpty() && !token.equalsIgnoreCase("null") && !token.equalsIgnoreCase("undefined")) {
+                    String email = jwtService.extractUsername(token);
 
-                if (org.springframework.security.core.context.SecurityContextHolder
-                        .getContext().getAuthentication() == null) {
+                    if (org.springframework.security.core.context.SecurityContextHolder
+                            .getContext().getAuthentication() == null) {
 
-                    UserDetails user = userDetailsService.loadUserByUsername(email);
+                        UserDetails user = userDetailsService.loadUserByUsername(email);
 
-                    if (jwtService.isValid(token, user)) {
-                        UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(
-                                        user,
-                                        null,
-                                        user.getAuthorities()
-                                );
+                        if (jwtService.isValid(token, user)) {
+                            UsernamePasswordAuthenticationToken authentication =
+                                    new UsernamePasswordAuthenticationToken(
+                                            user,
+                                            null,
+                                            user.getAuthorities()
+                                    );
 
-                        org.springframework.security.core.context.SecurityContextHolder
-                                .getContext().setAuthentication(authentication);
+                            org.springframework.security.core.context.SecurityContextHolder
+                                    .getContext().setAuthentication(authentication);
+                        }
                     }
                 }
             } catch (Exception ignored) {}
@@ -410,13 +412,20 @@ public class MarketplaceBackendApplication {
                     )
                    .authorizeHttpRequests(auth ->
     auth
-        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
+        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health", "/api/projects/**").permitAll()
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
         .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
         .requestMatchers("/api/customer/hiring/**").permitAll()
         .anyRequest().authenticated()
 )
+                    .exceptionHandling(ex -> ex
+                            .authenticationEntryPoint((request, response, authException) -> {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("application/json");
+                                response.getWriter().write("{\"error\": \"Unauthorized or expired token. Please login again.\"}");
+                            })
+                    )
                     .authenticationProvider(authenticationProvider())
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                     .build();
@@ -600,7 +609,7 @@ public class MarketplaceBackendApplication {
 
         public ProfileController(UserRepository userRepository) { this.userRepository = userRepository; }
 
-        @GetMapping("/api/me")
+        @GetMapping({"/api/me", "/api/customer/profile", "/api/user/profile"})
         public Map<String, Object> currentUser(org.springframework.security.core.Authentication authentication) {
             String email = authentication.getName();
 

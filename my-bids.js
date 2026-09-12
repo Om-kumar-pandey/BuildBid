@@ -19,6 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+
+function getAuthToken() {
+    return localStorage.getItem('marketplaceToken') || 
+           localStorage.getItem('token') || 
+           localStorage.getItem('authToken') || 
+           sessionStorage.getItem('marketplaceToken') || 
+           sessionStorage.getItem('token') || '';
+}
+
 /**
  * Extracts and displays only FIRST NAME (e.g., 'Heman') and initials ('HK')
  */
@@ -34,9 +44,9 @@ async function initUserSession() {
             sessionStorage.getItem('userData') || '{}'
         );
 
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         if (token) {
-            const res = await fetch('/api/user/profile', {
+            const res = await fetch(`${API_BASE_URL}/api/user/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) user = await res.json();
@@ -71,8 +81,8 @@ async function fetchDynamicNotifications() {
     if (!badge) return;
 
     try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/notifications/unread-count', {
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
             headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
 
@@ -96,8 +106,10 @@ async function fetchDynamicNotifications() {
  */
 async function loadDashboardStats() {
     try {
-        const response = await fetch('/api/customer/bids-summary', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+        const token = getAuthToken();
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const response = await fetch(`${API_BASE_URL}/api/customer/bids-summary`, {
+            headers: headers
         });
 
         if (!response.ok) throw new Error('API Error');
@@ -131,8 +143,10 @@ async function loadProjectBids(page = 1, limit = 5) {
     `;
 
     try {
-        const response = await fetch(`/api/customer/project-bids?page=${page}&limit=${limit}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+        const token = getAuthToken();
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const response = await fetch(`${API_BASE_URL}/api/customer/project-bids?page=${page}&limit=${limit}`, {
+            headers: headers
         });
 
         if (!response.ok) throw new Error('Bids API failed');

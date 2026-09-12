@@ -66,12 +66,24 @@ const BASEMENT_FEATURES = [
 /* =========================================================
    BACKEND FETCH ENGINE
    ========================================================= */
+function getAuthToken() {
+  return localStorage.getItem("marketplaceToken") || 
+         localStorage.getItem("token") || 
+         localStorage.getItem("authToken") || 
+         sessionStorage.getItem("marketplaceToken") || 
+         sessionStorage.getItem("token") || "";
+}
+
 async function fetchProjectConfiguration(projectType) {
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = getAuthToken();
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
     const response = await fetch(`${BACKEND_URL}/api/projects/config?type=${encodeURIComponent(projectType)}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+      headers: headers
     });
     if (response.ok) return await response.json();
   } catch (error) {
@@ -82,10 +94,14 @@ async function fetchProjectConfiguration(projectType) {
 
 async function fetchExistingProjectData(projectId) {
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = getAuthToken();
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
     const response = await fetch(`${BACKEND_URL}/api/customer/projects/${projectId}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+      headers: headers
     });
 
     if (response.ok) {
@@ -1507,10 +1523,19 @@ async function submitProject() {
   }
 
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = getAuthToken();
+    if (!token) {
+      alert("Authentication required: You must be logged in to submit a project. Please login first.");
+      window.location.href = "index.html";
+      return;
+    }
+
     const res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      headers: { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${token}` 
+      },
       body: JSON.stringify(payload)
     });
 
@@ -1518,13 +1543,18 @@ async function submitProject() {
       saveLocalProject(payload);
       alert("Project posted and bids requested successfully!");
       window.location.href = "customer projects.html";
+    } else if (res.status === 401 || res.status === 403) {
+      const errText = await res.text();
+      console.error("Backend Auth Error (" + res.status + "):", errText);
+      alert("Session expired or unauthorized (" + res.status + "). Please log in again to post your project.");
+      localStorage.removeItem("marketplaceToken");
+      localStorage.removeItem("token");
+      window.location.href = "index.html";
     } else {
       const errText = await res.text();
-        console.error("Backend Error Status:", res.status);
-        console.error("Backend Error Response Body:", errText); 
-        
-      
-        alert("Server Error (" + res.status + "): " + errText);
+      console.error("Backend Error Status:", res.status);
+      console.error("Backend Error Response Body:", errText); 
+      alert("Server Error (" + res.status + "): " + (errText || "Failed to save project."));
     }
   } catch (e) {
     console.error("Network/Fetch Error:", e);

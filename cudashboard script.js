@@ -6,7 +6,7 @@ const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 let toastTimeout;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
   let user = JSON.parse(localStorage.getItem("currentUser")) || {};
 
   // 1. Initial Render with available stored data
