@@ -1,5 +1,5 @@
 // ============================================================
-// BUILD BID - FRONTEND JAVASCRIPT (CORRECTED & OPTIMIZED)
+// BUILD BID - FRONTEND JAVASCRIPT (CORRECTED & FULLY STABLE)
 // BACKEND: SPRING BOOT + MYSQL + JWT
 // ============================================================
 
@@ -41,7 +41,7 @@ function getCleanToken() {
 }
 
 function resolvePath(fileName) {
-    return fileName;
+    return encodeURI(fileName);
 }
 
 function goToRequirement() {
@@ -174,7 +174,7 @@ function navigateToDashboard() {
     const userJson = localStorage.getItem("marketplaceUser");
     const currentJson = localStorage.getItem("currentUser");
 
-    if (!getCleanToken()) {
+    if (!userJson && !currentJson) {
         openAuth();
         return;
     }
@@ -192,8 +192,6 @@ function navigateToDashboard() {
             .replace("ROLE_", "")
             .toUpperCase();
     }
-
-    console.log("Navigating for user role:", role);
 
     if (role === "CONTRACTOR") {
         window.location.href = resolvePath("dashborad.html");
@@ -314,7 +312,7 @@ function toggleSignupCategoryFields(role) {
 }
 
 // ============================================================
-// LOGIN FORM EVENT LISTENER (FIXED DIRECT DASHBOARD REDIRECT)
+// LOGIN FORM EVENT LISTENER
 // ============================================================
 const loginForm = document.querySelector("#loginForm");
 
@@ -336,6 +334,13 @@ if (loginForm) {
         const selectedRoleInput = loginForm.querySelector('#selectedRole');
         const chosenRole = selectedRoleInput ? selectedRoleInput.value.trim().toUpperCase() : "CUSTOMER";
 
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn ? submitBtn.innerHTML : "Login";
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Logging in...`;
+        }
+
         try {
             const response = await fetch(API_BASE_URL + "/api/auth/login", {
                 method: "POST",
@@ -351,13 +356,15 @@ if (loginForm) {
                 return;
             }
 
-            if (data.token) {
-                localStorage.setItem("marketplaceToken", data.token);
-                localStorage.setItem("token", data.token);
+            const token = data.token || data.accessToken || data.jwt || "";
+            if (token) {
+                localStorage.setItem("marketplaceToken", token);
+                localStorage.setItem("token", token);
             }
 
             const backendRoles = (data.roles && data.roles.length > 0) ? Array.from(data.roles) : [chosenRole];
-            const primaryRole = (backendRoles[0] || chosenRole).replace("ROLE_", "").toUpperCase();
+            const primaryRole = (typeof backendRoles[0] === 'string' ? backendRoles[0] : backendRoles[0].name || chosenRole)
+                .replace("ROLE_", "").toUpperCase();
 
             localStorage.setItem("marketplaceUser", JSON.stringify({
                 username: data.username || email.split('@')[0],
@@ -380,25 +387,27 @@ if (loginForm) {
             closeAuth();
             updateNavbarAuthState();
 
-            // Direct Dashboard Navigation Flow
             const pendingUrl = sessionStorage.getItem("pendingRedirect");
             if (pendingUrl) {
                 sessionStorage.removeItem("pendingRedirect");
-                setTimeout(() => { window.location.href = pendingUrl; }, 300);
+                setTimeout(() => { window.location.href = pendingUrl; }, 600);
             } else {
-                setTimeout(() => { 
-                    navigateToDashboard(); 
-                }, 300);
+                setTimeout(() => { navigateToDashboard(); }, 600);
             }
         } catch (error) {
             console.error("Login error:", error);
             showAuthToast("Connection Error", "Unable to connect to the server. Please try again.", "error");
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
         }
     });
 }
 
 // ============================================================
-// SIGNUP FORM EVENT LISTENER
+// SIGNUP FORM EVENT LISTENER (WITH SILENT AUTO-LOGIN)
 // ============================================================
 const signupForm = document.querySelector("#signupForm");
 
@@ -417,13 +426,16 @@ if (signupForm) {
         const profSelect = document.getElementById("professionalCategorySelect");
         const sellerSelect = document.getElementById("sellerCategorySelect");
 
+        const submitBtn = signupForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn ? submitBtn.innerHTML : "Create Account";
+
         if (!nameInput || !emailInput || !passwordInput) {
             showAuthToast("Missing Information", "Please fill all required fields.", "error");
             return;
         }
 
         const name = nameInput.value.trim();
-        const username = usernameInput ? usernameInput.value.trim() : emailInput.value.trim().split("@")[0];
+        const username = usernameInput && usernameInput.value.trim() ? usernameInput.value.trim() : emailInput.value.trim().split("@")[0];
         const email = emailInput.value.trim().toLowerCase();
         const phone = phoneInput ? phoneInput.value.trim() : "";
         const password = passwordInput.value;
@@ -444,7 +456,13 @@ if (signupForm) {
                     : (selectedRole === "MATERIAL_SELLER" ? (sellerSelect ? sellerSelect.value : null) : null)
         };
 
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Creating Account...`;
+        }
+
         try {
+            // STEP 1: Registration
             const response = await fetch(API_BASE_URL + "/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -455,13 +473,35 @@ if (signupForm) {
 
             if (!response.ok) {
                 let errorMessage = data.error || data.message || "Account creation failed.";
+                if (data.errors && Array.isArray(data.errors)) {
+                    errorMessage = data.errors.map(err => err.defaultMessage || err.message || "Invalid field").join("\n");
+                }
                 showAuthToast("Signup Failed", errorMessage, "error", 5000);
                 return;
             }
 
-            if (data.token) {
-                localStorage.setItem("marketplaceToken", data.token);
-                localStorage.setItem("token", data.token);
+            // STEP 2: Obtain Auth Token via Direct or Auto-Login
+            let token = data.token || data.accessToken || "";
+
+            if (!token) {
+                try {
+                    const loginRes = await fetch(API_BASE_URL + "/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: email, password: password, role: selectedRole })
+                    });
+                    if (loginRes.ok) {
+                        const loginData = await loginRes.json();
+                        token = loginData.token || loginData.accessToken || "";
+                    }
+                } catch (autoLoginErr) {
+                    console.warn("Auto-login error:", autoLoginErr);
+                }
+            }
+
+            if (token) {
+                localStorage.setItem("marketplaceToken", token);
+                localStorage.setItem("token", token);
             }
 
             localStorage.setItem("marketplaceUser", JSON.stringify({
@@ -481,16 +521,27 @@ if (signupForm) {
 
             localStorage.setItem("currentUser", JSON.stringify(signedUpCustomer));
 
-            showAuthToast("Account Created", `Welcome to BuildBid, ${name}!`, "success", 3000);
+            showAuthToast("Account Created", `Welcome to BuildBid, ${name}!`, "success", 2500);
 
             signupForm.reset();
             closeAuth();
             updateNavbarAuthState();
 
-            setTimeout(() => { navigateToDashboard(); }, 300);
+            const pendingUrl = sessionStorage.getItem("pendingRedirect");
+            if (pendingUrl) {
+                sessionStorage.removeItem("pendingRedirect");
+                setTimeout(() => { window.location.href = pendingUrl; }, 700);
+            } else {
+                setTimeout(() => { navigateToDashboard(); }, 700);
+            }
         } catch (error) {
             console.error("Signup error:", error);
             showAuthToast("Connection Error", "Unable to connect to the backend. Please try again.", "error", 5000);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
         }
     });
 }
@@ -498,6 +549,7 @@ if (signupForm) {
 document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
         closeAuth();
+        closeVideoModal();
     }
 });
 
@@ -526,7 +578,6 @@ document.addEventListener("click", function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
-    console.log("BuildBid frontend loaded.");
     updateNavbarAuthState();
 });
 
