@@ -5,13 +5,9 @@
 
 const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
 
-// Helper function to resolve relative paths whether on root or inside /website/
+// Helper function to resolve relative paths directly
 function resolvePath(fileName) {
-    const isInsideWebsiteFolder = window.location.pathname.includes("/website/");
-    if (isInsideWebsiteFolder) {
-        return fileName;
-    }
-    return "website/" + fileName;
+    return fileName;
 }
 
 // ============================================================
@@ -182,7 +178,7 @@ function navigateToDashboard() {
     console.log("Navigating for user role:", role);
 
     if (role === "CONTRACTOR") {
-        window.location.href = resolvePath("dashboard.html");
+        window.location.href = resolvePath("dashborad.html");
     } else if (role === "MATERIAL_SELLER" || role === "SELLER") {
         window.location.href = resolvePath("material seller dashboard.html");
     } else if (role === "PROFESSIONAL" || role === "SERVICE_PROVIDER") {
@@ -407,6 +403,8 @@ if (loginForm) {
             if (pendingUrl) {
                 sessionStorage.removeItem("pendingRedirect");
                 setTimeout(() => { window.location.href = pendingUrl; }, 800);
+            } else {
+                setTimeout(() => { navigateToDashboard(); }, 800);
             }
         } catch (error) {
             console.error("Login error:", error);
@@ -527,6 +525,8 @@ if (signupForm) {
             if (pendingUrl) {
                 sessionStorage.removeItem("pendingRedirect");
                 setTimeout(() => { window.location.href = pendingUrl; }, 800);
+            } else {
+                setTimeout(() => { navigateToDashboard(); }, 800);
             }
         } catch (error) {
             console.error("Signup error:", error);

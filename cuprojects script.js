@@ -55,7 +55,7 @@ function syncUniversalUserProfile() {
   // Token Backend Fetch
   const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || sessionStorage.getItem("token") || "";
   if (token) {
-    fetch(API_BASE_URL + "/api/customer/profile", {
+    fetch(API_BASE_URL + "/api/me", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
