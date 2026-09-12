@@ -1,6 +1,9 @@
 function getApiBaseUrl() {
   if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      if (window.location.port && window.location.port !== "8080") {
+        return `${window.location.protocol}//${window.location.hostname}:8080`;
+      }
       return window.location.origin;
     }
     return window.location.origin;
@@ -9,6 +12,28 @@ function getApiBaseUrl() {
 }
 
 const BACKEND_URL = getApiBaseUrl();
+
+function getCleanToken() {
+  let token = localStorage.getItem("token") || 
+              localStorage.getItem("authToken") || 
+              localStorage.getItem("marketplaceToken") || 
+              sessionStorage.getItem("token") || "";
+  if (!token) return "";
+  token = String(token).trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+      token = token.slice(1, -1).trim();
+      changed = true;
+    }
+    if (token.startsWith("Bearer ")) {
+      token = token.substring(7).trim();
+      changed = true;
+    }
+  }
+  return token;
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
@@ -83,11 +108,7 @@ const BASEMENT_FEATURES = [
    BACKEND FETCH ENGINE
    ========================================================= */
 function getAuthToken() {
-  return localStorage.getItem("token") ||
-         localStorage.getItem("marketplaceToken") ||
-         localStorage.getItem("authToken") ||
-         sessionStorage.getItem("token") ||
-         "";
+  return getCleanToken();
 }
 
 async function fetchProjectConfiguration(projectType) {
@@ -1511,7 +1532,7 @@ async function submitProject() {
     floors: parseInt(document.getElementById("numFloorsSelect")?.value) || projectState.floorsCount || 1,
     qualityTier: projectState.qualityTier || "Standard",
     estimatedCost: document.getElementById("costRangeDisplay")?.textContent || "",
-    description: document.getElementById("ncDescription")?.value || document.getElementById("otherDesc")?.value || "",
+    description: document.getElementById("ncDescription")?.value || document.getElementById("otherDetailedDesc")?.value || document.getElementById("otherDesc")?.value || "",
     paymentPreference: document.getElementById("paymentPref")?.value || "Milestone Based",
     privacyPreference: document.getElementById("privacyPref")?.value || "Public to verified contractors",
     budget: {

@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 @RestController
-@RequestMapping("/api/customer/projects")
+@RequestMapping("/api/customer")
 public class ProjectController {
 
     private final ProjectRepository projectRepository;
@@ -26,14 +26,15 @@ public class ProjectController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping("/create")
+    @PostMapping({"/projects/create", "/hiring/create"})
     public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized. Please login again."));
         }
 
         String email = authentication.getName();
-        Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email);
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email)
+                .or(() -> userRepository.findByUsername(email));
 
         if (userOptional.isEmpty()) {
             Map<String, String> errorResponse = new HashMap<>();
@@ -68,6 +69,8 @@ public class ProjectController {
             String type = "New Construction";
             if (payload.get("projectType") != null && !payload.get("projectType").toString().isBlank()) {
                 type = payload.get("projectType").toString();
+            } else if (payload.get("projectCategory") != null && !payload.get("projectCategory").toString().isBlank()) {
+                type = payload.get("projectCategory").toString();
             } else if (payload.get("type") != null && !payload.get("type").toString().isBlank()) {
                 type = payload.get("type").toString();
             }
@@ -79,19 +82,18 @@ public class ProjectController {
             }
 
             // Map Areas
-            Double areaVal = null;
-            if (payload.get("totalArea") instanceof Number) {
-                areaVal = ((Number) payload.get("totalArea")).doubleValue();
-            } else if (payload.get("builtUpArea") instanceof Number) {
-                areaVal = ((Number) payload.get("builtUpArea")).doubleValue();
+            Double areaVal = parseDoubleSafe(payload.get("totalArea"));
+            if (areaVal == null) {
+                areaVal = parseDoubleSafe(payload.get("builtUpArea"));
             }
             if (areaVal != null) {
                 project.setTotalArea(areaVal);
                 project.setBuiltUpArea(areaVal);
             }
 
-            if (payload.get("plotArea") instanceof Number) {
-                project.setPlotArea(((Number) payload.get("plotArea")).doubleValue());
+            Double plotVal = parseDoubleSafe(payload.get("plotArea"));
+            if (plotVal != null) {
+                project.setPlotArea(plotVal);
             }
 
             // Map Floors (Cloud MySQL floors column is TEXT)
@@ -114,8 +116,12 @@ public class ProjectController {
                 project.setEstimatedCost(payload.get("estimatedCost").toString());
             }
 
-            if (payload.get("description") != null) {
+            if (payload.get("description") != null && !payload.get("description").toString().isBlank()) {
                 project.setDescription(payload.get("description").toString());
+            } else if (payload.get("desc") != null && !payload.get("desc").toString().isBlank()) {
+                project.setDescription(payload.get("desc").toString());
+            } else if (payload.get("projectDescription") != null && !payload.get("projectDescription").toString().isBlank()) {
+                project.setDescription(payload.get("projectDescription").toString());
             }
 
             if (payload.get("paymentPreference") != null) {
@@ -157,11 +163,13 @@ public class ProjectController {
             Object budgetObj = payload.get("budget");
             if (budgetObj instanceof Map) {
                 Map<?, ?> budget = (Map<?, ?>) budgetObj;
-                if (budget.get("min") instanceof Number) {
-                    project.setBudgetMin(((Number) budget.get("min")).doubleValue());
+                Double bMin = parseDoubleSafe(budget.get("min"));
+                Double bMax = parseDoubleSafe(budget.get("max"));
+                if (bMin != null) {
+                    project.setBudgetMin(bMin);
                 }
-                if (budget.get("max") instanceof Number) {
-                    project.setBudgetMax(((Number) budget.get("max")).doubleValue());
+                if (bMax != null) {
+                    project.setBudgetMax(bMax);
                 }
                 project.setBudget(budget.get("min") + " - " + budget.get("max"));
             } else if (budgetObj != null) {
@@ -220,6 +228,67 @@ public class ProjectController {
         }
     }
 
+    private Double parseDoubleSafe(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) {
+            double d = ((Number) val).doubleValue();
+            return (Double.isNaN(d) || Double.isInfinite(d)) ? null : d;
+        }
+
+        String s = val.toString().trim();
+        if (s.isEmpty()) return null;
+
+        // Strip known harmless currency prefixes (e.g. ₹ (\u20B9), Rs., Rs, INR)
+        if (s.startsWith("\u20B9") || s.startsWith("₹")) {
+            s = s.substring(1).trim();
+        } else {
+            String lower = s.toLowerCase();
+            if (lower.startsWith("rs.") || lower.startsWith("rs ")) {
+                s = s.substring(3).trim();
+            } else if (lower.startsWith("rs")) {
+                s = s.substring(2).trim();
+            } else if (lower.startsWith("inr")) {
+                s = s.substring(3).trim();
+            }
+        }
+
+        // Strip known harmless area unit suffixes (e.g. sq ft, sq.ft., sqft, sqm)
+        String lower = s.toLowerCase();
+        if (lower.endsWith("sq. ft.")) {
+            s = s.substring(0, s.length() - 7).trim();
+        } else if (lower.endsWith("sq.ft.") || lower.endsWith("sq. feet")) {
+            s = s.substring(0, s.length() - 6).trim();
+        } else if (lower.endsWith("sq.ft") || lower.endsWith("sq ft")) {
+            s = s.substring(0, s.length() - 5).trim();
+        } else if (lower.endsWith("sqft")) {
+            s = s.substring(0, s.length() - 4).trim();
+        } else if (lower.endsWith("sqm") || lower.endsWith("sq m")) {
+            s = s.substring(0, s.length() - (lower.endsWith("sqm") ? 3 : 4)).trim();
+        }
+
+        if (s.isEmpty()) return null;
+
+        // Thousands separator validation: reject malformed comma usage
+        if (s.contains(",")) {
+            if (s.startsWith(",") || s.endsWith(",") || s.contains(",,") || s.contains(",.") || s.contains(".,")) {
+                return null;
+            }
+            s = s.replace(",", "").trim();
+        }
+
+        // Strict numeric regex: optional leading '-', digits, optional single decimal point with digits
+        if (!s.matches("^-?\\d+(\\.\\d+)?$")) {
+            return null;
+        }
+
+        try {
+            double d = Double.parseDouble(s);
+            return (Double.isNaN(d) || Double.isInfinite(d)) ? null : d;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private void setJsonOrString(Object value, Consumer<String> consumer) {
         if (value == null) return;
         if (value instanceof String) {
@@ -233,14 +302,15 @@ public class ProjectController {
         }
     }
 
-    @GetMapping
+    @GetMapping("/projects")
     public ResponseEntity<?> getCustomerProjects(Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
 
         String email = authentication.getName();
-        Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email);
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email)
+                .or(() -> userRepository.findByUsername(email));
 
         if (userOptional.isEmpty()) {
             Map<String, String> errorResponse = new HashMap<>();
@@ -254,7 +324,7 @@ public class ProjectController {
         return ResponseEntity.ok(projects);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/projects/{id}")
     public ResponseEntity<?> getProjectById(@PathVariable String id, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));

@@ -224,17 +224,21 @@ function filterAndRenderProjects() {
 
   const filtered = allProjectsList.filter(proj => {
     // बैकएंड से आने वाले डेटा की प्रॉपर्टीज (title, city, type) के साथ सुरक्षित मिलान
-    const projTitle = proj.title || "";
+    const projTitle = proj.title || proj.projectTitle || "";
     const projLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "");
-    const projCategory = proj.type || proj.category || "";
+    const projCategory = proj.type || proj.projectType || proj.category || "";
 
     const matchesSearch = 
       projTitle.toLowerCase().includes(searchQuery) ||
       projLocation.toLowerCase().includes(searchQuery) ||
       projCategory.toLowerCase().includes(searchQuery);
 
-    const projStatus = proj.status || "In Progress";
-    const matchesStatus = statusFilter === "ALL" || projStatus.toLowerCase() === statusFilter.toLowerCase();
+    const projStatus = proj.status || "OPEN";
+    const statusLower = projStatus.toLowerCase();
+    const filterLower = statusFilter.toLowerCase();
+    const matchesStatus = statusFilter === "ALL" || 
+                          statusLower === filterLower ||
+                          (filterLower === "in progress" && (statusLower === "open" || statusLower === "open for bids"));
     const matchesCategory = categoryFilter === "ALL" || projCategory.toLowerCase() === categoryFilter.toLowerCase();
 
     return matchesSearch && matchesStatus && matchesCategory;
@@ -262,17 +266,17 @@ function renderTableRows(projects) {
   if (countDisplay) countDisplay.textContent = `Showing ${projects.length} of ${allProjectsList.length} projects`;
 
   tbody.innerHTML = projects.map(proj => {
-    const statusVal = proj.status || "In Progress";
+    const statusVal = proj.status || "OPEN";
     const statusClass = statusVal.toLowerCase().replace(" ", "-");
     const displayLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "N/A");
     const displayArea = proj.builtUpArea ? `${proj.builtUpArea} sq ft` : (proj.area || "--");
-    const displayCategory = proj.type || proj.category || "General";
+    const displayCategory = proj.type || proj.projectType || proj.category || "General";
     const displayDate = proj.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : (proj.updatedDate || "Today");
 
     return `
       <tr>
         <td>
-          <div class="project-title-text" style="font-weight: 700; color: #1e293b; font-size: 15px;">${proj.title || "Untitled Project"}</div>
+          <div class="project-title-text" style="font-weight: 700; color: #1e293b; font-size: 15px;">${proj.title || proj.projectTitle || "Untitled Project"}</div>
           <div class="project-sub-text" style="font-size: 13px; color: #64748b; margin-top: 3px;">📍 ${displayLocation} • 🏗️ ${displayArea} • ${displayCategory}</div>
         </td>
         <td>
@@ -301,7 +305,10 @@ function renderTableRows(projects) {
    ========================================================= */
 function updateMetricsCounters(list) {
   const total = list.length;
-  const active = list.filter(p => (p.status || "In Progress").toLowerCase() === "in progress" || (p.status || "").toLowerCase() === "active").length;
+  const active = list.filter(p => {
+    const s = (p.status || "OPEN").toLowerCase();
+    return s === "in progress" || s === "active" || s === "open" || s === "open for bids";
+  }).length;
   const completed = list.filter(p => (p.status || "").toLowerCase() === "completed").length;
   const totalBids = list.reduce((acc, curr) => acc + (parseInt(curr.bidsCount) || 0), 0);
 
