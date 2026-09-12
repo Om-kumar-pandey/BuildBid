@@ -159,7 +159,7 @@ function navigateToDashboard() {
     }
 
     if (role === "CONTRACTOR" || role === "SELLER") {
-        window.location.href = "contractor dashboard.html";
+        window.location.href = "dashboard.html";
     } else if (role === "MATERIAL_SELLER") {
         window.location.href = "material seller dashboard.html";
     } else if (role === "PROFESSIONAL" || role === "SERVICE_PROVIDER") {
