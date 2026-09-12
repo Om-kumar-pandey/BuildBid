@@ -406,6 +406,7 @@ public class MarketplaceBackendApplication {
                             auth
                                     .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health").permitAll()
                                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                    .requestMatchers("/api/customer/projects/**").permitAll()
                                     .anyRequest().authenticated()
                     )
                     .authenticationProvider(authenticationProvider())
