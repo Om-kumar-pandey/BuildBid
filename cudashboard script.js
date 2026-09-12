@@ -2,8 +2,29 @@
 // DYNAMIC DASHBOARD CONTROLLER (BuildBid - Fully Synced)
 // ============================================================
 
-const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+function getApiBaseUrl() {
+  if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return window.location.origin;
+    }
+    return window.location.origin;
+  }
+  return "https://buildbid-ap3j.onrender.com";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 let toastTimeout;
+
+function performSelectiveLogout() {
+  localStorage.removeItem("marketplaceToken");
+  localStorage.removeItem("token");
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("buildbid_user");
+  sessionStorage.removeItem("pendingRedirect");
+  sessionStorage.removeItem("userData");
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
@@ -63,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      localStorage.clear();
+      performSelectiveLogout();
       showToast("Notice", "You have logged out successfully.");
     });
   }
@@ -73,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function showToast(title = "Notice", message = "You have logged out successfully.") {
   const toast = document.getElementById("custom-toast");
   if (!toast) {
-    localStorage.clear();
+    performSelectiveLogout();
     window.location.href = "index.html";
     return;
   }

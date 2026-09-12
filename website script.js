@@ -3,7 +3,17 @@
 // BACKEND: SPRING BOOT + MYSQL + JWT
 // ============================================================
 
-const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+function getApiBaseUrl() {
+    if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+            return window.location.origin;
+        }
+        return window.location.origin;
+    }
+    return "https://buildbid-ap3j.onrender.com";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper function to resolve relative paths directly
 function resolvePath(fileName) {

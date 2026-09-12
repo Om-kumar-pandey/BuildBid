@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid - My Projects</title>
+  <link rel="stylesheet" href="layout.css">
+
+  <link rel="stylesheet" href="cuprojects style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="index.html" class="brand-logo">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+        </div>
+      </a>
+    </div>
+    
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Projects</option>
+            <option>Materials</option>
+            <option>Professionals</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+  <!-- Avatar Initial Circle -->
+  <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">
+    --
+  </div>
+
+  <div class="pill-info">
+    <span class="pill-name" id="navUserName">Loading...</span>
+    <span class="pill-role" id="navUserRole">Customer</span>
+  </div>
+</div>
+    </div>
+  </header>
+
+  <!-- Page Body Layout -->
+  <div class="app-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <ul class="side-menu">
+        <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li class="active">
+<a href="customer projects.html" class="sidebar-item">
+  <i class="fa-solid fa-briefcase"></i>
+  <span>My Projects</span>
+</a></li>
+        
+        <li><a href="my-bids.html"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
+        <li><a href="material-orders.html"><i class="fa-solid fa-boxes-stacked"></i> Materials Orders</a></li>
+        <li><a href="hire-professionals.html"><i class="fa-solid fa-user-plus"></i>Hire Professionals</a></li>
+        <li><a href="hired-professionals.html"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
+        <li><a href="saved-items.html"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="wallet.html"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        <li><a href="reviews.html"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="common requirements.html"><i class="fa-solid fa-user-group"></i> Common Requirements</a></li>
+        <li><a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li><a href="account-settings.html"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="security.html"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="my-orders.html"><i class="fa-regular fa-clock"></i>My Orders</a></li>
+        <li><a href="help.html"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+      </ul>
+
+      
+    </aside>
+
+    <!-- Main Projects Content Area -->
+    <main class="projects-main-container">
+      
+      <!-- Top Dark Banner Section -->
+<div class="projects-header-banner">
+    <div class="banner-content">
+        <div class="breadcrumb-text"><a href="index.html" style="color: inherit; text-decoration: none;">Home</a> &gt; <span>My Projects</span></div>
+        <h1 class="banner-title">My Projects</h1>
+        <p class="banner-subtitle">Manage and track all your construction projects in one place.</p>
+    </div>
+    <div class="banner-action">
+    <button class="btn-post-project" onclick="window.location.href='create project.html'">
+        <span class="plus-icon">+</span> Post New Project
+    </button>
+</div>
+</div>
+
+      <!-- 4 Dynamic Metric Summary Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon blue"><i class="fa-solid fa-briefcase"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Total Projects</span>
+            <h2 id="totalProjectsCount">0</h2>
+            <small>All your projects</small>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon green"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Active Projects</span>
+            <h2 id="activeProjectsCount">0</h2>
+            <small>Currently in progress</small>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon yellow"><i class="fa-regular fa-circle-check"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Completed Projects</span>
+            <h2 id="completedProjectsCount">0</h2>
+            <small>Successfully completed</small>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon purple"><i class="fa-solid fa-gavel"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Total Bids Received</span>
+            <h2 id="totalBidsCount">0</h2>
+            <small>Across all projects</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Filters Control Toolbar -->
+      <div class="filters-toolbar">
+        <div class="search-input-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="projectSearchInput" placeholder="Search projects by title, location..." oninput="filterAndRenderProjects()">
+        </div>
+
+        <div class="filter-dropdowns">
+          <select id="statusFilter" onchange="filterAndRenderProjects()">
+            <option value="ALL">All Status</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Draft">Draft</option>
+          </select>
+
+          <select id="categoryFilter" onchange="filterAndRenderProjects()">
+            <option value="ALL">All Categories</option>
+            <option value="New Construction">New Construction</option>
+            <option value="Renovation">Renovation</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Industrial">Industrial</option>
+          </select>
+
+          <select id="timeFilter" onchange="filterAndRenderProjects()">
+            <option value="ALL">All Time</option>
+            <option value="THIS_MONTH">This Month</option>
+            <option value="THIS_YEAR">This Year</option>
+          </select>
+
+          <button class="btn-filter-reset" onclick="resetFilters()"><i class="fa-solid fa-filter"></i> Filter</button>
+        </div>
+      </div>
+
+      <!-- Projects Table List Section -->
+      <div class="projects-table-wrapper">
+        <table class="projects-table">
+          <thead>
+            <tr>
+              <th>PROJECT DETAILS</th>
+              <th>STATUS</th>
+              <th>BIDS</th>
+              <th>LAST UPDATED</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="projectsTableBody">
+            <!-- Dynamic rows will be rendered here -->
+          </tbody>
+        </table>
+
+        <!-- Dynamic Empty State Message (shown when no projects exist) -->
+        <div class="empty-state-box" id="emptyStateBox" style="display: none;">
+          <i class="fa-regular fa-folder-open empty-icon"></i>
+          <p>No projects found. Click on <strong>"Post New Project"</strong> to create one.</p>
+        </div>
+      </div>
+
+      <!-- Pagination / Count Footer -->
+      <div class="table-footer">
+        <span id="showingResultsCount">Showing 0 of 0 projects</span>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="cuprojects script.js"></script>
+  <script src="layout.js"></script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+/* =========================================================
+   BUILDBID - PROFILE & DASHBOARD CONTENT (profile.css)
+   ========================================================= */
+
+/* Main Content Container */
+.content-area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 26px 38px 44px;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.breadcrumb a {
+  color: #94a3b8;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: #60a5fa;
+}
+
+.breadcrumb-separator {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.breadcrumb span {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+/* =========================================================
+   1. PROFILE HERO BANNER
+   ========================================================= */
+.profile-hero-banner {
+  position: relative;
+  min-height: 195px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 34px;
+  color: white;
+  border-radius: 18px;
+  background-image: 
+    linear-gradient(90deg, rgba(6, 20, 47, 0.94) 0%, rgba(10, 35, 75, 0.82) 48%, rgba(15, 45, 95, 0.35) 100%),
+    url('https://raw.githubusercontent.com/Om-kumar-pandey/BuildBid/main/hero-building.jpg');
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 18px 42px rgba(4, 15, 35, 0.35);
+}
+
+.hero-left {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.hero-avatar-box {
+  position: relative;
+}
+
+.hero-avatar {
+  width: 112px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08), 0 12px 25px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-camera-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 31px;
+  height: 31px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease;
+}
+
+.avatar-camera-btn:hover {
+  transform: scale(1.08);
+}
+
+.hero-details {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hero-title-row h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.badge-verified {
+  color: #60a5fa;
+  font-size: 18px;
+}
+
+.vip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.vip-tag i {
+  color: #f59e0b;
+}
+
+.hero-role {
+  margin-bottom: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.hero-meta-items {
+  display: flex;
+  gap: 20px;
+  color: #cbd5e1;
+  font-size: 12.5px;
+}
+
+.hero-meta-items i {
+  margin-right: 4px;
+}
+
+.btn-edit-profile {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 19px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.12);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-edit-profile:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   2. DASHBOARD COLUMNS & CARDS
+   ========================================================= */
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.column-left,
+.column-right {
+  min-width: 0;
+}
+
+.dash-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+  padding: 22px 24px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 9px 28px rgba(15, 35, 65, 0.07), 0 2px 7px rgba(15, 35, 65, 0.035);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.dash-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(147, 197, 253, 0.42);
+  box-shadow: 0 15px 34px rgba(15, 35, 65, 0.10);
+}
+
+.card-title-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.card-title-head h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.title-icon {
+  width: 29px;
+  height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 14px;
+}
+
+.flex-between {
+  justify-content: space-between;
+}
+
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.link-view-all {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.link-view-all:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   3. ABOUT ME SECTION
+   ========================================================= */
+.about-bio {
+  margin-bottom: 20px;
+  color: #52647a;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.personal-data-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  transition: background 0.18s ease;
+}
+
+.data-row:hover {
+  background: #f8fafc;
+}
+
+.data-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+}
+
+.data-label i {
+  width: 16px;
+  color: #64748b;
+}
+
+.data-val {
+  color: #172554;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* =========================================================
+   4. RECENT ACTIVITY SECTION
+   ========================================================= */
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 8px;
+  border-bottom: 1px solid #edf2f7;
+  border-radius: 8px;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.timeline-row:last-child {
+  border-bottom: none;
+}
+
+.timeline-row:hover {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+
+.timeline-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 14px;
+  border-radius: 9px;
+  font-size: 14px;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.045);
+}
+
+.bg-light-blue { background: #eff6ff; }
+.icon-blue { color: #2563eb; }
+.bg-light-green { background: #f0fdf4; }
+.icon-green { color: #16a34a; }
+
+.timeline-text {
+  flex: 1;
+}
+
+.timeline-text p {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.timeline-time {
+  color: #94a3b8;
+  font-size: 11.5px;
+}
+
+/* =========================================================
+   5. PROFILE STATS SECTION
+   ========================================================= */
+.stats-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.stat-cell {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 10px;
+  text-align: center;
+  background: linear-gradient(145deg, #f8fbff, #f2f6fb);
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-cell:hover {
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+}
+
+.stat-number {
+  margin-bottom: 4px;
+  color: #1e4b8f;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.star-val {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.gold-star {
+  color: #f59e0b;
+  font-size: 16px;
+}
+
+.stat-sub {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* =========================================================
+   6. VERIFICATION & QUICK LINKS
+   ========================================================= */
+.verify-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(226, 232, 240, 0.75);
+  border-radius: 9px;
+}
+
+.check-success {
+  width: 21px;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 13px;
+}
+
+.quick-links-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.quick-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 8px;
+  color: #334155;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid #edf2f7;
+  border-radius: 8px;
+  transition: background 0.18s ease, padding 0.18s ease, color 0.18s ease;
+}
+
+.quick-link-row:last-child {
+  border-bottom: none;
+}
+
+.quick-link-row:hover {
+  padding-left: 13px;
+  color: #1d4ed8;
+  background: #f8fbff;
+}
+
+.arrow-indicator {
+  color: #94a3b8;
+  font-size: 11px;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.quick-link-row:hover .arrow-indicator {
+  color: #2563eb;
+  transform: translateX(3px);
+}
+
+/* =========================================================
+   7. PROMOTIONAL BANNER
+   ========================================================= */
+.banner-promote {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding: 25px 32px;
+  color: white;
+  border-radius: 16px;
+  background: radial-gradient(circle at 80% 20%, rgba(96, 165, 250, 0.16), transparent 30%),
+              linear-gradient(135deg, #061632, #0a2c60 62%, #0e3c78);
+  box-shadow: 0 14px 30px rgba(9, 26, 62, 0.18);
+}
+
+.promote-left {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.promote-symbol {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  font-size: 24px;
+}
+
+.promote-info h2 {
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.promote-info p {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.btn-post-action {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: white;
+  color: #091a3e;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-post-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 21px rgba(0, 0, 0, 0.20);
+}
+
+/* =========================================================
+   8. RESPONSIVE (PROFILE CONTENT SPECIFIC)
+   ========================================================= */
+@media (max-width: 1000px) {
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .profile-hero-banner {
+    align-items: flex-end;
+    padding: 22px 18px;
+  }
+  .hero-left {
+    gap: 16px;
+  }
+  .hero-avatar {
+    width: 82px;
+    height: 82px;
+  }
+  .hero-title-row h1 {
+    font-size: 19px;
+  }
+  .hero-meta-items {
+    flex-direction: column;
+    gap: 5px;
+  }
+  .btn-edit-profile {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .btn-edit-profile {
+    align-self: flex-end;
+  }
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+  .stats-matrix {
+    gap: 10px;
+  }
+  .dash-card {
+    padding: 18px;
+  }
+  .banner-promote {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+}

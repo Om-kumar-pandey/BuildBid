@@ -1,3 +1,15 @@
+function getApiBaseUrl() {
+    if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+            return window.location.origin;
+        }
+        return window.location.origin;
+    }
+    return "https://buildbid-ap3j.onrender.com";
+}
+
+const API_BASE_URL = getApiBaseUrl();
+
 document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const itemsPerPage = 5;
@@ -34,9 +46,9 @@ async function initUserSession() {
             sessionStorage.getItem('userData') || '{}'
         );
 
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || localStorage.getItem('marketplaceToken');
         if (token) {
-            const res = await fetch('/api/user/profile', {
+            const res = await fetch(API_BASE_URL + '/api/user/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) user = await res.json();

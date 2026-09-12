@@ -412,19 +412,57 @@ public class MarketplaceBackendApplication {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
             return http
                     .csrf(csrf -> csrf.disable())
-                    .cors(cors -> {})
+                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .sessionManagement(session ->
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
-                   .authorizeHttpRequests(auth ->
-    auth
-        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health", "/error").permitAll()
-        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
-        .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
-        .requestMatchers("/api/customer/hiring/**").permitAll()
-        .anyRequest().authenticated()
-)
+                    .authorizeHttpRequests(auth -> auth
+                            // Static resources served publicly from classpath:/static/
+                            .requestMatchers(
+                                    "/",
+                                    "/index.html",
+                                    "/*.html",
+                                    "/*.js",
+                                    "/*.css",
+                                    "/*.png",
+                                    "/*.jpg",
+                                    "/*.jpeg",
+                                    "/*.svg",
+                                    "/*.ico",
+                                    "/*.mp4",
+                                    "/*.json",
+                                    "/*.woff",
+                                    "/*.woff2",
+                                    "/*.ttf",
+                                    "/customer dashboard.html", "/customer%20dashboard.html",
+                                    "/customer projects.html", "/customer%20projects.html",
+                                    "/create project.html", "/create%20project.html",
+                                    "/dashborad.html", "/contactor.html", "/my-bids.html",
+                                    "/website script.js", "/website%20script.js",
+                                    "/website style.css", "/website%20style.css",
+                                    "/cudashboard script.js", "/cudashboard%20script.js",
+                                    "/cudashboard style.css", "/cudashboard%20style.css",
+                                    "/cuprojects script.js", "/cuprojects%20script.js",
+                                    "/cuprojects style.css", "/cuprojects%20style.css",
+                                    "/createproject script.js", "/createproject%20script.js",
+                                    "/createproject style.css", "/createproject%20style.css",
+                                    "/my-bids.js", "/my-bids.css",
+                                    "/animation.js", "/animation.css",
+                                    "/layout.js", "/layout.css",
+                                    "/styles.css",
+                                    "/about build bid video.mp4", "/about%20build%20bid%20video.mp4",
+                                    "/hero-building.jpg",
+                                    "/logo.png"
+                            ).permitAll()
+                            // Public Auth, Health & Error
+                            .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            // Protected Business APIs
+                            .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
+                            .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
+                            .requestMatchers("/api/customer/hiring/**").permitAll()
+                            .anyRequest().authenticated()
+                    )
                     .authenticationProvider(authenticationProvider())
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                     .build();
@@ -435,9 +473,16 @@ public class MarketplaceBackendApplication {
             org.springframework.web.cors.CorsConfiguration configuration =
                     new org.springframework.web.cors.CorsConfiguration();
 
-            configuration.setAllowedOriginPatterns(java.util.List.of("*"));
-            configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(java.util.List.of("*"));
+            configuration.setAllowedOriginPatterns(java.util.List.of(
+                    "https://buildbid-ap3j.onrender.com",
+                    "https://*.onrender.com",
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "http://localhost",
+                    "http://127.0.0.1"
+            ));
+            configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+            configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
             configuration.setAllowCredentials(false);
 
             org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
@@ -697,8 +742,11 @@ public class MarketplaceBackendApplication {
 
         public ProfileController(UserRepository userRepository) { this.userRepository = userRepository; }
 
-        @GetMapping("/api/me")
+        @GetMapping({"/api/me", "/api/user/profile", "/api/customer/profile"})
         public Map<String, Object> currentUser(org.springframework.security.core.Authentication authentication) {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new BadCredentialsException("Unauthenticated user");
+            }
             String email = authentication.getName();
 
             MarketplaceUser user = userRepository.findByEmail(email)
@@ -714,6 +762,21 @@ public class MarketplaceBackendApplication {
                     "roles", user.getRoles(),
                     "enabled", user.isEnabled()
             );
+        }
+    }
+
+
+    // ========================================================
+    // WEB CONFIGURATION (Strict Classpath Static Handler)
+    // ========================================================
+
+    @Configuration
+    public static class WebConfig implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer {
+        @Override
+        public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
+            registry.addResourceHandler("/**")
+                    .addResourceLocations("classpath:/static/")
+                    .setCachePeriod(3600);
         }
     }
 }
