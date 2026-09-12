@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid - Supplier Dashboard</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --sidebar-bg: #0f2744;
+      --primary-blue: #0066ff;
+      --primary-blue-hover: #0052cc;
+      --amber: #f59e0b;
+      --bg-body: #f8fafc;
+      --card-bg: #ffffff;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      
+      --tag-green: #dcfce7;
+      --tag-green-text: #15803d;
+      --tag-amber: #fef3c7;
+      --tag-amber-text: #b45309;
+      --tag-blue: #e0f2fe;
+      --tag-blue-text: #0369a1;
+      --tag-purple: #f3e8ff;
+      --tag-purple-text: #6d28d9;
+      --tag-red: #fee2e2;
+      --tag-red-text: #b91c1c;
+      
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-dark);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* SIDEBAR */
+    aside.sidebar {
+      width: 250px;
+      background-color: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .sidebar-brand {
+      padding: 1.2rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .brand-logo-img {
+      width: 100%;
+      max-width: 160px;
+      height: auto;
+      max-height: 70px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .brand-tagline {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 8px;
+      letter-spacing: 0.8px;
+      text-align: center;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      padding: 0.75rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow-y: auto;
+    }
+
+    .sidebar-nav li a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.6rem 0.8rem;
+      color: #cbd5e1;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-nav li a:hover,
+    .sidebar-nav li a.active {
+      background-color: var(--primary-blue);
+      color: #fff;
+    }
+
+    .sidebar-nav li a i {
+      font-size: 0.9rem;
+      width: 18px;
+    }
+
+    .badge-count {
+      margin-left: auto;
+      background-color: #ef4444;
+      color: #fff;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      font-weight: 700;
+    }
+
+    .sidebar-banner {
+      margin-top: auto;
+      margin-inline: 0.75rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(180deg, rgba(15,39,68,0.2) 0%, rgba(10,24,43,0.9) 100%),
+                  url('https://images.unsplash.com/photo-1541888946425-d0fbb186c5f8?w=300&auto=format&fit=crop&q=60') center/cover;
+      border-radius: 10px;
+      padding: 0.85rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-banner h4 {
+      color: #fff;
+      font-size: 0.8rem;
+      margin-bottom: 3px;
+      font-weight: 800;
+    }
+
+    .sidebar-banner p {
+      color: #94a3b8;
+      font-size: 0.65rem;
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+
+    .promo-btn {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .sidebar-footer {
+      padding: 0.4rem;
+      font-size: 0.62rem;
+      color: #64748b;
+      text-align: center;
+    }
+
+    /* MAIN CONTENT */
+    main.main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    header.topbar {
+      height: 62px;
+      background-color: #fff;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 380px;
+    }
+
+    .search-wrapper i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .search-wrapper input {
+      width: 100%;
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      outline: none;
+      background-color: #f8fafc;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .notification-btn {
+      position: relative;
+      background: none;
+      border: none;
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .notification-btn .noti-badge {
+      position: absolute;
+      top: -5px;
+      right: -6px;
+      background-color: #ef4444;
+      color: white;
+      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border-left: 1px solid var(--border-color);
+      padding-left: 1rem;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: #1e3a5f;
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-info h5 {
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .user-info p {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .dashboard-container {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+    }
+
+    /* BANNER */
+    .seller-hero-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 210px 1fr auto;
+      gap: 1.25rem;
+      align-items: center;
+    }
+
+    .depot-img-box {
+      width: 100%;
+      height: 115px;
+      border-radius: 8px;
+      background: #0f172a url('https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&auto=format&fit=crop&q=60') center/cover;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .depot-img-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 39, 68, 0.78);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #fff;
+      padding: 6px;
+    }
+
+    .depot-img-overlay h4 {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--amber);
+    }
+
+    .depot-img-overlay p {
+      font-size: 0.65rem;
+    }
+
+    .hero-center h2 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gstin-tag {
+      background: #ecfdf5;
+      color: #059669;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #a7f3d0;
+    }
+
+    .hero-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 4px 0 8px;
+    }
+
+    .hero-sub span.hl {
+      color: var(--primary-blue);
+      font-weight: 600;
+    }
+
+    .hero-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.78rem;
+      color: #334155;
+    }
+
+    .hero-meta-row div {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hero-meta-row i {
+      color: var(--text-muted);
+    }
+
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .tagline-quote {
+      font-style: italic;
+      font-size: 0.82rem;
+      color: #0284c7;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .btn-edit {
+      background-color: var(--primary-blue);
+      color: #fff;
+      border: none;
+      padding: 0.45rem 1.1rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* KPI GRID */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .kpi-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .kpi-data h3 {
+      font-size: 1.35rem;
+      font-weight: 800;
+    }
+
+    .kpi-data p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .kpi-data small {
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .c-blue { background: #e0f2fe; color: #0284c7; }
+    .c-amber { background: #fef3c7; color: #d97706; }
+    .c-purple { background: #f3e8ff; color: #9333ea; }
+    .c-red { background: #fee2e2; color: #dc2626; }
+
+    /* DASHBOARD WIDGET SECTIONS */
+    .three-section-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1.2fr 1fr;
+      gap: 1rem;
+    }
+
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .dashboard-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-head h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .card-head a.view-all {
+      font-size: 0.75rem;
+      color: var(--primary-blue);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* QUICK ACTIONS */
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-tile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-tile:hover {
+      transform: translateY(-2px);
+    }
+
+    .tile-blue { background: #f0f7ff; }
+    .tile-green { background: #f0fdf4; }
+    .tile-purple { background: #faf5ff; }
+    .tile-amber { background: #fffbeb; }
+
+    .action-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .tile-blue .action-icon { background: #dbeafe; color: #1d4ed8; }
+    .tile-green .action-icon { background: #dcfce7; color: #15803d; }
+    .tile-purple .action-icon { background: #f3e8ff; color: #7e22ce; }
+    .tile-amber .action-icon { background: #fef3c7; color: #b45309; }
+
+    .action-texts h5 {
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .action-texts p {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    /* TABLES */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.5rem 0.4rem;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      background-color: #f8fafc;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.55rem 0.4rem;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    /* BADGES */
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .tag.new { background: var(--tag-amber); color: var(--tag-amber-text); }
+    .tag.quoted { background: var(--tag-blue); color: var(--tag-blue-text); }
+    .tag.negotiation { background: #f1f5f9; color: #475569; }
+    .tag.pending { background: var(--tag-amber); color: var(--tag-amber-text); }
+    .tag.loading { background: var(--tag-blue); color: var(--tag-blue-text); }
+    .tag.dispatched { background: var(--tag-purple); color: var(--tag-purple-text); }
+    .tag.delivered { background: var(--tag-green); color: var(--tag-green-text); }
+    .tag.paid { background: var(--tag-green); color: var(--tag-green-text); }
+    .tag.overdue { background: var(--tag-red); color: var(--tag-red-text); }
+
+    .btn-view {
+      background: #f0f7ff;
+      border: 1px solid #bfdbfe;
+      color: var(--primary-blue);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+
+    .btn-reorder {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+
+    .btn-action {
+      background-color: var(--primary-blue);
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-action.outline {
+      background: none;
+      border: 1px solid var(--primary-blue);
+      color: var(--primary-blue);
+    }
+
+    .btn-action.edit-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--primary-blue);
+    }
+
+    /* FOOTER BANNER */
+    .footer-banner {
+      background: linear-gradient(90deg, #f0f7ff 0%, #e0f2fe 100%),
+                  url('https://images.unsplash.com/photo-1541888946425-d0fbb186c5f8?w=800&auto=format&fit=crop&q=40') right center/contain no-repeat;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .banner-left i {
+      font-size: 2.2rem;
+      color: var(--primary-blue);
+    }
+
+    .banner-left h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .banner-left p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .btn-add-prod {
+      background: var(--primary-blue);
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.25rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    /* SUB-SECTION DETAIL VIEW */
+    .detail-view-header {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .detail-view-header h2 {
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .detail-view-header p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .detail-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .filter-tabs button {
+      background: #f1f5f9;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .filter-tabs button.active {
+      background: var(--primary-blue);
+      color: #fff;
+    }
+
+    .search-box-detail {
+      position: relative;
+      width: 280px;
+    }
+
+    .search-box-detail i {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .search-box-detail input {
+      width: 100%;
+      padding: 0.4rem 0.5rem 0.4rem 1.8rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      outline: none;
+    }
+
+    /* TIMELINE */
+    .dispatch-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background-color: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .driver-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #0284c7;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+
+    .logistics-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+    }
+
+    .logistics-meta-grid span {
+      color: var(--text-muted);
+      display: block;
+      font-size: 0.65rem;
+    }
+
+    .tracking-timeline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      margin: 1.25rem 0.5rem 0.75rem;
+    }
+
+    .tracking-timeline::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      right: 15px;
+      top: 12px;
+      height: 2px;
+      background-color: #cbd5e1;
+      z-index: 1;
+    }
+
+    .timeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .step-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      border: 2px solid #fff;
+      margin-bottom: 4px;
+    }
+
+    .timeline-step.done .step-circle,
+    .timeline-step.active .step-circle {
+      background: var(--primary-blue);
+      color: #fff;
+    }
+
+    .timeline-step span {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      max-width: 60px;
+    }
+
+    .timeline-step.done span,
+    .timeline-step.active span {
+      color: var(--text-dark);
+      font-weight: 700;
+    }
+
+    /* MODAL STYLES */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #fff;
+      width: 100%;
+      max-width: 480px;
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-head h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .form-group.full {
+      grid-column: span 2;
+    }
+
+    .form-group label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      font-size: 0.78rem;
+      outline: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .btn-cancel {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border: none;
+      padding: 6px 14px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      background: var(--primary-blue);
+      color: #fff;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+      .three-section-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 900px) {
+      .two-col-grid { grid-template-columns: 1fr; }
+      .seller-hero-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="logo.png" alt="BuildBid Logo" class="brand-logo-img">
+      <p class="brand-tagline">Plan.Build.Better</p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li>
+        <a class="nav-link active" onclick="loadView('dashboard', this)">
+          <i class="fa-solid fa-house"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('rfq', this)">
+          <i class="fa-solid fa-file-invoice"></i>
+          <span>RFQ & Quotes</span>
+          <span class="badge-count">12</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('inventory', this)">
+          <i class="fa-solid fa-cubes"></i>
+          <span>Products & Inventory</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('orders', this)">
+          <i class="fa-solid fa-truck-ramp-box"></i>
+          <span>Orders & Fulfillment</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('logistics', this)">
+          <i class="fa-solid fa-truck-fast"></i>
+          <span>Logistics & Dispatch</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('invoices', this)">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>GST Invoices & Payments</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('customers', this)">
+          <i class="fa-solid fa-users"></i>
+          <span>Customers / Contractors</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('analytics', this)">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics & Reports</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('messages', this)">
+          <i class="fa-solid fa-envelope"></i>
+          <span>Messages</span>
+          <span class="badge-count">3</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" onclick="loadView('settings', this)">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-banner">
+      <h4>Supplying Stronger India</h4>
+      <p>Build Today for a Better Tomorrow.</p>
+      <button class="promo-btn" onclick="alert('Business expansion program')">Grow Your Business &rarr;</button>
+    </div>
+
+    <div class="sidebar-footer">
+      &copy; 2026 BuildBid<br>Supplier Dashboard v1.0
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="search-wrapper">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search orders, products, contractors..." oninput="handleGlobalSearch(this.value)">
+      </div>
+
+      <div class="topbar-right">
+        <button class="notification-btn" aria-label="Notifications" onclick="alert('5 unread notifications')">
+          <i class="fa-regular fa-bell"></i>
+          <span class="noti-badge">5</span>
+        </button>
+
+        <div class="user-pill">
+          <div class="user-avatar">S</div>
+          <div class="user-info">
+            <h5>Shree Balaji Materials</h5>
+            <p>Supplier <i class="fa-solid fa-chevron-down" style="font-size:0.6rem"></i></p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- DYNAMIC CONTAINER -->
+    <div id="viewContainer" class="dashboard-container"></div>
+  </main>
+
+  <!-- ================= MODALS ================= -->
+  <div class="modal-overlay" id="quoteModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-file-invoice" style="color:var(--primary-blue)"></i> Send Quotation</h4>
+        <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="closeModal('quoteModal')"></i>
+      </div>
+      <form onsubmit="handleSendQuote(event)">
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Product</label>
+            <input type="text" id="quoteProduct" value="UltraTech Cement (OPC 53)" readonly>
+          </div>
+          <div class="form-group">
+            <label>Required Quantity</label>
+            <input type="text" id="quoteQty" value="400 Bags" required>
+          </div>
+          <div class="form-group">
+            <label>Unit Rate (₹)</label>
+            <input type="number" id="quoteRate" value="420" required>
+          </div>
+          <div class="form-group">
+            <label>GST (%)</label>
+            <input type="number" id="quoteGst" value="18" required>
+          </div>
+          <div class="form-group">
+            <label>Freight Charge (₹)</label>
+            <input type="number" id="quoteFreight" value="5000" required>
+          </div>
+          <div class="form-group full">
+            <label>Message to Contractor</label>
+            <textarea id="quoteMsg">We can supply within 2 days with transit insurance.</textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('quoteModal')">Cancel</button>
+          <button type="submit" class="btn-submit">Send Quotation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="productModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-box" style="color:var(--primary-blue)"></i> Add / Edit Product</h4>
+        <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="closeModal('productModal')"></i>
+      </div>
+      <form onsubmit="handleAddProduct(event)">
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Product Name</label>
+            <input type="text" id="mProdName" placeholder="e.g. Ambuja Cement" required>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="mProdCat">
+              <option>Cement</option>
+              <option>Steel</option>
+              <option>Bricks</option>
+              <option>Aggregates</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Brand</label>
+            <input type="text" id="mProdBrand" placeholder="e.g. UltraTech" required>
+          </div>
+          <div class="form-group">
+            <label>Base Price (₹)</label>
+            <input type="number" id="mProdPrice" placeholder="420" required>
+          </div>
+          <div class="form-group">
+            <label>In-Stock Quantity</label>
+            <input type="number" id="mProdStock" placeholder="2000" required>
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select id="mProdUnit">
+              <option>Bag</option>
+              <option>MT</option>
+              <option>Nos</option>
+              <option>CFT</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('productModal')">Cancel</button>
+          <button type="submit" class="btn-submit">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="statusModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-truck" style="color:var(--primary-blue)"></i> Update Order Status</h4>
+        <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="closeModal('statusModal')"></i>
+      </div>
+      <form onsubmit="handleUpdateStatus(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Order ID</label>
+            <input type="text" id="statusOrderId" value="BB-ORD-1019" readonly>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="statusSelect">
+              <option value="Order Confirmed">Order Confirmed</option>
+              <option value="Loaded at Warehouse">Loaded at Warehouse</option>
+              <option value="Out for Delivery" selected>Out for Delivery</option>
+              <option value="Arrived at Site">Arrived at Site</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Vehicle Number</label>
+            <input type="text" id="statusVehicle" value="UP 32 AB 1234">
+          </div>
+          <div class="form-group">
+            <label>Driver Phone</label>
+            <input type="text" id="statusPhone" value="+91 91234 56789">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('statusModal')">Cancel</button>
+          <button type="submit" class="btn-submit">Update Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    const dashboardData = {
+      rfqs: [
+        { id: 1, contractor: "Aman Construction", location: "Gomti Nagar, Lucknow", materials: "UltraTech Cement - 400 Bags, TMT 12mm - 3 Tons", deadline: "25 Sep 2026", status: "New" },
+        { id: 2, contractor: "R.K. Builders", location: "Indira Nagar, Lucknow", materials: "Ambuja Cement - 300 Bags, Sand - 20 CFT", deadline: "27 Sep 2026", status: "Quoted" },
+        { id: 3, contractor: "Skyline Infra", location: "Sultanpur Road, Lucknow", materials: "Tata Tiscon 10mm - 5 Tons, Bricks - 5000 Nos", deadline: "28 Sep 2026", status: "New" },
+        { id: 4, contractor: "Verma Constructions", location: "Alambagh, Lucknow", materials: "OPC 53 Cement - 200 Bags, Aggregate - 40 CFT", deadline: "30 Sep 2026", status: "Negotiation" },
+        { id: 5, contractor: "Laxmi Developers", location: "Hazratganj, Lucknow", materials: "Kamdhenu TMT 16mm - 10 Tons", deadline: "02 Oct 2026", status: "New" },
+        { id: 6, contractor: "Shine Infratech", location: "Faizabad Road, Lucknow", materials: "Red Clay Bricks - 15,000 Nos", deadline: "05 Oct 2026", status: "Quoted" }
+      ],
+      inventory: [
+        { id: 1, product: "OPC Cement", category: "Cement", brand: "UltraTech", spec: "OPC 53", unit: "Bag", stock: 2500, price: 420 },
+        { id: 2, product: "TMT Steel", category: "Steel", brand: "Tata Tiscon", spec: "Fe-550D", unit: "MT", stock: 12, price: 58000 },
+        { id: 3, product: "Bricks (Red)", category: "Bricks", brand: "Local", spec: "Standard", unit: "Nos", stock: 20000, price: 8 },
+        { id: 4, product: "River Sand", category: "Aggregates", brand: "Local", spec: "Fine", unit: "CFT", stock: 500, price: 65 },
+        { id: 5, product: "Coarse Aggregate", category: "Aggregates", brand: "Local", spec: "20mm", unit: "CFT", stock: 800, price: 72 },
+        { id: 6, product: "PPC Cement", category: "Cement", brand: "Ambuja", spec: "WeatherShield", unit: "Bag", stock: 1100, price: 395 }
+      ],
+      orders: [
+        { id: 1, orderId: "BB-ORD-1021", contractor: "Aman Construction", location: "Gomti Nagar", amount: "1,82,000", payment: "100% Advance", status: "Pending" },
+        { id: 2, orderId: "BB-ORD-1019", contractor: "R.K. Builders", location: "Indira Nagar", amount: "2,48,500", payment: "15-Day Credit", status: "Loading" },
+        { id: 3, orderId: "BB-ORD-1017", contractor: "Skyline Infra", location: "Sultanpur Road", amount: "3,12,000", payment: "Pay on Delivery", status: "Dispatched" },
+        { id: 4, orderId: "BB-ORD-1015", contractor: "Verma Constructions", location: "Alambagh", amount: "98,500", payment: "100% Advance", status: "Delivered" },
+        { id: 5, orderId: "BB-ORD-1012", contractor: "Kuber Homes", location: "Vrindavan Yojna", amount: "4,60,000", payment: "30-Day Credit", status: "Delivered" }
+      ],
+      invoices: [
+        { no: "INV-2026-001", client: "Aman Construction", taxable: "1,54,237", gst: "27,763", total: "1,82,000", status: "Paid" },
+        { no: "INV-2026-002", client: "R.K. Builders", taxable: "2,10,593", gst: "37,907", total: "2,48,500", status: "Pending" },
+        { no: "INV-2026-003", client: "Skyline Infra", taxable: "2,64,407", gst: "47,593", total: "3,12,000", status: "Overdue" },
+        { no: "INV-2026-004", client: "Verma Constructions", taxable: "83,475", gst: "15,025", total: "98,500", status: "Paid" }
+      ],
+      logistics: {
+        orderId: "BB-ORD-1019",
+        client: "R.K. Builders - Indira Nagar, Lucknow",
+        vehicle: "UP 32 AB 1234",
+        driver: "Ramesh Yadav",
+        phone: "+91 91234 56789",
+        eway: "7412 5569 7788",
+        status: "Out for Delivery",
+        eta: "22 Sep 2026, 5:00 PM"
+      }
+    };
+
+    function loadView(viewName, element) {
+      if (element) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        element.classList.add('active');
+      }
+
+      const container = document.getElementById('viewContainer');
+      if (!container) return;
+
+      switch (viewName) {
+        case 'dashboard':
+          container.innerHTML = renderDashboardView();
+          initCharts();
+          break;
+        case 'rfq':
+          container.innerHTML = renderRfqDetailView();
+          break;
+        case 'inventory':
+          container.innerHTML = renderInventoryDetailView();
+          break;
+        case 'orders':
+          container.innerHTML = renderOrdersDetailView();
+          break;
+        case 'logistics':
+          container.innerHTML = renderLogisticsDetailView();
+          break;
+        case 'invoices':
+          container.innerHTML = renderInvoicesDetailView();
+          break;
+        case 'customers':
+          container.innerHTML = renderPlaceholderView('Customers & Contractor Network', 'fa-users');
+          break;
+        case 'analytics':
+          container.innerHTML = renderPlaceholderView('Business Analytics & Performance Report', 'fa-chart-line');
+          break;
+        case 'messages':
+          container.innerHTML = renderPlaceholderView('Contractor Chats & Negotiation Inbox', 'fa-envelope');
+          break;
+        case 'settings':
+          container.innerHTML = renderPlaceholderView('Store Profile & Tax Settings', 'fa-gear');
+          break;
+        default:
+          container.innerHTML = renderDashboardView();
+          initCharts();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderDashboardView() {
+      return `
+        <section class="seller-hero-card">
+          <div class="depot-img-box">
+            <div class="depot-img-overlay">
+              <h4>SHREE BALAJI</h4>
+              <p>BUILDING MATERIALS & STEELS</p>
+              <small style="font-size:0.55rem; color:#f8fafc">निर्माण का मजबूत साथी</small>
+            </div>
+          </div>
+
+          <div class="hero-center">
+            <h2>Shree Balaji Building Materials & Steels <span class="gstin-tag"><i class="fa-solid fa-circle-check"></i> GSTIN Verified</span></h2>
+            <p class="hero-sub">Cement | TMT Steel | Aggregates | Bricks | MEP Supplies<br>Wholesale <span class="hl">Dealer & Authorized Distributor</span></p>
+            <div class="hero-meta-row">
+              <div><i class="fa-solid fa-location-dot"></i> Lucknow, Uttar Pradesh</div>
+              <div><i class="fa-solid fa-truck"></i> Serviceable up to 35 km</div>
+              <div><i class="fa-solid fa-star" style="color:var(--amber)"></i> <b>4.8</b> (128 reviews)</div>
+              <div><i class="fa-solid fa-phone"></i> +91 98765 43210</div>
+              <div><i class="fa-solid fa-envelope"></i> balajimaterials@gmail.com</div>
+              <div><i class="fa-solid fa-clock"></i> Mon - Sat (8:00 AM - 8:00 PM)</div>
+            </div>
+          </div>
+
+          <div class="hero-right">
+            <div class="tagline-quote">"Quality Materials<br>for a Stronger Tomorrow"</div>
+            <button class="btn-edit" onclick="loadView('settings')"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+          </div>
+        </section>
+
+        <section class="kpi-grid">
+          <div class="kpi-card" onclick="loadView('orders')" style="cursor:pointer">
+            <div class="kpi-left">
+              <div class="kpi-icon c-blue"><i class="fa-regular fa-file-lines"></i></div>
+              <div class="kpi-data">
+                <h3>8</h3>
+                <p>Active Orders</p>
+                <small style="color:#16a34a">&uarr; +2 this week</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-chart-simple" style="color:#16a34a"></i>
+          </div>
+
+          <div class="kpi-card" onclick="loadView('logistics')" style="cursor:pointer">
+            <div class="kpi-left">
+              <div class="kpi-icon c-amber"><i class="fa-solid fa-truck"></i></div>
+              <div class="kpi-data">
+                <h3>5</h3>
+                <p>Dispatched / In-Transit</p>
+                <small style="color:#0284c7">3 on the way</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-chart-line" style="color:#d97706"></i>
+          </div>
+
+          <div class="kpi-card" onclick="loadView('invoices')" style="cursor:pointer">
+            <div class="kpi-left">
+              <div class="kpi-icon c-purple"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+              <div class="kpi-data">
+                <h3>₹ 12,48,500</h3>
+                <p>Total Revenue (This Month)</p>
+                <small style="color:#16a34a">&uarr; +18% vs last month</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-chart-column" style="color:#9333ea"></i>
+          </div>
+
+          <div class="kpi-card" onclick="loadView('inventory')" style="cursor:pointer">
+            <div class="kpi-left">
+              <div class="kpi-icon c-red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="kpi-data">
+                <h3>4</h3>
+                <p>Low Stock Alerts</p>
+                <small style="color:#dc2626">Action required</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-chart-line" style="color:#dc2626"></i>
+          </div>
+        </section>
+
+        <section class="three-section-grid">
+          <div class="dashboard-card">
+            <div class="card-head">
+              <h3>Sales Overview</h3>
+              <div class="table-tools">
+                <select><option>This Month</option></select>
+              </div>
+            </div>
+            <div style="height: 180px; width: 100%;">
+              <canvas id="salesBarChart"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-head">
+              <h3>Top Selling Products</h3>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; height: 180px;">
+              <div style="width: 140px; height: 140px; position:relative;">
+                <canvas id="topProductsDonut"></canvas>
+                <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
+                  <small style="font-size:0.6rem; color:var(--text-muted)">Total Sales</small>
+                  <b style="font-size:0.85rem">₹ 12.4L</b>
+                </div>
+              </div>
+              <div style="font-size:0.75rem; display:flex; flex-direction:column; gap:6px;">
+                <div><span style="color:#0066ff">●</span> Cement <b>35%</b></div>
+                <div><span style="color:#38bdf8">●</span> TMT Steel <b>28%</b></div>
+                <div><span style="color:#f59e0b">●</span> Bricks <b>15%</b></div>
+                <div><span style="color:#10b981">●</span> Aggregates <b>12%</b></div>
+                <div><span style="color:#94a3b8">●</span> Others <b>10%</b></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-head">
+              <h3>Quick Actions</h3>
+            </div>
+            <div class="quick-actions-grid">
+              <div class="action-tile tile-blue" onclick="openModal('quoteModal')">
+                <div class="action-icon"><i class="fa-solid fa-file-invoice"></i></div>
+                <div class="action-texts">
+                  <h5>Send Quotation</h5>
+                  <p>Reply to RFQ</p>
+                </div>
+              </div>
+
+              <div class="action-tile tile-green" onclick="openModal('productModal')">
+                <div class="action-icon"><i class="fa-solid fa-box-open"></i></div>
+                <div class="action-texts">
+                  <h5>Add Product</h5>
+                  <p>Update Inventory</p>
+                </div>
+              </div>
+
+              <div class="action-tile tile-purple" onclick="alert('Generate Invoice opened')">
+                <div class="action-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div class="action-texts">
+                  <h5>Create Invoice</h5>
+                  <p>Generate GST Bill</p>
+                </div>
+              </div>
+
+              <div class="action-tile tile-amber" onclick="loadView('orders')">
+                <div class="action-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div class="action-texts">
+                  <h5>Manage Orders</h5>
+                  <p>View All Orders</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="two-col-grid">
+          <div class="dashboard-card">
+            <div class="card-head">
+              <h3><i class="fa-solid fa-truck" style="color:var(--primary-blue); margin-right:5px;"></i> Recent Orders</h3>
+              <a class="view-all" onclick="loadView('orders')">View All</a>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Order ID</th>
+                    <th>Contractor</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${dashboardData.orders.slice(0, 4).map(o => `
+                    <tr>
+                      <td>${o.id}</td>
+                      <td><b>${o.orderId}</b></td>
+                      <td>${o.contractor}</td>
+                      <td>₹${o.amount}</td>
+                      <td><span class="tag ${o.status.toLowerCase()}">${o.status}</span></td>
+                      <td><button class="btn-view" onclick="alert('Order ${o.orderId} Details')">View</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-head">
+              <h3><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626; margin-right:5px;"></i> Low Stock Alerts</h3>
+              <a class="view-all" onclick="loadView('inventory')">View All</a>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Current Stock</th>
+                    <th>Reorder Level</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>OPC Cement</b></td>
+                    <td>50 Bags</td>
+                    <td>200 Bags</td>
+                    <td><button class="btn-reorder" onclick="openModal('productModal')">Reorder</button></td>
+                  </tr>
+                  <tr>
+                    <td><b>TMT 12mm</b></td>
+                    <td>1.5 MT</td>
+                    <td>5 MT</td>
+                    <td><button class="btn-reorder" onclick="openModal('productModal')">Reorder</button></td>
+                  </tr>
+                  <tr>
+                    <td><b>Red Bricks</b></td>
+                    <td>2,000 Nos</td>
+                    <td>10,000 Nos</td>
+                    <td><button class="btn-reorder" onclick="openModal('productModal')">Reorder</button></td>
+                  </tr>
+                  <tr>
+                    <td><b>River Sand</b></td>
+                    <td>50 CFT</td>
+                    <td>300 CFT</td>
+                    <td><button class="btn-reorder" onclick="openModal('productModal')">Reorder</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <div class="footer-banner">
+          <div class="banner-left">
+            <i class="fa-solid fa-trowel-bricks"></i>
+            <div>
+              <h3>Build Bigger Together</h3>
+              <p>Trusted by 500+ Contractors Across India. Reliable Materials. On-Time Delivery. Competitive Rates.</p>
+            </div>
+          </div>
+          <button class="btn-add-prod" onclick="openModal('productModal')">Add New Product &rarr;</button>
+        </div>
+      `;
+    }
+
+    function renderRfqDetailView() {
+      return `
+        <div class="detail-view-header">
+          <div>
+            <h2>RFQ & Quotations Management</h2>
+            <p>12 New RFQs waiting for quotation from contractors.</p>
+          </div>
+          <button class="btn-action" onclick="openModal('quoteModal')"><i class="fa-solid fa-paper-plane"></i> Send Quotation</button>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="detail-controls-bar">
+            <div class="filter-tabs">
+              <button class="active" onclick="filterRfq('all', this)">All Requests (${dashboardData.rfqs.length})</button>
+              <button onclick="filterRfq('New', this)">New</button>
+              <button onclick="filterRfq('Quoted', this)">Quoted</button>
+              <button onclick="filterRfq('Negotiation', this)">In Negotiation</button>
+            </div>
+            <div class="search-box-detail">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" placeholder="Search by contractor or location..." oninput="searchRfq(this.value)">
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table id="rfqTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Contractor Name</th>
+                  <th>Site Address</th>
+                  <th>Required Materials</th>
+                  <th>Needed By Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dashboardData.rfqs.map(r => `
+                  <tr data-status="${r.status}">
+                    <td>${r.id}</td>
+                    <td><b>${r.contractor}</b></td>
+                    <td>${r.location}</td>
+                    <td>${r.materials}</td>
+                    <td>${r.deadline}</td>
+                    <td><span class="tag ${r.status.toLowerCase()}">${r.status}</span></td>
+                    <td>
+                      <button class="btn-action" onclick="openQuoteFor('${r.contractor}')">Send Quote</button>
+                      <button class="btn-action outline" onclick="alert('Viewing specifications for ${r.contractor}')">View</button>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInventoryDetailView() {
+      return `
+        <div class="detail-view-header">
+          <div>
+            <h2>Products & Inventory Catalog</h2>
+            <p>Manage real-time warehouse stock, update base prices and add new materials.</p>
+          </div>
+          <button class="btn-action" onclick="openModal('productModal')"><i class="fa-solid fa-plus"></i> Add New Product</button>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="detail-controls-bar">
+            <div class="filter-tabs">
+              <button class="active" onclick="filterInventory('all', this)">All Materials (${dashboardData.inventory.length})</button>
+              <button onclick="filterInventory('Cement', this)">Cement</button>
+              <button onclick="filterInventory('Steel', this)">TMT Steel</button>
+              <button onclick="filterInventory('Bricks', this)">Bricks</button>
+              <button onclick="filterInventory('Aggregates', this)">Aggregates</button>
+            </div>
+            <div class="search-box-detail">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" placeholder="Search catalog..." oninput="searchInventory(this.value)">
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table id="inventoryTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>Brand</th>
+                  <th>Spec / Grade</th>
+                  <th>Unit</th>
+                  <th>In-Stock</th>
+                  <th>Price (₹)</th>
+                  <th>Stock Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dashboardData.inventory.map(p => `
+                  <tr data-cat="${p.category}">
+                    <td>${p.id}</td>
+                    <td><b>${p.product}</b></td>
+                    <td>${p.category}</td>
+                    <td>${p.brand}</td>
+                    <td>${p.spec}</td>
+                    <td>${p.unit}</td>
+                    <td><b>${p.stock.toLocaleString()}</b></td>
+                    <td>₹ ${p.price.toLocaleString()}</td>
+                    <td><span class="tag ${p.stock < 1000 ? 'overdue' : 'paid'}">${p.stock < 1000 ? 'Low Stock' : 'Sufficient'}</span></td>
+                    <td><button class="btn-action edit-btn" onclick="openModal('productModal')"><i class="fa-solid fa-pen"></i> Edit</button></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderOrdersDetailView() {
+      return `
+        <div class="detail-view-header">
+          <div>
+            <h2>Orders & Delivery Fulfillment Pipeline</h2>
+            <p>Monitor order status, download challans and dispatch truck assignments.</p>
+          </div>
+          <button class="btn-action" onclick="alert('Exporting orders to CSV...')"><i class="fa-solid fa-file-excel"></i> Export Orders</button>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="detail-controls-bar">
+            <div class="filter-tabs">
+              <button class="active" onclick="filterOrders('all', this)">All Orders (${dashboardData.orders.length})</button>
+              <button onclick="filterOrders('Pending', this)">Pending Confirmation</button>
+              <button onclick="filterOrders('Loading', this)">Loading Depot</button>
+              <button onclick="filterOrders('Dispatched', this)">Dispatched</button>
+              <button onclick="filterOrders('Delivered', this)">Delivered</button>
+            </div>
+            <div class="search-box-detail">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" placeholder="Search orders..." oninput="searchOrders(this.value)">
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table id="ordersTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Order ID</th>
+                  <th>Contractor</th>
+                  <th>Site Location</th>
+                  <th>Amount (₹)</th>
+                  <th>Payment Terms</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dashboardData.orders.map(o => `
+                  <tr data-status="${o.status}">
+                    <td>${o.id}</td>
+                    <td><b>${o.orderId}</b></td>
+                    <td>${o.contractor}</td>
+                    <td>${o.location}</td>
+                    <td><b>₹ ${o.amount}</b></td>
+                    <td><span class="tag paid">${o.payment}</span></td>
+                    <td><span class="tag ${o.status.toLowerCase()}">${o.status}</span></td>
+                    <td>
+                      <button class="btn-action" onclick="openStatusFor('${o.orderId}')">Status</button>
+                      <button class="btn-action outline" onclick="alert('Challan printed for ${o.orderId}')"><i class="fa-solid fa-print"></i></button>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLogisticsDetailView() {
+      return `
+        <div class="detail-view-header">
+          <div>
+            <h2>Logistics, Fleet & Dispatch Tracking</h2>
+            <p>Live trip progress, vehicle movement and driver contact details.</p>
+          </div>
+          <button class="btn-action" onclick="openStatusFor('${dashboardData.logistics.orderId}')"><i class="fa-solid fa-truck"></i> Update Status</button>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="card-head">
+            <h3>Live Dispatch: ${dashboardData.logistics.orderId}</h3>
+            <span class="tag dispatched">Out for Delivery</span>
+          </div>
+
+          <div class="dispatch-header">
+            <div class="driver-avatar"><i class="fa-solid fa-user"></i></div>
+            <div class="dispatch-details">
+              <h4>${dashboardData.logistics.driver} &bull; ${dashboardData.logistics.phone}</h4>
+              <p>Consigned to: ${dashboardData.logistics.client}</p>
+            </div>
+          </div>
+
+          <div class="logistics-meta-grid">
+            <div><span>Vehicle Number</span><b>${dashboardData.logistics.vehicle}</b></div>
+            <div><span>E-Way Bill Number</span><b>${dashboardData.logistics.eway}</b></div>
+            <div><span>Estimated Arrival</span><b>${dashboardData.logistics.eta}</b></div>
+            <div><span>Origin Point</span><b>Lucknow Depot</b></div>
+          </div>
+
+          <div class="tracking-timeline" style="margin: 2rem 1rem;">
+            <div class="timeline-step done"><div class="step-circle"><i class="fa-solid fa-check"></i></div><span>Order Confirmed</span></div>
+            <div class="timeline-step done"><div class="step-circle"><i class="fa-solid fa-box"></i></div><span>Loaded at Depot</span></div>
+            <div class="timeline-step active"><div class="step-circle"><i class="fa-solid fa-truck-fast"></i></div><span>In-Transit</span></div>
+            <div class="timeline-step"><div class="step-circle"><i class="fa-solid fa-location-dot"></i></div><span>Arrived at Site</span></div>
+            <div class="timeline-step"><div class="step-circle"><i class="fa-solid fa-house-circle-check"></i></div><span>Delivered</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInvoicesDetailView() {
+      return `
+        <div class="detail-view-header">
+          <div>
+            <h2>GST Invoices & Accounts Receivable</h2>
+            <p>Compliance billing, tax breakdown (18%) and contractor payments.</p>
+          </div>
+          <button class="btn-action" onclick="alert('Creating new invoice...')"><i class="fa-solid fa-plus"></i> Create Invoice</button>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice No.</th>
+                  <th>Client Name</th>
+                  <th>Taxable (₹)</th>
+                  <th>GST (18%)</th>
+                  <th>Total (₹)</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dashboardData.invoices.map(inv => `
+                  <tr>
+                    <td><b>${inv.no}</b></td>
+                    <td>${inv.client}</td>
+                    <td>₹ ${inv.taxable}</td>
+                    <td>₹ ${inv.gst}</td>
+                    <td><b>₹ ${inv.total}</b></td>
+                    <td><span class="tag ${inv.status.toLowerCase()}">${inv.status}</span></td>
+                    <td>
+                      <button class="btn-action outline" onclick="alert('Downloading ${inv.no}')"><i class="fa-solid fa-download"></i> PDF</button>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPlaceholderView(title, iconClass) {
+      return `
+        <div class="dashboard-card" style="text-align:center; padding: 4rem 1rem;">
+          <i class="fa-solid ${iconClass}" style="font-size:3rem; color:var(--primary-blue); margin-bottom:12px;"></i>
+          <h2>${title}</h2>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-top:6px;">This module is configured and ready for live database integration.</p>
+          <button class="btn-action" style="margin-top:15px;" onclick="loadView('dashboard')">Return to Dashboard</button>
+        </div>
+      `;
+    }
+
+    function initCharts() {
+      const ctxBar = document.getElementById('salesBarChart');
+      if (ctxBar) {
+        new Chart(ctxBar, {
+          type: 'bar',
+          data: {
+            labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+            datasets: [
+              {
+                label: 'Sales (₹)',
+                data: [2.1, 3.4, 2.9, 3.7, 3.5, 4.8],
+                backgroundColor: '#0066ff',
+                borderRadius: 4
+              },
+              {
+                label: 'Orders',
+                data: [1.2, 1.9, 1.5, 2.2, 2.1, 2.8],
+                backgroundColor: '#bae6fd',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false } },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: value => '₹ ' + value + 'L'
+                }
+              }
+            }
+          }
+        });
+      }
+
+      const ctxDonut = document.getElementById('topProductsDonut');
+      if (ctxDonut) {
+        new Chart(ctxDonut, {
+          type: 'doughnut',
+          data: {
+            datasets: [{
+              data: [35, 28, 15, 12, 10],
+              backgroundColor: ['#0066ff', '#38bdf8', '#f59e0b', '#10b981', '#94a3b8'],
+              borderWidth: 2,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
+    }
+
+    function openModal(modalId) {
+      const m = document.getElementById(modalId);
+      if (m) m.classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      const m = document.getElementById(modalId);
+      if (m) m.classList.remove('active');
+    }
+
+    function openQuoteFor(contractor) {
+      document.getElementById('quoteMsg').value = "Quotation prepared for " + contractor + ": Standard delivery in 2 business days.";
+      openModal('quoteModal');
+    }
+
+    function openStatusFor(orderId) {
+      document.getElementById('statusOrderId').value = orderId;
+      openModal('statusModal');
+    }
+
+    function handleSendQuote(e) {
+      e.preventDefault();
+      alert('Quotation submitted successfully to contractor!');
+      closeModal('quoteModal');
+    }
+
+    function handleAddProduct(e) {
+      e.preventDefault();
+      const name = document.getElementById('mProdName').value;
+      const cat = document.getElementById('mProdCat').value;
+      const brand = document.getElementById('mProdBrand').value;
+      const price = Number(document.getElementById('mProdPrice').value) || 0;
+      const stock = Number(document.getElementById('mProdStock').value) || 0;
+      const unit = document.getElementById('mProdUnit').value;
+
+      dashboardData.inventory.unshift({
+        id: dashboardData.inventory.length + 1,
+        product: name,
+        category: cat,
+        brand: brand,
+        spec: "Standard",
+        unit: unit,
+        stock: stock,
+        price: price
+      });
+
+      alert('Product "' + name + '" added to inventory catalog!');
+      closeModal('productModal');
+      loadView('inventory');
+    }
+
+    function handleUpdateStatus(e) {
+      e.preventDefault();
+      const id = document.getElementById('statusOrderId').value;
+      const st = document.getElementById('statusSelect').value;
+      alert('Order ' + id + ' updated to: ' + st);
+      closeModal('statusModal');
+      loadView('logistics');
+    }
+
+    function filterRfq(status, btn) {
+      document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('#rfqTable tbody tr').forEach(row => {
+        row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+      });
+    }
+
+    function searchRfq(q) {
+      const val = q.toLowerCase();
+      document.querySelectorAll('#rfqTable tbody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+      });
+    }
+
+    function filterInventory(cat, btn) {
+      document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('#inventoryTable tbody tr').forEach(row => {
+        row.style.display = (cat === 'all' || row.dataset.cat === cat) ? '' : 'none';
+      });
+    }
+
+    function searchInventory(q) {
+      const val = q.toLowerCase();
+      document.querySelectorAll('#inventoryTable tbody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+      });
+    }
+
+    function filterOrders(status, btn) {
+      document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('#ordersTable tbody tr').forEach(row => {
+        row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+      });
+    }
+
+    function searchOrders(q) {
+      const val = q.toLowerCase();
+      document.querySelectorAll('#ordersTable tbody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+      });
+    }
+
+    function handleGlobalSearch(val) {
+      const q = val.toLowerCase().trim();
+      if (!q) return;
+      if (q.includes('quote') || q.includes('rfq')) loadView('rfq');
+      else if (q.includes('cement') || q.includes('steel') || q.includes('brick') || q.includes('sand')) loadView('inventory');
+      else if (q.includes('order') || q.includes('ord-')) loadView('orders');
+      else if (q.includes('truck') || q.includes('dispatch') || q.includes('eway')) loadView('logistics');
+      else if (q.includes('inv') || q.includes('tax') || q.includes('gst')) loadView('invoices');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadView('dashboard');
+    });
+  </script>
+</body>
+</html>
