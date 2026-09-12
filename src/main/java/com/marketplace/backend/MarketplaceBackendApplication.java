@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -184,8 +185,12 @@ public class MarketplaceBackendApplication {
     public interface UserRepository extends JpaRepository<MarketplaceUser, Long> {
         Optional<MarketplaceUser> findByUsername(String username);
         Optional<MarketplaceUser> findByEmail(String email);
+        Optional<MarketplaceUser> findByEmailIgnoreCase(String email);
+        Optional<MarketplaceUser> findByUsernameIgnoreCase(String username);
         boolean existsByUsername(String username);
         boolean existsByEmail(String email);
+        boolean existsByEmailIgnoreCase(String email);
+        boolean existsByUsernameIgnoreCase(String username);
     }
 
 
@@ -275,7 +280,10 @@ public class MarketplaceBackendApplication {
                         .parseSignedClaims(token)
                         .getPayload();
 
-                return claims.getSubject().equals(user.getUsername())
+                String subject = claims.getSubject();
+                return subject != null
+                        && subject.equalsIgnoreCase(user.getUsername())
+                        && claims.getExpiration() != null
                         && claims.getExpiration().after(new Date());
             } catch (Exception e) {
                 return false;
@@ -297,16 +305,23 @@ public class MarketplaceBackendApplication {
         }
 
         @Override
-        public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-            MarketplaceUser user = repository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+            if (identifier == null || identifier.trim().isEmpty()) {
+                throw new UsernameNotFoundException("Identifier cannot be blank");
+            }
+            String cleanIdentifier = identifier.trim();
+            MarketplaceUser user = repository.findByEmailIgnoreCase(cleanIdentifier)
+                    .or(() -> repository.findByUsernameIgnoreCase(cleanIdentifier))
+                    .or(() -> repository.findByEmail(cleanIdentifier))
+                    .or(() -> repository.findByUsername(cleanIdentifier))
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + cleanIdentifier));
 
             String[] roles = user.getRoles()
                     .stream()
                     .map(Enum::name)
                     .toArray(String[]::new);
 
-            return User.withUsername(user.getEmail())
+            return User.withUsername(user.getEmail().toLowerCase())
                     .password(user.getPasswordHash())
                     .roles(roles)
                     .disabled(!user.isEnabled())
@@ -337,7 +352,7 @@ public class MarketplaceBackendApplication {
         ) throws ServletException, IOException {
             String authorizationHeader = request.getHeader("Authorization");
 
-            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            if (authorizationHeader == null || !authorizationHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -345,12 +360,12 @@ public class MarketplaceBackendApplication {
             try {
                 String token = authorizationHeader.substring(7).trim();
                 if (!token.isEmpty() && !token.equalsIgnoreCase("null") && !token.equalsIgnoreCase("undefined")) {
-                    String email = jwtService.extractUsername(token);
+                    String identifier = jwtService.extractUsername(token);
 
-                    if (org.springframework.security.core.context.SecurityContextHolder
+                    if (identifier != null && org.springframework.security.core.context.SecurityContextHolder
                             .getContext().getAuthentication() == null) {
 
-                        UserDetails user = userDetailsService.loadUserByUsername(email);
+                        UserDetails user = userDetailsService.loadUserByUsername(identifier);
 
                         if (jwtService.isValid(token, user)) {
                             UsernamePasswordAuthenticationToken authentication =
@@ -359,6 +374,10 @@ public class MarketplaceBackendApplication {
                                             null,
                                             user.getAuthorities()
                                     );
+                            authentication.setDetails(
+                                    new org.springframework.security.web.authentication.WebAuthenticationDetailsSource()
+                                            .buildDetails(request)
+                            );
 
                             org.springframework.security.core.context.SecurityContextHolder
                                     .getContext().setAuthentication(authentication);
@@ -406,24 +425,30 @@ public class MarketplaceBackendApplication {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
             return http
                     .csrf(csrf -> csrf.disable())
-                    .cors(cors -> {})
+                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .sessionManagement(session ->
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                     )
-                   .authorizeHttpRequests(auth ->
-    auth
-        .requestMatchers("/", "/index.html", "/api/auth/**", "/api/health", "/api/projects/**").permitAll()
-        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
-        .requestMatchers(HttpMethod.GET, "/api/customer/projects/**").permitAll()
-        .requestMatchers("/api/customer/hiring/**").permitAll()
-        .anyRequest().authenticated()
-)
+                    .authorizeHttpRequests(auth ->
+                        auth
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers("/", "/index.html", "/*.html", "/*.js", "/*.css", "/api/auth/**", "/api/health").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/projects/**", "/api/customer/projects/**").permitAll()
+                            .requestMatchers("/api/customer/hiring/**").permitAll()
+                            .requestMatchers("/api/me", "/api/customer/profile", "/api/user/profile").authenticated()
+                            .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
+                            .anyRequest().authenticated()
+                    )
                     .exceptionHandling(ex -> ex
                             .authenticationEntryPoint((request, response, authException) -> {
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                 response.setContentType("application/json");
                                 response.getWriter().write("{\"error\": \"Unauthorized or expired token. Please login again.\"}");
+                            })
+                            .accessDeniedHandler((request, response, accessDeniedException) -> {
+                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                                response.setContentType("application/json");
+                                response.getWriter().write("{\"error\": \"Forbidden: Access denied.\"}");
                             })
                     )
                     .authenticationProvider(authenticationProvider())
@@ -437,9 +462,11 @@ public class MarketplaceBackendApplication {
                     new org.springframework.web.cors.CorsConfiguration();
 
             configuration.setAllowedOriginPatterns(java.util.List.of("*"));
-            configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
             configuration.setAllowedHeaders(java.util.List.of("*"));
+            configuration.setExposedHeaders(java.util.List.of("Authorization", "Content-Type"));
             configuration.setAllowCredentials(false);
+            configuration.setMaxAge(3600L);
 
             org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
                     new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
@@ -512,7 +539,10 @@ public class MarketplaceBackendApplication {
                     new UsernamePasswordAuthenticationToken(email, request.password())
             );
 
-            MarketplaceUser user = repository.findByEmail(email)
+            MarketplaceUser user = repository.findByEmailIgnoreCase(email)
+                    .or(() -> repository.findByUsernameIgnoreCase(email))
+                    .or(() -> repository.findByEmail(email))
+                    .or(() -> repository.findByUsername(email))
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
             UserDetails userDetails = createUserDetails(user);
@@ -544,7 +574,7 @@ public class MarketplaceBackendApplication {
                     .map(Enum::name)
                     .toArray(String[]::new);
 
-            return User.withUsername(user.getEmail())
+            return User.withUsername(user.getEmail().toLowerCase())
                     .password(user.getPasswordHash())
                     .roles(roles)
                     .disabled(!user.isEnabled())
@@ -611,21 +641,38 @@ public class MarketplaceBackendApplication {
 
         @GetMapping({"/api/me", "/api/customer/profile", "/api/user/profile"})
         public Map<String, Object> currentUser(org.springframework.security.core.Authentication authentication) {
-            String email = authentication.getName();
+            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Unauthorized or expired token. Please login again.");
+            }
 
-            MarketplaceUser user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            String identifier = authentication.getName();
 
-            return Map.of(
-                    "id", user.getId(),
-                    "name", user.getName(),
-                    "username", user.getUsername(),
-                    "email", user.getEmail(),
-                    "phone", user.getPhone() != null ? user.getPhone() : "",
-                    "location", user.getLocation() != null ? user.getLocation() : "",
-                    "roles", user.getRoles(),
-                    "enabled", user.isEnabled()
-            );
+            MarketplaceUser user = userRepository.findByEmailIgnoreCase(identifier)
+                    .or(() -> userRepository.findByUsernameIgnoreCase(identifier))
+                    .or(() -> userRepository.findByEmail(identifier))
+                    .or(() -> userRepository.findByUsername(identifier))
+                    .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "User profile not found."));
+
+            Set<String> roleNames = user.getRoles() != null
+                    ? user.getRoles().stream().map(Enum::name).collect(Collectors.toSet())
+                    : Set.of("CUSTOMER");
+
+            String primaryRole = !roleNames.isEmpty() ? roleNames.iterator().next() : "CUSTOMER";
+
+            Map<String, Object> profile = new HashMap<>();
+            profile.put("id", user.getId());
+            profile.put("name", user.getName() != null ? user.getName() : (user.getUsername() != null ? user.getUsername() : "Customer"));
+            profile.put("username", user.getUsername() != null ? user.getUsername() : "");
+            profile.put("email", user.getEmail() != null ? user.getEmail() : "");
+            profile.put("phone", user.getPhone() != null ? user.getPhone() : "");
+            profile.put("location", user.getLocation() != null ? user.getLocation() : "");
+            profile.put("roles", roleNames);
+            profile.put("role", primaryRole);
+            profile.put("enabled", user.isEnabled());
+
+            return profile;
         }
     }
 }

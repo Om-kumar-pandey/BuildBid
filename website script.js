@@ -3,7 +3,9 @@
 // BACKEND: SPRING BOOT + MYSQL + JWT
 // ============================================================
 
-const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+const API_BASE_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:8080"
+    : "https://buildbid-ap3j.onrender.com";
 
 // Helper function to resolve relative paths whether on root or inside /website/
 function resolvePath(fileName) {
@@ -336,23 +338,28 @@ if (loginForm) {
                 return;
             }
 
-            if (data.token) {
-                localStorage.setItem("marketplaceToken", data.token);
-                localStorage.setItem("token", data.token);
+            const token = (data.token || "").trim();
+
+            if (!token) {
+                showAuthToast("Login Failed", "Authentication token was not returned by server.", "error");
+                return;
             }
 
-            // Fetch complete user profile from backend
+            // Fetch complete user profile from backend with clean Bearer header
             let userProfile = null;
             try {
                 const profileResponse = await fetch(API_BASE_URL + "/api/me", {
                     method: "GET",
-                    headers: { "Authorization": "Bearer " + data.token }
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
                 });
                 if (profileResponse.ok) {
                     userProfile = await profileResponse.json();
                 }
             } catch (error) {
-                console.error("Failed to fetch profile on login:", error);
+                console.warn("Failed to fetch profile on login:", error);
             }
 
             const userRoles = (userProfile && userProfile.roles) || data.roles || [];
@@ -372,6 +379,9 @@ if (loginForm) {
             });
 
             if (!hasMatchingRole && userRoles.length > 0) {
+                // Ensure no orphan/mismatched tokens are retained
+                localStorage.removeItem("marketplaceToken");
+                localStorage.removeItem("token");
                 showAuthToast(
                     "Role Mismatch",
                     `This email is registered under a different role. Please select your correct role tab to login.`,
@@ -380,6 +390,10 @@ if (loginForm) {
                 );
                 return;
             }
+
+            // Store Token Consistently
+            localStorage.setItem("marketplaceToken", token);
+            localStorage.setItem("token", token);
 
             // Store User Data
             localStorage.setItem("marketplaceUser", JSON.stringify({
@@ -393,7 +407,8 @@ if (loginForm) {
                 email: (userProfile && userProfile.email) || email,
                 phone: (userProfile && userProfile.phone) || "",
                 location: (userProfile && userProfile.location) || "",
-                role: chosenRole
+                role: chosenRole,
+                roles: userRoles.length > 0 ? userRoles : [chosenRole]
             };
             localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
 
@@ -407,6 +422,8 @@ if (loginForm) {
             if (pendingUrl) {
                 sessionStorage.removeItem("pendingRedirect");
                 setTimeout(() => { window.location.href = pendingUrl; }, 800);
+            } else {
+                setTimeout(() => { navigateToDashboard(); }, 800);
             }
         } catch (error) {
             console.error("Login error:", error);
@@ -575,22 +592,28 @@ document.addEventListener("click", function(event) {
 // GET CURRENT LOGGED-IN USER & INITIAL CHECK
 // ============================================================
 async function getCurrentUser() {
-    const token = localStorage.getItem("marketplaceToken");
+    const rawToken = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || "";
+    const token = (rawToken && rawToken !== "null" && rawToken !== "undefined") ? rawToken.trim() : "";
     if (!token) return null;
 
     try {
         const response = await fetch(API_BASE_URL + "/api/me", {
             method: "GET",
-            headers: { "Authorization": "Bearer " + token }
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
         });
 
         if (!response.ok) {
-            localStorage.removeItem("marketplaceToken");
-            localStorage.removeItem("token");
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("marketplaceUser");
-            localStorage.removeItem("currentUser");
-            updateNavbarAuthState();
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem("marketplaceToken");
+                localStorage.removeItem("token");
+                localStorage.removeItem("authToken");
+                localStorage.removeItem("marketplaceUser");
+                localStorage.removeItem("currentUser");
+                updateNavbarAuthState();
+            }
             return null;
         }
 

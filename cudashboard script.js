@@ -2,12 +2,23 @@
 // DYNAMIC DASHBOARD CONTROLLER (BuildBid - Fully Synced)
 // ============================================================
 
-const API_BASE_URL = "https://buildbid-ap3j.onrender.com";
+const API_BASE_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:8080"
+  : "https://buildbid-ap3j.onrender.com";
 let toastTimeout;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || localStorage.getItem("authToken") || "";
+  // Retrieve token strictly mapped to marketplaceToken
+  const rawToken = localStorage.getItem("marketplaceToken") || localStorage.getItem("token") || "";
+  const token = (rawToken && rawToken !== "null" && rawToken !== "undefined") ? rawToken.trim() : "";
   let user = JSON.parse(localStorage.getItem("currentUser")) || {};
+
+  // If no token exists, redirect to login page immediately
+  if (!token) {
+    console.warn("No authentication token found in localStorage. Redirecting to login.");
+    window.location.href = "index.html";
+    return;
+  }
 
   // 1. Initial Render with available stored data
   renderUserProfile(user);
@@ -15,47 +26,66 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderVerificationStatus(user.verifications);
   renderRecentActivities(user.activities);
 
-  // 2. Fetch fresh details from backend (agar token ho)
-  if (token) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/me`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const liveUserData = await response.json();
-        
-        // Backend data merge karein bina local phone ko overwrite kiye
-        user = {
-          ...user,
-          ...liveUserData,
-          phone: (liveUserData.phone && liveUserData.phone.trim() !== "") ? liveUserData.phone : (user.phone || ""),
-          location: (liveUserData.location && liveUserData.location.trim() !== "") ? liveUserData.location : (user.location || "")
-        };
-
-        localStorage.setItem("currentUser", JSON.stringify(user));
-        
-        // Re-render with synced data
-        renderUserProfile(user);
+  // 2. Fetch fresh details from backend using Authorization: Bearer <token>
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/me`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
       }
+    });
 
-      // ** डेटाबेस से असली प्रोजेक्ट्स की संख्या फेच करके 'Projects Posted' में दिखाने के लिए **
-      const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
-        method: "GET",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (projResponse.ok) {
-        const dbProjects = await projResponse.json();
-        if (Array.isArray(dbProjects)) {
-          if (!user.stats) user.stats = {};
-          user.stats.projectsPosted = dbProjects.length;
-          renderUserStats(user.stats);
-        }
-      }
-
-    } catch (err) {
-      console.warn("Backend sync failed, using cached data.", err);
+    if (response.status === 401 || response.status === 403) {
+      console.warn("Authentication failed or session expired (401/403). Clearing stale tokens.");
+      localStorage.removeItem("marketplaceToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("marketplaceUser");
+      showToast("Session Expired", "Your session has expired. Please login again.");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 2000);
+      return;
     }
+
+    if (response.ok) {
+      const liveUserData = await response.json();
+      
+      // Merge backend data safely
+      user = {
+        ...user,
+        ...liveUserData,
+        phone: (liveUserData.phone && liveUserData.phone.trim() !== "") ? liveUserData.phone : (user.phone || ""),
+        location: (liveUserData.location && liveUserData.location.trim() !== "") ? liveUserData.location : (user.location || "")
+      };
+
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      
+      // Re-render with synced data
+      renderUserProfile(user);
+    }
+
+    // Fetch customer's projects count for dashboard statistics
+    const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (projResponse.ok) {
+      const dbProjects = await projResponse.json();
+      if (Array.isArray(dbProjects)) {
+        if (!user.stats) user.stats = {};
+        user.stats.projectsPosted = dbProjects.length;
+        renderUserStats(user.stats);
+      }
+    }
+
+  } catch (err) {
+    console.warn("Backend sync failed, using cached data.", err);
   }
 
   // 3. Logout handler with Toast Notification
