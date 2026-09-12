@@ -4,6 +4,9 @@
 function getApiBaseUrl() {
   if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      if (window.location.port && window.location.port !== "8080") {
+        return `${window.location.protocol}//${window.location.hostname}:8080`;
+      }
       return window.location.origin;
     }
     return window.location.origin;
@@ -12,6 +15,25 @@ function getApiBaseUrl() {
 }
 
 const API_BASE_URL = getApiBaseUrl();
+
+function getCleanToken() {
+  let token = localStorage.getItem("token") || 
+              localStorage.getItem("authToken") || 
+              localStorage.getItem("marketplaceToken") || 
+              sessionStorage.getItem("token") || "";
+  if (!token) return "";
+  token = String(token).trim();
+  if (token.startsWith('"') && token.endsWith('"')) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.startsWith("'") && token.endsWith("'")) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.startsWith("Bearer ")) {
+    token = token.substring(7).trim();
+  }
+  return token;
+}
 
 function performSelectiveLogout() {
   localStorage.removeItem("marketplaceToken");
@@ -26,9 +48,8 @@ function performSelectiveLogout() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  const token = getCleanToken();
   if (!token) {
-    performSelectiveLogout();
     window.location.href = "index.html";
     return;
   }
@@ -90,7 +111,7 @@ function syncUniversalUserProfile() {
   }
 
   // Token Backend Fetch
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || sessionStorage.getItem("token") || "";
+  const token = getCleanToken();
   if (token) {
     fetch(API_BASE_URL + "/api/me", {
       method: "GET",
@@ -99,14 +120,7 @@ function syncUniversalUserProfile() {
         "Authorization": `Bearer ${token}`
       }
     })
-    .then(res => {
-      if (res.status === 401 || res.status === 403) {
-        performSelectiveLogout();
-        window.location.href = "index.html";
-        return null;
-      }
-      return res.ok ? res.json() : null;
-    })
+    .then(res => res.ok ? res.json() : null)
     .then(freshUser => {
       if (freshUser) {
         localStorage.setItem("currentUser", JSON.stringify(freshUser));
@@ -165,7 +179,7 @@ function applyUserHeaderData(user) {
    2. LOAD PROJECTS (API + LOCALSTORAGE SYNC)
    ========================================================= */
 async function loadCustomerProjects() {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  const token = getCleanToken();
 
   // 1. Check local storage first
   const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");

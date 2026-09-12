@@ -355,7 +355,16 @@ public class MarketplaceBackendApplication {
             }
 
             try {
-                String token = authorizationHeader.substring(7);
+                String token = authorizationHeader.substring(7).trim();
+                if (token.startsWith("Bearer ")) {
+                    token = token.substring(7).trim();
+                }
+                if (token.startsWith("\"") && token.endsWith("\"")) {
+                    token = token.substring(1, token.length() - 1).trim();
+                }
+                if (token.startsWith("'") && token.endsWith("'")) {
+                    token = token.substring(1, token.length() - 1).trim();
+                }
                 String email = jwtService.extractUsername(token);
 
                 if (org.springframework.security.core.context.SecurityContextHolder
@@ -770,9 +779,13 @@ public class MarketplaceBackendApplication {
             MarketplaceUser user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
+            String displayName = (user.getName() != null && !user.getName().isBlank())
+                    ? user.getName().trim()
+                    : (user.getUsername() != null ? user.getUsername().trim() : "");
+
             Map<String, Object> profile = new java.util.HashMap<>();
             profile.put("id", user.getId());
-            profile.put("name", user.getName() != null ? user.getName() : "");
+            profile.put("name", displayName);
             profile.put("username", user.getUsername() != null ? user.getUsername() : "");
             profile.put("email", user.getEmail() != null ? user.getEmail() : "");
             profile.put("phone", user.getPhone() != null ? user.getPhone() : "");

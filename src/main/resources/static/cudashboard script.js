@@ -5,6 +5,9 @@
 function getApiBaseUrl() {
   if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      if (window.location.port && window.location.port !== "8080") {
+        return `${window.location.protocol}//${window.location.hostname}:8080`;
+      }
       return window.location.origin;
     }
     return window.location.origin;
@@ -15,28 +18,59 @@ function getApiBaseUrl() {
 const API_BASE_URL = getApiBaseUrl();
 let toastTimeout;
 
+function getCleanToken() {
+  let token = localStorage.getItem("token") || 
+              localStorage.getItem("authToken") || 
+              localStorage.getItem("marketplaceToken") || 
+              sessionStorage.getItem("token") || "";
+  if (!token) return "";
+  token = String(token).trim();
+  if (token.startsWith('"') && token.endsWith('"')) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.startsWith("'") && token.endsWith("'")) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.startsWith("Bearer ")) {
+    token = token.substring(7).trim();
+  }
+  return token;
+}
+
 function performSelectiveLogout() {
   localStorage.removeItem("marketplaceToken");
   localStorage.removeItem("token");
   localStorage.removeItem("authToken");
   localStorage.removeItem("marketplaceUser");
   localStorage.removeItem("currentUser");
+  localStorage.removeItem("customerUser");
   localStorage.removeItem("buildbid_user");
   sessionStorage.removeItem("pendingRedirect");
   sessionStorage.removeItem("userData");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  const token = getCleanToken();
   if (!token) {
-    performSelectiveLogout();
     window.location.href = "index.html";
     return;
   }
 
-  let user = JSON.parse(localStorage.getItem("currentUser")) || {};
-
   // 1. Initial Render with available stored data
+  let user = {};
+  const storageKeys = ["currentUser", "customerUser", "marketplaceUser", "userData"];
+  for (const key of storageKeys) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key));
+      if (parsed && typeof parsed === "object") {
+        user = { ...parsed, ...user };
+        if (parsed.name && parsed.name.toLowerCase() !== "customer") {
+          user.name = parsed.name;
+        }
+      }
+    } catch (e) {}
+  }
+
   renderUserProfile(user);
   renderUserStats(user.stats);
   renderVerificationStatus(user.verifications);
@@ -47,14 +81,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const response = await fetch(`${API_BASE_URL}/api/me`, {
       headers: { "Authorization": `Bearer ${token}` }
     });
+
     if (response.ok) {
       const liveUserData = await response.json();
-      
+
       user = {
         ...user,
         ...liveUserData,
-        name: liveUserData.name || user.name || "Customer",
-        email: liveUserData.email || user.email || "",
+        name: (liveUserData.name && liveUserData.name.trim() !== "") ? liveUserData.name : (user.name || ""),
+        email: (liveUserData.email && liveUserData.email.trim() !== "") ? liveUserData.email : (user.email || ""),
         phone: (liveUserData.phone && liveUserData.phone.trim() !== "") ? liveUserData.phone : (user.phone || ""),
         location: (liveUserData.location && liveUserData.location.trim() !== "") ? liveUserData.location : (user.location || "")
       };
@@ -65,7 +100,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       user.role = primaryRole.replace("ROLE_", "").toUpperCase();
 
       localStorage.setItem("currentUser", JSON.stringify(user));
-      
+      localStorage.setItem("customerUser", JSON.stringify(user));
+
       // Re-render with database synced data
       renderUserProfile(user);
 
@@ -74,33 +110,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.location.href = "dashborad.html";
         return;
       }
-    } else if (response.status === 401 || response.status === 403) {
-      performSelectiveLogout();
-      window.location.href = "index.html";
-      return;
+    } else {
+      console.warn("Live profile sync status:", response.status);
     }
 
-      // ** डेटाबेस से असली प्रोजेक्ट्स की संख्या फेच करके 'Projects Posted' में दिखाने के लिए **
-      const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
-        method: "GET",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+    // Fetch actual project count from database for 'Projects Posted'
+    const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
 
-      if (projResponse.ok) {
-        const dbProjects = await projResponse.json();
-        if (Array.isArray(dbProjects)) {
-          if (!user.stats) user.stats = {};
-          user.stats.projectsPosted = dbProjects.length;
-          renderUserStats(user.stats);
-        }
+    if (projResponse.ok) {
+      const dbProjects = await projResponse.json();
+      if (Array.isArray(dbProjects)) {
+        if (!user.stats) user.stats = {};
+        user.stats.projectsPosted = dbProjects.length;
+        renderUserStats(user.stats);
       }
-
-    } catch (err) {
-      console.warn("Backend sync failed, using cached data.", err);
     }
+
+  } catch (err) {
+    console.warn("Backend sync failed, using cached data.", err);
   }
 
-  // 3. Logout handler with Toast Notification
+  // 3. Logout handler with Toast Notification - ONLY ON EXPLICIT LOGOUT CLICK
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", (e) => {
@@ -119,20 +152,16 @@ function showToast(title = "Notice", message = "You have logged out successfully
     window.location.href = "index.html";
     return;
   }
-  
+
   document.getElementById("toast-title").innerText = title;
   document.getElementById("toast-message").innerText = message;
 
-  // Show Toast
   toast.classList.add("show");
-
-  // Agar pehle se koi timer chal raha ho to clear karein
   clearTimeout(toastTimeout);
 
-  // 2.5 seconds ke baad automatic band ho kar login page pe redirect karega
   toastTimeout = setTimeout(() => {
     hideToast();
-    window.location.href = "index.html"; 
+    window.location.href = "index.html";
   }, 2500);
 }
 
@@ -144,79 +173,100 @@ function hideToast() {
 }
 
 function renderUserProfile(user) {
-  const fullName = user.name || user.username || "Customer";
+  if (!user) user = {};
+
+  const rawName = (user.name || user.fullName || user.fullname || user.username || user.userName || "").toString().trim();
+  const fullName = (rawName && rawName.toLowerCase() !== "customer" && rawName.toLowerCase() !== "user")
+    ? rawName
+    : (user.email ? user.email.split("@")[0] : "Customer");
+
   const firstName = fullName.split(" ")[0];
+  const formattedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
   const email = user.email || "--";
+  const phone = (user.phone && String(user.phone).trim() !== "") ? String(user.phone).trim() : "Not Provided";
   
-  // Real Phone Number Check
-  const phone = (user.phone && user.phone.trim() !== "") ? user.phone : "Not Provided";
-  
-  const role = (user.role || (user.roles && user.roles[0]) || "Customer").toUpperCase();
+  const role = (user.role || (user.roles && user.roles[0]) || "Customer")
+    .toString()
+    .replace("ROLE_", "")
+    .toUpperCase();
+
   const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(fullName)}`;
 
-  // Header Updates
-  if (document.getElementById("navUserName")) document.getElementById("navUserName").textContent = firstName;
-  if (document.getElementById("navUserRole")) document.getElementById("navUserRole").textContent = role;
-  if (document.getElementById("navAvatar")) document.getElementById("navAvatar").src = avatarUrl;
+  const navUserName = document.getElementById("navUserName");
+  if (navUserName) navUserName.textContent = formattedFirstName;
 
-  // Hero Card Updates
-  if (document.getElementById("heroName")) document.getElementById("heroName").textContent = fullName;
-  if (document.getElementById("heroAvatar")) document.getElementById("heroAvatar").src = avatarUrl;
-  if (document.getElementById("heroRoleDisplay")) document.getElementById("heroRoleDisplay").textContent = role;
+  const navUserRole = document.getElementById("navUserRole");
+  if (navUserRole) navUserRole.textContent = role;
 
-  // Location Updates
+  const navAvatar = document.getElementById("navAvatar");
+  if (navAvatar) navAvatar.src = avatarUrl;
+
+  const heroName = document.getElementById("heroName");
+  if (heroName) heroName.textContent = fullName;
+
+  const heroAvatar = document.getElementById("heroAvatar");
+  if (heroAvatar) heroAvatar.src = avatarUrl;
+
+  const heroRoleDisplay = document.getElementById("heroRoleDisplay");
+  if (heroRoleDisplay) heroRoleDisplay.textContent = role;
+
   const locationWrapper = document.getElementById("locationWrapper");
   const heroLocation = document.getElementById("heroLocation");
   if (heroLocation && locationWrapper) {
-    if (user.location && user.location.trim() !== "") {
-      heroLocation.textContent = user.location;
+    if (user.location && String(user.location).trim() !== "") {
+      heroLocation.textContent = String(user.location).trim();
       locationWrapper.style.display = "inline-block";
     } else {
       locationWrapper.style.display = "none";
     }
   }
 
-  // Member Since
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString('default', { month: 'short' });
   const currentYear = currentDate.getFullYear();
   const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleString('default', { month: 'short', year: 'numeric' }) : `${currentMonth} ${currentYear}`;
-  if (document.getElementById("heroMemberSince")) {
-    document.getElementById("heroMemberSince").textContent = `Member since ${joinDate}`;
+  const heroMemberSince = document.getElementById("heroMemberSince");
+  if (heroMemberSince) {
+    heroMemberSince.textContent = `Member since ${joinDate}`;
   }
 
-  // About Me Section
-  if (document.getElementById("bioName")) document.getElementById("bioName").textContent = fullName;
-  if (document.getElementById("aboutBio")) {
-    aboutBio.textContent = user.bio || `Hi! I am ${fullName}, using BuildBid to plan and manage my construction projects efficiently.`;
+  const bioName = document.getElementById("bioName");
+  if (bioName) bioName.textContent = fullName;
+
+  // Safely update aboutBio
+  const aboutBioElem = document.getElementById("aboutBio");
+  if (aboutBioElem) {
+    aboutBioElem.textContent = user.bio || `Hi! I am ${fullName}, using BuildBid to plan and manage my construction projects efficiently.`;
   }
-  if (document.getElementById("dataFullName")) document.getElementById("dataFullName").textContent = fullName;
-  if (document.getElementById("dataEmail")) document.getElementById("dataEmail").textContent = email;
-  if (document.getElementById("dataPhone")) document.getElementById("dataPhone").textContent = phone;
-  if (document.getElementById("dataLanguage")) document.getElementById("dataLanguage").textContent = user.language || "English, Hindi";
+
+  const dataFullName = document.getElementById("dataFullName");
+  if (dataFullName) dataFullName.textContent = (fullName && fullName.toLowerCase() !== "customer") ? fullName : "--";
+
+  const dataEmail = document.getElementById("dataEmail");
+  if (dataEmail) dataEmail.textContent = email;
+
+  const dataPhone = document.getElementById("dataPhone");
+  if (dataPhone) dataPhone.textContent = phone;
+
+  const dataLanguage = document.getElementById("dataLanguage");
+  if (dataLanguage) dataLanguage.textContent = user.language || "English, Hindi";
 }
 
-// ============================================================
-// 2. RENDER STATS
-// ============================================================
 function renderUserStats(stats) {
   const userStats = stats || { projectsPosted: 0, bidsReceived: 0, ordersPlaced: 0, averageRating: 5.0 };
   const statProjectsPosted = document.getElementById("statProjectsPosted");
   if (statProjectsPosted) statProjectsPosted.textContent = userStats.projectsPosted;
-  
+
   const statBidsReceived = document.getElementById("statBidsReceived");
   if (statBidsReceived) statBidsReceived.textContent = userStats.bidsReceived;
-  
+
   const statOrdersPlaced = document.getElementById("statOrdersPlaced");
   if (statOrdersPlaced) statOrdersPlaced.textContent = userStats.ordersPlaced;
-  
+
   const statAverageRating = document.getElementById("statAverageRating");
   if (statAverageRating) statAverageRating.textContent = parseFloat(userStats.averageRating).toFixed(1);
 }
 
-// ============================================================
-// 3. RENDER VERIFICATION STATUS
-// ============================================================
 function renderVerificationStatus(verifications) {
   const verifyContainer = document.getElementById("verificationContainer");
   if (!verifyContainer) return;
@@ -236,9 +286,6 @@ function renderVerificationStatus(verifications) {
   `).join('');
 }
 
-// ============================================================
-// 4. RENDER RECENT ACTIVITIES
-// ============================================================
 function renderRecentActivities(activities) {
   const container = document.getElementById("activityContainer");
   if (!container) return;
@@ -256,7 +303,6 @@ function renderRecentActivities(activities) {
   `).join('');
 }
 
-// Optional tab listener if present
 const myProjectsBtn = document.getElementById("my-projects-tab-btn");
 if (myProjectsBtn) {
   myProjectsBtn.addEventListener("click", () => {
