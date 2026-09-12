@@ -1520,8 +1520,11 @@ async function submitProject() {
       window.location.href = "customer projects.html";
     } else {
       const errText = await res.text();
-      console.error("Backend Error:", res.status, errText);
-      alert("Failed to save project to database. Please login again or check console.");
+        console.error("Backend Error Status:", res.status);
+        console.error("Backend Error Response Body:", errText); 
+        
+      
+        alert("Server Error (" + res.status + "): " + errText);
     }
   } catch (e) {
     console.error("Network/Fetch Error:", e);
