@@ -197,7 +197,7 @@ function navigateToDashboard() {
     console.log("Navigating to dashboard for role:", role);
 
     if (role === "CONTRACTOR") {
-        window.location.href = resolvePath("dashborad.html");
+        window.location.href = resolvePath("contractor-dashborad.html");
     } else if (role === "MATERIAL_SELLER" || role === "SELLER") {
         window.location.href = resolvePath("material seller dashboard.html");
     } else if (role === "PROFESSIONAL" || role === "SERVICE_PROVIDER") {
