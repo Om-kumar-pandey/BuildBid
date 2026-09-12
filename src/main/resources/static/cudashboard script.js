@@ -28,6 +28,12 @@ function performSelectiveLogout() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  if (!token) {
+    performSelectiveLogout();
+    window.location.href = "index.html";
+    return;
+  }
+
   let user = JSON.parse(localStorage.getItem("currentUser")) || {};
 
   // 1. Initial Render with available stored data
@@ -36,28 +42,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderVerificationStatus(user.verifications);
   renderRecentActivities(user.activities);
 
-  // 2. Fetch fresh details from backend (agar token ho)
-  if (token) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/me`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const liveUserData = await response.json();
-        
-        // Backend data merge karein bina local phone ko overwrite kiye
-        user = {
-          ...user,
-          ...liveUserData,
-          phone: (liveUserData.phone && liveUserData.phone.trim() !== "") ? liveUserData.phone : (user.phone || ""),
-          location: (liveUserData.location && liveUserData.location.trim() !== "") ? liveUserData.location : (user.location || "")
-        };
+  // 2. Fetch fresh details from backend
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/me`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (response.ok) {
+      const liveUserData = await response.json();
+      
+      user = {
+        ...user,
+        ...liveUserData,
+        name: liveUserData.name || user.name || "Customer",
+        email: liveUserData.email || user.email || "",
+        phone: (liveUserData.phone && liveUserData.phone.trim() !== "") ? liveUserData.phone : (user.phone || ""),
+        location: (liveUserData.location && liveUserData.location.trim() !== "") ? liveUserData.location : (user.location || "")
+      };
 
-        localStorage.setItem("currentUser", JSON.stringify(user));
-        
-        // Re-render with synced data
-        renderUserProfile(user);
+      const primaryRole = (liveUserData.roles && liveUserData.roles.length > 0)
+        ? (typeof liveUserData.roles[0] === "string" ? liveUserData.roles[0] : liveUserData.roles[0].name || "")
+        : (user.role || "CUSTOMER");
+      user.role = primaryRole.replace("ROLE_", "").toUpperCase();
+
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      
+      // Re-render with database synced data
+      renderUserProfile(user);
+
+      // Enforce role isolation: if logged in as CONTRACTOR, route to contractor dashboard
+      if (user.role === "CONTRACTOR") {
+        window.location.href = "dashborad.html";
+        return;
       }
+    } else if (response.status === 401 || response.status === 403) {
+      performSelectiveLogout();
+      window.location.href = "index.html";
+      return;
+    }
 
       // ** डेटाबेस से असली प्रोजेक्ट्स की संख्या फेच करके 'Projects Posted' में दिखाने के लिए **
       const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {

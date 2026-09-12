@@ -362,16 +362,16 @@ if (loginForm) {
             }));
 
             const loggedInUser = {
-                name: data.username || email.split('@')[0],
+                name: data.name || data.username || email.split('@')[0],
                 username: data.username || email.split('@')[0],
-                email: email,
-                phone: "",
-                location: "",
+                email: data.email || email,
+                phone: data.phone || "",
+                location: data.location || "",
                 role: primaryRole
             };
             localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
 
-            // Fetch profile if available
+            // Fetch live profile to ensure everything is in sync
             try {
                 const profileResponse = await fetch(API_BASE_URL + "/api/me", {
                     method: "GET",
@@ -381,8 +381,9 @@ if (loginForm) {
                     const userProfile = await profileResponse.json();
                     loggedInUser.name = userProfile.name || loggedInUser.name;
                     loggedInUser.username = userProfile.username || loggedInUser.username;
-                    loggedInUser.phone = userProfile.phone || "";
-                    loggedInUser.location = userProfile.location || "";
+                    loggedInUser.email = userProfile.email || loggedInUser.email;
+                    loggedInUser.phone = userProfile.phone || loggedInUser.phone;
+                    loggedInUser.location = userProfile.location || loggedInUser.location;
                     localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
                 }
             } catch (error) {

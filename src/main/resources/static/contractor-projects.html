@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BuildBid-Customers Live Projects</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="contractor-dashboard.css" />
+  <link rel="stylesheet" href="contractor-projects.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Identical Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+        <a href="contractor-projects.html" class="nav-item active"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-users-gear"></i> Hire Professionals</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews & Ratings</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
+        <a href="contractor-verification.html" class="nav-item"><i class="fa-solid fa-circle-check"></i> Get Verified</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications <span class="badge" id="nav-badge-notifications">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help & Support</a>
+        
+      </nav>
+    </aside>
+
+    <!-- Main Section -->
+    <main class="main-wrapper">
+      <!-- Identical Navbar -->
+      <header class="top-nav">
+        <div class="nav-actions">
+          <button class="icon-btn" id="btn-notification-bell">
+            <i class="fa-regular fa-bell"></i>
+            <span class="dot" id="notif-indicator"></span>
+          </button>
+          <div class="user-profile">
+            <div class="avatar" id="top-nav-avatar">
+              <span id="top-nav-avatar-text">HK</span>
+            </div>
+            <div class="user-meta">
+              <h4 id="top-nav-name">Heman kumar</h4>
+              <span id="top-nav-badge">Verified Contractor</span>
+            </div>
+            <i class="fa-solid fa-chevron-down drop-icon"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Projects Marketplace Content -->
+      <div class="dashboard-content">
+        <!-- Page Title & Search Bar -->
+        <div class="projects-marketplace-header">
+          <div>
+            <h2>Live Customer Projects</h2>
+            <p>Explore active construction requests posted by customers and submit your quotations.</p>
+          </div>
+          <div class="marketplace-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="project-search-input" placeholder="Search by title, location or budget..." oninput="handleSearchProjects()" />
+          </div>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="marketplace-filters">
+          <button class="filter-chip active" onclick="filterLiveProjects('all', this)">All Projects</button>
+          <button class="filter-chip" onclick="filterLiveProjects('open', this)">Open for Bidding</button>
+          <button class="filter-chip" onclick="filterLiveProjects('high-budget', this)">High Budget (₹20L+)</button>
+        </div>
+
+        <!-- Grid of Project Cards -->
+        <div class="live-projects-grid" id="live-projects-container">
+          <!-- Populated dynamically via contractor-projects.js -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bid / Quotation Modal -->
+  <div class="modal-overlay" id="bid-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-project-title">Submit Quotation</h3>
+          <p id="modal-project-location">Location: -</p>
+        </div>
+        <button class="btn-close-modal" onclick="closeBidModal()">&times;</button>
+      </div>
+      
+      <form id="bid-quotation-form" onsubmit="submitContractorQuotation(event)">
+        <input type="hidden" id="modal-project-id" />
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Customer Expected Budget</label>
+            <input type="text" id="modal-customer-budget" readonly disabled class="input-disabled" />
+          </div>
+          <div class="form-group">
+            <label>Your Quotation Amount (₹) *</label>
+            <input type="number" id="bid-amount" placeholder="e.g. 1850000" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estimated Completion Timeline *</label>
+            <input type="text" id="bid-timeline" placeholder="e.g. 4 Months / 120 Days" required />
+          </div>
+          <div class="form-group">
+            <label>Material Inclusions *</label>
+            <select id="bid-material-type" required>
+              <option value="Labor + With Material (Turnkey)">With Material (Turnkey Project)</option>
+              <option value="Labor Only (Without Material)">Labor Only (Without Material)</option>
+              <option value="Custom Specification">Custom Specification</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Proposal / Quotation Breakdown & Notes</label>
+          <textarea id="bid-notes" rows="4" placeholder="Briefly describe your team, experience, payment terms, or work strategy for this project..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeBidModal()">Cancel</button>
+          <button type="submit" class="btn-submit-quotation"><i class="fa-solid fa-paper-plane"></i> Send Quotation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="contractor-projects.js"></script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid - Hire Professionals</title>
+  
+  <!-- Aapke existing layout aur styling files -->
+  <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="cuprojects style.css">
+  <link rel="stylesheet" href="post-requirements.css">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- ================= Top Navbar ================= -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="#" class="brand-logo">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+        </div>
+      </a>
+    </div>
+    
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Professionals</option>
+            <option>Projects</option>
+            <option>Materials</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+        <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">HK</div>
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Customer</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- ================= Sidebar ================= -->
+    <aside class="sidebar">
+      <ul class="side-menu">
+        <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li><a href="customer projects.html" class="sidebar-item"><i class="fa-solid fa-briefcase"></i> <span>My Projects</span></a></li>
+        <li><a href="my-bids.html"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
+        <li><a href="material-orders.html"><i class="fa-solid fa-boxes-stacked"></i> Materials Orders</a></li>
+        <li class="active"><a href="post-requirements.html"><i class="fa-solid fa-user-plus"></i>Post Requirements</a></li>
+        <li><a href="hired-professionals.html"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
+        <li><a href="saved-items.html"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="reviews.html"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="common requirements.html"><i class="fa-solid fa-user-group"></i> Common Requirements</a></li>
+        <li><a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li><a href="account-settings.html"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="security.html"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="my-orders.html"><i class="fa-regular fa-clock"></i> My Orders</a></li>
+        <li><a href="help.html"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+        
+      </ul>
+    </aside>
+
+    <!-- ================= Main Content Container ================= -->
+    <main class="hire-builder-container">
+      
+      <!-- Wizard Main Card -->
+      <section class="wizard-card">
+        <div class="wizard-header">
+          <div>
+            <h2>Hire Custom Professional Team</h2>
+            <p>Assemble your custom on-demand crew. Verified professionals bid directly on your offer.</p>
+          </div>
+          <div class="privacy-badge"><i class="fa-solid fa-shield-halved"></i> Direct Seller Matching</div>
+        </div>
+
+        <!-- 5-Step Stepper -->
+        <div class="stepper-bar">
+          <div class="step-item active" data-step="1"><span class="circle">1</span> Category</div>
+          <div class="step-line"></div>
+          <div class="step-item" data-step="2"><span class="circle">2</span> Project Info</div>
+          <div class="step-line"></div>
+          <div class="step-item" data-step="3"><span class="circle">3</span> Team & Budget</div>
+          <div class="step-line"></div>
+          <div class="step-item" data-step="4"><span class="circle">4</span> Logistics</div>
+          <div class="step-line"></div>
+          <div class="step-item" data-step="5"><span class="circle">5</span> Review</div>
+        </div>
+
+        <!-- STEP 1: Service Category -->
+        <div class="step-pane active" id="hireStep1">
+          <h3 class="pane-title">Step 1: What do you need help with?</h3>
+          <p class="pane-subtitle">Choose the core scope of work to tailor trade specialists.</p>
+
+          <div class="category-grid-5">
+            <div class="category-box selected" onclick="selectHireCategory('Home Maintenance', this)">
+              <i class="fa-solid fa-wrench"></i>
+              <h4>Home Maintenance</h4>
+              <p>Quick fixes, repairs, wiring & plumbing touchups.</p>
+            </div>
+            <div class="category-box" onclick="selectHireCategory('Full Construction', this)">
+              <i class="fa-solid fa-trowel-bricks"></i>
+              <h4>Full Construction</h4>
+              <p>Turnkey civil teams, masons & structural crews.</p>
+            </div>
+            <div class="category-box" onclick="selectHireCategory('Renovation', this)">
+              <i class="fa-solid fa-hammer"></i>
+              <h4>Renovation</h4>
+              <p>Tile replacement, carpentry, layout remodeling.</p>
+            </div>
+            <div class="category-box" onclick="selectHireCategory('Interior Design', this)">
+              <i class="fa-solid fa-couch"></i>
+              <h4>Interior Design</h4>
+              <p>False ceiling, modular work, aesthetics & paints.</p>
+            </div>
+            <div class="category-box" onclick="selectHireCategory('Landscaping & Gardening', this)">
+              <i class="fa-solid fa-seedling"></i>
+              <h4>Landscaping & Gardening</h4>
+              <p>Ground levelling, horticulture, tree trimming & yards.</p>
+            </div>
+          </div>
+
+          <div class="nav-button-row">
+            <span></span>
+            <button type="button" class="btn-primary-action" onclick="goToHireStep(2)">Next: Project Info &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Project Details & Location -->
+        <div class="step-pane" id="hireStep2">
+          <h3 class="pane-title">Step 2: Project Details & Location</h3>
+          <p class="pane-subtitle">Provide timeline and locality so local contractors can assess.</p>
+
+          <div class="form-grid-2">
+            <div class="form-group full-col">
+              <label>Project Title *</label>
+              <input type="text" id="hireTitleInput" class="form-control" placeholder="e.g. Need team for house painting & minor repairs">
+            </div>
+
+            <div class="form-group full-col">
+              <label>Service Address / Locality *</label>
+              <input type="text" id="hireAddressInput" class="form-control" placeholder="e.g. Sector 14, Gurugram" oninput="updateSidebarSummary()">
+            </div>
+
+            <div class="form-group">
+              <label>When do you need them? (Start Date) *</label>
+              <input type="date" id="hireStartDate" class="form-control" onchange="updateSidebarSummary()">
+            </div>
+
+            <div class="form-group">
+              <label>Expected End Date (Optional)</label>
+              <input type="date" id="hireEndDate" class="form-control" onchange="updateSidebarSummary()">
+            </div>
+
+            <div class="form-group full-col">
+              <label>Detailed Description of Work *</label>
+              <textarea id="hireDescriptionInput" class="form-control" rows="4" placeholder="Describe scope, damaged areas, materials on site, floor count, etc..."></textarea>
+            </div>
+          </div>
+
+          <div class="nav-button-row">
+            <button type="button" class="btn-secondary-action" onclick="goToHireStep(1)">&lt; Back</button>
+            <button type="button" class="btn-primary-action" onclick="goToHireStep(3)">Next: Select Crew &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Select Professionals & Quantities -->
+        <div class="step-pane" id="hireStep3">
+          <div class="pane-header-flex">
+            <div>
+              <h3 class="pane-title">Step 3: Select Professionals & Offer Budget</h3>
+              <p class="pane-subtitle">Assemble multiple roles in one posting. Minimum 1 crew member required.</p>
+            </div>
+            <button type="button" class="btn-add-role" onclick="addProfessionalRow()">
+              <i class="fa-solid fa-plus"></i> Add Professional
+            </button>
+          </div>
+
+          <div class="crew-table-container">
+            <table class="crew-table" id="crewTable">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Who do you need? *</th>
+                  <th style="width: 25%;">If 'Other', please specify</th>
+                  <th style="width: 15%;">Quantity *</th>
+                  <th style="width: 25%;">Your Budget / Offer *</th>
+                  <th style="width: 10%; text-align:center;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="crewTableBody">
+                <!-- Rows injected dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="nav-button-row">
+            <button type="button" class="btn-secondary-action" onclick="goToHireStep(2)">&lt; Back</button>
+            <button type="button" class="btn-primary-action" onclick="goToHireStep(4)">Next: Logistics &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Preferences & Logistics -->
+        <div class="step-pane" id="hireStep4">
+          <h3 class="pane-title">Step 4: Working Terms & Logistics</h3>
+          <p class="pane-subtitle">Clarifies site conditions so sellers can bid without ambiguity.</p>
+
+          <div class="logistic-block">
+            <label class="block-label">Who will provide Materials? *</label>
+            <div class="radio-pill-group">
+              <label class="radio-card">
+                <input type="radio" name="materialsProvidedBy" value="Customer" checked onchange="updateSidebarSummary()">
+                <div class="radio-info">
+                  <strong>I will provide all materials</strong>
+                  <span>Labour / workmanship only needed.</span>
+                </div>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="materialsProvidedBy" value="Professional" onchange="updateSidebarSummary()">
+                <div class="radio-info">
+                  <strong>Professional needs to bring materials</strong>
+                  <span>Turnkey with material sourcing.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="logistic-block mt-4">
+            <label class="block-label">Who will provide Tools & Equipment? *</label>
+            <div class="radio-pill-group">
+              <label class="radio-card">
+                <input type="radio" name="toolsProvidedBy" value="Customer" onchange="updateSidebarSummary()">
+                <div class="radio-info">
+                  <strong>I have tools on site</strong>
+                  <span>Ladders, drills, basic kits are available.</span>
+                </div>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="toolsProvidedBy" value="Professional" checked onchange="updateSidebarSummary()">
+                <div class="radio-info">
+                  <strong>Professional must bring their own tools</strong>
+                  <span>Contractor brings all requisite machines & kits.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="logistic-block mt-4">
+            <label class="block-label">Site Condition *</label>
+            <div class="radio-pill-group">
+              <label class="radio-card">
+                <input type="radio" name="siteCondition" value="Vacant" onchange="updateSidebarSummary()">
+                <div class="radio-info">
+                  <strong>Empty / Vacant Property</strong>
+                  <span>No occupants, fast continuous work possible.</span>
+                </div>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="siteCondition" value="Occupied" checked onchange="updateSidebarSummary()">
+                <div class="radio-info">
+                  <strong>Occupied (People are living there)</strong>
+                  <span>Careful dust control & daily cleanup needed.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="nav-button-row">
+            <button type="button" class="btn-secondary-action" onclick="goToHireStep(3)">&lt; Back</button>
+            <button type="button" class="btn-primary-action" onclick="goToHireStep(5)">Next: Review &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 5: Review & Post -->
+        <div class="step-pane" id="hireStep5">
+          <h3 class="pane-title">Step 5: Review & Post Requirement</h3>
+          <p class="pane-subtitle">Review your team setup before broadcasting to verified pros.</p>
+
+          <div class="review-box">
+            <div class="review-row"><span>Category:</span> <strong id="revCategory">--</strong></div>
+            <div class="review-row"><span>Project Title:</span> <strong id="revTitle">--</strong></div>
+            <div class="review-row"><span>Location:</span> <strong id="revLocation">--</strong></div>
+            <div class="review-row"><span>Timeline:</span> <strong id="revDate">--</strong></div>
+            <div class="review-row"><span>Work Scope:</span> <p id="revDesc" class="rev-desc-text">--</p></div>
+            <div class="review-row"><span>Logistics Terms:</span> <strong id="revLogistics">--</strong></div>
+            
+            <div class="review-crew-summary mt-3">
+              <label>Requested Crew Breakdown:</label>
+              <div id="revCrewList"></div>
+            </div>
+          </div>
+
+          <div class="nav-button-row">
+            <button type="button" class="btn-secondary-action" onclick="goToHireStep(4)">&lt; Back</button>
+            <button type="button" class="btn-submit-post" onclick="submitHireRequirement()">
+              <i class="fa-solid fa-paper-plane"></i> Post Requirement to Marketplace
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Sticky Estimate Sidebar Cart -->
+      <aside class="hire-cart-sidebar">
+        <div class="cart-header">
+          <h3><i class="fa-solid fa-clipboard-list"></i> Hiring Estimate Cart</h3>
+          <span class="badge-live">Real-time</span>
+        </div>
+
+        <div class="cart-summary-card">
+          <div class="stat-line">
+            <span>Total Professionals:</span>
+            <strong id="cartTotalPros">0 Pros</strong>
+          </div>
+          <div class="stat-line">
+            <span>Location:</span>
+            <strong id="cartLocationText">Not specified</strong>
+          </div>
+          <div class="stat-line">
+            <span>Timeline:</span>
+            <strong id="cartDatesText">Immediate / Flexible</strong>
+          </div>
+        </div>
+
+        <div class="cart-breakdown-card">
+          <h4>Role-wise Budget Offers:</h4>
+          <div id="cartRoleList" class="cart-roles-container">
+            <p class="empty-cart-msg">No roles added yet. Click "+ Add Professional".</p>
+          </div>
+        </div>
+
+        <div class="cart-total-box">
+          <span class="total-caption">Estimated Direct Offer Outlay</span>
+          <h2 id="cartTotalEstimate">₹0</h2>
+          <small>*Final rates depend on duration and accepted professional bids.</small>
+        </div>
+
+        <div class="cart-guarantee">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Verified ID & KYC Checked Tradesmen Only.</span>
+        </div>
+      </aside>
+
+    </main>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="post-requirements.js"></script>
+  <script src="layout.js"></script>
+</body>
+</html>

@@ -11,6 +11,12 @@ function getApiBaseUrl() {
 const BACKEND_URL = getApiBaseUrl();
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  if (!token) {
+    sessionStorage.setItem("pendingRedirect", "create project.html");
+    window.location.href = "index.html";
+    return;
+  }
   syncUniversalUserProfile();
   initEventListeners();
   setLiveDatasetDate();

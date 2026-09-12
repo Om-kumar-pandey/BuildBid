@@ -230,6 +230,10 @@ public class MarketplaceBackendApplication {
             String token,
             String tokenType,
             String username,
+            String name,
+            String email,
+            String phone,
+            String location,
             Set<String> roles
     ) {}
 
@@ -645,7 +649,16 @@ public class MarketplaceBackendApplication {
                     .map(Enum::name)
                     .collect(Collectors.toSet());
 
-            return new AuthResponse(token, "Bearer", user.getUsername(), roles);
+            return new AuthResponse(
+                    token,
+                    "Bearer",
+                    user.getUsername(),
+                    user.getName() != null ? user.getName() : user.getUsername(),
+                    user.getEmail(),
+                    user.getPhone() != null ? user.getPhone() : "",
+                    user.getLocation() != null ? user.getLocation() : "",
+                    roles
+            );
         }
     }
 
@@ -752,16 +765,16 @@ public class MarketplaceBackendApplication {
             MarketplaceUser user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-            return Map.of(
-                    "id", user.getId(),
-                    "name", user.getName(),
-                    "username", user.getUsername(),
-                    "email", user.getEmail(),
-                    "phone", user.getPhone() != null ? user.getPhone() : "",
-                    "location", user.getLocation() != null ? user.getLocation() : "",
-                    "roles", user.getRoles(),
-                    "enabled", user.isEnabled()
-            );
+            Map<String, Object> profile = new java.util.HashMap<>();
+            profile.put("id", user.getId());
+            profile.put("name", user.getName() != null ? user.getName() : "");
+            profile.put("username", user.getUsername() != null ? user.getUsername() : "");
+            profile.put("email", user.getEmail() != null ? user.getEmail() : "");
+            profile.put("phone", user.getPhone() != null ? user.getPhone() : "");
+            profile.put("location", user.getLocation() != null ? user.getLocation() : "");
+            profile.put("roles", user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
+            profile.put("enabled", user.isEnabled());
+            return profile;
         }
     }
 

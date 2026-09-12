@@ -14,6 +14,11 @@ function getApiBaseUrl() {
 const API_BASE_URL = getApiBaseUrl();
 
 document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("marketplaceToken") || "";
+  if (!token) {
+    window.location.href = "index.html";
+    return;
+  }
   syncUniversalUserProfile();
   loadCustomerProjects();
 });
