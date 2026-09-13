@@ -329,3 +329,318 @@
 .btn-submit-quotation:hover {
   background: #0369a1;
 }
+/* ============================================================
+   INLINE BID BUILDER STYLING (CONTRACTOR PROJECTS)
+   ============================================================ */
+
+#inline-bid-builder-section {
+  margin-top: 15px;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bb-builder-container {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.builder-main {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.builder-header {
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.header-badge {
+  color: #f28c28;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.5px;
+}
+
+.builder-header h2 {
+  font-size: 22px;
+  color: #0b2a55;
+  margin: 4px 0;
+}
+
+.project-location {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.builder-section {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.builder-section h3 {
+  font-size: 15.5px;
+  color: #1e293b;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.builder-section h3 i {
+  color: #f28c28;
+}
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-group-custom {
+  margin-bottom: 12px;
+}
+
+.form-group-custom label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.form-group-custom input,
+.form-group-custom select,
+.form-group-custom textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form-group-custom input:focus,
+.form-group-custom select:focus,
+.form-group-custom textarea:focus {
+  border-color: #f28c28;
+}
+
+/* Dynamic Tables */
+.dynamic-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.dynamic-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.dynamic-table td {
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.dynamic-table input,
+.dynamic-table select {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-size: 12.5px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.dynamic-table input:focus,
+.dynamic-table select:focus {
+  border-color: #f28c28;
+}
+
+.read-only-input {
+  background: #f8fafc;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+/* Buttons */
+.btn-add-row {
+  background: #f8fafc;
+  color: #0b2a55;
+  border: 1px dashed #94a3b8;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add-row:hover {
+  background: #e2e8f0;
+  border-color: #0b2a55;
+}
+
+.btn-del-row {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-del-row:hover {
+  color: #b91c1c;
+}
+
+/* Confidential Box */
+.commercial-box {
+  background: #fffbeb;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+}
+
+.badge-confidential {
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.milestone-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.milestone-badge {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.milestone-badge.valid { color: #16a34a; }
+.milestone-badge.invalid { color: #dc2626; }
+
+/* Sticky Right Summary */
+.sticky-summary {
+  position: sticky;
+  top: 90px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.sticky-summary h3 {
+  font-size: 16px;
+  color: #0b2a55;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 9px;
+}
+
+.summary-row.total-direct {
+  font-weight: 700;
+  color: #1e293b;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 10px;
+}
+
+.summary-row.margin-row {
+  color: #b45309;
+}
+
+.summary-row.final-bid {
+  font-size: 17px;
+  font-weight: 800;
+  color: #f28c28;
+  border-top: 2px solid #e2e8f0;
+  padding-top: 10px;
+  margin-top: 8px;
+}
+
+.btn-submit-quotation {
+  width: 100%;
+  background: #f28c28;
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 14px;
+}
+
+.btn-submit-quotation:hover {
+  background: #d97706;
+}
+
+.btn-cancel-builder {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 9px;
+  border-radius: 7px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.btn-cancel-builder:hover {
+  background: #e2e8f0;
+}
+
+@media (max-width: 992px) {
+  .bb-builder-container {
+    grid-template-columns: 1fr;
+  }
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+  .sticky-summary {
+    position: static;
+  }
+}
