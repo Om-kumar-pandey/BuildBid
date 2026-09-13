@@ -936,7 +936,6 @@ function renderTabsAndPanes() {
     panes.appendChild(pane);
   });
 
-  // Re-render any existing room area fields
   if (projectState.hasBasement) renderBasementIndividualRoomAreas();
   projectState.floorsData.forEach((_, idx) => renderFloorIndividualRoomAreas(idx));
 }
@@ -946,7 +945,6 @@ function switchFloorTab(idx) {
   document.querySelectorAll(".floor-pane").forEach((p, i) => p.classList.toggle("active", i === idx));
 }
 
-// Adjust Room Quantity on Floors
 function adjustRoomQty(floorIndex, roomName, delta) {
   const floor = projectState.floorsData[floorIndex];
   if (!floor) return;
@@ -959,7 +957,6 @@ function adjustRoomQty(floorIndex, roomName, delta) {
 
   if (!floor.roomAreas) floor.roomAreas = {};
 
-  // Clean-up deleted rooms from state
   for (let i = next + 1; i <= current; i++) {
     delete floor.roomAreas[`${roomName}_${i}`];
   }
@@ -967,7 +964,6 @@ function adjustRoomQty(floorIndex, roomName, delta) {
   renderFloorIndividualRoomAreas(floorIndex);
 }
 
-// Render dynamic area input boxes for each selected room on standard floors
 function renderFloorIndividualRoomAreas(floorIndex) {
   const container = document.getElementById(`roomAreaContainer-${floorIndex}`);
   if (!container) return;
@@ -1021,7 +1017,6 @@ function saveFloorRoomArea(floorIndex, fieldKey, val) {
   floor.roomAreas[fieldKey] = parseFloat(val) || 0;
 }
 
-// Adjust Room Quantity on Basement
 function adjustBasementRoomQty(roomName, delta) {
   const current = projectState.basementData.rooms[roomName] || 0;
   const next = Math.max(0, current + delta);
@@ -1039,7 +1034,6 @@ function adjustBasementRoomQty(roomName, delta) {
   renderBasementIndividualRoomAreas();
 }
 
-// Render dynamic area input boxes for each selected room in basement
 function renderBasementIndividualRoomAreas() {
   const container = document.getElementById("basementRoomAreaContainer");
   if (!container) return;
@@ -1099,7 +1093,6 @@ function toggleBasementFeature(featureName, isChecked) {
   }
 }
 
-/* Renovation Helpers */
 function toggleRenovationAreaTab(areaName, isChecked) {
   const container = document.getElementById("renovationDynamicAreaTabsContainer");
   if (!container) return;
@@ -1584,7 +1577,9 @@ async function submitProject() {
       const confirmedProjectId = respData.projectId || generatedProjectId;
       payload.id = confirmedProjectId;
       payload.projectId = confirmedProjectId;
-      saveLocalProject(payload);
+      
+      // saveLocalProject(payload); <-- LOCAL STORAGE HATA DIYA GAYA HAI TAKI DATA 100% MYSQL DATABSE MEIN SAVE HO
+      
       alert("Project posted and saved to Cloud MySQL successfully!\nProject ID: " + confirmedProjectId);
       window.location.href = "customer projects.html";
     } else {
