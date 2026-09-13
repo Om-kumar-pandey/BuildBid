@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BuildBid-Customers Live Projects</title>
+  <title>BuildBid - Customers Live Projects</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="contractor-dashboard.css" />
   <link rel="stylesheet" href="contractor-projects.css" />
-  <link rel="stylesheet" href="contractor-bid-builder.css" />
 </head>
 <body>
   <div class="app-layout">
-    <!-- Identical Sidebar -->
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand-header">
         <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
@@ -31,7 +30,7 @@
         <a href="#" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
         <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
         <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
-        <a href="contractor-post-requirement.html" class="nav-item"><i class="fa-solid fa-users-gear"></i>Post Requirement </a>
+        <a href="contractor-post-requirement.html" class="nav-item"><i class="fa-solid fa-users-gear"></i> Post Requirement</a>
         <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
         <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews & Ratings</a>
         <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
@@ -45,7 +44,7 @@
 
     <!-- Main Section -->
     <main class="main-wrapper">
-      <!-- Identical Navbar -->
+      <!-- Navbar -->
       <header class="top-nav">
         <div class="nav-actions">
           <button class="icon-btn" id="btn-notification-bell">
@@ -65,10 +64,9 @@
         </div>
       </header>
 
-      <!-- Projects Marketplace Content -->
+      <!-- Projects Content -->
       <div class="dashboard-content">
-        <!-- 1. Page Title & Search Bar -->
-        <div class="projects-marketplace-header" id="marketplace-header-area">
+        <div class="projects-marketplace-header">
           <div>
             <h2>Live Customer Projects</h2>
             <p>Explore active construction requests posted by customers and submit your quotations.</p>
@@ -79,260 +77,15 @@
           </div>
         </div>
 
-        <!-- 2. Filter Chips -->
-        <div class="marketplace-filters filter-chips-wrap" id="marketplace-filters-area">
+        <div class="marketplace-filters">
           <button class="filter-chip active" onclick="filterLiveProjects('all', this)">All Projects</button>
           <button class="filter-chip" onclick="filterLiveProjects('open', this)">Open for Bidding</button>
           <button class="filter-chip" onclick="filterLiveProjects('high-budget', this)">High Budget (₹20L+)</button>
         </div>
 
-        <!-- 3. Grid of Project Cards -->
+        <!-- Grid Cards -->
         <div class="live-projects-grid" id="live-projects-container">
-          <!-- Populated dynamically via contractor-projects.js -->
-        </div>
-
-        <!-- 4. INLINE DETAILED BID BUILDER SECTION (PDF COMPLIANT) -->
-        <div id="inline-bid-builder-section" style="display: none;">
-          <div style="margin-bottom: 20px;">
-            <button type="button" class="btn-cancel-builder" onclick="closeInlineBidBuilder()" style="width: auto; padding: 9px 20px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-              <i class="fa-solid fa-arrow-left"></i> Back to Projects
-            </button>
-          </div>
-
-          <div class="bb-builder-container" style="max-width: 100%; margin: 0; padding: 0;">
-            <!-- LEFT: DETAILED SPECIFICATION FORM -->
-            <div class="builder-main">
-              <div class="builder-header">
-                <span class="header-badge">OFFICIAL BID SPECIFICATION</span>
-                <h2 id="projectTitleDisplay">Loading Project...</h2>
-                <p id="projectLocationDisplay" class="project-location"><i class="fa-solid fa-location-dot"></i> --</p>
-              </div>
-
-              <form id="bidBuilderForm">
-                <!-- 1. Scope & Material Responsibility -->
-                <div class="builder-section">
-                  <h3><i class="fa-solid fa-briefcase"></i> 1. Bid Summary & Material Responsibility</h3>
-                  <div class="two-col-grid">
-                    <div class="form-group-custom">
-                      <label>Quotation Title *</label>
-                      <input type="text" id="bidTitle" placeholder="e.g. Turnkey Structure & Finishing Quotation" required />
-                    </div>
-                    <div class="form-group-custom">
-                      <label>Material Responsibility *</label>
-                      <select id="materialMode">
-                        <option value="WITH_MATERIAL">With Material (Turnkey Project)</option>
-                        <option value="LABOUR_ONLY">Labour Only (Customer Supplies Materials)</option>
-                        <option value="HYBRID">Semi-Turnkey (Shared Supply)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 2. Floor-Wise Components -->
-                <div class="builder-section">
-                  <h3><i class="fa-solid fa-layer-group"></i> 2. Floor-Wise Breakdown</h3>
-                  <table class="dynamic-table" id="floorsTable">
-                    <thead>
-                      <tr>
-                        <th>Floor Name</th>
-                        <th>Scope / Component</th>
-                        <th>Cost (₹)</th>
-                        <th width="40"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><input type="text" value="Ground Floor" required /></td>
-                        <td><input type="text" value="Foundation, RCC, Masonry & Plaster" required /></td>
-                        <td><input type="number" class="floor-cost-input" value="0" min="0" oninput="calculateAllTotals()" /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <button type="button" class="btn-add-row" onclick="addFloorRow()"><i class="fa-solid fa-plus"></i> Add Floor</button>
-                </div>
-
-                <!-- 3. Materials Breakdown -->
-                <div class="builder-section" id="materialSectionBox">
-                  <h3><i class="fa-solid fa-boxes-stacked"></i> 3. Material Itemized Cost</h3>
-                  <table class="dynamic-table" id="materialsTable">
-                    <thead>
-                      <tr>
-                        <th>Material Name</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Rate (₹)</th>
-                        <th>Total (₹)</th>
-                        <th>Brand / Spec</th>
-                        <th width="40"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><input type="text" value="Cement" required /></td>
-                        <td><input type="number" class="mat-qty" value="400" min="1" oninput="calculateAllTotals()" /></td>
-                        <td><input type="text" value="Bags" /></td>
-                        <td><input type="number" class="mat-rate" value="420" min="0" oninput="calculateAllTotals()" /></td>
-                        <td><input type="number" class="mat-total read-only-input" value="168000" readonly /></td>
-                        <td><input type="text" value="Ultratech / Ambuja" /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <button type="button" class="btn-add-row" onclick="addMaterialRow()"><i class="fa-solid fa-plus"></i> Add Material</button>
-                </div>
-
-                <!-- 4. Labour Breakdown -->
-                <div class="builder-section">
-                  <h3><i class="fa-solid fa-person-digging"></i> 4. Labour Breakdown</h3>
-                  <table class="dynamic-table" id="labourTable">
-                    <thead>
-                      <tr>
-                        <th>Trade / Skill</th>
-                        <th>Workers</th>
-                        <th>Days</th>
-                        <th>Daily Rate (₹)</th>
-                        <th>Amount (₹)</th>
-                        <th width="40"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><input type="text" value="Mason & Shuttering Crew" required /></td>
-                        <td><input type="number" class="lab-workers" value="4" min="1" oninput="calculateAllTotals()" /></td>
-                        <td><input type="number" class="lab-days" value="60" min="1" oninput="calculateAllTotals()" /></td>
-                        <td><input type="number" class="lab-rate" value="850" min="0" oninput="calculateAllTotals()" /></td>
-                        <td><input type="number" class="lab-total read-only-input" value="204000" readonly /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <button type="button" class="btn-add-row" onclick="addLabourRow()"><i class="fa-solid fa-plus"></i> Add Labour Trade</button>
-                </div>
-
-                <!-- 5. Commercial Pricing (Confidential Margin) -->
-                <div class="builder-section commercial-box">
-                  <h3><i class="fa-solid fa-shield-halved"></i> 5. Private Commercial Pricing (Confidential)</h3>
-                  <span class="badge-confidential"><i class="fa-solid fa-lock"></i> Visible only to you. Never shown to customer.</span>
-                  <div class="two-col-grid">
-                    <div class="form-group-custom">
-                      <label>Overhead, Risk & Contractor Margin (₹) *</label>
-                      <input type="number" id="privateMargin" value="0" min="0" oninput="calculateAllTotals()" placeholder="e.g. 150000" />
-                    </div>
-                    <div class="form-group-custom">
-                      <label>Applicable GST / Taxes (₹)</label>
-                      <input type="number" id="taxAmount" value="0" min="0" oninput="calculateAllTotals()" placeholder="e.g. 0" />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 6. Timeline & Payment Milestones -->
-                <div class="builder-section">
-                  <h3><i class="fa-solid fa-calendar-days"></i> 6. Timeline & Payment Schedule</h3>
-                  <div class="two-col-grid">
-                    <div class="form-group-custom">
-                      <label>Estimated Duration (Days) *</label>
-                      <input type="number" id="estimatedDays" value="120" min="1" required />
-                    </div>
-                    <div class="form-group-custom">
-                      <label>Defect Liability / Warranty</label>
-                      <input type="text" id="warrantyText" value="12 Months Comprehensive + 10 Years Structural" />
-                    </div>
-                  </div>
-
-                  <label class="milestone-label">Payment Milestones (Must total 100%) *</label>
-                  <table class="dynamic-table" id="milestonesTable">
-                    <thead>
-                      <tr>
-                        <th>Milestone Stage</th>
-                        <th>Percentage (%)</th>
-                        <th width="40"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><input type="text" value="Advance on Agreement Signing" required /></td>
-                        <td><input type="number" class="milestone-pct" value="15" min="1" max="100" oninput="validateMilestones()" /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                      <tr>
-                        <td><input type="text" value="Plinth Level Completion" required /></td>
-                        <td><input type="number" class="milestone-pct" value="35" min="1" max="100" oninput="validateMilestones()" /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                      <tr>
-                        <td><input type="text" value="Roof Slab Casting" required /></td>
-                        <td><input type="number" class="milestone-pct" value="35" min="1" max="100" oninput="validateMilestones()" /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                      <tr>
-                        <td><input type="text" value="Finishing & Handover" required /></td>
-                        <td><input type="number" class="milestone-pct" value="15" min="1" max="100" oninput="validateMilestones()" /></td>
-                        <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div id="milestoneWarning" class="milestone-badge valid">Total: 100% (Valid)</div>
-                  <button type="button" class="btn-add-row" onclick="addMilestoneRow()"><i class="fa-solid fa-plus"></i> Add Milestone</button>
-                </div>
-
-                <!-- 7. Scope & Inclusions -->
-                <div class="builder-section">
-                  <h3><i class="fa-solid fa-list-check"></i> 7. Scope & Inclusions</h3>
-                  <div class="two-col-grid">
-                    <div class="form-group-custom">
-                      <label>Included Work</label>
-                      <textarea id="includedWork" rows="4">Excavation & PCC&#10;RCC Frame Structure&#10;Brickwork & Internal/External Plaster&#10;Waterproofing for Toilets & Terrace</textarea>
-                    </div>
-                    <div class="form-group-custom">
-                      <label>Excluded Work</label>
-                      <textarea id="excludedWork" rows="4">Government approval fees&#10;Electricity meter installation&#10;Interior furniture / woodwork</textarea>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <!-- RIGHT: STICKY QUOTATION SUMMARY -->
-            <div class="sticky-summary">
-              <h3>Quotation Summary</h3>
-              <div class="summary-row">
-                <span>Floor Work Cost:</span>
-                <strong id="sumFloors">₹0</strong>
-              </div>
-              <div class="summary-row">
-                <span>Materials Cost:</span>
-                <strong id="sumMaterials">₹0</strong>
-              </div>
-              <div class="summary-row">
-                <span>Labour Cost:</span>
-                <strong id="sumLabour">₹0</strong>
-              </div>
-              <div class="summary-row total-direct">
-                <span>Direct Construction Cost:</span>
-                <strong id="sumDirect">₹0</strong>
-              </div>
-              <div class="summary-row margin-row">
-                <span>Private Margin:</span>
-                <strong id="sumMargin">₹0</strong>
-              </div>
-              <div class="summary-row">
-                <span>Taxes & Fees:</span>
-                <strong id="sumTax">₹0</strong>
-              </div>
-              <div class="summary-row final-bid">
-                <span>Final Quotation:</span>
-                <strong id="sumFinal">₹0</strong>
-              </div>
-
-              <button type="button" class="btn-submit-quotation" onclick="submitDetailedBid()">
-                <i class="fa-solid fa-paper-plane"></i> Submit Quotation
-              </button>
-              <button type="button" class="btn-cancel-builder" onclick="closeInlineBidBuilder()">
-                Cancel
-              </button>
-            </div>
-          </div>
+          <!-- Dynamically populated -->
         </div>
       </div>
     </main>
