@@ -1,3 +1,26 @@
+function formatRelativeTime(dateValue) {
+  if (!dateValue) return "Recently";
+
+  // Agar timestamp number ya date string hai
+  const timestamp = typeof dateValue === "number" ? dateValue : new Date(dateValue).getTime();
+  
+  if (isNaN(timestamp)) {
+    // Agar pehle se "2 hours ago" jaisa string store hai
+    return dateValue;
+  }
+
+  const secondsAgo = Math.floor((Date.now() - timestamp) / 1000);
+
+  if (secondsAgo < 60) return "Just now";
+  const minutesAgo = Math.floor(secondsAgo / 60);
+  if (minutesAgo < 60) return `${minutesAgo} min ago`;
+  const hoursAgo = Math.floor(minutesAgo / 60);
+  if (hoursAgo < 24) return `${hoursAgo} hour${hoursAgo > 1 ? 's' : ''} ago`;
+  const daysAgo = Math.floor(hoursAgo / 24);
+  if (daysAgo < 30) return `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`;
+  
+  return new Date(timestamp).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+}
 /**
  * Contractor Live Projects Engine
  * Manages live customer postings, dynamic search, and Quotation redirection.
