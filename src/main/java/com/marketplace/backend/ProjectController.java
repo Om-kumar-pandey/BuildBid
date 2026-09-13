@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -27,6 +28,7 @@ public class ProjectController {
     }
 
     @PostMapping({"/projects/create", "/hiring/create"})
+    @Transactional // यह सुनिश्चित करता है कि डेटाबेस में ट्रांजैक्शन सक्सेसफुली कमिट हो जाए
     public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized. Please login again."));
@@ -48,14 +50,14 @@ public class ProjectController {
             Project project = new Project();
             project.setCustomer(user);
 
-            // Map unique Project ID (preserve "PRJ-..." generated on frontend or generate one)
+            // Map unique Project ID
             if (payload.get("projectId") != null && !payload.get("projectId").toString().isBlank()) {
                 project.setProjectId(payload.get("projectId").toString());
             } else {
                 project.setProjectId("PRJ-" + System.currentTimeMillis());
             }
 
-            // Map Title & Project Title (Satisfies Cloud MySQL project_title NOT NULL constraint)
+            // Map Title & Project Title
             String title = "BuildBid Project";
             if (payload.get("projectTitle") != null && !payload.get("projectTitle").toString().isBlank()) {
                 title = payload.get("projectTitle").toString();
@@ -65,7 +67,7 @@ public class ProjectController {
             project.setProjectTitle(title);
             project.setTitle(title);
 
-            // Map Type & Project Type (Satisfies Cloud MySQL project_type NOT NULL constraint)
+            // Map Type & Project Type
             String type = "New Construction";
             if (payload.get("projectType") != null && !payload.get("projectType").toString().isBlank()) {
                 type = payload.get("projectType").toString();
@@ -96,7 +98,7 @@ public class ProjectController {
                 project.setPlotArea(plotVal);
             }
 
-            // Map Floors (Cloud MySQL floors column is TEXT)
+            // Map Floors
             if (payload.get("floors") != null) {
                 Object f = payload.get("floors");
                 if (f instanceof String) {
@@ -171,7 +173,7 @@ public class ProjectController {
                 if (bMax != null) {
                     project.setBudgetMax(bMax);
                 }
-                project.setBudget(budget.get("min") + " - " + budget.get("max"));
+                project.setBudget((budget.get("min") != null ? budget.get("min") : "0") + " - " + (budget.get("max") != null ? budget.get("max") : "0"));
             } else if (budgetObj != null) {
                 project.setBudget(budgetObj.toString());
             }
@@ -191,7 +193,7 @@ public class ProjectController {
                 project.setTargetStartDate(payload.get("targetStartDate").toString());
             }
 
-            // Map dynamic category-specific fields into designated database columns
+            // Map dynamic fields
             setJsonOrString(payload.get("scopeOfWork"), project::setScopeOfWork);
             setJsonOrString(payload.get("renovationAreas"), project::setRenovationAreas);
             setJsonOrString(payload.get("renovScope"), project::setRenovScope);
@@ -203,7 +205,7 @@ public class ProjectController {
             setJsonOrString(payload.get("industrial"), project::setIndustrial);
             setJsonOrString(payload.get("custom") != null ? payload.get("custom") : payload.get("customDetails"), project::setCustomDetails);
 
-            // Store entire complete dynamic payload as JSON text in cloud database
+            // Store complete JSON payload
             try {
                 String completeJson = objectMapper.writeValueAsString(payload);
                 project.setCompleteDataJson(completeJson);
@@ -221,10 +223,9 @@ public class ProjectController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // Detailed exception logged on backend only (never leak credentials, SQL, or stack trace to client)
             System.err.println("Database error while saving project: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to save project to database. Please check your inputs and try again."));
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to save project to database. Error: " + e.getMessage()));
         }
     }
 
@@ -238,7 +239,6 @@ public class ProjectController {
         String s = val.toString().trim();
         if (s.isEmpty()) return null;
 
-        // Strip known harmless currency prefixes (e.g. ₹ (\u20B9), Rs., Rs, INR)
         if (s.startsWith("\u20B9") || s.startsWith("₹")) {
             s = s.substring(1).trim();
         } else {
@@ -252,7 +252,6 @@ public class ProjectController {
             }
         }
 
-        // Strip known harmless area unit suffixes (e.g. sq ft, sq.ft., sqft, sqm)
         String lower = s.toLowerCase();
         if (lower.endsWith("sq. ft.")) {
             s = s.substring(0, s.length() - 7).trim();
@@ -268,7 +267,6 @@ public class ProjectController {
 
         if (s.isEmpty()) return null;
 
-        // Thousands separator validation: reject malformed comma usage
         if (s.contains(",")) {
             if (s.startsWith(",") || s.endsWith(",") || s.contains(",,") || s.contains(",.") || s.contains(".,")) {
                 return null;
@@ -276,7 +274,6 @@ public class ProjectController {
             s = s.replace(",", "").trim();
         }
 
-        // Strict numeric regex: optional leading '-', digits, optional single decimal point with digits
         if (!s.matches("^-?\\d+(\\.\\d+)?$")) {
             return null;
         }
