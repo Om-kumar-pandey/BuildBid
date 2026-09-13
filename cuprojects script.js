@@ -184,11 +184,7 @@ function applyUserHeaderData(user) {
 async function loadCustomerProjects() {
   const token = getCleanToken();
 
-  // 1. Check local storage first
-  const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");
-  allProjectsList = localProjects;
-
-  // 2. Try fetching from Backend API (Render Database Connected)
+  // Try fetching directly from Render Backend MySQL Database first
   if (token) {
     try {
       const response = await fetch(API_BASE_URL + "/api/customer/projects", {
@@ -204,13 +200,18 @@ async function loadCustomerProjects() {
         if (Array.isArray(apiProjects)) {
           allProjectsList = apiProjects;
           localStorage.setItem("customerProjects", JSON.stringify(apiProjects));
+          filterAndRenderProjects();
+          return;
         }
       }
     } catch (err) {
-      console.log("Local/Offline Mode: Showing cached projects.");
+      console.log("Backend offline or connection failed, falling back to local cache.");
     }
   }
 
+  // Fallback to local storage if offline
+  const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");
+  allProjectsList = localProjects;
   filterAndRenderProjects();
 }
 
@@ -223,7 +224,6 @@ function filterAndRenderProjects() {
   const categoryFilter = document.getElementById("categoryFilter")?.value || "ALL";
 
   const filtered = allProjectsList.filter(proj => {
-    // बैकएंड से आने वाले डेटा की प्रॉपर्टीज (title, city, type) के साथ सुरक्षित मिलान
     const projTitle = proj.title || proj.projectTitle || "";
     const projLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "");
     const projCategory = proj.type || proj.projectType || proj.category || "";
@@ -271,7 +271,7 @@ function renderTableRows(projects) {
     const displayLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "N/A");
     const displayArea = proj.builtUpArea ? `${proj.builtUpArea} sq ft` : (proj.area || "--");
     const displayCategory = proj.type || proj.projectType || proj.category || "General";
-    const displayDate = proj.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : (proj.updatedDate || "Today");
+    const displayDate = proj.createdAt ? new Date(proj.createdAt).toLocaleDateString() : (proj.updatedDate || "Today");
     const displayProjectId = proj.projectId || (proj.id ? `PRJ-${proj.id}` : "");
 
     return `
