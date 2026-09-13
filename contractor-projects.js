@@ -1,6 +1,6 @@
 /**
  * Contractor Live Projects Engine
- * Manages live customer postings, dynamic search, and Quotation submissions.
+ * Manages live customer postings, dynamic search, and Quotation redirection.
  */
 
 // 1. Authenticate Contractor & Populate Navbar
@@ -50,7 +50,6 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   const allProjects = getLiveProjects();
   if (badge) badge.textContent = allProjects.length;
 
-  // Update bids counter badge
   const bidsBadge = document.getElementById("nav-badge-bids");
   if (bidsBadge) bidsBadge.textContent = myBids.length;
 
@@ -69,8 +68,7 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   }
 
   projectsToDisplay.forEach(project => {
-    // Check if current contractor has already quoted for this project
-    const hasAlreadyBid = myBids.some(b => b.projectId === project.id);
+    const hasAlreadyBid = myBids.some(b => String(b.projectId) === String(project.id));
 
     const card = document.createElement("div");
     card.className = "market-card";
@@ -108,242 +106,17 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   });
 }
 
-let activeBiddingProjectId = null;
-
-// Replace existing openQuotationModal with inline switcher:
+// 5. Open Detailed Bid Builder Page (Redirects to contractor-bid-builder.html)
 function openQuotationModal(projectId) {
   const projects = getLiveProjects();
   const project = projects.find(p => String(p.id) === String(projectId));
-  if (!project) return;
-
-  activeBiddingProjectId = projectId;
-
-  // Header data populate karein
-  document.getElementById("projectTitleDisplay").innerText = project.title || "Modern 3BHK House";
-  document.getElementById("projectLocationDisplay").innerHTML = `<i class="fa-solid fa-location-dot"></i> ${project.location || "Greater Noida, Uttar Pradesh"}`;
-
-  // Hide live projects container & controls, show bid builder
-  const projectListSection = document.getElementById("live-projects-container");
-  const builderSection = document.getElementById("inline-bid-builder-section");
-
-  if (projectListSection) projectListSection.style.display = "none";
   
-  // Hide filters and search bar while bidding
-  const filtersElem = document.querySelector(".filter-chips-wrap");
-  if (filtersElem) filtersElem.style.display = "none";
-
-  if (builderSection) {
-    builderSection.style.display = "block";
-    builderSection.scrollIntoView({ behavior: "smooth" });
+  if (project) {
+    sessionStorage.setItem("selectedProject", JSON.stringify(project));
   }
-
-  calculateAllTotals();
-}
-
-function closeInlineBidBuilder() {
-  const projectListSection = document.getElementById("live-projects-container");
-  const builderSection = document.getElementById("inline-bid-builder-section");
-  const filtersElem = document.querySelector(".filter-chips-wrap");
-
-  if (builderSection) builderSection.style.display = "none";
-  if (projectListSection) projectListSection.style.display = "grid";
-  if (filtersElem) filtersElem.style.display = "flex";
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-// ================= BUILDER CALCULATIONS & ROWS =================
-function calculateAllTotals() {
-  let totalFloors = 0;
-  document.querySelectorAll(".floor-cost-input").forEach(inp => totalFloors += Number(inp.value) || 0);
-  const sumFloors = document.getElementById("sumFloors");
-  if (sumFloors) sumFloors.innerText = "₹" + totalFloors.toLocaleString("en-IN");
-
-  let totalMaterials = 0;
-  document.querySelectorAll("#materialsTable tbody tr").forEach(tr => {
-    const qty = Number(tr.querySelector(".mat-qty")?.value) || 0;
-    const rate = Number(tr.querySelector(".mat-rate")?.value) || 0;
-    const amount = qty * rate;
-    const totalInp = tr.querySelector(".mat-total");
-    if (totalInp) totalInp.value = amount;
-    totalMaterials += amount;
-  });
-  const sumMat = document.getElementById("sumMaterials");
-  if (sumMat) sumMat.innerText = "₹" + totalMaterials.toLocaleString("en-IN");
-
-  let totalLabour = 0;
-  document.querySelectorAll("#labourTable tbody tr").forEach(tr => {
-    const workers = Number(tr.querySelector(".lab-workers")?.value) || 0;
-    const days = Number(tr.querySelector(".lab-days")?.value) || 0;
-    const rate = Number(tr.querySelector(".lab-rate")?.value) || 0;
-    const amount = workers * days * rate;
-    const totalInp = tr.querySelector(".lab-total");
-    if (totalInp) totalInp.value = amount;
-    totalLabour += amount;
-  });
-  const sumLab = document.getElementById("sumLabour");
-  if (sumLab) sumLab.innerText = "₹" + totalLabour.toLocaleString("en-IN");
-
-  const directCost = totalFloors + totalMaterials + totalLabour;
-  const sumDirect = document.getElementById("sumDirect");
-  if (sumDirect) sumDirect.innerText = "₹" + directCost.toLocaleString("en-IN");
-
-  const margin = Number(document.getElementById("privateMargin")?.value) || 0;
-  const tax = Number(document.getElementById("taxAmount")?.value) || 0;
-  const sumMargin = document.getElementById("sumMargin");
-  if (sumMargin) sumMargin.innerText = "₹" + margin.toLocaleString("en-IN");
   
-  const sumTax = document.getElementById("sumTax");
-  if (sumTax) sumTax.innerText = "₹" + tax.toLocaleString("en-IN");
-
-  const finalAmount = directCost + margin + tax;
-  const sumFinal = document.getElementById("sumFinal");
-  if (sumFinal) sumFinal.innerText = "₹" + finalAmount.toLocaleString("en-IN");
-}
-
-function validateMilestones() {
-  let sum = 0;
-  document.querySelectorAll(".milestone-pct").forEach(inp => sum += Number(inp.value) || 0);
-  const badge = document.getElementById("milestoneWarning");
-  if (!badge) return true;
-  if (sum === 100) {
-    badge.innerText = `Total: ${sum}% (Valid)`;
-    badge.className = "milestone-badge valid";
-    return true;
-  } else {
-    badge.innerText = `Total: ${sum}% (Error: Must equal exactly 100%)`;
-    badge.className = "milestone-badge invalid";
-    return false;
-  }
-}
-
-function deleteRow(btn) {
-  const row = btn.closest("tr");
-  if (row && row.parentElement.children.length > 1) {
-    row.remove();
-    calculateAllTotals();
-    validateMilestones();
-  } else {
-    alert("At least one entry row is required.");
-  }
-}
-
-function addFloorRow() {
-  const tbody = document.querySelector("#floorsTable tbody");
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td><input type="text" placeholder="e.g. First Floor" required></td>
-    <td><input type="text" placeholder="e.g. Brickwork, Tiles, Electrical" required></td>
-    <td><input type="number" class="floor-cost-input" value="0" min="0" oninput="calculateAllTotals()"></td>
-    <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-function addMaterialRow() {
-  const tbody = document.querySelector("#materialsTable tbody");
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td><input type="text" placeholder="Material Name" required></td>
-    <td><input type="number" class="mat-qty" value="1" min="1" oninput="calculateAllTotals()"></td>
-    <td><input type="text" placeholder="Bags / Tons / Sq.ft"></td>
-    <td><input type="number" class="mat-rate" value="0" min="0" oninput="calculateAllTotals()"></td>
-    <td><input type="number" class="mat-total read-only-input" value="0" readonly></td>
-    <td><input type="text" placeholder="Brand / Specification"></td>
-    <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-function addLabourRow() {
-  const tbody = document.querySelector("#labourTable tbody");
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td><input type="text" placeholder="Trade (Electrician, Plumber, Painter)" required></td>
-    <td><input type="number" class="lab-workers" value="1" min="1" oninput="calculateAllTotals()"></td>
-    <td><input type="number" class="lab-days" value="1" min="1" oninput="calculateAllTotals()"></td>
-    <td><input type="number" class="lab-rate" value="0" min="0" oninput="calculateAllTotals()"></td>
-    <td><input type="number" class="lab-total read-only-input" value="0" readonly></td>
-    <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-function addMilestoneRow() {
-  const tbody = document.querySelector("#milestonesTable tbody");
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td><input type="text" placeholder="Milestone Phase" required></td>
-    <td><input type="number" class="milestone-pct" value="0" min="1" max="100" oninput="validateMilestones()"></td>
-    <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-async function submitDetailedBid() {
-  if (!validateMilestones()) {
-    alert("Milestones must add up to exactly 100% before submission.");
-    return;
-  }
-
-  const title = document.getElementById("bidTitle").value.trim();
-  if (!title) {
-    alert("Please provide a Quotation Title.");
-    return;
-  }
-
-  const user = setupContractorSession();
-  const token = localStorage.getItem("token") || localStorage.getItem("marketplaceToken");
-  const finalBidStr = document.getElementById("sumFinal").innerText;
-
-  const payload = {
-    quotationId: "quot-" + Date.now(),
-    projectId: activeBiddingProjectId,
-    contractorId: user.email || user.username,
-    contractorName: user.name || user.companyName,
-    contractorPhone: user.phone || "",
-    amount: finalBidStr,
-    bidTitle: title,
-    materialMode: document.getElementById("materialMode").value,
-    durationDays: Number(document.getElementById("estimatedDays").value),
-    warranty: document.getElementById("warrantyText").value,
-    includedScope: document.getElementById("includedWork").value.split("\n").filter(Boolean),
-    excludedScope: document.getElementById("excludedWork").value.split("\n").filter(Boolean),
-    commercialMargin: Number(document.getElementById("privateMargin").value) || 0,
-    tax: Number(document.getElementById("taxAmount").value) || 0,
-    status: "UNDER_REVIEW"
-  };
-
-  // 1. Local storage sync
-  const bids = getContractorBids();
-  bids.unshift(payload);
-  localStorage.setItem("buildbid_contractor_bids", JSON.stringify(bids));
-
-  // 2. Increment bids count on project card
-  const projects = getLiveProjects();
-  const targetIndex = projects.findIndex(p => String(p.id) === String(activeBiddingProjectId));
-  if (targetIndex !== -1) {
-    projects[targetIndex].bidsCount = (projects[targetIndex].bidsCount || 0) + 1;
-    localStorage.setItem("buildbid_customer_projects", JSON.stringify(projects));
-  }
-
-  // 3. Backend sync
-  try {
-    await fetch("https://buildbid-ap3j.onrender.com/api/bids", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": token ? `Bearer ${token}` : ""
-      },
-      body: JSON.stringify(payload)
-    });
-  } catch(e) {
-    console.warn("Backend sync fallback:", e);
-  }
-
-  alert("Detailed Quotation successfully submitted to the customer!");
-  closeInlineBidBuilder();
-  renderLiveProjectsGrid(getLiveProjects());
+  // Directly open contractor-bid-builder.html with project ID
+  window.location.href = `contractor-bid-builder.html?projectId=${encodeURIComponent(projectId)}`;
 }
 
 // 6. Search Filter
@@ -375,7 +148,7 @@ function filterLiveProjects(type, btn) {
   }
 }
 
-// Logout functionality
+// 8. Helpers
 function logoutUser() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("marketplaceToken");
