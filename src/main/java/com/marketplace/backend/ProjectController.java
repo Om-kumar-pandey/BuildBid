@@ -2,10 +2,12 @@ package com.marketplace.backend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +15,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 @RestController
-@RequestMapping("/api/customer")
+@RequestMapping("/api")
 public class ProjectController {
 
     private final ProjectRepository projectRepository;
@@ -26,7 +28,7 @@ public class ProjectController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping({"/projects/create", "/hiring/create"})
+    @PostMapping({"/customer/projects/create", "/customer/hiring/create"})
     public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized. Please login again."));
@@ -302,7 +304,7 @@ public class ProjectController {
         }
     }
 
-    @GetMapping("/projects")
+    @GetMapping("/customer/projects")
     public ResponseEntity<?> getCustomerProjects(Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
@@ -324,7 +326,7 @@ public class ProjectController {
         return ResponseEntity.ok(projects);
     }
 
-    @GetMapping("/projects/{id}")
+    @GetMapping({"/customer/projects/{id}", "/projects/{id}"})
     public ResponseEntity<?> getProjectById(@PathVariable String id, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
@@ -347,4 +349,195 @@ public class ProjectController {
 
         return ResponseEntity.status(404).body(Map.of("error", "Project not found"));
     }
+
+    // ========================================================
+    // CONTRACTOR DISCOVERY & DETAIL ENDPOINTS
+    // ========================================================
+
+    @GetMapping("/contractor/projects")
+    public ResponseEntity<?> getContractorProjects(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please login first."));
+        }
+
+        boolean isContractor = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CONTRACTOR") || a.getAuthority().equals("CONTRACTOR"));
+        if (!isContractor) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: Contractor role required."));
+        }
+
+        List<Project> openProjects = projectRepository.findByStatusOrderByCreatedAtDesc("OPEN");
+        List<ContractorProjectResponse> responseList = openProjects.stream()
+                .map(this::mapToContractorResponse)
+                .toList();
+
+        return ResponseEntity.ok(responseList);
+    }
+
+    @GetMapping("/contractor/projects/{id}")
+    public ResponseEntity<?> getContractorProjectById(@PathVariable String id, Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please login first."));
+        }
+
+        boolean isContractor = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CONTRACTOR") || a.getAuthority().equals("CONTRACTOR"));
+        if (!isContractor) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: Contractor role required."));
+        }
+
+        // Direct lookup by business project ID (e.g. PRJ-...)
+        Optional<Project> byProjectId = projectRepository.findByProjectId(id);
+        if (byProjectId.isPresent()) {
+            return ResponseEntity.ok(mapToContractorResponse(byProjectId.get()));
+        }
+
+        // Numeric database ID lookup fallback
+        try {
+            Long numericId = Long.parseLong(id);
+            Optional<Project> byId = projectRepository.findById(numericId);
+            if (byId.isPresent()) {
+                return ResponseEntity.ok(mapToContractorResponse(byId.get()));
+            }
+        } catch (NumberFormatException ignored) {}
+
+        // Case-insensitive fallback lookup
+        List<Project> all = projectRepository.findAll();
+        if (all != null) {
+            for (Project p : all) {
+                if (id.equalsIgnoreCase(p.getProjectId())) {
+                    return ResponseEntity.ok(mapToContractorResponse(p));
+                }
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+    }
+
+    private ContractorProjectResponse mapToContractorResponse(Project p) {
+        if (p == null) return null;
+
+        Map<String, Object> technicalDetails = new HashMap<>();
+        if (p.getCompleteDataJson() != null && !p.getCompleteDataJson().isBlank()) {
+            try {
+                Map<?, ?> raw = objectMapper.readValue(p.getCompleteDataJson(), Map.class);
+                String[] safeKeys = {
+                    "hasBasement", "basementDetails", "floors", "purpose", "plotFacing",
+                    "cornerPlot", "propertyType", "propertyAge", "existingType", "rooms",
+                    "scope", "interiorPreferences", "commercial", "industrial", "custom",
+                    "renovationAreas", "renovScope", "extensionDetails", "scopeOfWork"
+                };
+                for (String k : safeKeys) {
+                    if (raw.containsKey(k) && raw.get(k) != null) {
+                        technicalDetails.put(k, raw.get(k));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        String displayTitle = (p.getProjectTitle() != null && !p.getProjectTitle().isBlank())
+                ? p.getProjectTitle()
+                : (p.getTitle() != null ? p.getTitle() : "BuildBid Project");
+
+        String displayType = (p.getProjectType() != null && !p.getProjectType().isBlank())
+                ? p.getProjectType()
+                : (p.getType() != null ? p.getType() : "General Construction");
+
+        StringBuilder locBuilder = new StringBuilder();
+        if (p.getCity() != null && !p.getCity().isBlank()) {
+            locBuilder.append(p.getCity());
+        }
+        if (p.getState() != null && !p.getState().isBlank()) {
+            if (!locBuilder.isEmpty()) locBuilder.append(", ");
+            locBuilder.append(p.getState());
+        }
+        if (p.getPincode() != null && !p.getPincode().isBlank()) {
+            if (!locBuilder.isEmpty()) locBuilder.append(" ");
+            locBuilder.append(p.getPincode());
+        }
+        String safeLocation = locBuilder.toString().trim();
+        if (safeLocation.isEmpty()) {
+            safeLocation = (p.getLocation() != null && !p.getLocation().isBlank()) ? p.getLocation() : "Location Not Specified";
+        }
+
+        return new ContractorProjectResponse(
+                p.getId(),
+                p.getProjectId() != null ? p.getProjectId() : "PRJ-" + p.getId(),
+                displayTitle,
+                displayTitle,
+                displayType,
+                displayType,
+                p.getCity(),
+                p.getState(),
+                p.getPincode(),
+                safeLocation,
+                p.getTotalArea(),
+                p.getBuiltUpArea(),
+                p.getPlotArea(),
+                p.getFloors(),
+                p.getQualityTier(),
+                p.getEstimatedCost(),
+                p.getBudget(),
+                p.getBudgetMin(),
+                p.getBudgetMax(),
+                p.getTimeline(),
+                p.getTargetStartDate(),
+                p.getPaymentPreference(),
+                p.getPrivacyPreference(),
+                p.getDescription(),
+                p.getScopeOfWork(),
+                p.getRenovationAreas(),
+                p.getRenovScope(),
+                p.getExtensionDetails(),
+                p.getInteriorRooms(),
+                p.getInteriorScope(),
+                p.getInteriorPreferences(),
+                p.getCommercial(),
+                p.getIndustrial(),
+                p.getCustomDetails(),
+                technicalDetails,
+                p.getStatus() != null ? p.getStatus() : "OPEN",
+                p.getCreatedAt()
+        );
+    }
+
+    public record ContractorProjectResponse(
+            Long id,
+            String projectId,
+            String title,
+            String projectTitle,
+            String type,
+            String projectType,
+            String city,
+            String state,
+            String pincode,
+            String location,
+            Double totalArea,
+            Double builtUpArea,
+            Double plotArea,
+            String floors,
+            String qualityTier,
+            String estimatedCost,
+            String budget,
+            Double budgetMin,
+            Double budgetMax,
+            String timeline,
+            String targetStartDate,
+            String paymentPreference,
+            String privacyPreference,
+            String description,
+            String scopeOfWork,
+            String renovationAreas,
+            String renovScope,
+            String extensionDetails,
+            String interiorRooms,
+            String interiorScope,
+            String interiorPreferences,
+            String commercial,
+            String industrial,
+            String customDetails,
+            Map<String, Object> details,
+            String status,
+            LocalDateTime createdAt
+    ) {}
 }

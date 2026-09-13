@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bid Builder | BuildBid Contractor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="contractor-dashboard.css">
+    <link rel="stylesheet" href="contractor-bid-builder.css">
+</head>
+<body>
+
+<div class="bb-builder-container">
+    <!-- LEFT: DETAILED FORM -->
+    <div class="builder-main">
+        <div class="builder-header">
+            <span class="header-badge">OFFICIAL BID SPECIFICATION</span>
+            <h2 id="projectTitleDisplay">Loading Project...</h2>
+            <p id="projectLocationDisplay" class="project-location"><i class="fa-solid fa-location-dot"></i> --</p>
+        </div>
+
+        <form id="bidBuilderForm">
+            <!-- 1. Scope & Material Mode -->
+            <div class="builder-section">
+                <h3><i class="fa-solid fa-briefcase"></i> 1. Bid Summary & Material Responsibility</h3>
+                <div class="two-col-grid">
+                    <div class="form-group-custom">
+                        <label>Quotation Title *</label>
+                        <input type="text" id="bidTitle" placeholder="e.g. Turnkey Structure & Finishing Quotation" required>
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Material Responsibility *</label>
+                        <select id="materialMode">
+                            <option value="WITH_MATERIAL">With Material (Turnkey Project)</option>
+                            <option value="LABOUR_ONLY">Labour Only (Customer Supplies Materials)</option>
+                            <option value="HYBRID">Semi-Turnkey (Shared Supply)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Floor-Wise Components -->
+            <div class="builder-section">
+                <h3><i class="fa-solid fa-layer-group"></i> 2. Floor-Wise Breakdown</h3>
+                <table class="dynamic-table" id="floorsTable">
+                    <thead>
+                        <tr>
+                            <th>Floor Name</th>
+                            <th>Scope / Construction Component</th>
+                            <th>Cost (₹)</th>
+                            <th width="40"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" value="Ground Floor" required></td>
+                            <td><input type="text" value="Foundation, RCC, Masonry & Plaster" required></td>
+                            <td><input type="number" class="floor-cost-input" value="0" min="0" oninput="calculateAllTotals()"></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="btn-add-row" onclick="addFloorRow()"><i class="fa-solid fa-plus"></i> Add Floor</button>
+            </div>
+
+            <!-- 3. Materials Breakdown -->
+            <div class="builder-section" id="materialSectionBox">
+                <h3><i class="fa-solid fa-boxes-stacked"></i> 3. Material Itemized Cost</h3>
+                <table class="dynamic-table" id="materialsTable">
+                    <thead>
+                        <tr>
+                            <th>Material Name</th>
+                            <th>Qty</th>
+                            <th>Unit</th>
+                            <th>Rate (₹)</th>
+                            <th>Total (₹)</th>
+                            <th>Brand / Spec</th>
+                            <th width="40"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" value="Cement" required></td>
+                            <td><input type="number" class="mat-qty" value="400" min="1" oninput="calculateAllTotals()"></td>
+                            <td><input type="text" value="Bags"></td>
+                            <td><input type="number" class="mat-rate" value="420" min="0" oninput="calculateAllTotals()"></td>
+                            <td><input type="number" class="mat-total read-only-input" value="168000" readonly></td>
+                            <td><input type="text" value="Ultratech / Ambuja"></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="btn-add-row" onclick="addMaterialRow()"><i class="fa-solid fa-plus"></i> Add Material</button>
+            </div>
+
+            <!-- 4. Labour Breakdown -->
+            <div class="builder-section">
+                <h3><i class="fa-solid fa-person-digging"></i> 4. Labour Breakdown</h3>
+                <table class="dynamic-table" id="labourTable">
+                    <thead>
+                        <tr>
+                            <th>Trade / Skill</th>
+                            <th>Workers</th>
+                            <th>Days</th>
+                            <th>Daily Rate (₹)</th>
+                            <th>Amount (₹)</th>
+                            <th width="40"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" value="Mason & Shuttering Crew" required></td>
+                            <td><input type="number" class="lab-workers" value="4" min="1" oninput="calculateAllTotals()"></td>
+                            <td><input type="number" class="lab-days" value="60" min="1" oninput="calculateAllTotals()"></td>
+                            <td><input type="number" class="lab-rate" value="850" min="0" oninput="calculateAllTotals()"></td>
+                            <td><input type="number" class="lab-total read-only-input" value="204000" readonly></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="btn-add-row" onclick="addLabourRow()"><i class="fa-solid fa-plus"></i> Add Labour Trade</button>
+            </div>
+
+            <!-- 5. Commercial Pricing & Margin (Contractor Only) -->
+            <div class="builder-section commercial-box">
+                <h3><i class="fa-solid fa-shield-halved"></i> 5. Private Commercial Pricing (Confidential)</h3>
+                <span class="badge-confidential"><i class="fa-solid fa-lock"></i> Visible only to you. Never shown to customer.</span>
+                <div class="two-col-grid">
+                    <div class="form-group-custom">
+                        <label>Overhead, Risk & Contractor Margin (₹) *</label>
+                        <input type="number" id="privateMargin" value="0" min="0" oninput="calculateAllTotals()" placeholder="e.g. 150000">
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Applicable GST / Taxes (₹)</label>
+                        <input type="number" id="taxAmount" value="0" min="0" oninput="calculateAllTotals()" placeholder="e.g. 0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Timeline & Payment Milestones -->
+            <div class="builder-section">
+                <h3><i class="fa-solid fa-calendar-days"></i> 6. Timeline & Payment Schedule</h3>
+                <div class="two-col-grid">
+                    <div class="form-group-custom">
+                        <label>Estimated Duration (Days) *</label>
+                        <input type="number" id="estimatedDays" value="120" min="1" required>
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Defect Liability / Warranty</label>
+                        <input type="text" id="warrantyText" value="12 Months Comprehensive + 10 Years Structural">
+                    </div>
+                </div>
+
+                <label class="milestone-label">Payment Milestones (Must total 100%) *</label>
+                <table class="dynamic-table" id="milestonesTable">
+                    <thead>
+                        <tr>
+                            <th>Milestone Stage</th>
+                            <th>Percentage (%)</th>
+                            <th width="40"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" value="Advance on Agreement Signing" required></td>
+                            <td><input type="number" class="milestone-pct" value="15" min="1" max="100" oninput="validateMilestones()"></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" value="Plinth Level Completion" required></td>
+                            <td><input type="number" class="milestone-pct" value="35" min="1" max="100" oninput="validateMilestones()"></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" value="Roof Slab Casting" required></td>
+                            <td><input type="number" class="milestone-pct" value="35" min="1" max="100" oninput="validateMilestones()"></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" value="Finishing & Handover" required></td>
+                            <td><input type="number" class="milestone-pct" value="15" min="1" max="100" oninput="validateMilestones()"></td>
+                            <td><button type="button" class="btn-del-row" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="milestoneWarning" class="milestone-badge valid">Total: 100% (Valid)</div>
+                <button type="button" class="btn-add-row" onclick="addMilestoneRow()"><i class="fa-solid fa-plus"></i> Add Milestone</button>
+            </div>
+
+            <!-- 7. Inclusions, Exclusions & Notes -->
+            <div class="builder-section">
+                <h3><i class="fa-solid fa-list-check"></i> 7. Scope & Inclusions</h3>
+                <div class="two-col-grid">
+                    <div class="form-group-custom">
+                        <label>Included Work (One per line)</label>
+                        <textarea id="includedWork" rows="4">Excavation & PCC
+RCC Frame Structure
+Brickwork & Internal/External Plaster
+Waterproofing for Toilets & Terrace</textarea>
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Excluded Work (One per line)</label>
+                        <textarea id="excludedWork" rows="4">Government approval fees
+Electricity meter installation
+Interior furniture / woodwork</textarea>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- RIGHT: RUNNING TOTAL STICKY SUMMARY -->
+    <div class="sticky-summary">
+        <h3>Quotation Summary</h3>
+        <div class="summary-row">
+            <span>Floor Work Cost:</span>
+            <strong id="sumFloors">₹0</strong>
+        </div>
+        <div class="summary-row">
+            <span>Materials Cost:</span>
+            <strong id="sumMaterials">₹0</strong>
+        </div>
+        <div class="summary-row">
+            <span>Labour Cost:</span>
+            <strong id="sumLabour">₹0</strong>
+        </div>
+        <div class="summary-row total-direct">
+            <span>Direct Construction Cost:</span>
+            <strong id="sumDirect">₹0</strong>
+        </div>
+        <div class="summary-row margin-row">
+            <span>Private Adjustment/Margin:</span>
+            <strong id="sumMargin">₹0</strong>
+        </div>
+        <div class="summary-row">
+            <span>Taxes & Fees:</span>
+            <strong id="sumTax">₹0</strong>
+        </div>
+        <div class="summary-row final-bid">
+            <span>Final Quotation:</span>
+            <strong id="sumFinal">₹0</strong>
+        </div>
+
+        <button type="button" class="btn-submit-quotation" onclick="submitDetailedBid()">
+            <i class="fa-solid fa-paper-plane"></i> Submit Quotation
+        </button>
+        <button type="button" class="btn-cancel-builder" onclick="history.back()">
+            Cancel
+        </button>
+    </div>
+</div>
+
+<script src="contractor-bid-builder.js"></script>
+</body>
+</html>

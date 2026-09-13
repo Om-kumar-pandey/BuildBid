@@ -461,6 +461,7 @@ public class MarketplaceBackendApplication {
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
+                            .requestMatchers("/api/contractor/**").hasRole("CONTRACTOR")
                             .anyRequest().authenticated()
                     )
                     .authenticationProvider(authenticationProvider())

@@ -338,6 +338,66 @@
     </main>
   </div>
 
+  <!-- Contractor Project Detail Modal -->
+  <div class="modal-overlay" id="contractor-project-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+    <div class="modal-card" style="background:#ffffff; border-radius:14px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 40px -15px rgba(0,0,0,0.25); border:1px solid #e2e8f0; display:flex; flex-direction:column;">
+      <div class="modal-header" style="padding:1.25rem 1.5rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-start; position:sticky; top:0; background:#ffffff; z-index:10;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span class="status-tag" id="modal-project-status" style="background:#e0f2fe; color:#0369a1; font-weight:700; font-size:0.75rem; padding:3px 10px; border-radius:20px;">Open for Bidding</span>
+            <span id="modal-project-id" style="font-family:monospace; font-weight:700; color:#475569; background:#f1f5f9; padding:3px 8px; border-radius:4px; font-size:0.8rem;">PRJ-...</span>
+          </div>
+          <h3 id="modal-project-title" style="margin:0; font-size:1.2rem; color:#0f172a; font-weight:700;">Project Details</h3>
+          <p id="modal-project-category" style="margin:2px 0 0; color:#64748b; font-size:0.85rem;">New Construction</p>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeProjectModal()" style="background:none; border:none; font-size:1.5rem; color:#94a3b8; cursor:pointer; padding:4px 8px; line-height:1;">&times;</button>
+      </div>
+
+      <div class="modal-body" id="modal-project-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:1.25rem;">
+        <!-- Specifications Grid -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; background:#f8fafc; padding:1rem; border-radius:10px; border:1px solid #edf2f7;">
+          <div><small style="color:#64748b; font-size:0.75rem; display:block;">Location</small><strong id="modal-spec-location" style="color:#1e293b; font-size:0.85rem;">--</strong></div>
+          <div><small style="color:#64748b; font-size:0.75rem; display:block;">Built-up Area</small><strong id="modal-spec-area" style="color:#1e293b; font-size:0.85rem;">--</strong></div>
+          <div><small style="color:#64748b; font-size:0.75rem; display:block;">Plot Area</small><strong id="modal-spec-plot" style="color:#1e293b; font-size:0.85rem;">--</strong></div>
+          <div><small style="color:#64748b; font-size:0.75rem; display:block;">Floors</small><strong id="modal-spec-floors" style="color:#1e293b; font-size:0.85rem;">--</strong></div>
+          <div><small style="color:#64748b; font-size:0.75rem; display:block;">Quality Tier</small><strong id="modal-spec-quality" style="color:#1e293b; font-size:0.85rem;">Standard</strong></div>
+          <div><small style="color:#64748b; font-size:0.75rem; display:block;">Timeline</small><strong id="modal-spec-timeline" style="color:#1e293b; font-size:0.85rem;">--</strong></div>
+        </div>
+
+        <!-- Budget & Estimator block -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:0.9rem; border-radius:8px;">
+            <small style="color:#065f46; font-size:0.75rem; font-weight:600; text-transform:uppercase;">Customer Budget</small>
+            <div id="modal-spec-budget" style="font-size:1.1rem; font-weight:700; color:#047857; margin-top:2px;">₹0</div>
+          </div>
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:0.9rem; border-radius:8px;">
+            <small style="color:#1e40af; font-size:0.75rem; font-weight:600; text-transform:uppercase;">Cost Estimator Range</small>
+            <div id="modal-spec-estimated" style="font-size:1.1rem; font-weight:700; color:#1d4ed8; margin-top:2px;">₹0</div>
+          </div>
+        </div>
+
+        <!-- Description & Scope -->
+        <div>
+          <h4 style="font-size:0.95rem; color:#1e293b; margin:0 0 6px;">Customer Description</h4>
+          <p id="modal-spec-description" style="font-size:0.85rem; color:#475569; line-height:1.5; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; margin:0; white-space:pre-wrap;">--</p>
+        </div>
+
+        <!-- Technical & Construction Breakdown -->
+        <div id="modal-tech-section" style="display:none;">
+          <h4 style="font-size:0.95rem; color:#1e293b; margin:0 0 6px;">Technical Requirements & Specifications</h4>
+          <div id="modal-tech-breakdown" style="font-size:0.85rem; color:#475569; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding:1rem 1.5rem; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px; background:#f8fafc; border-bottom-left-radius:14px; border-bottom-right-radius:14px;">
+        <button type="button" onclick="closeProjectModal()" style="background:#ffffff; border:1px solid #cbd5e1; color:#475569; font-weight:600; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.85rem;">Close</button>
+        <button type="button" id="modal-btn-bid" style="background:#0284c7; border:none; color:#ffffff; font-weight:600; padding:8px 18px; border-radius:6px; cursor:pointer; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-gavel"></i> Bid on this Project
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="contractor-projects.js"></script>
 </body>
 </html>

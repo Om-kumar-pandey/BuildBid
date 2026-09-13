@@ -3,36 +3,145 @@
  * Manages live customer postings, dynamic search, and Quotation submissions.
  */
 
-// 1. Authenticate Contractor & Populate Navbar
-function setupContractorSession() {
-  const rawData = localStorage.getItem("currentUser") || 
-                  localStorage.getItem("loggedInUser") || 
-                  sessionStorage.getItem("currentUser");
-
-  if (!rawData) {
-    alert("Please login first!");
-    window.location.href = "index.html";
-    return null;
+const API_BASE_URL = (() => {
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return "http://localhost:8080";
   }
+  return window.location.origin;
+})();
 
-  const user = JSON.parse(rawData);
-  const displayName = user.name || user.username || "Contractor";
-  const initials = displayName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "HK";
-
-  const nameElem = document.getElementById("top-nav-name");
-  if (nameElem) nameElem.textContent = displayName;
-  
-  const avatarText = document.getElementById("top-nav-avatar-text");
-  if (avatarText) avatarText.textContent = initials;
-
-  return user;
+function getCleanToken() {
+  let token = localStorage.getItem("token") ||
+              localStorage.getItem("marketplaceToken") ||
+              localStorage.getItem("jwtToken");
+  if (!token) return null;
+  token = token.trim();
+  if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+    token = token.substring(1, token.length - 1).trim();
+  }
+  if (token.toLowerCase().startsWith("bearer ")) {
+    token = token.substring(7).trim();
+  }
+  return token;
 }
 
-// 2. Fetch Customer Projects
-function getLiveProjects() {
-  const rawProjects = localStorage.getItem("buildbid_customer_projects") || 
-                      localStorage.getItem("customerProjects");
-  return rawProjects ? JSON.parse(rawProjects) : [];
+// 1. Authenticate Contractor & Populate Navbar
+function setupContractorSession() {
+  const rawData = localStorage.getItem("currentUser") ||
+                  localStorage.getItem("loggedInUser") ||
+                  sessionStorage.getItem("currentUser") ||
+                  localStorage.getItem("marketplaceUser");
+
+  if (!rawData) {
+    const token = getCleanToken();
+    if (!token) {
+      alert("Please login first!");
+      window.location.href = "index.html";
+      return null;
+    }
+    return { name: "Contractor", username: "contractor" };
+  }
+
+  try {
+    const user = JSON.parse(rawData);
+    const displayName = user.name || user.username || "Contractor";
+    const initials = displayName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "HK";
+
+    const nameElem = document.getElementById("top-nav-name");
+    if (nameElem) nameElem.textContent = displayName;
+
+    const avatarText = document.getElementById("top-nav-avatar-text");
+    if (avatarText) avatarText.textContent = initials;
+
+    return user;
+  } catch(e) {
+    return { name: "Contractor", username: "contractor" };
+  }
+}
+
+let cachedLiveProjects = [];
+let isFetchingLiveProjects = false;
+
+// 2. Fetch Customer Projects from Backend
+async function loadLiveProjects() {
+  if (isFetchingLiveProjects) return;
+  isFetchingLiveProjects = true;
+
+  const container = document.getElementById("live-projects-container");
+  if (container) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; background:#fff; border-radius:10px; padding:3rem; text-align:center; color:#64748b;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:#0284c7; margin-bottom:12px;"></i>
+        <p style="margin:0; font-size:0.95rem;">Loading live customer projects from database...</p>
+      </div>
+    `;
+  }
+
+  const token = getCleanToken();
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/contractor/projects`, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Authorization": token ? `Bearer ${token}` : ""
+      }
+    });
+
+    if (res.status === 401) {
+      if (container) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; background:#fff; border-radius:10px; padding:3rem; text-align:center; color:#dc2626;">
+            <i class="fa-solid fa-lock" style="font-size:2.5rem; margin-bottom:12px;"></i>
+            <h3>Authentication Required</h3>
+            <p>Please log in with your verified contractor account to view customer projects.</p>
+            <a href="index.html" style="display:inline-block; margin-top:10px; background:#0284c7; color:#fff; padding:8px 18px; border-radius:6px; text-decoration:none; font-weight:600;">Go to Login</a>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if (res.status === 403) {
+      if (container) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; background:#fff; border-radius:10px; padding:3rem; text-align:center; color:#dc2626;">
+            <i class="fa-solid fa-shield-halved" style="font-size:2.5rem; margin-bottom:12px;"></i>
+            <h3>Access Restricted</h3>
+            <p>This section is exclusively available for verified Contractors.</p>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status}`);
+    }
+
+    const projects = await res.json();
+    cachedLiveProjects = Array.isArray(projects) ? projects : [];
+    renderLiveProjectsGrid(cachedLiveProjects);
+
+    const badge = document.getElementById("nav-badge-projects");
+    if (badge) badge.textContent = cachedLiveProjects.length;
+
+  } catch (err) {
+    console.error("Failed to load contractor projects:", err);
+    if (container) {
+      container.innerHTML = `
+        <div style="grid-column: 1/-1; background:#fff; border-radius:10px; padding:3rem; text-align:center; color:#64748b;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem; color:#f59e0b; margin-bottom:12px;"></i>
+          <h3 style="color:#1e293b; margin-bottom:4px;">Unable to load projects</h3>
+          <p style="font-size:0.85rem;">Could not connect to the database. Please try again.</p>
+          <button onclick="loadLiveProjects()" style="background:#0284c7; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-weight:600; cursor:pointer; margin-top:10px;">Retry</button>
+        </div>
+      `;
+    }
+  } finally {
+    isFetchingLiveProjects = false;
+  }
 }
 
 // 3. Fetch Contractor's Existing Quotations/Bids
@@ -47,8 +156,7 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   const badge = document.getElementById("nav-badge-projects");
   const myBids = getContractorBids();
 
-  const allProjects = getLiveProjects();
-  if (badge) badge.textContent = allProjects.length;
+  if (badge) badge.textContent = cachedLiveProjects.length;
 
   // Update bids counter badge
   const bidsBadge = document.getElementById("nav-badge-bids");
@@ -57,7 +165,7 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   if (!container) return;
   container.innerHTML = "";
 
-  if (projectsToDisplay.length === 0) {
+  if (!projectsToDisplay || projectsToDisplay.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1/-1; background:#fff; border-radius:10px; padding:3.5rem; text-align:center; color:#64748b;">
         <i class="fa-regular fa-folder-open" style="font-size:3rem; color:#94a3b8; margin-bottom:12px;"></i>
@@ -69,37 +177,58 @@ function renderLiveProjectsGrid(projectsToDisplay) {
   }
 
   projectsToDisplay.forEach(project => {
+    const pId = project.projectId || (project.id ? `PRJ-${project.id}` : "");
+    const displayTitle = project.projectTitle || project.title || "BuildBid Project";
+    const displayLocation = project.location || (project.city ? `${project.city}, ${project.state || ""}` : "Location Not Specified");
+    const displayBudget = project.budget || (project.budgetMin && project.budgetMax ? `₹${project.budgetMin.toLocaleString("en-IN")} - ₹${project.budgetMax.toLocaleString("en-IN")}` : "Negotiable");
+    const displayArea = project.builtUpArea || project.totalArea ? `${project.builtUpArea || project.totalArea} sq ft` : "";
+    const displayCategory = project.projectType || project.type || "Construction";
+    const displayDate = project.createdAt ? new Date(project.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "Recent";
+    const displayStatus = (project.status === "OPEN" || !project.status) ? "Open for Bidding" : project.status;
+
     // Check if current contractor has already quoted for this project
-    const hasAlreadyBid = myBids.some(b => b.projectId === project.id);
+    const hasAlreadyBid = myBids.some(b => String(b.projectId) === String(pId) || String(b.projectId) === String(project.id));
 
     const card = document.createElement("div");
     card.className = "market-card";
     card.innerHTML = `
       <div class="market-card-img-wrap">
-        <img src="${project.imageUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?w=350'}" alt="Project Image" class="market-card-img" />
-        <span class="market-status-pill">${escapeHTML(project.status || 'Live')}</span>
+        <img src="https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?w=350" alt="Project Image" class="market-card-img" />
+        <span class="market-status-pill">${escapeHTML(displayStatus)}</span>
       </div>
       <div class="market-card-body">
-        <h3>${escapeHTML(project.title)}</h3>
-        <p class="market-location"><i class="fa-solid fa-location-dot"></i> ${escapeHTML(project.location || 'Location Not Specified')}</p>
-        
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+          <h3 style="margin: 0; font-size: 1.05rem;">${escapeHTML(displayTitle)}</h3>
+          ${pId ? `<span style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:monospace; border:1px solid #e2e8f0; white-space:nowrap;">${escapeHTML(pId)}</span>` : ''}
+        </div>
+        <p class="market-location"><i class="fa-solid fa-location-dot"></i> ${escapeHTML(displayLocation)}</p>
+
         <div class="market-specs">
           <div>
             <span>Customer Budget</span>
-            <strong>${escapeHTML(project.budget || 'Negotiable')}</strong>
+            <strong>${escapeHTML(displayBudget)}</strong>
           </div>
           <div>
             <span>Posted On</span>
-            <strong>${escapeHTML(project.postedDate || 'Recent')}</strong>
+            <strong>${escapeHTML(displayDate)}</strong>
           </div>
         </div>
 
-        <div class="market-card-footer">
-          <span class="bids-badge"><i class="fa-solid fa-gavel"></i> <strong>${project.bidsCount || 0}</strong> Bids</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#64748b; margin-top:8px; padding-top:8px; border-top:1px dashed #e2e8f0;">
+          <span>${displayArea ? `${escapeHTML(displayArea)} • ` : ''}${escapeHTML(displayCategory)}</span>
+          ${project.floors ? `<span><strong>${escapeHTML(project.floors)}</strong> Floors</span>` : ''}
+        </div>
+
+        <div class="market-card-footer" style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn-bid-now" onclick="openProjectModal('${escapeHTML(pId || project.id)}')" style="flex:1; background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:0.82rem; padding:8px 10px;">
+            <i class="fa-regular fa-eye"></i> Details
+          </button>
           ${
-            hasAlreadyBid 
-              ? `<button class="btn-bid-now btn-already-bid" disabled><i class="fa-solid fa-check"></i> Quotation Sent</button>`
-              : `<button class="btn-bid-now" onclick="openQuotationModal('${project.id}')"><i class="fa-solid fa-file-invoice-dollar"></i> Send Quotation</button>`
+            hasAlreadyBid
+              ? `<button class="btn-bid-now btn-already-bid" disabled style="flex:1; padding:8px 10px; font-size:0.82rem;"><i class="fa-solid fa-check"></i> Bid Sent</button>`
+              : `<button class="btn-bid-now" onclick="navigateToBid('${escapeHTML(pId || project.id)}')" style="flex:1; padding:8px 10px; font-size:0.82rem; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+                   <i class="fa-solid fa-gavel"></i> Bid / Quote
+                 </button>`
           }
         </div>
       </div>
@@ -110,24 +239,24 @@ function renderLiveProjectsGrid(projectsToDisplay) {
 
 let activeBiddingProjectId = null;
 
-// Replace existing openQuotationModal with inline switcher:
+// Inline Bid Builder support
 function openQuotationModal(projectId) {
-  const projects = getLiveProjects();
-  const project = projects.find(p => String(p.id) === String(projectId));
+  const project = cachedLiveProjects.find(p => String(p.projectId) === String(projectId) || String(p.id) === String(projectId));
   if (!project) return;
 
-  activeBiddingProjectId = projectId;
+  activeBiddingProjectId = project.projectId || projectId;
 
-  // Header data populate karein
-  document.getElementById("projectTitleDisplay").innerText = project.title || "Modern 3BHK House";
-  document.getElementById("projectLocationDisplay").innerHTML = `<i class="fa-solid fa-location-dot"></i> ${project.location || "Greater Noida, Uttar Pradesh"}`;
+  // Header data populate
+  const displayLocation = project.location || (project.city ? `${project.city}, ${project.state || ""}` : "Not Specified");
+  document.getElementById("projectTitleDisplay").innerText = project.projectTitle || project.title || "Modern 3BHK House";
+  document.getElementById("projectLocationDisplay").innerHTML = `<i class="fa-solid fa-location-dot"></i> ${displayLocation}`;
 
   // Hide live projects container & controls, show bid builder
   const projectListSection = document.getElementById("live-projects-container");
   const builderSection = document.getElementById("inline-bid-builder-section");
 
   if (projectListSection) projectListSection.style.display = "none";
-  
+
   // Hide filters and search bar while bidding
   const filtersElem = document.querySelector(".filter-chips-wrap");
   if (filtersElem) filtersElem.style.display = "none";
@@ -150,6 +279,132 @@ function closeInlineBidBuilder() {
   if (filtersElem) filtersElem.style.display = "flex";
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ================= VIEW DETAILS MODAL =================
+async function openProjectModal(projectId) {
+  const modal = document.getElementById("contractor-project-modal");
+  if (!modal) return;
+
+  const token = getCleanToken();
+
+  let project = cachedLiveProjects.find(p =>
+    String(p.projectId) === String(projectId) || String(p.id) === String(projectId)
+  );
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/contractor/projects/${encodeURIComponent(projectId)}`, {
+      headers: {
+        "Authorization": token ? `Bearer ${token}` : ""
+      }
+    });
+    if (res.ok) {
+      project = await res.json();
+    }
+  } catch (e) {
+    console.warn("Could not fetch remote project details:", e);
+  }
+
+  if (!project) {
+    alert("Project details could not be loaded.");
+    return;
+  }
+
+  const pId = project.projectId || ("PRJ-" + project.id);
+  const pTitle = project.projectTitle || project.title || "BuildBid Project";
+  const pCategory = project.projectType || project.type || "General Construction";
+  const pLocation = project.location || (project.city ? `${project.city}, ${project.state || ""}` : "Not Specified");
+  const pArea = project.builtUpArea || project.totalArea ? `${project.builtUpArea || project.totalArea} sq ft` : "--";
+  const pPlot = project.plotArea ? `${project.plotArea} sq ft` : "--";
+  const pFloors = project.floors ? `${project.floors}` : "--";
+  const pQuality = project.qualityTier || "Standard";
+  const pTimeline = project.timeline || project.targetStartDate || "--";
+  const pBudget = project.budget || (project.budgetMin && project.budgetMax ? `₹${project.budgetMin.toLocaleString("en-IN")} - ₹${project.budgetMax.toLocaleString("en-IN")}` : "Negotiable");
+  const pEstimated = project.estimatedCost || "Not Specified";
+  const pDesc = project.description || "No specific customer description provided.";
+  const pStatus = (project.status === "OPEN" || !project.status) ? "Open for Bidding" : project.status;
+
+  const elId = document.getElementById("modal-project-id");
+  if (elId) elId.textContent = pId;
+
+  const elTitle = document.getElementById("modal-project-title");
+  if (elTitle) elTitle.textContent = pTitle;
+
+  const elCategory = document.getElementById("modal-project-category");
+  if (elCategory) elCategory.textContent = pCategory;
+
+  const elStatus = document.getElementById("modal-project-status");
+  if (elStatus) elStatus.textContent = pStatus;
+
+  const elLoc = document.getElementById("modal-spec-location");
+  if (elLoc) elLoc.textContent = pLocation;
+
+  const elArea = document.getElementById("modal-spec-area");
+  if (elArea) elArea.textContent = pArea;
+
+  const elPlot = document.getElementById("modal-spec-plot");
+  if (elPlot) elPlot.textContent = pPlot;
+
+  const elFloors = document.getElementById("modal-spec-floors");
+  if (elFloors) elFloors.textContent = pFloors;
+
+  const elQuality = document.getElementById("modal-spec-quality");
+  if (elQuality) elQuality.textContent = pQuality;
+
+  const elTimeline = document.getElementById("modal-spec-timeline");
+  if (elTimeline) elTimeline.textContent = pTimeline;
+
+  const elBudget = document.getElementById("modal-spec-budget");
+  if (elBudget) elBudget.textContent = pBudget;
+
+  const elEst = document.getElementById("modal-spec-estimated");
+  if (elEst) elEst.textContent = pEstimated;
+
+  const elDesc = document.getElementById("modal-spec-description");
+  if (elDesc) elDesc.textContent = pDesc;
+
+  const techSec = document.getElementById("modal-tech-section");
+  const techContent = document.getElementById("modal-tech-breakdown");
+  if (techSec && techContent) {
+    if (project.details && Object.keys(project.details).length > 0) {
+      let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">';
+      for (const [k, v] of Object.entries(project.details)) {
+        if (v !== null && v !== undefined && v !== "") {
+          const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          let valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
+          html += `<div><small style="color:#64748b; font-size:11px; display:block;">${escapeHTML(label)}</small><span style="color:#1e293b; font-weight:600; font-size:12px;">${escapeHTML(valStr)}</span></div>`;
+        }
+      }
+      html += '</div>';
+      techContent.innerHTML = html;
+      techSec.style.display = "block";
+    } else {
+      techSec.style.display = "none";
+    }
+  }
+
+  const bidBtn = document.getElementById("modal-btn-bid");
+  if (bidBtn) {
+    bidBtn.onclick = () => {
+      closeProjectModal();
+      navigateToBid(pId);
+    };
+  }
+
+  modal.style.display = "flex";
+}
+
+function closeProjectModal() {
+  const modal = document.getElementById("contractor-project-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function navigateToBid(projectId) {
+  if (!projectId) {
+    alert("Project ID is missing.");
+    return;
+  }
+  window.location.href = `contractor-bid-builder.html?projectId=${encodeURIComponent(projectId)}`;
 }
 
 // ================= BUILDER CALCULATIONS & ROWS =================
@@ -192,7 +447,7 @@ function calculateAllTotals() {
   const tax = Number(document.getElementById("taxAmount")?.value) || 0;
   const sumMargin = document.getElementById("sumMargin");
   if (sumMargin) sumMargin.innerText = "₹" + margin.toLocaleString("en-IN");
-  
+
   const sumTax = document.getElementById("sumTax");
   if (sumTax) sumTax.innerText = "₹" + tax.toLocaleString("en-IN");
 
@@ -293,15 +548,15 @@ async function submitDetailedBid() {
   }
 
   const user = setupContractorSession();
-  const token = localStorage.getItem("token") || localStorage.getItem("marketplaceToken");
+  const token = getCleanToken();
   const finalBidStr = document.getElementById("sumFinal").innerText;
 
   const payload = {
     quotationId: "quot-" + Date.now(),
     projectId: activeBiddingProjectId,
-    contractorId: user.email || user.username,
-    contractorName: user.name || user.companyName,
-    contractorPhone: user.phone || "",
+    contractorId: user ? (user.email || user.username) : "contractor",
+    contractorName: user ? (user.name || user.companyName) : "Contractor",
+    contractorPhone: user ? (user.phone || "") : "",
     amount: finalBidStr,
     bidTitle: title,
     materialMode: document.getElementById("materialMode").value,
@@ -319,17 +574,17 @@ async function submitDetailedBid() {
   bids.unshift(payload);
   localStorage.setItem("buildbid_contractor_bids", JSON.stringify(bids));
 
-  // 2. Increment bids count on project card
-  const projects = getLiveProjects();
-  const targetIndex = projects.findIndex(p => String(p.id) === String(activeBiddingProjectId));
+  // 2. Increment bids count on project card in UI
+  const targetIndex = cachedLiveProjects.findIndex(p =>
+    String(p.projectId) === String(activeBiddingProjectId) || String(p.id) === String(activeBiddingProjectId)
+  );
   if (targetIndex !== -1) {
-    projects[targetIndex].bidsCount = (projects[targetIndex].bidsCount || 0) + 1;
-    localStorage.setItem("buildbid_customer_projects", JSON.stringify(projects));
+    cachedLiveProjects[targetIndex].bidsCount = (cachedLiveProjects[targetIndex].bidsCount || 0) + 1;
   }
 
   // 3. Backend sync
   try {
-    await fetch("https://buildbid-ap3j.onrender.com/api/bids", {
+    await fetch(`${API_BASE_URL}/api/bids`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -343,19 +598,21 @@ async function submitDetailedBid() {
 
   alert("Detailed Quotation successfully submitted to the customer!");
   closeInlineBidBuilder();
-  renderLiveProjectsGrid(getLiveProjects());
+  renderLiveProjectsGrid(cachedLiveProjects);
 }
 
 // 6. Search Filter
 function handleSearchProjects() {
   const query = document.getElementById("project-search-input").value.toLowerCase();
-  const projects = getLiveProjects();
 
-  const filtered = projects.filter(p => 
-    (p.title && p.title.toLowerCase().includes(query)) ||
-    (p.location && p.location.toLowerCase().includes(query)) ||
-    (p.budget && p.budget.toLowerCase().includes(query))
-  );
+  const filtered = cachedLiveProjects.filter(p => {
+    const title = (p.projectTitle || p.title || "").toLowerCase();
+    const loc = (p.location || p.city || "").toLowerCase();
+    const budget = (p.budget || "").toLowerCase();
+    const cat = (p.projectType || p.type || "").toLowerCase();
+    const pId = (p.projectId || "").toLowerCase();
+    return title.includes(query) || loc.includes(query) || budget.includes(query) || cat.includes(query) || pId.includes(query);
+  });
 
   renderLiveProjectsGrid(filtered);
 }
@@ -365,13 +622,15 @@ function filterLiveProjects(type, btn) {
   document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
   if (btn) btn.classList.add("active");
 
-  const projects = getLiveProjects();
   if (type === "all") {
-    renderLiveProjectsGrid(projects);
+    renderLiveProjectsGrid(cachedLiveProjects);
   } else if (type === "open") {
-    renderLiveProjectsGrid(projects.filter(p => (p.status || "").toLowerCase().includes("open")));
+    renderLiveProjectsGrid(cachedLiveProjects.filter(p => (p.status || "").toUpperCase() === "OPEN" || (p.status || "").toLowerCase().includes("open")));
   } else if (type === "high-budget") {
-    renderLiveProjectsGrid(projects.filter(p => (p.budget || "").includes("Cr") || (p.budget || "").includes("Lakh")));
+    renderLiveProjectsGrid(cachedLiveProjects.filter(p => {
+      const b = p.budget || "";
+      return b.includes("Cr") || b.includes("Lakh") || (p.budgetMax && p.budgetMax >= 2000000);
+    }));
   }
 }
 
@@ -380,6 +639,7 @@ function logoutUser() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("marketplaceToken");
   localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("token");
   window.location.href = "index.html";
 }
 
@@ -390,15 +650,8 @@ function escapeHTML(str) {
   }[tag] || tag));
 }
 
-// Real-Time Cross-Window Synchronization
-window.addEventListener("storage", (e) => {
-  if (e.key === "buildbid_customer_projects" || e.key === "customerProjects") {
-    renderLiveProjectsGrid(getLiveProjects());
-  }
-});
-
 // Bootstrapping
 document.addEventListener("DOMContentLoaded", () => {
   setupContractorSession();
-  renderLiveProjectsGrid(getLiveProjects());
+  loadLiveProjects();
 });
