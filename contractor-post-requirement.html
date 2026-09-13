@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post Internal Requirement | BuildBid</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="contractor-dashboard.css" />
+  <link rel="stylesheet" href="contractor-post-requirement.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Identical Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+        <a href="contractor-projects.html" class="nav-item active"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
+        <a href="contractor-post-requirement.html" class="nav-item"><i class="fa-solid fa-users-gear"></i>Post Requirement </a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews & Ratings</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
+        <a href="contractor-verification.html" class="nav-item"><i class="fa-solid fa-circle-check"></i> Get Verified</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications <span class="badge" id="nav-badge-notifications">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help & Support</a>
+      </nav>
+    </aside>
+    <!-- Main Section -->
+    <main class="main-wrapper">
+      <header class="top-nav">
+        <div class="nav-actions">
+          <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+          <div class="user-profile">
+            <div class="avatar" id="contractorAvatar"><span>HK</span></div>
+            <div class="user-meta">
+              <h4 id="contractorNameDisplay">Contractor</h4>
+              <span id="top-nav-badge">Verified Contractor</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="dashboard-content">
+        <div class="page-title-wrap">
+          <div>
+            <h2>Post Internal Requirement</h2>
+            <p>Bulk hiring and sub-contracting for your cooperative site team.</p>
+          </div>
+          <button type="button" class="btn-ghost" onclick="window.location.href='contractor-dashboard.html'">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+          </button>
+        </div>
+
+        <!-- 5-Step Stepper Header -->
+        <div class="stepper-track">
+          <div class="step-item active" id="stepIndicator1">
+            <span class="step-dot">1</span>
+            <span class="step-label">Project Details</span>
+          </div>
+          <div class="step-item" id="stepIndicator2">
+            <span class="step-dot">2</span>
+            <span class="step-label">Trades & Skills</span>
+          </div>
+          <div class="step-item" id="stepIndicator3">
+            <span class="step-dot">3</span>
+            <span class="step-label">Team & Rates</span>
+          </div>
+          <div class="step-item" id="stepIndicator4">
+            <span class="step-dot">4</span>
+            <span class="step-label">Logistics</span>
+          </div>
+          <div class="step-item" id="stepIndicator5">
+            <span class="step-dot">5</span>
+            <span class="step-label">Review & Post</span>
+          </div>
+        </div>
+
+        <div class="wizard-grid-layout">
+          <!-- LEFT: Dynamic 5-Step Form -->
+          <div class="wizard-form-card">
+            <!-- STEP 1: PROJECT DETAILS -->
+            <section class="wizard-step active" id="step1">
+              <div class="step-heading">
+                <h3><i class="fa-solid fa-building"></i> Step 1: Project Details</h3>
+                <p>Provide primary deployment details for this bulk labor requirement.</p>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Project Name *</label>
+                  <input type="text" id="reqProjectName" placeholder="e.g., Green Valley Residency" oninput="updateSummarySidebar()" required />
+                </div>
+                <div class="form-group">
+                  <label>Project Type *</label>
+                  <select id="reqProjectType" onchange="updateSummarySidebar()">
+                    <option value="Residential">Residential</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Industrial">Industrial</option>
+                    <option value="Infrastructure">Infrastructure</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Project Location *</label>
+                <div class="input-with-action">
+                  <input type="text" id="reqLocation" placeholder="e.g., Indore, Madhya Pradesh" oninput="updateSummarySidebar()" required />
+                  <button type="button" class="btn-action-small" onclick="detectUserLocation()"><i class="fa-solid fa-crosshairs"></i> Detect</button>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Start Date *</label>
+                  <input type="date" id="reqStartDate" onchange="calculateProjectDuration()" required />
+                </div>
+                <div class="form-group">
+                  <label>End Date *</label>
+                  <input type="date" id="reqEndDate" onchange="calculateProjectDuration()" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="label-with-counter">
+                  <label>Project Description</label>
+                  <span class="char-count" id="descCharCount">0/500</span>
+                </div>
+                <textarea id="reqDescription" maxlength="500" placeholder="Describe the site scope, build stages, and special structural requirements..." oninput="handleCharCounter(this, 'descCharCount', 500)"></textarea>
+              </div>
+            </section>
+
+            <!-- STEP 2: SELECT TRADES & SKILLS -->
+            <section class="wizard-step" id="step2">
+              <div class="step-heading">
+                <h3><i class="fa-solid fa-screwdriver-wrench"></i> Step 2: Select Trades & Skills</h3>
+                <p>Pick the skilled labor categories you need to hire.</p>
+              </div>
+
+              <div class="trades-multi-grid" id="tradesCheckboxContainer">
+                <label class="trade-chip">
+                  <input type="checkbox" value="Plumber" data-icon="fa-wrench" onchange="handleTradeToggle(this)" />
+                  <span><i class="fa-solid fa-wrench"></i> Plumber</span>
+                </label>
+                <label class="trade-chip">
+                  <input type="checkbox" value="Electrician" data-icon="fa-bolt" onchange="handleTradeToggle(this)" />
+                  <span><i class="fa-solid fa-bolt"></i> Electrician</span>
+                </label>
+                <label class="trade-chip">
+                  <input type="checkbox" value="Mason" data-icon="fa-trowel" onchange="handleTradeToggle(this)" />
+                  <span><i class="fa-solid fa-trowel"></i> Mason</span>
+                </label>
+                <label class="trade-chip">
+                  <input type="checkbox" value="Carpenter" data-icon="fa-hammer" onchange="handleTradeToggle(this)" />
+                  <span><i class="fa-solid fa-hammer"></i> Carpenter</span>
+                </label>
+                <label class="trade-chip">
+                  <input type="checkbox" value="Painter" data-icon="fa-paint-roller" onchange="handleTradeToggle(this)" />
+                  <span><i class="fa-solid fa-paint-roller"></i> Painter</span>
+                </label>
+                <label class="trade-chip">
+                  <input type="checkbox" value="Helper/Labor" data-icon="fa-person-digging" onchange="handleTradeToggle(this)" />
+                  <span><i class="fa-solid fa-person-digging"></i> Helper / Labor</span>
+                </label>
+              </div>
+
+              <div class="custom-trade-add">
+                <div class="input-with-action">
+                  <input type="text" id="customTradeInput" placeholder="Enter custom trade (e.g., Welder, Tile Specialist)" />
+                  <button type="button" class="btn-primary-small" onclick="addCustomTrade()"><i class="fa-solid fa-plus"></i> Add Custom Trade</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- STEP 3: TEAM CONFIGURATION & RATES -->
+            <section class="wizard-step" id="step3">
+              <div class="step-heading">
+                <h3><i class="fa-solid fa-calculator"></i> Step 3: Team Configuration & Rates</h3>
+                <p>Specify headcounts, duration, rate types and your price offers.</p>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="teamConfigTable">
+                  <thead>
+                    <tr>
+                      <th>Trade / Skill</th>
+                      <th>Team Required</th>
+                      <th>Duration</th>
+                      <th>Rate Type</th>
+                      <th>Your Offer (₹)</th>
+                      <th>Total (₹)</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teamConfigTableBody">
+                    <!-- Populated dynamically based on Step 2 -->
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- STEP 4: ADDITIONAL SETTINGS & LOGISTICS -->
+            <section class="wizard-step" id="step4">
+              <div class="step-heading">
+                <h3><i class="fa-solid fa-sliders"></i> Step 4: Additional Settings & Logistics</h3>
+                <p>Configure prioritization, coop visibility and delivery deadlines.</p>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Priority Level *</label>
+                  <select id="reqPriority">
+                    <option value="High">🔴 High Priority (Immediate Response)</option>
+                    <option value="Medium" selected>🟡 Medium Priority</option>
+                    <option value="Low">🟢 Low Priority</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Requirement Type *</label>
+                  <select id="reqRequirementType">
+                    <option value="Internal Cooperative">Internal Cooperative</option>
+                    <option value="Public Bid">Public Bid</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Visibility *</label>
+                  <select id="reqVisibility">
+                    <option value="Only Cooperative Members">Only Cooperative Members</option>
+                    <option value="All Verified Tradesmen">All Verified Tradesmen</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Need By Date *</label>
+                  <input type="date" id="reqNeedByDate" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="label-with-counter">
+                  <label>Notes / Instructions</label>
+                  <span class="char-count" id="notesCharCount">0/200</span>
+                </div>
+                <textarea id="reqInstructions" maxlength="200" placeholder="e.g., Need experienced professionals with verified background. Quality work is priority." oninput="handleCharCounter(this, 'notesCharCount', 200)"></textarea>
+              </div>
+            </section>
+
+            <!-- STEP 5: FINAL REVIEW & POST -->
+            <section class="wizard-step" id="step5">
+              <div class="step-heading">
+                <h3><i class="fa-solid fa-clipboard-check"></i> Step 5: Final Review & Post</h3>
+                <p>Audit your bulk requirement specifications before submitting to the network.</p>
+              </div>
+
+              <div class="review-block">
+                <h4>Project Summary</h4>
+                <div class="review-grid">
+                  <div><span>Project:</span> <strong id="revProjectName">--</strong></div>
+                  <div><span>Type:</span> <strong id="revProjectType">--</strong></div>
+                  <div><span>Location:</span> <strong id="revLocation">--</strong></div>
+                  <div><span>Duration:</span> <strong id="revDuration">--</strong></div>
+                </div>
+              </div>
+
+              <div class="review-block">
+                <h4>Trades & Headcount Allocation</h4>
+                <div id="revTradesSummaryList" class="trades-review-pills"></div>
+              </div>
+
+              <div class="review-block">
+                <h4>Logistics & Settings</h4>
+                <div class="review-grid">
+                  <div><span>Priority:</span> <strong id="revPriority">--</strong></div>
+                  <div><span>Visibility:</span> <strong id="revVisibility">--</strong></div>
+                  <div><span>Need By:</span> <strong id="revNeedBy">--</strong></div>
+                  <div><span>Requirement Type:</span> <strong id="revReqType">--</strong></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Navigation Actions -->
+            <div class="wizard-nav-footer">
+              <button type="button" class="btn-secondary" id="btnPrevStep" onclick="navigateStep(-1)" disabled>
+                <i class="fa-solid fa-arrow-left"></i> Previous
+              </button>
+
+              <div class="footer-right-actions">
+                <button type="button" class="btn-outline" onclick="saveRequirementDraft()">Save Draft</button>
+                <button type="button" class="btn-primary" id="btnNextStep" onclick="navigateStep(1)">
+                  Next Step <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <button type="button" class="btn-success" id="btnSubmitPost" style="display: none;" onclick="submitPostRequirement()">
+                  <i class="fa-solid fa-paper-plane"></i> Review & Post Requirement
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Sticky Global Summary & Cost Breakdown -->
+          <aside class="sticky-cost-sidebar">
+            <div class="cost-summary-card">
+              <h3>Requirement Summary</h3>
+              <div class="summary-line">
+                <span>Project Name:</span>
+                <strong id="sideProjectName">Not Specified</strong>
+              </div>
+              <div class="summary-line">
+                <span>Location:</span>
+                <strong id="sideLocation">--</strong>
+              </div>
+              <div class="summary-line">
+                <span>Total Trades:</span>
+                <strong id="sideTotalTrades">0 Trades</strong>
+              </div>
+              <div class="summary-line">
+                <span>Team Required:</span>
+                <strong id="sideTotalTeam">0 Members</strong>
+              </div>
+              <div class="summary-line">
+                <span>Estimated Duration:</span>
+                <strong id="sideDuration">0 Days</strong>
+              </div>
+
+              <hr class="summary-divider" />
+
+              <h3>Cost Breakdown (Estimated)</h3>
+              <div class="summary-line">
+                <span>Labor Cost:</span>
+                <strong id="sideLaborCost">₹0</strong>
+              </div>
+              <div class="summary-line">
+                <span>Material Cost (Est.):</span>
+                <input type="number" id="sideMaterialCost" value="0" min="0" oninput="calculateGlobalCosts()" class="mini-cost-input" />
+              </div>
+              <div class="summary-line total-highlight">
+                <span>Total Estimated Cost:</span>
+                <strong id="sideTotalCost">₹0</strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="contractor-post-requirement.js"></script>
+</body>
+</html>
