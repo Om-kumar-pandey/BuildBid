@@ -80,7 +80,7 @@ const projectState = {
   interiorRooms: {},
   interiorScope: [],
   interiorPreferences: { theme: "Modern Minimalist", woodwork: "Factory-made Modular", condition: "Builder Finished" },
-  commercialData: { category: "Office Space", totalArea: 0, floors: "", hvac: "Centralized AC", fireSafety: [], electricalLoad: "Standard", passengerLifts: 1, serviceLifts: 0, parkingType: "Basement", bays: 20 },
+  commercialData: { category: "Showroom", totalArea: 0, floors: "", hvac: "Centralized AC", fireSafety: [], electricalLoad: "Standard", passengerLifts: 1, serviceLifts: 0, parkingType: "Basement", bays: 20 },
   industrialData: { purpose: "General Warehouse", structuralType: "PEB", totalArea: 0, clearHeight: 10, flooringType: "VDF", loadCapacity: 5, eotCrane: "No", loadingDocks: 4, fireSafety: [] },
   otherData: { customCategory: "Demolition", description: "", deliverables: [], approximateSize: 0, unit: "sq.ft." }
 };
@@ -180,6 +180,14 @@ async function fetchExistingProjectData(projectId) {
         projectState.floorsData = project.floors;
         projectState.floorsCount = project.floors.length || 1;
         renderTabsAndPanes();
+      }
+
+      if (project.commercial) {
+        try {
+          projectState.commercialData = typeof project.commercial === "string" ? JSON.parse(project.commercial) : project.commercial;
+        } catch (e) {
+          console.warn("Could not parse existing commercial data:", e);
+        }
       }
 
       recalculateDynamicEstimates();
@@ -572,17 +580,17 @@ function renderProjectSpecificSections(type) {
       <div class="form-grid-2">
         <div class="field-group">
           <label>Commercial Category *</label>
-          <select id="commCategory" class="form-input">
-            <option>Office Space</option><option>Retail / Mall</option><option>Showroom</option><option>Hospital / Clinic</option><option>Hotel / Hospitality</option><option>Educational Institution</option>
+          <select id="commCategory" class="form-input" onchange="projectState.commercialData.category = this.value">
+            <option>Office Space</option><option>Retail / Mall</option><option selected>Showroom</option><option>Hospital / Clinic</option><option>Hotel / Hospitality</option><option>Educational Institution</option>
           </select>
         </div>
         <div class="field-group">
           <label>Zoning & Approvals *</label>
-          <select class="form-input"><option>Fully Approved (RERA/Local body)</option><option>Land converted for commercial use</option><option>Approval pending</option></select>
+          <select id="commZoning" class="form-input" onchange="projectState.commercialData.zoning = this.value"><option>Fully Approved (RERA/Local body)</option><option>Land converted for commercial use</option><option>Approval pending</option></select>
         </div>
         <div class="field-group">
           <label>Plot Area (sq.ft.)</label>
-          <input type="number" class="form-input" placeholder="e.g. 12000">
+          <input type="number" id="plotAreaInput" class="form-input" placeholder="e.g. 12000" oninput="projectState.commercialData.plotArea = parseFloat(this.value)||0">
         </div>
       </div>
     `;
@@ -593,19 +601,19 @@ function renderProjectSpecificSections(type) {
         <div class="form-grid-2">
           <div class="field-group">
             <label>Total Built-up Area (sq.ft.) *</label>
-            <input type="number" id="builtUpAreaInput" class="form-input" placeholder="e.g. 35000" oninput="recalculateDynamicEstimates()">
+            <input type="number" id="builtUpAreaInput" class="form-input" placeholder="e.g. 35000" oninput="recalculateDynamicEstimates(); if (projectState.commercialData) projectState.commercialData.totalArea = parseFloat(this.value)||0;">
           </div>
           <div class="field-group">
             <label>Number of Floors (e.g., 2B+G+5)</label>
-            <input type="text" class="form-input" placeholder="e.g. B+G+4">
+            <input type="text" id="commFloors" class="form-input" placeholder="e.g. B+G+4" oninput="projectState.commercialData.floors = this.value">
           </div>
           <div class="field-group">
             <label>Typical Floor Plate Area (sq.ft.)</label>
-            <input type="number" class="form-input" placeholder="e.g. 7000">
+            <input type="number" id="commFloorPlate" class="form-input" placeholder="e.g. 7000" oninput="projectState.commercialData.floorPlateArea = parseFloat(this.value)||0">
           </div>
           <div class="field-group">
             <label>Ceiling Height (ft)</label>
-            <input type="number" class="form-input" placeholder="e.g. 12">
+            <input type="number" id="commCeilingHeight" class="form-input" placeholder="e.g. 12" oninput="projectState.commercialData.ceilingHeight = parseFloat(this.value)||0">
           </div>
         </div>
       </div>
@@ -615,29 +623,42 @@ function renderProjectSpecificSections(type) {
         <div class="form-grid-2">
           <div class="field-group">
             <label>HVAC System *</label>
-            <select class="form-input"><option>Centralized Chillers</option><option>VRV/VRF System</option><option>Split AC Provision</option><option>None</option></select>
+            <select id="commHvac" class="form-input" onchange="projectState.commercialData.hvac = this.value"><option>Centralized Chillers</option><option>VRV/VRF System</option><option>Split AC Provision</option><option>None</option></select>
           </div>
           <div class="field-group">
             <label>Electrical Load</label>
-            <select class="form-input"><option>Heavy Duty (Substation/HT Panel)</option><option>Standard Commercial Load</option></select>
+            <select id="commElectricalLoad" class="form-input" onchange="projectState.commercialData.electricalLoad = this.value"><option>Heavy Duty (Substation/HT Panel)</option><option>Standard Commercial Load</option></select>
           </div>
           <div class="field-group">
             <label>Passenger Lifts Count</label>
-            <input type="number" class="form-input" value="2" min="0">
+            <input type="number" id="commPassengerLifts" class="form-input" value="${projectState.commercialData.passengerLifts !== undefined ? projectState.commercialData.passengerLifts : 2}" min="0" oninput="projectState.commercialData.passengerLifts = parseInt(this.value)||0">
           </div>
           <div class="field-group">
             <label>Service / Stretcher Lifts Count</label>
-            <input type="number" class="form-input" value="1" min="0">
+            <input type="number" id="commServiceLifts" class="form-input" value="${projectState.commercialData.serviceLifts !== undefined ? projectState.commercialData.serviceLifts : 1}" min="0" oninput="projectState.commercialData.serviceLifts = parseInt(this.value)||0">
           </div>
         </div>
         <label class="mt-2 block" style="font-size:12px; font-weight:700; color:#334155;">Fire Fighting & Commercial Safety (NOC Standards):</label>
-        <div class="room-pill-grid mt-1">
+        <div class="room-pill-grid mt-1" id="commFireSafetyContainer">
           ${["Sprinklers System", "Smoke Detectors", "Fire Hydrant System", "Fire Escape Staircase", "Commercial Power Backup (DG Set)", "Multi-stall Restrooms", "Glass Facade / Structural Glazing"].map(req => `
-            <label class="checkbox-pill"><input type="checkbox" checked> <span>${req}</span></label>
+            <label class="checkbox-pill"><input type="checkbox" checked onchange="toggleCommFireSafety('${req}', this.checked)"> <span>${req}</span></label>
           `).join('')}
         </div>
       </div>
     `;
+
+    const commCatEl = document.getElementById("commCategory");
+    if (commCatEl) {
+      commCatEl.value = projectState.commercialData.category || "Showroom";
+    }
+    const commHvacEl = document.getElementById("commHvac");
+    if (commHvacEl && projectState.commercialData.hvac) {
+      commHvacEl.value = projectState.commercialData.hvac;
+    }
+    const commElectEl = document.getElementById("commElectricalLoad");
+    if (commElectEl && projectState.commercialData.electricalLoad) {
+      commElectEl.value = projectState.commercialData.electricalLoad;
+    }
   }
 
   /* 6. INDUSTRIAL */
@@ -769,6 +790,58 @@ function renderProjectSpecificSections(type) {
         </div>
       </div>
     `;
+  }
+}
+
+function toggleCommFireSafety(item, checked) {
+  if (!projectState.commercialData.fireSafety) projectState.commercialData.fireSafety = [];
+  if (checked) {
+    if (!projectState.commercialData.fireSafety.includes(item)) projectState.commercialData.fireSafety.push(item);
+  } else {
+    projectState.commercialData.fireSafety = projectState.commercialData.fireSafety.filter(f => f !== item);
+  }
+}
+
+function syncCommercialState() {
+  if (projectState.projectType !== "Commercial") return;
+  const comm = projectState.commercialData = projectState.commercialData || {};
+
+  const catEl = document.getElementById("commCategory");
+  if (catEl) comm.category = catEl.value;
+
+  const zoningEl = document.getElementById("commZoning");
+  if (zoningEl) comm.zoning = zoningEl.value;
+
+  const plotEl = document.getElementById("plotAreaInput");
+  if (plotEl && plotEl.value) comm.plotArea = parseFloat(plotEl.value) || 0;
+
+  const builtUpEl = document.getElementById("builtUpAreaInput");
+  if (builtUpEl && builtUpEl.value) comm.totalArea = parseFloat(builtUpEl.value) || 0;
+
+  const floorsEl = document.getElementById("commFloors");
+  if (floorsEl) comm.floors = floorsEl.value;
+
+  const floorPlateEl = document.getElementById("commFloorPlate");
+  if (floorPlateEl && floorPlateEl.value) comm.floorPlateArea = parseFloat(floorPlateEl.value) || 0;
+
+  const ceilingEl = document.getElementById("commCeilingHeight");
+  if (ceilingEl && ceilingEl.value) comm.ceilingHeight = parseFloat(ceilingEl.value) || 0;
+
+  const hvacEl = document.getElementById("commHvac");
+  if (hvacEl) comm.hvac = hvacEl.value;
+
+  const electEl = document.getElementById("commElectricalLoad");
+  if (electEl) comm.electricalLoad = electEl.value;
+
+  const passLiftsEl = document.getElementById("commPassengerLifts");
+  if (passLiftsEl) comm.passengerLifts = parseInt(passLiftsEl.value) || 0;
+
+  const servLiftsEl = document.getElementById("commServiceLifts");
+  if (servLiftsEl) comm.serviceLifts = parseInt(servLiftsEl.value) || 0;
+
+  const checkedSafety = document.querySelectorAll("#commFireSafetyContainer input[type='checkbox']:checked");
+  if (checkedSafety && checkedSafety.length > 0) {
+    comm.fireSafety = Array.from(checkedSafety).map(cb => cb.nextElementSibling?.textContent?.trim() || cb.value).filter(Boolean);
   }
 }
 
@@ -1498,6 +1571,9 @@ function populateReview() {
     summary = `${projectState.extensionData.type} Extension`;
   } else if (type === "Interior") {
     summary = Object.keys(projectState.interiorRooms).join(', ');
+  } else if (type === "Commercial") {
+    syncCommercialState();
+    summary = `${projectState.commercialData.category || 'Commercial'} Space`;
   } else {
     summary = "Requirements specified";
   }
@@ -1565,6 +1641,7 @@ async function submitProject() {
     payload.scope = projectState.interiorScope;
     payload.interiorPreferences = projectState.interiorPreferences;
   } else if (projectState.projectType === "Commercial") {
+    syncCommercialState();
     payload.commercial = projectState.commercialData;
   } else if (projectState.projectType === "Industrial") {
     payload.industrial = projectState.industrialData;
@@ -1573,11 +1650,19 @@ async function submitProject() {
   }
 
   try {
-    const res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
+    let res = await fetch(`${BACKEND_URL}/api/customer/projects/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify(payload)
     });
+
+    if (!res.ok && res.status === 404) {
+      res = await fetch(`${BACKEND_URL}/api/projects/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+    }
 
     if (res.ok) {
       const respData = await res.json().catch(() => ({}));

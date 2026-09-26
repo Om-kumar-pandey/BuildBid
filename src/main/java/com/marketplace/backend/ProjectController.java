@@ -28,7 +28,7 @@ public class ProjectController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping({"/customer/projects/create", "/customer/hiring/create"})
+    @PostMapping({"/customer/projects/create", "/projects/create", "/customer/hiring/create", "/hiring/create"})
     public ResponseEntity<?> createProject(@RequestBody Map<String, Object> payload, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized. Please login again."));
@@ -213,6 +213,18 @@ public class ProjectController {
                 System.err.println("Failed to serialize payload JSON for completeDataJson: " + e.getMessage());
             }
 
+            // Ensure project status is OPEN for discovery and contractor dashboard
+            if (payload.get("status") != null && !payload.get("status").toString().isBlank()) {
+                String reqStatus = payload.get("status").toString().trim();
+                if (reqStatus.equalsIgnoreCase("open for bids") || reqStatus.equalsIgnoreCase("open")) {
+                    project.setStatus("OPEN");
+                } else {
+                    project.setStatus(reqStatus);
+                }
+            } else {
+                project.setStatus("OPEN");
+            }
+
             // Persist entity to Cloud MySQL
             Project savedProject = projectRepository.save(project);
 
@@ -304,7 +316,7 @@ public class ProjectController {
         }
     }
 
-    @GetMapping("/customer/projects")
+    @GetMapping({"/customer/projects", "/projects"})
     public ResponseEntity<?> getCustomerProjects(Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
@@ -332,22 +344,51 @@ public class ProjectController {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
 
+        String email = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOptional = userRepository.findByEmail(email)
+                .or(() -> userRepository.findByUsername(email));
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser currentUser = userOptional.get();
+
+        Project project = null;
         try {
             Long numericId = Long.parseLong(id);
             Optional<Project> projectOptional = projectRepository.findById(numericId);
             if (projectOptional.isPresent()) {
-                return ResponseEntity.ok(projectOptional.get());
+                project = projectOptional.get();
             }
         } catch (NumberFormatException ignored) {}
 
-        List<Project> all = projectRepository.findAll();
-        for (Project p : all) {
-            if (id.equals(p.getProjectId())) {
-                return ResponseEntity.ok(p);
+        if (project == null) {
+            Optional<Project> byProjectId = projectRepository.findByProjectId(id);
+            if (byProjectId.isPresent()) {
+                project = byProjectId.get();
+            } else {
+                List<Project> all = projectRepository.findAll();
+                for (Project p : all) {
+                    if (id.equalsIgnoreCase(p.getProjectId())) {
+                        project = p;
+                        break;
+                    }
+                }
             }
         }
 
-        return ResponseEntity.status(404).body(Map.of("error", "Project not found"));
+        if (project == null) {
+            return ResponseEntity.status(404).body(Map.of("error", "Project not found"));
+        }
+
+        // Ownership verification: ensure project belongs to the authenticated customer
+        if (project.getCustomer() == null || project.getCustomer().getId() == null
+                || !project.getCustomer().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: You do not own this project."));
+        }
+
+        return ResponseEntity.ok(project);
     }
 
     // ========================================================

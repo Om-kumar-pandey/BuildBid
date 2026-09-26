@@ -119,10 +119,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Fetch actual project count from database for 'Projects Posted'
-    const projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
+    let projResponse = await fetch(`${API_BASE_URL}/api/customer/projects`, {
       method: "GET",
       headers: { "Authorization": `Bearer ${token}` }
     });
+
+    if (!projResponse.ok && projResponse.status === 404) {
+      projResponse = await fetch(`${API_BASE_URL}/api/projects`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+    }
 
     if (projResponse.ok) {
       const dbProjects = await projResponse.json();
@@ -130,6 +137,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!user.stats) user.stats = {};
         user.stats.projectsPosted = dbProjects.length;
         renderUserStats(user.stats);
+        localStorage.setItem("currentUser", JSON.stringify(user));
+        localStorage.setItem("customerUser", JSON.stringify(user));
       }
     }
 
