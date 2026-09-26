@@ -191,13 +191,23 @@ async function loadCustomerProjects() {
   // 2. Try fetching from Backend API (Render Database Connected)
   if (token) {
     try {
-      const response = await fetch(API_BASE_URL + "/api/customer/projects", {
+      let response = await fetch(API_BASE_URL + "/api/customer/projects", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         }
       });
+
+      if (!response.ok && response.status === 404) {
+        response = await fetch(API_BASE_URL + "/api/projects", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+      }
 
       if (response.ok) {
         const apiProjects = await response.json();
