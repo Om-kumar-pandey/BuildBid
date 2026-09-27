@@ -428,14 +428,10 @@ function populateReviewStep() {
    SUBMIT SPRING BOOT PAYLOAD
    ========================================================= */
 function getApiBaseUrl() {
-  if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+  if (typeof window !== "undefined" && window.location) {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      if (window.location.port && window.location.port !== "8080") {
-        return `${window.location.protocol}//${window.location.hostname}:8080`;
-      }
-      return window.location.origin;
+      return "http://localhost:8080";
     }
-    return window.location.origin;
   }
   return "https://buildbid-ap3j.onrender.com";
 }

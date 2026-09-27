@@ -1,12 +1,8 @@
 function getApiBaseUrl() {
-  if (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file:")) {
+  if (typeof window !== "undefined" && window.location) {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      if (window.location.port && window.location.port !== "8080") {
-        return `${window.location.protocol}//${window.location.hostname}:8080`;
-      }
-      return window.location.origin;
+      return "http://localhost:8080";
     }
-    return window.location.origin;
   }
   return "https://buildbid-ap3j.onrender.com";
 }
@@ -1665,13 +1661,18 @@ async function submitProject() {
     }
 
     if (res.ok) {
-      const respData = await res.json().catch(() => ({}));
-      const confirmedProjectId = respData.projectId || generatedProjectId;
-      payload.id = confirmedProjectId;
-      payload.projectId = confirmedProjectId;
-      saveLocalProject(payload);
-      alert("Project posted and saved to Cloud MySQL successfully!\nProject ID: " + confirmedProjectId);
-      window.location.href = "customer projects.html";
+      const respData = await res.json().catch(() => null);
+      const confirmedProjectId = respData && (respData.projectId || (respData.id ? `PRJ-${respData.id}` : null));
+      if (confirmedProjectId) {
+        payload.id = confirmedProjectId;
+        payload.projectId = confirmedProjectId;
+        saveLocalProject(payload);
+        alert("Project posted and saved to Cloud MySQL successfully!\nProject ID: " + confirmedProjectId);
+        window.location.href = "customer projects.html";
+      } else {
+        console.error("Invalid response from server (missing persisted project ID):", respData);
+        alert("Server Error: Project submission could not be verified by Cloud MySQL.");
+      }
     } else {
       const errText = await res.text();
       console.error("Backend Error Status:", res.status);

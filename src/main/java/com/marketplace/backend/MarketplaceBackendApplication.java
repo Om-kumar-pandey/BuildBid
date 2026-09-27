@@ -478,6 +478,8 @@ public class MarketplaceBackendApplication {
             configuration.setAllowedOriginPatterns(java.util.List.of(
                     "https://buildbid-ap3j.onrender.com",
                     "https://*.onrender.com",
+                    "https://om-kumar-pandey.github.io",
+                    "https://*.github.io",
                     "http://localhost:*",
                     "http://127.0.0.1:*",
                     "http://localhost",
