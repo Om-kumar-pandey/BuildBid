@@ -820,7 +820,24 @@ function toggleNotifications() {
   alert('You have 5 unread alerts:\n1. 3 new RFQs received today\n2. Order BB-ORD-1019 is arriving at site\n3. Low stock warning for Red Clay Bricks');
 }
 
-// Initial Launch
+// Initial Launch with role guard
 window.addEventListener('DOMContentLoaded', () => {
+  const storedUserRaw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+  if (storedUserRaw) {
+    try {
+      const u = JSON.parse(storedUserRaw);
+      const r = (u.role || (u.roles && u.roles[0]) || "").toString().replace("ROLE_", "").toUpperCase();
+      if (r && r !== "MATERIAL_SELLER" && r !== "SELLER") {
+        if (r === "CONTRACTOR") {
+          window.location.href = "contractor-dashboard.html";
+        } else if (r === "CUSTOMER") {
+          window.location.href = "customer dashboard.html";
+        } else {
+          window.location.href = "index.html";
+        }
+        return;
+      }
+    } catch (e) {}
+  }
   switchView('dashboard');
 });

@@ -157,6 +157,7 @@ public class MarketplaceBackendApplication {
         public String getProfilePhotoUrl() { return profilePhotoUrl; }
         public Set<Role> getRoles() { return roles; }
         public boolean isEnabled() { return enabled; }
+        public LocalDateTime getCreatedAt() { return createdAt; }
 
         public void setName(String name) { this.name = name; }
         public void setUsername(String username) { this.username = username; }
@@ -462,6 +463,7 @@ public class MarketplaceBackendApplication {
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/projects", "/api/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
+                            .requestMatchers("/api/customer/profile", "/api/customer/profile/**").hasRole("CUSTOMER")
                             .requestMatchers("/api/contractor/**").hasRole("CONTRACTOR")
                             .anyRequest().authenticated()
                     )
@@ -581,7 +583,29 @@ public class MarketplaceBackendApplication {
             MarketplaceUser user = repository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("Please sign up first, then login."));
 
-            // NOTE: Strict role check removed here to allow smooth direct login and redirection.
+            // STRICT FOUR-ROLE LOGIN VALIDATION
+            if (request.role() != null && !request.role().isBlank()) {
+                Role requestedRole = mapFrontendRole(request.role());
+                boolean roleMatched = false;
+                for (Role userRole : user.getRoles()) {
+                    if (userRole == requestedRole) {
+                        roleMatched = true;
+                        break;
+                    }
+                    if (requestedRole == Role.MATERIAL_SELLER && (userRole == Role.SELLER || userRole == Role.MATERIAL_SELLER)) {
+                        roleMatched = true;
+                        break;
+                    }
+                    if (requestedRole == Role.PROFESSIONAL && (userRole == Role.SERVICE_PROVIDER || userRole == Role.PROFESSIONAL)) {
+                        roleMatched = true;
+                        break;
+                    }
+                }
+
+                if (!roleMatched) {
+                    throw new IllegalArgumentException("Selected role does not match the role registered with this account.");
+                }
+            }
 
             UserDetails userDetails = createUserDetails(user);
             String token = jwtService.createToken(userDetails);
@@ -734,7 +758,7 @@ public class MarketplaceBackendApplication {
 
         public ProfileController(UserRepository userRepository) { this.userRepository = userRepository; }
 
-        @GetMapping({"/api/me", "/api/user/profile", "/api/customer/profile"})
+        @GetMapping({"/api/me", "/api/user/profile"})
         public Map<String, Object> currentUser(org.springframework.security.core.Authentication authentication) {
             if (authentication == null || !authentication.isAuthenticated()) {
                 throw new BadCredentialsException("Unauthenticated user");
@@ -757,6 +781,8 @@ public class MarketplaceBackendApplication {
             profile.put("email", user.getEmail() != null ? user.getEmail() : "");
             profile.put("phone", user.getPhone() != null ? user.getPhone() : "");
             profile.put("location", user.getLocation() != null ? user.getLocation() : "");
+            profile.put("profilePhotoUrl", user.getProfilePhotoUrl() != null ? user.getProfilePhotoUrl() : "");
+            profile.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : "");
             profile.put("roles", user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
             profile.put("enabled", user.isEnabled());
             return profile;

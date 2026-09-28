@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildBid - Edit Customer Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="customer-profile-edit.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="edit-profile-navbar">
+        <div class="navbar-container">
+            <a href="customer dashboard.html" class="nav-brand-logo">
+                <img src="logo.png" alt="BuildBid Logo" class="nav-site-logo">
+                <div class="nav-brand-text">
+                    <span class="nav-brand-title">BuildBid</span>
+                    <span class="nav-brand-subtitle">Build Better, Bid Smarter.</span>
+                </div>
+            </a>
+            <div class="navbar-actions">
+                <a href="customer dashboard.html" class="btn-back-dashboard" id="backToDashboardTopBtn">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Dashboard</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="edit-profile-main">
+        <div class="edit-profile-wrapper">
+
+            <!-- Breadcrumb Navigation -->
+            <nav class="edit-breadcrumb" aria-label="Breadcrumb">
+                <a href="index.html">Home</a>
+                <i class="fa-solid fa-chevron-right breadcrumb-sep"></i>
+                <a href="customer dashboard.html">Customer Dashboard</a>
+                <i class="fa-solid fa-chevron-right breadcrumb-sep"></i>
+                <span class="breadcrumb-current">Edit Profile</span>
+            </nav>
+
+            <!-- Page Title Section -->
+            <section class="page-header-card">
+                <div class="page-header-content">
+                    <div class="page-header-icon-box">
+                        <i class="fa-solid fa-user-pen"></i>
+                    </div>
+                    <div class="page-header-details">
+                        <h1 class="page-heading">Edit Profile</h1>
+                        <p class="page-subheading">Update your customer profile details, location, and profile photo.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Edit Form Container -->
+            <div class="edit-card">
+
+                <!-- Profile Photo Section -->
+                <section class="profile-photo-panel">
+                    <div class="section-title-row">
+                        <i class="fa-solid fa-camera section-icon"></i>
+                        <h2 class="section-title">Profile Photo</h2>
+                    </div>
+
+                    <div class="photo-uploader-row">
+                        <div class="photo-preview-wrapper" id="photoPreviewContainer">
+                            <img src="" alt="Profile Photo" class="photo-preview-img hidden" id="photoPreviewImg">
+                            <div class="photo-initials-badge" id="photoInitialsBadge">--</div>
+                        </div>
+
+                        <div class="photo-controls">
+                            <div class="photo-action-buttons">
+                                <button type="button" class="btn-action-upload" id="uploadPhotoTriggerBtn">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Upload New Photo</span>
+                                </button>
+                                <button type="button" class="btn-action-remove hidden" id="removePhotoBtn">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                    <span>Remove Photo</span>
+                                </button>
+                            </div>
+                            <p class="photo-guideline-text">Supported formats: JPG, JPEG, PNG, WEBP. Maximum file size: 5MB.</p>
+                            <input type="file" id="profilePhotoFileInput" class="hidden-file-input" accept="image/jpeg,image/png,image/webp,image/jpg">
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="section-divider">
+
+                <!-- Form -->
+                <form id="customerProfileForm" novalidate>
+
+                    <!-- Section: Personal Information -->
+                    <fieldset class="form-section-fieldset">
+                        <legend class="section-title-row">
+                            <i class="fa-solid fa-id-card section-icon"></i>
+                            <h2 class="section-title">Personal Information</h2>
+                        </legend>
+
+                        <div class="form-grid-two-cols">
+                            <div class="form-field-group">
+                                <label for="fullNameInput" class="form-label">
+                                    Full Name <span class="required-mark">*</span>
+                                </label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-regular fa-user input-icon"></i>
+                                    <input type="text" id="fullNameInput" name="fullName" class="form-input-control" placeholder="Enter your full name" required maxlength="100">
+                                </div>
+                                <span class="field-error-text" id="fullNameError"></span>
+                            </div>
+
+                            <div class="form-field-group">
+                                <label for="emailInput" class="form-label">
+                                    Email Address <span class="required-mark">*</span>
+                                </label>
+                                <div class="form-input-wrapper input-readonly">
+                                    <i class="fa-regular fa-envelope input-icon"></i>
+                                    <input type="email" id="emailInput" name="email" class="form-input-control" placeholder="Enter your email" required readonly>
+                                </div>
+                                <span class="field-hint-text">Email is linked to your registered login account.</span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid-one-col">
+                            <div class="form-field-group">
+                                <label for="phoneInput" class="form-label">
+                                    Phone Number <span class="required-mark">*</span>
+                                </label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-solid fa-phone input-icon"></i>
+                                    <input type="tel" id="phoneInput" name="phone" class="form-input-control" placeholder="Enter 10-digit mobile number" maxlength="20" required>
+                                </div>
+                                <span class="field-error-text" id="phoneError"></span>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <hr class="section-divider">
+
+                    <!-- Section: Address Information -->
+                    <fieldset class="form-section-fieldset">
+                        <legend class="section-title-row">
+                            <i class="fa-solid fa-location-dot section-icon"></i>
+                            <h2 class="section-title">Address & Location</h2>
+                        </legend>
+
+                        <div class="form-grid-one-col">
+                            <div class="form-field-group">
+                                <label for="addressInput" class="form-label">Street Address / House No.</label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-solid fa-house input-icon"></i>
+                                    <input type="text" id="addressInput" name="address" class="form-input-control" placeholder="E.g., Flat 402, Sunshine Apartments, Sector 62" maxlength="255">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-grid-three-cols">
+                            <div class="form-field-group">
+                                <label for="cityInput" class="form-label">City</label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-solid fa-city input-icon"></i>
+                                    <input type="text" id="cityInput" name="city" class="form-input-control" placeholder="E.g., Greater Noida" maxlength="100">
+                                </div>
+                            </div>
+
+                            <div class="form-field-group">
+                                <label for="stateInput" class="form-label">State</label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-solid fa-map input-icon"></i>
+                                    <input type="text" id="stateInput" name="state" class="form-input-control" placeholder="E.g., Uttar Pradesh" maxlength="100">
+                                </div>
+                            </div>
+
+                            <div class="form-field-group">
+                                <label for="pincodeInput" class="form-label">Pincode</label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-solid fa-signs-post input-icon"></i>
+                                    <input type="text" id="pincodeInput" name="pincode" class="form-input-control" placeholder="E.g., 201310" maxlength="10">
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <hr class="section-divider">
+
+                    <!-- Section: Profile Information -->
+                    <fieldset class="form-section-fieldset">
+                        <legend class="section-title-row">
+                            <i class="fa-solid fa-address-book section-icon"></i>
+                            <h2 class="section-title">Profile Information</h2>
+                        </legend>
+
+                        <div class="form-grid-one-col">
+                            <div class="form-field-group">
+                                <label for="aboutMeInput" class="form-label">About Me (Bio)</label>
+                                <div class="form-textarea-wrapper">
+                                    <textarea id="aboutMeInput" name="aboutMe" class="form-textarea-control" rows="4" placeholder="Briefly describe your building goals, background, or project interests..." maxlength="1000"></textarea>
+                                </div>
+                                <span class="field-hint-text">Tell contractors and professionals a bit about your projects and vision.</span>
+                            </div>
+
+                            <div class="form-field-group">
+                                <label for="preferredLanguageSelect" class="form-label">Preferred Communication Language</label>
+                                <div class="form-input-wrapper">
+                                    <i class="fa-solid fa-language input-icon"></i>
+                                    <select id="preferredLanguageSelect" name="preferredLanguage" class="form-select-control">
+                                        <option value="English, Hindi">English, Hindi</option>
+                                        <option value="English">English</option>
+                                        <option value="Hindi">Hindi</option>
+                                        <option value="Hindi, Punjabi">Hindi, Punjabi</option>
+                                        <option value="Hindi, Bengali">Hindi, Bengali</option>
+                                        <option value="Tamil, English">Tamil, English</option>
+                                        <option value="Telugu, English">Telugu, English</option>
+                                        <option value="Kannada, English">Kannada, English</option>
+                                        <option value="Marathi, Hindi">Marathi, Hindi</option>
+                                        <option value="Gujarati, Hindi">Gujarati, Hindi</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Form Action Buttons -->
+                    <div class="form-actions-panel">
+                        <button type="button" class="btn-cancel" id="cancelEditBtn">Cancel</button>
+                        <button type="submit" class="btn-save" id="saveProfileBtn">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save Changes</span>
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Floating Toast Notification Card -->
+    <div id="statusToast" class="toast-card" role="alert" aria-live="assertive">
+        <div class="toast-icon-wrap" id="toastIconWrap">
+            <i class="fa-solid fa-check" id="toastIcon"></i>
+        </div>
+        <div class="toast-body">
+            <h4 id="toastTitle" class="toast-title">Success</h4>
+            <p id="toastMessage" class="toast-message">Your profile has been updated successfully.</p>
+        </div>
+        <button type="button" class="toast-close-btn" id="toastCloseBtn" aria-label="Close notification">&times;</button>
+    </div>
+
+    <!-- JavaScript File Only -->
+    <script src="customer-profile-edit.js"></script>
+</body>
+</html>
