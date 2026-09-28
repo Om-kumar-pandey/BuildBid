@@ -9,13 +9,20 @@
  * 4. All structured data parsed safely with graceful fallbacks.
  */
 
-const API_BASE_URL = (() => {
-  const host = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") {
-    return "http://localhost:8080";
-  }
-  return window.location.origin;
-})();
+function getApiBaseUrl() {
+    if (typeof window !== "undefined" && window.location) {
+        if (
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1"
+        ) {
+            return "http://localhost:8080";
+        }
+    }
+
+    return "https://buildbid-ap3j.onrender.com";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 function getCleanToken() {
   let token = localStorage.getItem("token") ||
