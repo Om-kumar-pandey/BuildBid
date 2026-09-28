@@ -36,6 +36,41 @@ const AVAILABLE_ROLES = [
 /* =========================================================
    STEP 1: CATEGORY SELECTION
    ========================================================= */
+/* =========================================================
+   POST REQUIREMENT CATEGORY IMAGE SYSTEM
+   ========================================================= */
+const POST_REQUIREMENT_CATEGORY_IMAGES = {
+  full_construction: "FULL CONSTRUCTION.png",
+  home_extension: "HOME EXTENSION.png",
+  renovation: "POST PROJECT RENOVATION.png",
+  interior_design: "INTERIOR DESIGN.png",
+  landscaping_gardening: "LANDSCAPING AND GARDENING.png",
+  home_maintenance: "HOME MAINTENANCE.png"
+};
+
+function getPostRequirementCategoryImage(categoryName) {
+  const norm = String(categoryName || "").trim().toLowerCase();
+  if (norm.includes("full") || norm.includes("construct")) {
+    return POST_REQUIREMENT_CATEGORY_IMAGES.full_construction;
+  }
+  if (norm.includes("extens")) {
+    return POST_REQUIREMENT_CATEGORY_IMAGES.home_extension;
+  }
+  if (norm.includes("renov") || norm.includes("remodel")) {
+    return POST_REQUIREMENT_CATEGORY_IMAGES.renovation;
+  }
+  if (norm.includes("interior") || norm.includes("design")) {
+    return POST_REQUIREMENT_CATEGORY_IMAGES.interior_design;
+  }
+  if (norm.includes("landscap") || norm.includes("garden")) {
+    return POST_REQUIREMENT_CATEGORY_IMAGES.landscaping_gardening;
+  }
+  if (norm.includes("maint") || norm.includes("repair")) {
+    return POST_REQUIREMENT_CATEGORY_IMAGES.home_maintenance;
+  }
+  return POST_REQUIREMENT_CATEGORY_IMAGES.home_maintenance;
+}
+
 function selectHireCategory(categoryName, elem) {
   hireState.projectCategory = categoryName;
   document.querySelectorAll(".category-box").forEach(c => c.classList.remove("selected"));
