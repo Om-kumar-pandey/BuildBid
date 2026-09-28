@@ -299,6 +299,126 @@
     }
 
     // ============================================================
+    // 6b. GPS LOCATION & REVERSE GEOCODING HANDLER
+    // ============================================================
+    async function handleFetchCurrentLocation() {
+        const fetchBtn = document.getElementById("fetchLocationBtn");
+        if (!fetchBtn) return;
+
+        if (!navigator.geolocation) {
+            showNotification("Location Error", "Unable to determine your current location. Please try again.", true);
+            return;
+        }
+
+        const originalBtnHtml = fetchBtn.innerHTML;
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Fetching location...</span>`;
+
+        navigator.geolocation.getCurrentPosition(
+            async function (position) {
+                try {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lon}`, {
+                        method: "GET",
+                        headers: { "Accept": "application/json" },
+                        referrerPolicy: "origin-when-cross-origin"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Reverse geocoding network error");
+                    }
+
+                    const data = await response.json();
+                    if (!data || !data.address) {
+                        throw new Error("Invalid address data received");
+                    }
+
+                    const addr = data.address;
+
+                    // 1. Street Address / House No. - reliable parts, no fabricated numbers
+                    const streetParts = [];
+                    if (addr.house_number) streetParts.push(addr.house_number);
+                    if (addr.building) streetParts.push(addr.building);
+                    if (addr.road) streetParts.push(addr.road);
+                    if (addr.residential) streetParts.push(addr.residential);
+                    if (addr.neighbourhood) streetParts.push(addr.neighbourhood);
+                    if (addr.suburb && !streetParts.includes(addr.suburb)) streetParts.push(addr.suburb);
+                    if (addr.locality && !streetParts.includes(addr.locality)) streetParts.push(addr.locality);
+
+                    let streetAddress = streetParts.join(", ").trim();
+                    if (!streetAddress && data.display_name) {
+                        const parts = data.display_name.split(",");
+                        if (parts.length > 0) streetAddress = parts[0].trim();
+                    }
+
+                    // 2. City - most appropriate returned value
+                    const city = addr.city || addr.town || addr.village || addr.municipality || addr.city_district || addr.suburb || "";
+
+                    // 3. State
+                    const state = addr.state || "";
+
+                    // 4. Pincode from postcode
+                    const pincode = addr.postcode || "";
+
+                    // Populate existing fields
+                    const addressInput = document.getElementById("addressInput");
+                    const cityInput = document.getElementById("cityInput");
+                    const stateInput = document.getElementById("stateInput");
+                    const pincodeInput = document.getElementById("pincodeInput");
+
+                    if (addressInput && streetAddress) addressInput.value = streetAddress;
+                    if (cityInput && city) cityInput.value = city;
+                    if (stateInput && state) stateInput.value = state;
+                    if (pincodeInput && pincode) pincodeInput.value = pincode;
+
+                    fetchBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Location fetched successfully</span>`;
+                    showNotification("Success", "Location fetched successfully.");
+
+                    setTimeout(() => {
+                        if (fetchBtn) {
+                            fetchBtn.innerHTML = originalBtnHtml;
+                            fetchBtn.disabled = false;
+                        }
+                    }, 3000);
+
+                } catch (err) {
+                    console.error("Reverse geocoding error:", err);
+                    showNotification(
+                        "Location Error",
+                        "We couldn't convert your location into an address. Please enter your address manually.",
+                        true
+                    );
+                    fetchBtn.innerHTML = originalBtnHtml;
+                    fetchBtn.disabled = false;
+                }
+            },
+            function (error) {
+                console.warn("Geolocation error:", error);
+                let message = "Unable to determine your current location. Please try again.";
+
+                if (error.code === 1) { // PERMISSION_DENIED
+                    message = "Location permission was denied. Please allow location access or enter your address manually.";
+                } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                    message = "Unable to determine your current location. Please try again.";
+                } else if (error.code === 3) { // TIMEOUT
+                    message = "Location request timed out. Please try again.";
+                }
+
+                showNotification("Location Error", message, true);
+                fetchBtn.innerHTML = originalBtnHtml;
+                fetchBtn.disabled = false;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    }
+
+    // ============================================================
     // 7. FORM SUBMISSION & SAVE HANDLER
     // ============================================================
     async function handleFormSubmit(event) {
@@ -476,6 +596,12 @@
         const profileForm = document.getElementById("customerProfileForm");
         if (profileForm) {
             profileForm.addEventListener("submit", handleFormSubmit);
+        }
+
+        // Fetch location button
+        const fetchLocationBtn = document.getElementById("fetchLocationBtn");
+        if (fetchLocationBtn) {
+            fetchLocationBtn.addEventListener("click", handleFetchCurrentLocation);
         }
 
         // Cancel buttons
