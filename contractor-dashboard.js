@@ -212,6 +212,7 @@ const PROJECT_CATEGORY_IMAGES = {
   new_construction: "NEW CONSTRUCTION.png",
   renovation: "RENOVATION.png",
   home_extension: "HOME EXTENSION.png",
+  interior_design: "INTERIOR DESIGN.png",
   commercial_construction: "COMMERCIAL CONSTRUCTION.png",
   industrial_warehouse: "INDUSTRIRAL AND WAREHOUSE.png",
   others: "OTHERS.png"
@@ -227,6 +228,9 @@ function getProjectCardImage(projectType) {
   }
   if (norm.includes("extens")) {
     return PROJECT_CATEGORY_IMAGES.home_extension;
+  }
+  if (norm.includes("interior") || norm.includes("design")) {
+    return PROJECT_CATEGORY_IMAGES.interior_design;
   }
   if (norm.includes("commercial") || norm.includes("showroom") || norm.includes("office") || norm.includes("retail")) {
     return PROJECT_CATEGORY_IMAGES.commercial_construction;
