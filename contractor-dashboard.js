@@ -207,6 +207,168 @@ async function loadContractorProjects() {
   }
 }
 
+// ================= BUILD BID PROJECT TYPE IMAGE SYSTEM =================
+const PROJECT_CATEGORY_IMAGES = {
+  new_construction: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+      <defs>
+        <linearGradient id="bg-nc-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <linearGradient id="accent-nc-d" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#fbbf24"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#bg-nc-d)"/>
+      <g opacity="0.08" stroke="#ffffff" stroke-width="1">
+        <line x1="0" y1="40" x2="400" y2="40"/><line x1="0" y1="80" x2="400" y2="80"/><line x1="0" y1="120" x2="400" y2="120"/><line x1="0" y1="160" x2="400" y2="160"/>
+        <line x1="100" y1="0" x2="100" y2="220"/><line x1="200" y1="0" x2="200" y2="220"/><line x1="300" y1="0" x2="300" y2="220"/>
+      </g>
+      <polygon points="120,175 120,115 200,60 280,115 280,175" fill="rgba(245,158,11,0.12)" stroke="url(#accent-nc-d)" stroke-width="3"/>
+      <rect x="145" y="130" width="30" height="30" fill="none" stroke="#38bdf8" stroke-width="2"/>
+      <rect x="225" y="130" width="30" height="30" fill="none" stroke="#38bdf8" stroke-width="2"/>
+      <rect x="185" y="130" width="30" height="45" fill="rgba(255,255,255,0.08)" stroke="#ffffff" stroke-width="2"/>
+      <line x1="60" y1="175" x2="340" y2="175" stroke="#64748b" stroke-width="2"/>
+      <rect x="20" y="20" width="140" height="24" rx="12" fill="rgba(245,158,11,0.2)" stroke="#f59e0b" stroke-width="1"/>
+      <text x="90" y="36" fill="#fbbf24" font-size="11" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle">NEW CONSTRUCTION</text>
+    </svg>
+  `)}`,
+
+  renovation: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+      <defs>
+        <linearGradient id="bg-ren-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1c1917"/>
+          <stop offset="100%" stop-color="#292524"/>
+        </linearGradient>
+        <linearGradient id="accent-ren-d" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ea580c"/>
+          <stop offset="100%" stop-color="#f97316"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#bg-ren-d)"/>
+      <rect x="110" y="70" width="180" height="100" rx="4" fill="rgba(234,88,12,0.1)" stroke="url(#accent-ren-d)" stroke-width="2.5"/>
+      <line x1="110" y1="105" x2="290" y2="105" stroke="#f97316" stroke-width="1.5" opacity="0.6"/>
+      <line x1="110" y1="140" x2="290" y2="140" stroke="#f97316" stroke-width="1.5" opacity="0.6"/>
+      <rect x="230" y="60" width="45" height="14" rx="3" fill="#ea580c"/>
+      <path d="M252,74 L252,90 L268,90 L268,110" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/>
+      <rect x="264" y="110" width="8" height="24" rx="2" fill="#78716c"/>
+      <line x1="60" y1="175" x2="340" y2="175" stroke="#78716c" stroke-width="2"/>
+      <rect x="20" y="20" width="105" height="24" rx="12" fill="rgba(234,88,12,0.2)" stroke="#ea580c" stroke-width="1"/>
+      <text x="72" y="36" fill="#fb923c" font-size="11" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle">RENOVATION</text>
+    </svg>
+  `)}`,
+
+  home_extension: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+      <defs>
+        <linearGradient id="bg-ext-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#1e3a5f"/>
+        </linearGradient>
+        <linearGradient id="accent-ext-d" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#06b6d4"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#bg-ext-d)"/>
+      <polygon points="90,170 90,110 160,65 220,110 220,170" fill="rgba(255,255,255,0.05)" stroke="#64748b" stroke-width="2"/>
+      <rect x="220" y="85" width="100" height="85" fill="rgba(6,182,212,0.12)" stroke="url(#accent-ext-d)" stroke-width="2.5"/>
+      <rect x="235" y="100" width="30" height="70" fill="none" stroke="#38bdf8" stroke-width="2"/>
+      <rect x="275" y="100" width="30" height="70" fill="none" stroke="#38bdf8" stroke-width="2"/>
+      <line x1="50" y1="170" x2="350" y2="170" stroke="#475569" stroke-width="2"/>
+      <rect x="20" y="20" width="130" height="24" rx="12" fill="rgba(6,182,212,0.2)" stroke="#06b6d4" stroke-width="1"/>
+      <text x="85" y="36" fill="#38bdf8" font-size="11" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle">HOME EXTENSION</text>
+    </svg>
+  `)}`,
+
+  interior: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+      <defs>
+        <linearGradient id="bg-int-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#18181b"/>
+          <stop offset="100%" stop-color="#27272a"/>
+        </linearGradient>
+        <linearGradient id="accent-int-d" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#8b5cf6"/>
+          <stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#bg-int-d)"/>
+      <rect x="180" y="130" width="80" height="40" rx="8" fill="rgba(139,92,246,0.15)" stroke="url(#accent-int-d)" stroke-width="2"/>
+      <line x1="60" y1="182" x2="340" y2="182" stroke="#52525b" stroke-width="2"/>
+      <rect x="20" y="20" width="95" height="24" rx="12" fill="rgba(139,92,246,0.2)" stroke="#8b5cf6" stroke-width="1"/>
+      <text x="67" y="36" fill="#c084fc" font-size="11" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle">INTERIOR</text>
+    </svg>
+  `)}`,
+
+  industrial: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+      <defs>
+        <linearGradient id="bg-ind-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#134e4a"/>
+        </linearGradient>
+        <linearGradient id="accent-ind-d" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#10b981"/>
+          <stop offset="100%" stop-color="#34d399"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#bg-ind-d)"/>
+      <polygon points="100,170 100,105 140,80 140,105 180,80 180,105 220,80 220,105 260,80 260,170" fill="rgba(16,185,129,0.12)" stroke="url(#accent-ind-d)" stroke-width="2.5"/>
+      <line x1="60" y1="170" x2="340" y2="170" stroke="#475569" stroke-width="2"/>
+      <rect x="20" y="20" width="105" height="24" rx="12" fill="rgba(16,185,129,0.2)" stroke="#10b981" stroke-width="1"/>
+      <text x="72" y="36" fill="#34d399" font-size="11" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle">INDUSTRIAL</text>
+    </svg>
+  `)}`,
+
+  other: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+      <defs>
+        <linearGradient id="bg-oth-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0b2a55"/>
+          <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <linearGradient id="accent-oth-d" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#0284c7"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#bg-oth-d)"/>
+      <polygon points="200,60 140,165 260,165" fill="none" stroke="url(#accent-oth-d)" stroke-width="2.5"/>
+      <circle cx="200" cy="60" r="6" fill="#38bdf8"/>
+      <line x1="60" y1="175" x2="340" y2="175" stroke="#64748b" stroke-width="2"/>
+      <rect x="20" y="20" width="115" height="24" rx="12" fill="rgba(2,132,199,0.2)" stroke="#0284c7" stroke-width="1"/>
+      <text x="77" y="36" fill="#38bdf8" font-size="11" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle">CONSTRUCTION</text>
+    </svg>
+  `)}`
+};
+
+function getProjectCardImage(projectType) {
+  const norm = String(projectType || "").trim().toLowerCase();
+  if (norm.includes("commercial")) {
+    return "hero-building.jpg";
+  }
+  if (norm.includes("new") || (norm.includes("construct") && !norm.includes("indust"))) {
+    return PROJECT_CATEGORY_IMAGES.new_construction;
+  }
+  if (norm.includes("renov") || norm.includes("remodel")) {
+    return PROJECT_CATEGORY_IMAGES.renovation;
+  }
+  if (norm.includes("extens")) {
+    return PROJECT_CATEGORY_IMAGES.home_extension;
+  }
+  if (norm.includes("interior") || norm.includes("design")) {
+    return PROJECT_CATEGORY_IMAGES.interior;
+  }
+  if (norm.includes("indust") || norm.includes("factory") || norm.includes("warehouse")) {
+    return PROJECT_CATEGORY_IMAGES.industrial;
+  }
+  return PROJECT_CATEGORY_IMAGES.other;
+}
+
 function renderCustomerProjects(filterType = "all") {
   const container = document.getElementById("projects-list");
   if (!container) return;
@@ -254,7 +416,7 @@ function renderCustomerProjects(filterType = "all") {
 
     card.innerHTML = `
       <div class="project-left-side">
-        <img src="https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?w=150" alt="Project" class="project-thumb" />
+        <img src="${getProjectCardImage(displayCategory)}" alt="${escapeHTML(displayCategory)}" class="project-thumb" onerror="this.onerror=null; this.src='hero-building.jpg';" />
         <div class="project-titles">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <h4 style="margin: 0; font-size: 1rem; color: #1e293b;">${escapeHTML(displayTitle)}</h4>

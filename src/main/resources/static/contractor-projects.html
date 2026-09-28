@@ -79,11 +79,100 @@
           </div>
         </div>
 
-        <!-- 2. Filter Chips -->
+        <!-- 2. Filter Chips & Filter Button -->
         <div class="marketplace-filters filter-chips-wrap" id="marketplace-filters-area">
           <button class="filter-chip active" onclick="filterLiveProjects('all', this)">All Projects</button>
           <button class="filter-chip" onclick="filterLiveProjects('open', this)">Open for Bidding</button>
           <button class="filter-chip" onclick="filterLiveProjects('high-budget', this)">High Budget (₹20L+)</button>
+          <button class="filter-chip btn-filter-toggle" id="btn-filter-toggle" onclick="toggleAdvancedFilterPanel()">
+            <i class="fa-solid fa-sliders"></i> Filter <span id="active-filter-badge" class="active-filter-badge" style="display:none;">0</span>
+          </button>
+        </div>
+
+        <!-- 2.1 Advanced Filter Panel -->
+        <div id="advanced-filter-panel" class="advanced-filter-panel" style="display: none;">
+          <div class="filter-panel-header">
+            <h4><i class="fa-solid fa-sliders"></i> Filter Projects</h4>
+            <span class="filter-panel-hint">Refine live customer projects using specific criteria</span>
+          </div>
+
+          <div class="filter-panel-grid">
+            <!-- A. Date Sort -->
+            <div class="filter-field-group">
+              <label for="filter-date-sort"><i class="fa-regular fa-calendar"></i> Date Posted</label>
+              <select id="filter-date-sort" class="filter-select">
+                <option value="latest" selected>Latest</option>
+                <option value="oldest">Oldest</option>
+              </select>
+            </div>
+
+            <!-- B. Budget (Customer Stated ONLY) -->
+            <div class="filter-field-group">
+              <label for="filter-budget"><i class="fa-solid fa-indian-rupee-sign"></i> Customer Budget</label>
+              <select id="filter-budget" class="filter-select">
+                <option value="all" selected>All Budgets</option>
+                <option value="under-15">Under ₹15 Lakh</option>
+                <option value="15-35">₹15–35 Lakh</option>
+                <option value="35-75">₹35–75 Lakh</option>
+                <option value="above-75">Above ₹75 Lakh</option>
+              </select>
+            </div>
+
+            <!-- C. Location -->
+            <div class="filter-field-group">
+              <label for="filter-location"><i class="fa-solid fa-location-dot"></i> Location (City/State)</label>
+              <input type="text" id="filter-location" class="filter-input" placeholder="e.g. Noida, Delhi, UP..." />
+            </div>
+
+            <!-- D. Area -->
+            <div class="filter-field-group">
+              <label for="filter-area"><i class="fa-solid fa-chart-area"></i> Project Area</label>
+              <select id="filter-area" class="filter-select">
+                <option value="all" selected>All Areas</option>
+                <option value="under-1000">Under 1,000 sq ft</option>
+                <option value="1000-2500">1,000–2,500 sq ft</option>
+                <option value="2500-5000">2,500–5,000 sq ft</option>
+                <option value="above-5000">Above 5,000 sq ft</option>
+              </select>
+            </div>
+
+            <!-- E. Project Type -->
+            <div class="filter-field-group">
+              <label for="filter-type"><i class="fa-solid fa-layer-group"></i> Project Type</label>
+              <select id="filter-type" class="filter-select">
+                <option value="all" selected>All Types</option>
+                <option value="New Construction">New Construction</option>
+                <option value="Renovation">Renovation</option>
+                <option value="Home Extension">Home Extension</option>
+                <option value="Interior">Interior</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Industrial">Industrial</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- F. Floors -->
+            <div class="filter-field-group">
+              <label for="filter-floors"><i class="fa-solid fa-stairs"></i> Number of Floors</label>
+              <select id="filter-floors" class="filter-select">
+                <option value="all" selected>All Floors</option>
+                <option value="1">1 Floor</option>
+                <option value="2">2 Floors</option>
+                <option value="3">3 Floors</option>
+                <option value="4+">4+ Floors</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Apply & Reset Actions -->
+          <div class="filter-panel-actions">
+            <button type="button" class="btn-filter-reset" onclick="resetAdvancedFilters()">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+            <button type="button" class="btn-filter-apply" onclick="applyAdvancedFilters()">
+              <i class="fa-solid fa-check"></i> Apply Filters
+            </button>
+          </div>
         </div>
 
         <!-- 3. Grid of Project Cards -->
