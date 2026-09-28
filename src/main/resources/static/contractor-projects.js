@@ -220,7 +220,7 @@ function renderLiveProjectsGrid(projectsToDisplay) {
         </div>
 
         <div class="market-card-footer" style="display:flex; gap:8px; margin-top:12px;">
-          <button class="btn-bid-now" onclick="openProjectModal('${escapeHTML(pId || project.id)}')" style="flex:1; background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:0.82rem; padding:8px 10px;">
+          <button class="btn-bid-now" onclick="navigateToProjectDetails('${escapeHTML(pId || project.id)}')" style="flex:1; background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:0.82rem; padding:8px 10px;">
             <i class="fa-regular fa-eye"></i> Details
           </button>
           ${
@@ -281,117 +281,14 @@ function closeInlineBidBuilder() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// ================= VIEW DETAILS MODAL =================
+// ================= VIEW DETAILS NAVIGATION =================
+function navigateToProjectDetails(projectId) {
+  if (!projectId) return;
+  window.location.href = `contractor-project-details.html?id=${encodeURIComponent(projectId)}`;
+}
+
 async function openProjectModal(projectId) {
-  const modal = document.getElementById("contractor-project-modal");
-  if (!modal) return;
-
-  const token = getCleanToken();
-
-  let project = cachedLiveProjects.find(p =>
-    String(p.projectId) === String(projectId) || String(p.id) === String(projectId)
-  );
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/contractor/projects/${encodeURIComponent(projectId)}`, {
-      headers: {
-        "Authorization": token ? `Bearer ${token}` : ""
-      }
-    });
-    if (res.ok) {
-      project = await res.json();
-    }
-  } catch (e) {
-    console.warn("Could not fetch remote project details:", e);
-  }
-
-  if (!project) {
-    alert("Project details could not be loaded.");
-    return;
-  }
-
-  const pId = project.projectId || ("PRJ-" + project.id);
-  const pTitle = project.projectTitle || project.title || "BuildBid Project";
-  const pCategory = project.projectType || project.type || "General Construction";
-  const pLocation = project.location || (project.city ? `${project.city}, ${project.state || ""}` : "Not Specified");
-  const pArea = project.builtUpArea || project.totalArea ? `${project.builtUpArea || project.totalArea} sq ft` : "--";
-  const pPlot = project.plotArea ? `${project.plotArea} sq ft` : "--";
-  const pFloors = project.floors ? `${project.floors}` : "--";
-  const pQuality = project.qualityTier || "Standard";
-  const pTimeline = project.timeline || project.targetStartDate || "--";
-  const pBudget = project.budget || (project.budgetMin && project.budgetMax ? `₹${project.budgetMin.toLocaleString("en-IN")} - ₹${project.budgetMax.toLocaleString("en-IN")}` : "Negotiable");
-  const pEstimated = project.estimatedCost || "Not Specified";
-  const pDesc = project.description || "No specific customer description provided.";
-  const pStatus = (project.status === "OPEN" || !project.status) ? "Open for Bidding" : project.status;
-
-  const elId = document.getElementById("modal-project-id");
-  if (elId) elId.textContent = pId;
-
-  const elTitle = document.getElementById("modal-project-title");
-  if (elTitle) elTitle.textContent = pTitle;
-
-  const elCategory = document.getElementById("modal-project-category");
-  if (elCategory) elCategory.textContent = pCategory;
-
-  const elStatus = document.getElementById("modal-project-status");
-  if (elStatus) elStatus.textContent = pStatus;
-
-  const elLoc = document.getElementById("modal-spec-location");
-  if (elLoc) elLoc.textContent = pLocation;
-
-  const elArea = document.getElementById("modal-spec-area");
-  if (elArea) elArea.textContent = pArea;
-
-  const elPlot = document.getElementById("modal-spec-plot");
-  if (elPlot) elPlot.textContent = pPlot;
-
-  const elFloors = document.getElementById("modal-spec-floors");
-  if (elFloors) elFloors.textContent = pFloors;
-
-  const elQuality = document.getElementById("modal-spec-quality");
-  if (elQuality) elQuality.textContent = pQuality;
-
-  const elTimeline = document.getElementById("modal-spec-timeline");
-  if (elTimeline) elTimeline.textContent = pTimeline;
-
-  const elBudget = document.getElementById("modal-spec-budget");
-  if (elBudget) elBudget.textContent = pBudget;
-
-  const elEst = document.getElementById("modal-spec-estimated");
-  if (elEst) elEst.textContent = pEstimated;
-
-  const elDesc = document.getElementById("modal-spec-description");
-  if (elDesc) elDesc.textContent = pDesc;
-
-  const techSec = document.getElementById("modal-tech-section");
-  const techContent = document.getElementById("modal-tech-breakdown");
-  if (techSec && techContent) {
-    if (project.details && Object.keys(project.details).length > 0) {
-      let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">';
-      for (const [k, v] of Object.entries(project.details)) {
-        if (v !== null && v !== undefined && v !== "") {
-          const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-          let valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
-          html += `<div><small style="color:#64748b; font-size:11px; display:block;">${escapeHTML(label)}</small><span style="color:#1e293b; font-weight:600; font-size:12px;">${escapeHTML(valStr)}</span></div>`;
-        }
-      }
-      html += '</div>';
-      techContent.innerHTML = html;
-      techSec.style.display = "block";
-    } else {
-      techSec.style.display = "none";
-    }
-  }
-
-  const bidBtn = document.getElementById("modal-btn-bid");
-  if (bidBtn) {
-    bidBtn.onclick = () => {
-      closeProjectModal();
-      navigateToBid(pId);
-    };
-  }
-
-  modal.style.display = "flex";
+  navigateToProjectDetails(projectId);
 }
 
 function closeProjectModal() {

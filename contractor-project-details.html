@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BuildBid - Project Specifications & Details</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="contractor-dashboard.css" />
+  <link rel="stylesheet" href="contractor-projects.css" />
+  <link rel="stylesheet" href="contractor-project-details.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar (Identical to existing Contractor Dashboard) -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+        <a href="contractor-projects.html" class="nav-item active"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="my-bids.html" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-users-gear"></i> Hire Professionals</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews & Ratings</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
+        <a href="contractor-verification.html" class="nav-item"><i class="fa-solid fa-circle-check"></i> Get Verified</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications <span class="badge" id="nav-badge-notifications">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help & Support</a>
+      </nav>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <main class="main-wrapper">
+      <!-- Top Navbar (Identical to existing Contractor Dashboard) -->
+      <header class="top-nav">
+        <div class="nav-actions">
+          <button class="icon-btn" id="btn-notification-bell">
+            <i class="fa-regular fa-bell"></i>
+            <span class="dot" id="notif-indicator"></span>
+          </button>
+          <div class="user-profile">
+            <div class="avatar" id="top-nav-avatar">
+              <span id="top-nav-avatar-text">C</span>
+            </div>
+            <div class="user-meta">
+              <h4 id="top-nav-name">Contractor</h4>
+              <span id="top-nav-badge">Verified Contractor</span>
+            </div>
+            <i class="fa-solid fa-chevron-down drop-icon"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Details Page Main Content -->
+      <div class="dashboard-content details-page-wrapper">
+        <!-- Top Action Bar / Breadcrumbs -->
+        <div class="details-top-bar">
+          <div class="breadcrumbs-area">
+            <a href="contractor-projects.html" class="btn-back-action">
+              <i class="fa-solid fa-arrow-left"></i> Back to Projects
+            </a>
+            <div class="breadcrumbs-trail">
+              <a href="contractor-dashboard.html">Dashboard</a>
+              <span class="sep">/</span>
+              <a href="contractor-projects.html">Live Projects</a>
+              <span class="sep">/</span>
+              <span class="curr-page" id="breadcrumb-project-id">Project Details</span>
+            </div>
+          </div>
+          <div class="top-bar-cta">
+            <button type="button" class="btn-secondary-action" onclick="window.print()">
+              <i class="fa-solid fa-print"></i> Print Specification
+            </button>
+            <button type="button" class="btn-primary-action" id="btn-top-bid" onclick="handleBidNavigation()">
+              <i class="fa-solid fa-gavel"></i> Submit Bid / Quote
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="details-loading-state" class="state-container">
+          <div class="spinner-box">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <h3>Loading Project Specifications</h3>
+            <p>Fetching authoritative project requirements from database...</p>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="details-error-state" class="state-container" style="display: none;">
+          <div class="error-box">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <h3 id="error-title">Unable to Load Project</h3>
+            <p id="error-desc">The requested project could not be found or connection failed.</p>
+            <div class="error-actions">
+              <a href="contractor-projects.html" class="btn-primary-action">Return to Projects</a>
+              <button type="button" class="btn-secondary-action" onclick="window.location.reload()">Retry</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Project Content (Loaded dynamically) -->
+        <div id="project-details-content" style="display: none;">
+          <!-- SECTION 1: HERO PROJECT HEADER -->
+          <div class="project-hero-header">
+            <div class="hero-left">
+              <div class="badge-cluster">
+                <span class="badge-status" id="hero-status">Open for Bidding</span>
+                <span class="badge-project-id" id="hero-project-id">PRJ-0000000000</span>
+                <span class="badge-category" id="hero-category">New Construction</span>
+                <span class="badge-tier" id="hero-tier">Standard Quality</span>
+              </div>
+              <h1 class="hero-title" id="hero-title">Residential Construction Project</h1>
+              <div class="hero-meta-row">
+                <span class="meta-item"><i class="fa-solid fa-location-dot"></i> <span id="hero-location">--</span></span>
+                <span class="meta-divider">•</span>
+                <span class="meta-item"><i class="fa-regular fa-calendar-days"></i> Posted: <span id="hero-date">--</span></span>
+                <span class="meta-divider">•</span>
+                <span class="meta-item"><i class="fa-solid fa-ruler-combined"></i> Scale: <strong id="hero-scale">--</strong></span>
+              </div>
+            </div>
+            <div class="hero-right">
+              <div class="hero-budget-card">
+                <span class="budget-label"><i class="fa-solid fa-wallet"></i> Customer Stated Budget</span>
+                <div class="budget-value" id="hero-budget">₹--</div>
+                <small class="budget-sub" id="hero-payment-pref">Payment: Milestone Based</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- TWO-COLUMN DETAIL GRID -->
+          <div class="details-layout-grid">
+            <!-- LEFT COLUMN (68% Width) -->
+            <div class="details-main-column">
+              <!-- SECTION 2: PROJECT OVERVIEW / QUICK METRICS -->
+              <section class="detail-card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-circle-info card-icon"></i>
+                    <h2>Project Overview & Scale</h2>
+                  </div>
+                </div>
+                <div class="overview-metrics-grid" id="overview-metrics-container">
+                  <!-- Dynamically populated -->
+                </div>
+              </section>
+
+              <!-- SECTION 3: SITE & PLOT SPECIFICATIONS -->
+              <section class="detail-card" id="site-specs-card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-map-location-dot card-icon"></i>
+                    <h2>Site & Location Parameters</h2>
+                  </div>
+                </div>
+                <div class="spec-attributes-grid" id="site-specs-container">
+                  <!-- Dynamically populated -->
+                </div>
+              </section>
+
+              <!-- SECTION 4: FLOOR-BY-FLOOR REQUIREMENTS -->
+              <section class="detail-card" id="floor-requirements-card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-layer-group card-icon"></i>
+                    <h2>Floor-by-Floor Specifications</h2>
+                  </div>
+                  <span class="card-counter-badge" id="floor-count-badge">0 Floors</span>
+                </div>
+                <div class="floor-tabs-bar" id="detail-floor-tabs-bar">
+                  <!-- Floor tabs populated dynamically -->
+                </div>
+                <div class="floor-panes-body" id="detail-floor-panes-container">
+                  <!-- Active floor pane populated dynamically -->
+                </div>
+              </section>
+
+              <!-- SECTION 5: BASEMENT ENGINEERING & SPACES (Conditional) -->
+              <section class="detail-card" id="basement-details-card" style="display: none;">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-dungeon card-icon"></i>
+                    <h2>Basement Civil Scope & Facilities</h2>
+                  </div>
+                  <span class="card-counter-badge badge-accent">Basement Included</span>
+                </div>
+                <div class="basement-body" id="basement-details-container">
+                  <!-- Basement specs populated dynamically -->
+                </div>
+              </section>
+
+              <!-- SECTION 6: CATEGORY-SPECIFIC REQUIREMENTS -->
+              <section class="detail-card" id="category-specific-card" style="display: none;">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-sliders card-icon"></i>
+                    <h2 id="category-card-title">Technical Specifications</h2>
+                  </div>
+                </div>
+                <div class="category-body" id="category-specific-container">
+                  <!-- Dynamically populated per project type -->
+                </div>
+              </section>
+
+              <!-- SECTION 7: CONSTRUCTION SCOPE OF WORK -->
+              <section class="detail-card" id="scope-of-work-card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-screwdriver-wrench card-icon"></i>
+                    <h2>Scope of Work & Trades</h2>
+                  </div>
+                </div>
+                <div class="scope-badges-grid" id="scope-badges-container">
+                  <!-- Scope pills populated dynamically -->
+                </div>
+              </section>
+
+              <!-- SECTION 8: CUSTOMER PROJECT DESCRIPTION -->
+              <section class="detail-card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <i class="fa-solid fa-message card-icon"></i>
+                    <h2>Customer Project Description</h2>
+                  </div>
+                </div>
+                <div class="description-body">
+                  <div class="description-quote-box">
+                    <p id="detail-description-text">No detailed description provided by the customer.</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- RIGHT COLUMN: STICKY COMMERCIAL & BIDDING SIDEBAR (32% Width) -->
+            <div class="details-side-column">
+              <!-- SIDEBAR 1: COMMERCIAL BUDGET & TERMS -->
+              <div class="side-card commercial-side-card">
+                <div class="side-card-header">
+                  <h3><i class="fa-solid fa-coins"></i> Financial Parameters</h3>
+                </div>
+                <div class="side-card-body">
+                  <div class="budget-stat-box">
+                    <span class="sub-label">Customer Expected Budget</span>
+                    <strong class="stat-num" id="side-budget-val">₹--</strong>
+                    <span class="budget-range-pill" id="side-budget-range-pill">Stated by customer</span>
+                  </div>
+
+                  <div class="side-meta-list">
+                    <div class="side-meta-row">
+                      <span class="row-label"><i class="fa-regular fa-credit-card"></i> Payment Preference</span>
+                      <strong class="row-val" id="side-payment-pref">Milestone Based</strong>
+                    </div>
+                    <div class="side-meta-row">
+                      <span class="row-label"><i class="fa-solid fa-shield-halved"></i> Visibility</span>
+                      <strong class="row-val" id="side-privacy-pref">Verified Contractors</strong>
+                    </div>
+                  </div>
+
+                  <div class="budget-disclaimer">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Official customer-stated budget for quotation benchmarking.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SIDEBAR 2: TIMELINE & STATUS -->
+              <div class="side-card">
+                <div class="side-card-header">
+                  <h3><i class="fa-solid fa-business-time"></i> Timeline & Schedule</h3>
+                </div>
+                <div class="side-card-body">
+                  <div class="side-meta-list">
+                    <div class="side-meta-row">
+                      <span class="row-label"><i class="fa-regular fa-calendar-check"></i> Target Start</span>
+                      <strong class="row-val" id="side-target-start">Flexible</strong>
+                    </div>
+                    <div class="side-meta-row">
+                      <span class="row-label"><i class="fa-solid fa-signal"></i> Bidding Status</span>
+                      <strong class="row-val text-success" id="side-status-val">Open for Bidding</strong>
+                    </div>
+                    <div class="side-meta-row">
+                      <span class="row-label"><i class="fa-regular fa-clock"></i> Date Posted</span>
+                      <strong class="row-val" id="side-posted-date">--</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SIDEBAR 3: PRIMARY ACTION CTA -->
+              <div class="side-card action-side-card">
+                <div class="side-card-body">
+                  <h4 class="cta-title">Ready to Bid on this Project?</h4>
+                  <p class="cta-desc">Prepare a comprehensive, itemized quotation including floor breakdown, materials, and milestone schedule.</p>
+                  
+                  <button type="button" class="btn-primary-block-cta" id="btn-side-bid" onclick="handleBidNavigation()">
+                    <i class="fa-solid fa-paper-plane"></i> Submit Quotation / Bid
+                  </button>
+
+                  <a href="contractor-projects.html" class="btn-link-secondary">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Live Projects
+                  </a>
+                </div>
+              </div>
+
+              <!-- SIDEBAR 4: LOCATION & PRIVACY SAFEGUARD -->
+              <div class="side-card privacy-side-card">
+                <div class="side-card-header">
+                  <h3><i class="fa-solid fa-lock"></i> Privacy Protected</h3>
+                </div>
+                <div class="side-card-body">
+                  <div class="privacy-notice">
+                    <p><strong>Customer Identity Guard:</strong> Direct phone numbers, emails, and exact plot/house address are protected by BuildBid marketplace policy.</p>
+                    <p class="mt-2 text-muted">Complete site visit coordination is enabled directly upon quotation shortlisting.</p>
+                  </div>
+                  <div class="locality-box">
+                    <i class="fa-solid fa-map-pin"></i>
+                    <div>
+                      <span class="locality-label">Verified Work Locality</span>
+                      <strong id="side-location-summary">--</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="contractor-project-details.js"></script>
+</body>
+</html>
