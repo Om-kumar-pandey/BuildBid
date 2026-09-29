@@ -79,8 +79,18 @@ public class MaterialController {
             return ResponseEntity.badRequest().body(Map.of("error", "Valid selling price is required (> 0) — वैध विक्रय मूल्य आवश्यक है"));
         }
 
-        // 7. Calculate stock metrics & status
-        double reservedStock = 0.0;
+        // 7. Validate and parse Reserved Stock
+        Double reservedStock = parseDoubleSafe(payload.get("reservedStock"));
+        if (reservedStock == null) {
+            reservedStock = 0.0;
+        }
+        if (reservedStock < 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Reserved Stock cannot be negative — आरक्षित स्टॉक नकारात्मक नहीं हो सकता"));
+        }
+        if (reservedStock > initialStock) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Reserved Stock cannot be greater than Current Stock. आरक्षित स्टॉक वर्तमान स्टॉक से अधिक नहीं हो सकता।"));
+        }
+
         double availableStock = initialStock - reservedStock;
 
         String stockStatus;
@@ -140,6 +150,134 @@ public class MaterialController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getMaterialById(@PathVariable("id") Long id,
+                                            Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a seller."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Seller account not found in system."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser seller = userOpt.get();
+        Optional<Material> matOpt = materialRepository.findById(id);
+
+        if (matOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Material not found with ID: " + id));
+        }
+
+        Material material = matOpt.get();
+        if (material.getSeller() == null || !material.getSeller().getId().equals(seller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Forbidden: You are not authorized to view another seller's material."));
+        }
+
+        return ResponseEntity.ok(toMaterialMap(material));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateMaterial(@PathVariable("id") Long id,
+                                           @RequestBody Map<String, Object> payload,
+                                           Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a seller."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Seller account not found in system."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser seller = userOpt.get();
+        Optional<Material> matOpt = materialRepository.findById(id);
+
+        if (matOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Material not found with ID: " + id));
+        }
+
+        Material material = matOpt.get();
+
+        // Security check: Must belong to authenticated seller
+        if (material.getSeller() == null || !material.getSeller().getId().equals(seller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Forbidden: You cannot modify another seller's material."));
+        }
+
+        // 1. Current Stock Validation
+        Double currentStock = parseDoubleSafe(payload.get("currentStock"));
+        if (currentStock == null || currentStock < 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid Current Stock (>= 0) is required — वैध वर्तमान स्टॉक आवश्यक है"));
+        }
+
+        // 2. Reserved Stock Validation
+        Double reservedStock = parseDoubleSafe(payload.get("reservedStock"));
+        if (reservedStock == null || reservedStock < 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid Reserved Stock (>= 0) is required — वैध आरक्षित स्टॉक आवश्यक है"));
+        }
+
+        // 3. Reserved vs Current Stock Rule
+        if (reservedStock > currentStock) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Reserved Stock cannot be greater than Current Stock. आरक्षित स्टॉक वर्तमान स्टॉक से अधिक नहीं हो सकता।"));
+        }
+
+        // 4. Unit Price Validation
+        Double unitPrice = parseDoubleSafe(payload.get("unitPrice"));
+        if (unitPrice == null || unitPrice <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid Unit Price (> 0) is required — वैध विक्रय मूल्य आवश्यक है"));
+        }
+
+        // 5. Calculate Available Stock & Status
+        double availableStock = currentStock - reservedStock;
+
+        String stockStatus;
+        if (availableStock <= 0) {
+            stockStatus = "OUT_OF_STOCK";
+        } else if (availableStock <= 20.0) {
+            stockStatus = "LOW_STOCK";
+        } else {
+            stockStatus = "IN_STOCK";
+        }
+
+        // 6. Update allowed fields (Material Name and Category remain strictly immutable)
+        material.setCurrentStock(currentStock);
+        material.setReservedStock(reservedStock);
+        material.setAvailableStock(availableStock);
+        material.setUnitPrice(unitPrice);
+        material.setStockStatus(stockStatus);
+
+        if (payload.get("brand") != null) {
+            material.setBrand(payload.get("brand").toString().trim());
+        }
+        if (payload.get("specifications") != null) {
+            material.setSpecifications(payload.get("specifications").toString().trim());
+        }
+        if (payload.get("description") != null) {
+            material.setDescription(payload.get("description").toString().trim());
+        }
+
+        Material updated = materialRepository.save(material);
+
+        Map<String, Object> response = toMaterialMap(updated);
+        response.put("message", "Material updated successfully — सामग्री सफलतापूर्वक अपडेट की गई");
+
+        return ResponseEntity.ok(response);
     }
 
     private Map<String, Object> toMaterialMap(Material m) {

@@ -505,9 +505,13 @@ function renderSellerMaterials(materials) {
         const category = mat.category || "General";
         const brand = mat.brand ? ` • ${mat.brand}` : "";
         const specs = mat.specifications ? ` (${mat.specifications})` : "";
-        const currentStock = mat.currentStock != null ? Number(mat.currentStock).toLocaleString("en-IN") : "0";
-        const reservedStock = mat.reservedStock != null ? Number(mat.reservedStock).toLocaleString("en-IN") : "0";
-        const availableStock = mat.availableStock != null ? Number(mat.availableStock).toLocaleString("en-IN") : currentStock;
+        const currentNum = mat.currentStock != null ? Number(mat.currentStock) : 0;
+        const reservedNum = mat.reservedStock != null ? Number(mat.reservedStock) : 0;
+        const availNum = mat.availableStock != null ? Number(mat.availableStock) : (currentNum - reservedNum);
+
+        const currentStock = currentNum.toLocaleString("en-IN");
+        const reservedStock = reservedNum.toLocaleString("en-IN");
+        const availableStock = availNum.toLocaleString("en-IN");
         
         let unitDisplay = mat.unit || "";
         if (unitDisplay.includes("—")) {
@@ -534,9 +538,8 @@ function renderSellerMaterials(materials) {
             <td class="p-4 font-bold text-emerald-600">${escapeHtml(availableStock)} ${escapeHtml(unitDisplay)}</td>
             <td class="p-4 font-bold">${escapeHtml(price)} / ${escapeHtml(unitDisplay)}</td>
             <td class="p-4">${statusBadge}</td>
-            <td class="p-4 text-right space-x-2">
-                <button onclick="window.location.href='add-material.html'" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Add More</button>
-                <button onclick="showToast('Material stock is active')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Restock</button>
+            <td class="p-4 text-right">
+                <button onclick="openEditMaterialModal('${escapeJs(String(mat.id))}')" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -544,6 +547,196 @@ function renderSellerMaterials(materials) {
 }
 
 
+
+
+/* ==========================================================================
+   EDIT MATERIAL MODAL & INVENTORY UPDATE SYSTEM
+   ========================================================================== */
+
+async function openEditMaterialModal(materialId) {
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    try {
+        let mat = null;
+        if (token) {
+            // Fetch authoritative record from backend
+            const response = await fetch(API_BASE_URL + "/api/seller/materials/" + encodeURIComponent(materialId), {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.ok) {
+                mat = await response.json();
+            } else if (response.status === 403) {
+                showToast("Forbidden: You are not authorized to edit this material.", "error");
+                return;
+            }
+        }
+
+        // Fallback for static demo rows if backend has no record with that ID yet
+        if (!mat) {
+            const defaultRows = {
+                "1": { id: 1, materialName: "TMT Steel Rebars Fe 500", category: "TMT Steel", currentStock: 145, reservedStock: 10, availableStock: 135, unit: "Tons", unitPrice: 54000, brand: "Tata Tiscon", specifications: "Fe 500D Grade, ISI Certified", description: "" },
+                "2": { id: 2, materialName: "OPC Cement 53 Grade", category: "Cement", currentStock: 1250, reservedStock: 500, availableStock: 750, unit: "Bags", unitPrice: 370, brand: "UltraTech", specifications: "Grade 53 High Strength", description: "" },
+                "3": { id: 3, materialName: "River Sand (Coarse Plastering)", category: "Sand & Aggregate", currentStock: 18, reservedStock: 0, availableStock: 18, unit: "Tons", unitPrice: 1850, brand: "", specifications: "Screened coarse sand", description: "" }
+            };
+            mat = defaultRows[String(materialId)];
+            if (!mat) {
+                showToast("Could not load material details", "error");
+                return;
+            }
+        }
+
+        // Populate Form Fields
+        const idElem = document.getElementById("editMaterialId");
+        const nameElem = document.getElementById("editMaterialName");
+        const catElem = document.getElementById("editCategory");
+        const curStockElem = document.getElementById("editCurrentStock");
+        const resStockElem = document.getElementById("editReservedStock");
+        const unitElem = document.getElementById("editUnit");
+        const priceElem = document.getElementById("editUnitPrice");
+        const brandElem = document.getElementById("editBrand");
+        const specsElem = document.getElementById("editSpecifications");
+        const descElem = document.getElementById("editDescription");
+
+        if (idElem) idElem.value = mat.id || materialId;
+        if (nameElem) nameElem.value = mat.materialName || "";
+        if (catElem) catElem.value = mat.category || "";
+        if (curStockElem) curStockElem.value = mat.currentStock != null ? mat.currentStock : 0;
+        if (resStockElem) resStockElem.value = mat.reservedStock != null ? mat.reservedStock : 0;
+        if (unitElem) unitElem.value = mat.unit || "";
+        if (priceElem) priceElem.value = mat.unitPrice != null ? mat.unitPrice : 0;
+        if (brandElem) brandElem.value = mat.brand || "";
+        if (specsElem) specsElem.value = mat.specifications || "";
+        if (descElem) descElem.value = mat.description || "";
+
+        calculateEditAvailableStock();
+        openModal("editMaterialModal");
+    } catch (err) {
+        console.error("Seller Dashboard: Error loading material for edit:", err);
+        showToast("Network error loading material details", "error");
+    }
+}
+
+function calculateEditAvailableStock() {
+    const curElem = document.getElementById("editCurrentStock");
+    const resElem = document.getElementById("editReservedStock");
+    const availElem = document.getElementById("editAvailableStock");
+    const unitElem = document.getElementById("editUnit");
+    const warnElem = document.getElementById("editStockWarning");
+    const saveBtn = document.getElementById("saveEditBtn");
+
+    const current = parseFloat(curElem ? curElem.value : 0) || 0;
+    const reserved = parseFloat(resElem ? resElem.value : 0) || 0;
+    const available = current - reserved;
+    const cleanUnit = (unitElem && unitElem.value) ? unitElem.value.split("—")[0].trim() : "";
+
+    if (reserved > current) {
+        if (warnElem) warnElem.classList.remove("hidden");
+        if (availElem) {
+            availElem.value = available.toLocaleString("en-IN") + " " + cleanUnit + " (Invalid)";
+            availElem.classList.remove("text-emerald-600");
+            availElem.classList.add("text-red-600");
+        }
+        if (saveBtn) saveBtn.disabled = true;
+    } else {
+        if (warnElem) warnElem.classList.add("hidden");
+        if (availElem) {
+            availElem.value = Math.max(0, available).toLocaleString("en-IN") + (cleanUnit ? " " + cleanUnit : "");
+            availElem.classList.remove("text-red-600");
+            availElem.classList.add("text-emerald-600");
+        }
+        if (saveBtn) saveBtn.disabled = false;
+    }
+}
+
+async function saveMaterialEdit(event) {
+    if (event) event.preventDefault();
+
+    const idElem = document.getElementById("editMaterialId");
+    const curStockElem = document.getElementById("editCurrentStock");
+    const resStockElem = document.getElementById("editReservedStock");
+    const priceElem = document.getElementById("editUnitPrice");
+    const brandElem = document.getElementById("editBrand");
+    const specsElem = document.getElementById("editSpecifications");
+    const descElem = document.getElementById("editDescription");
+    const saveBtn = document.getElementById("saveEditBtn");
+
+    const id = idElem ? idElem.value : "";
+    const currentStock = parseFloat(curStockElem ? curStockElem.value : 0);
+    const reservedStock = parseFloat(resStockElem ? resStockElem.value : 0);
+    const unitPrice = parseFloat(priceElem ? priceElem.value : 0);
+
+    if (isNaN(currentStock) || currentStock < 0) {
+        showToast("Please enter a valid Current Stock (>= 0)", "error");
+        return;
+    }
+    if (isNaN(reservedStock) || reservedStock < 0) {
+        showToast("Please enter a valid Reserved Stock (>= 0)", "error");
+        return;
+    }
+    if (reservedStock > currentStock) {
+        showToast("Reserved Stock cannot be greater than Current Stock. आरक्षित स्टॉक वर्तमान स्टॉक से अधिक नहीं हो सकता।", "error");
+        return;
+    }
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+        showToast("Please enter a valid selling price (> 0)", "error");
+        return;
+    }
+
+    const payload = {
+        currentStock: currentStock,
+        reservedStock: reservedStock,
+        unitPrice: unitPrice,
+        brand: brandElem ? brandElem.value.trim() : "",
+        specifications: specsElem ? specsElem.value.trim() : "",
+        description: descElem ? descElem.value.trim() : ""
+    };
+
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i><span>Saving...</span>';
+    }
+
+    try {
+        const response = await fetch(API_BASE_URL + "/api/seller/materials/" + encodeURIComponent(id), {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            closeModal("editMaterialModal");
+            showToast("Material updated successfully — सामग्री सफलतापूर्वक अपडेट की गई");
+            // Refresh Inventory Catalog table immediately
+            await loadSellerInventory();
+            // Refresh Invoice Entry materials dropdown
+            loadInvoiceMaterials();
+        } else {
+            showToast(data.error || data.message || "Failed to update material", "error");
+        }
+    } catch (err) {
+        console.error("Seller Dashboard: Error saving material edit:", err);
+        showToast("Network error updating material. Please try again.", "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i><span>Save Changes — सुरक्षित करें</span>';
+        }
+    }
+}
 
 /* ==========================================================================
    DYNAMIC DATA BINDING: INVOICE ENTRY MATERIAL SELECTION

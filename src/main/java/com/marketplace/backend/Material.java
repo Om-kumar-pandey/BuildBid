@@ -68,6 +68,16 @@ public class Material {
         }
     }
 
+    @PreUpdate
+    public void onUpdate() {
+        if (reservedStock == null) {
+            reservedStock = 0.0;
+        }
+        if (currentStock != null) {
+            availableStock = currentStock - reservedStock;
+        }
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

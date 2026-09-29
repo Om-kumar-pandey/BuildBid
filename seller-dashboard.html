@@ -796,7 +796,7 @@
                                     <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
                                         <th class="p-4">Material Name & Category</th>
                                         <th class="p-4">Current Stock</th>
-                                        <th class="p-4">Reserved</th>
+                                        <th class="p-4">Reserved — आरक्षित स्टॉक</th>
                                         <th class="p-4">Available</th>
                                         <th class="p-4">Unit Price (₹)</th>
                                         <th class="p-4">Stock Status</th>
@@ -814,9 +814,8 @@
                                         <td class="p-4 font-bold text-emerald-600">135 Tons</td>
                                         <td class="p-4 font-bold">₹54,000 / Ton</td>
                                         <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock</span></td>
-                                        <td class="p-4 text-right space-x-2">
-                                            <button onclick="openModal('addMaterialModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Edit</button>
-                                            <button onclick="showToast('Stock updated successfully')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Restock</button>
+                                        <td class="p-4 text-right">
+                                            <button onclick="openEditMaterialModal(1)" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
                                         </td>
                                     </tr>
                                     <tr class="hover:bg-slate-50 transition-all">
@@ -829,9 +828,8 @@
                                         <td class="p-4 font-bold text-emerald-600">750 Bags</td>
                                         <td class="p-4 font-bold">₹370 / Bag</td>
                                         <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock</span></td>
-                                        <td class="p-4 text-right space-x-2">
-                                            <button onclick="openModal('addMaterialModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Edit</button>
-                                            <button onclick="showToast('Stock updated successfully')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Restock</button>
+                                        <td class="p-4 text-right">
+                                            <button onclick="openEditMaterialModal(2)" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
                                         </td>
                                     </tr>
                                     <tr class="hover:bg-slate-50 transition-all">
@@ -844,9 +842,8 @@
                                         <td class="p-4 font-bold text-red-600">18 Tons</td>
                                         <td class="p-4 font-bold">₹1,850 / Ton</td>
                                         <td class="p-4"><span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Low Stock</span></td>
-                                        <td class="p-4 text-right space-x-2">
-                                            <button onclick="openModal('addMaterialModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Edit</button>
-                                            <button onclick="showToast('Restock order initiated')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all">Restock Now</button>
+                                        <td class="p-4 text-right">
+                                            <button onclick="openEditMaterialModal(3)" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1203,58 +1200,106 @@
         </div>
     </div>
 
-    <!-- MODAL 1: ADD / EDIT MATERIAL MODAL -->
-    <div id="addMaterialModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <!-- MODAL 1: EDIT MATERIAL INVENTORY MODAL -->
+    <div id="editMaterialModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200">
             <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-                <h3 class="font-bold text-sm">Add New Construction Material</h3>
-                <button onclick="closeModal('addMaterialModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+                <div>
+                    <h3 class="font-bold text-sm">Edit Material Inventory — सामग्री विवरण संपादित करें</h3>
+                    <p class="text-[10px] text-slate-400">Update stock levels, reserved quantities, and unit pricing</p>
+                </div>
+                <button type="button" onclick="closeModal('editMaterialModal')" class="text-slate-400 hover:text-white transition-all"><i class="fa-solid fa-xmark text-base"></i></button>
             </div>
-            <div class="p-6 space-y-4 text-xs">
+            <form id="editMaterialForm" onsubmit="saveMaterialEdit(event)" class="p-6 space-y-4 text-xs">
+                <input type="hidden" id="editMaterialId">
+
+                <!-- Material Name & Category (STRICTLY READ-ONLY) -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Material Name</label>
-                        <input type="text" placeholder="e.g. TMT Steel Fe 500" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Material Name — सामग्री का नाम <span class="text-slate-400 font-normal">(Read-only)</span>
+                        </label>
+                        <input type="text" id="editMaterialName" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-700 font-bold outline-none cursor-not-allowed">
                     </div>
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Category</label>
-                        <select class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                            <option>TMT Steel</option>
-                            <option>Cement</option>
-                            <option>Bricks & Blocks</option>
-                            <option>Sand & Aggregate</option>
-                            <option>Tiles & Flooring</option>
-                        </select>
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Category — श्रेणी <span class="text-slate-400 font-normal">(Read-only)</span>
+                        </label>
+                        <input type="text" id="editCategory" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-700 font-bold outline-none cursor-not-allowed">
                     </div>
                 </div>
+
+                <!-- Stock Quantities: Current, Reserved, Available -->
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Initial Stock Qty</label>
-                        <input type="number" placeholder="100" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Current Stock — वर्तमान स्टॉक <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="editCurrentStock" min="0" step="any" required oninput="calculateEditAvailableStock()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Unit</label>
-                        <select class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                            <option>Tons</option>
-                            <option>Bags</option>
-                            <option>Nos</option>
-                            <option>Sq.ft</option>
-                        </select>
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Reserved Stock — आरक्षित स्टॉक <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="editReservedStock" min="0" step="any" required oninput="calculateEditAvailableStock()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-amber-700 focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Selling Price (₹)</label>
-                        <input type="number" placeholder="54000" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Available Stock — उपलब्ध स्टॉक
+                        </label>
+                        <input type="text" id="editAvailableStock" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg font-extrabold text-emerald-600 outline-none cursor-not-allowed">
                     </div>
                 </div>
+
+                <!-- Stock Warning (if reserved > current) -->
+                <div id="editStockWarning" class="hidden p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px] font-semibold flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
+                    <span>Reserved Stock cannot be greater than Current Stock. आरक्षित स्टॉक वर्तमान स्टॉक से अधिक नहीं हो सकता।</span>
+                </div>
+
+                <!-- Unit & Unit Price -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Unit of Measurement — इकाई
+                        </label>
+                        <input type="text" id="editUnit" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 font-semibold cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">
+                            Unit Price (₹) — विक्रय मूल्य प्रति इकाई <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="editUnitPrice" min="0.01" step="any" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Brand & Specifications (Optional) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Brand / Manufacturer — ब्रांड</label>
+                        <input type="text" id="editBrand" placeholder="e.g. UltraTech, Tata Tiscon" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Specifications & Grade — विनिर्देश</label>
+                        <input type="text" id="editSpecifications" placeholder="e.g. 53 Grade, Fe 500D" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Description -->
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Specifications & Grade</label>
-                    <input type="text" placeholder="e.g. ISI Certified, Fe 500D grade" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    <label class="block font-semibold text-slate-700 mb-1">Description — विवरण</label>
+                    <textarea id="editDescription" rows="2" placeholder="Additional details regarding material availability..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg"></textarea>
                 </div>
+
+                <!-- Footer Actions -->
                 <div class="pt-4 flex items-center justify-end space-x-3">
-                    <button onclick="closeModal('addMaterialModal')" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold">Cancel</button>
-                    <button onclick="closeModal('addMaterialModal'); showToast('Material published to BuildBid catalog successfully!')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm">Publish Material</button>
+                    <button type="button" onclick="closeModal('editMaterialModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Cancel</button>
+                    <button type="submit" id="saveEditBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save Changes — सुरक्षित करें</span>
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 

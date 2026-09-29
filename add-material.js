@@ -277,6 +277,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const customMaterialName = document.getElementById("customMaterialName");
     const customMaterialDescription = document.getElementById("customMaterialDescription");
     const initialStockInput = document.getElementById("initialStockInput");
+    const reservedStockInput = document.getElementById("reservedStockInput");
+    const availableStockDisplay = document.getElementById("availableStockDisplay");
+    const addStockWarning = document.getElementById("addStockWarning");
     const unitSelect = document.getElementById("unitSelect");
     const unitPriceInput = document.getElementById("unitPriceInput");
     const priceDisplayBadge = document.getElementById("priceDisplayBadge");
@@ -357,6 +360,33 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // Live Available Stock Calculator (Available = Current - Reserved)
+    function updateAvailableStock() {
+        const current = parseFloat(initialStockInput ? initialStockInput.value : 0) || 0;
+        const reserved = parseFloat(reservedStockInput ? reservedStockInput.value : 0) || 0;
+        const available = current - reserved;
+        const unitVal = unitSelect && unitSelect.value ? unitSelect.value.split("—")[0].trim() : "";
+
+        if (reserved > current) {
+            if (addStockWarning) addStockWarning.classList.remove("hidden");
+            if (availableStockDisplay) {
+                availableStockDisplay.value = "Invalid (Reserved > Current)";
+                availableStockDisplay.classList.remove("text-emerald-700");
+                availableStockDisplay.classList.add("text-red-600");
+            }
+        } else {
+            if (addStockWarning) addStockWarning.classList.add("hidden");
+            if (availableStockDisplay) {
+                availableStockDisplay.value = Math.max(0, available).toLocaleString("en-IN") + (unitVal ? " " + unitVal : "");
+                availableStockDisplay.classList.remove("text-red-600");
+                availableStockDisplay.classList.add("text-emerald-700");
+            }
+        }
+    }
+
+    if (initialStockInput) initialStockInput.addEventListener("input", updateAvailableStock);
+    if (reservedStockInput) reservedStockInput.addEventListener("input", updateAvailableStock);
+
     // Live Price Display Updater
     function updatePriceBadge() {
         const price = parseFloat(unitPriceInput.value) || 0;
@@ -406,6 +436,18 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
+        const reservedStock = parseFloat(reservedStockInput ? reservedStockInput.value : 0) || 0;
+        if (reservedStock < 0) {
+            showToast("Reserved Stock cannot be negative — आरक्षित स्टॉक नकारात्मक नहीं हो सकता", "error");
+            reservedStockInput.focus();
+            return;
+        }
+        if (reservedStock > initialStock) {
+            showToast("Reserved Stock cannot be greater than Current Stock. आरक्षित स्टॉक वर्तमान स्टॉक से अधिक नहीं हो सकता।", "error");
+            reservedStockInput.focus();
+            return;
+        }
+
         const unit = unitSelect.value.trim();
         if (!unit) {
             showToast("Please select a unit of measurement — इकाई चुनें", "error");
@@ -432,6 +474,7 @@ document.addEventListener("DOMContentLoaded", function() {
             description: finalDescription,
             initialStock: initialStock,
             currentStock: initialStock,
+            reservedStock: reservedStock,
             unit: unit,
             unitPrice: unitPrice
         };
