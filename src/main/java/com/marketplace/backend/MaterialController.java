@@ -280,6 +280,47 @@ public class MaterialController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteMaterial(@PathVariable("id") Long id,
+                                            Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a seller."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Seller account not found in system."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser seller = userOpt.get();
+        Optional<Material> matOpt = materialRepository.findById(id);
+
+        if (matOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Material not found with ID: " + id));
+        }
+
+        Material material = matOpt.get();
+
+        // Security check: Must belong to authenticated seller
+        if (material.getSeller() == null || !material.getSeller().getId().equals(seller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Forbidden: You are not authorized to delete another seller's material."));
+        }
+
+        materialRepository.delete(material);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Material deleted successfully — सामग्री सफलतापूर्वक हटाई गई"
+        ));
+    }
+
     private Map<String, Object> toMaterialMap(Material m) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", m.getId());

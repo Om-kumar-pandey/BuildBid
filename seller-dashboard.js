@@ -538,8 +538,9 @@ function renderSellerMaterials(materials) {
             <td class="p-4 font-bold text-emerald-600">${escapeHtml(availableStock)} ${escapeHtml(unitDisplay)}</td>
             <td class="p-4 font-bold">${escapeHtml(price)} / ${escapeHtml(unitDisplay)}</td>
             <td class="p-4">${statusBadge}</td>
-            <td class="p-4 text-right">
-                <button onclick="openEditMaterialModal('${escapeJs(String(mat.id))}')" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
+            <td class="p-4 text-right space-x-1.5">
+                <button onclick="openEditMaterialModal('${escapeJs(String(mat.id))}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
+                <button onclick="openDeleteMaterialModal('${escapeJs(String(mat.id))}', '${escapeJs(String(materialName))}')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg font-semibold transition-all shadow-sm" title="Delete Material — सामग्री हटाएं"><i class="fa-solid fa-trash text-xs"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -734,6 +735,83 @@ async function saveMaterialEdit(event) {
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i><span>Save Changes — सुरक्षित करें</span>';
+        }
+    }
+}
+
+/* ==========================================================================
+   DELETE MATERIAL SYSTEM
+   ========================================================================== */
+
+function openDeleteMaterialModal(materialId, materialName) {
+    const idElem = document.getElementById("deleteTargetMaterialId");
+    const nameElem = document.getElementById("deleteTargetMaterialName");
+    if (idElem) idElem.value = materialId || "";
+    if (nameElem) nameElem.textContent = materialName || "Selected Material";
+    openModal("deleteMaterialModal");
+}
+
+async function confirmDeleteMaterial() {
+    const idElem = document.getElementById("deleteTargetMaterialId");
+    const materialId = idElem ? idElem.value : "";
+    if (!materialId) {
+        closeModal("deleteMaterialModal");
+        return;
+    }
+
+    const deleteBtn = document.getElementById("confirmDeleteMaterialBtn");
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i><span>Deleting...</span>';
+    }
+
+    try {
+        if (token) {
+            const response = await fetch(API_BASE_URL + "/api/seller/materials/" + encodeURIComponent(materialId), {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.ok) {
+                closeModal("deleteMaterialModal");
+                showToast("Material deleted successfully. सामग्री सफलतापूर्वक हटाई गई।");
+                await loadSellerInventory();
+                if (typeof loadInvoiceMaterials === "function") {
+                    loadInvoiceMaterials();
+                }
+            } else if (response.status === 403) {
+                closeModal("deleteMaterialModal");
+                showToast("Forbidden: You are not authorized to delete another seller's material.", "error");
+            } else if (response.status === 404) {
+                closeModal("deleteMaterialModal");
+                showToast("Material not found with ID: " + materialId, "error");
+                await loadSellerInventory();
+            } else {
+                const data = await response.json().catch(() => ({}));
+                closeModal("deleteMaterialModal");
+                showToast(data.error || data.message || "Failed to delete material", "error");
+            }
+        } else {
+            // Local preview fallback if session token missing
+            closeModal("deleteMaterialModal");
+            showToast("Material deleted successfully. सामग्री सफलतापूर्वक हटाई गई।");
+            const row = document.querySelector(`button[onclick*="openDeleteMaterialModal('${materialId}'"]`)?.closest("tr");
+            if (row) row.remove();
+        }
+    } catch (err) {
+        console.error("Seller Dashboard: Error deleting material:", err);
+        closeModal("deleteMaterialModal");
+        showToast("Network error deleting material. Please try again.", "error");
+    } finally {
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="fa-solid fa-trash mr-1.5"></i><span>Delete — हटाएं</span>';
         }
     }
 }
