@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildBid — Material Seller Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External Stylesheet -->
+    <link rel="stylesheet" href="seller-dashboard.css">
+</head>
+<body class="h-full text-slate-800 antialiased overflow-hidden">
+
+    <div id="app" class="flex h-screen w-screen overflow-hidden bg-slate-100">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 select-none">
+            <!-- Logo area -->
+            <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                        <i class="fa-solid fa-helmet-safety"></i>
+                    </div>
+                    <div>
+                        <span class="text-white font-bold text-lg tracking-tight">Build<span class="text-blue-500">Bid</span></span>
+                        <p class="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Build Smarter. Together.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1 text-sm font-medium">
+                <div class="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Seller Workspace</div>
+                
+                <a href="#dashboard" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-600 text-white transition-all shadow-sm">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                        <span>Dashboard</span>
+                    </div>
+                </a>
+
+                <a href="#requests" onclick="switchTab('requests')" id="nav-requests" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                        <span>Material Requests</span>
+                    </div>
+                    <span id="nav-requests-badge" class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">12</span>
+                </a>
+
+                <a href="#quotations" onclick="switchTab('quotations')" id="nav-quotations" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                        <span>My Quotations</span>
+                    </div>
+                    <span class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">5 Pending</span>
+                </a>
+
+                <a href="#orders" onclick="switchTab('orders')" id="nav-orders" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
+                        <span>Orders</span>
+                    </div>
+                    <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-medium">8 Active</span>
+                </a>
+
+                <a href="#inventory" onclick="switchTab('inventory')" id="nav-inventory" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-warehouse w-5 text-center"></i>
+                        <span>Inventory</span>
+                    </div>
+                    <span class="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full font-medium">2 Low</span>
+                </a>
+
+                <a href="#deliveries" onclick="switchTab('deliveries')" id="nav-deliveries" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-truck-fast w-5 text-center"></i>
+                        <span>Deliveries</span>
+                    </div>
+                </a>
+
+                <a href="#invoices" onclick="switchTab('invoices')" id="nav-invoices" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-file-invoice w-5 text-center"></i>
+                        <span>Invoices</span>
+                    </div>
+                </a>
+
+                <a href="#payments" onclick="switchTab('payments')" id="nav-payments" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-wallet w-5 text-center"></i>
+                        <span>Payments</span>
+                    </div>
+                </a>
+
+                <div class="pt-4 pb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Communication & Insights</div>
+
+                <a href="#messages" onclick="switchTab('messages')" id="nav-messages" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-comments w-5 text-center"></i>
+                        <span>Messages</span>
+                    </div>
+                    <span class="bg-emerald-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">3</span>
+                </a>
+
+                <a href="#analytics" onclick="switchTab('analytics')" id="nav-analytics" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                        <span>Analytics</span>
+                    </div>
+                </a>
+
+                <div class="pt-4 pb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Account</div>
+
+                <a href="#profile" onclick="switchTab('profile')" id="nav-profile" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-building-shield w-5 text-center"></i>
+                        <span>Profile & Business</span>
+                    </div>
+                </a>
+
+                <a href="#settings" onclick="switchTab('settings')" id="nav-settings" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-gear w-5 text-center"></i>
+                        <span>Settings</span>
+                    </div>
+                </a>
+
+                <a href="javascript:void(0)" onclick="logoutSeller()" id="nav-logout" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-red-400 hover:bg-slate-800 hover:text-red-300 transition-all">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i>
+                        <span>Logout</span>
+                    </div>
+                </a>
+            </nav>
+
+            <!-- Bottom Verified Seller Badge -->
+            <div class="p-4 bg-slate-950 border-t border-slate-800">
+                <div class="flex items-center space-x-3 bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-2.5">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-badge-check text-base"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-xs font-semibold text-emerald-400 truncate">Verified Material Seller</p>
+                        <p class="text-[10px] text-slate-400 truncate">GSTIN: 07AABCR1234F1Z5</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+            <!-- TOP HEADER -->
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10 shadow-sm">
+                <!-- Global Search -->
+                <div class="flex items-center w-96">
+                    <div class="relative w-full">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        </span>
+                        <input type="text" placeholder="Search material requests, orders, quotations, invoices..." 
+                            class="w-full pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Right Header Actions & Seller Profile -->
+                <div class="flex items-center space-x-4">
+                    <!-- Help Button -->
+                    <button class="w-9 h-9 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all relative" title="Help & Support" onclick="showToast('Opening BuildBid Supplier Support...')">
+                        <i class="fa-regular fa-circle-question text-lg"></i>
+                    </button>
+
+                    <!-- Notifications Button -->
+                    <div class="relative">
+                        <button onclick="toggleNotifications()" class="w-9 h-9 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all relative" title="Notifications">
+                            <i class="fa-regular fa-bell text-lg"></i>
+                            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        </button>
+                        <!-- Notifications Dropdown -->
+                        <div id="notifications-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50">
+                            <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                                <span class="font-semibold text-xs text-slate-800 uppercase tracking-wider">Notifications</span>
+                                <span class="text-[10px] text-blue-600 font-semibold cursor-pointer hover:underline" onclick="showToast('All marked as read')">Mark all read</span>
+                            </div>
+                            <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
+                                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all">
+                                    <div class="flex items-start space-x-2">
+                                        <div class="w-2 h-2 mt-1 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">New material requirement posted</p>
+                                            <p class="text-slate-500 text-[11px] mt-0.5">REQ-1028: TMT Steel Fe 500 in Noida (10 Tons)</p>
+                                            <span class="text-[10px] text-slate-400 mt-1 block">10 mins ago</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all">
+                                    <div class="flex items-start space-x-2">
+                                        <div class="w-2 h-2 mt-1 rounded-full bg-emerald-500 flex-shrink-0"></div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">Quotation Accepted!</p>
+                                            <p class="text-slate-500 text-[11px] mt-0.5">Order #ORD-1025 confirmed for OPC Cement (500 Bags)</p>
+                                            <span class="text-[10px] text-slate-400 mt-1 block">1 hour ago</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all">
+                                    <div class="flex items-start space-x-2">
+                                        <div class="w-2 h-2 mt-1 rounded-full bg-amber-500 flex-shrink-0"></div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">Low Stock Alert</p>
+                                            <p class="text-slate-500 text-[11px] mt-0.5">OPC Cement 53 Grade is below minimum threshold (45 bags left)</p>
+                                            <span class="text-[10px] text-slate-400 mt-1 block">3 hours ago</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-6 w-[1px] bg-slate-200"></div>
+
+                    <!-- Seller Profile Dropdown Trigger -->
+                    <div class="flex items-center space-x-3 cursor-pointer py-1 px-2 rounded-lg hover:bg-slate-100 transition-all" onclick="switchTab('profile')">
+                        <div id="seller-nav-avatar" class="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm border border-blue-200">
+                            RB
+                        </div>
+                        <div class="text-left hidden sm:block">
+                            <h4 id="seller-nav-name" class="text-xs font-bold text-slate-800">Rajesh Building Materials</h4>
+                            <p class="text-[10px] text-slate-500 flex items-center space-x-1">
+                                <i class="fa-solid fa-location-dot text-blue-500"></i>
+                                <span id="seller-nav-location">Noida, UP • Material Seller</span>
+                            </p>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-xs text-slate-400 ml-1"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- WORKSPACE CONTAINER -->
+            <main class="flex-1 overflow-y-auto bg-slate-50 p-6 relative">
+
+                <!-- TAB 1: DASHBOARD HOME -->
+                <div id="tab-dashboard" class="tab-content space-y-6">
+                    <!-- Welcome Banner -->
+                    <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center md:justify-between border border-blue-900/50">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2 text-xs font-semibold text-blue-400 uppercase tracking-widest">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span id="seller-banner-region">Verified Supplier Portal • Noida Region</span>
+                            </div>
+                            <h1 id="seller-banner-greeting" class="text-2xl font-bold tracking-tight">Good morning, Rajesh Building Materials</h1>
+                            <p class="text-slate-300 text-sm">You have <span id="seller-banner-req-count" class="text-blue-300 font-semibold">12 new material requirements</span> matching your catalog in Noida & NCR.</p>
+                        </div>
+                        <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                            <button onclick="openModal('addMaterialModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 flex items-center space-x-2 transition-all">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Add New Material</span>
+                            </button>
+                            <button onclick="switchTab('requests')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all">
+                                <i class="fa-solid fa-clipboard-list text-blue-400"></i>
+                                <span>View Requests (12)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI CARDS GRID -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- KPI Card 1 -->
+                        <div onclick="switchTab('requests')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Requests</span>
+                                <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-clipboard-list text-base"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <h3 class="text-2xl font-bold text-slate-800">12</h3>
+                                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-arrow-up mr-1"></i>+3 this week</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Matching Noida & Delhi NCR</p>
+                        </div>
+
+                        <!-- KPI Card 2 -->
+                        <div onclick="switchTab('quotations')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Quotations Sent</span>
+                                <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-file-invoice-dollar text-base"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <h3 class="text-2xl font-bold text-slate-800">18</h3>
+                                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-arrow-up mr-1"></i>+5 this week</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">5 awaiting customer decision</p>
+                        </div>
+
+                        <!-- KPI Card 3 -->
+                        <div onclick="switchTab('orders')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Orders</span>
+                                <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-boxes-stacked text-base"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <h3 class="text-2xl font-bold text-slate-800">8</h3>
+                                <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Processing</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">3 ready for dispatch</p>
+                        </div>
+
+                        <!-- KPI Card 4 -->
+                        <div onclick="switchTab('payments')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">This Month Sales</span>
+                                <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-indian-rupee-sign text-base"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <h3 class="text-2xl font-bold text-slate-800">₹4,85,000</h3>
+                                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-arrow-up mr-1"></i>+14.2%</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Target: ₹6,00,000</p>
+                        </div>
+                    </div>
+
+                    <!-- TWO COLUMN MAIN SECTION: REQUIREMENTS & QUICK ACTIONS + ALERTS -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left 2 Cols: Customer Material Requirements (Most Important Feature) -->
+                        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 rounded-full bg-blue-600"></div>
+                                    <h2 class="font-bold text-slate-800 text-base">Incoming Customer Material Requirements</h2>
+                                </div>
+                                <button onclick="switchTab('requests')" class="text-xs text-blue-600 font-semibold hover:underline">View All (<span id="requirements-count-label">12</span>) <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                            </div>
+                            <div id="incoming-requirements-list" class="p-5 space-y-4 flex-1">
+                                <!-- Requirement Card 1 -->
+                                <div class="bg-slate-50 hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-md font-bold">REQ-1028</span>
+                                            <span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">New</span>
+                                            <span class="text-xs text-slate-500">• Posted 2 hrs ago</span>
+                                        </div>
+                                        <h3 class="font-bold text-slate-800 text-base">TMT Steel Rebars — Fe 500 Grade</h3>
+                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                                            <span><i class="fa-solid fa-boxes-stacked mr-1 text-blue-500"></i><strong>10 Tons</strong></span>
+                                            <span><i class="fa-solid fa-location-dot mr-1 text-red-500"></i>Noida, Sector 62</span>
+                                            <span><i class="fa-solid fa-calendar mr-1 text-amber-500"></i>Required by: 8 Oct 2026</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2 flex-shrink-0">
+                                        <button onclick="viewRequirementDetail('REQ-1028')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+                                        <button onclick="openQuotationModal('REQ-1028', 'TMT Steel Fe 500', 10, 'Tons')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+                                    </div>
+                                </div>
+
+                                <!-- Requirement Card 2 -->
+                                <div class="bg-slate-50 hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-md font-bold">REQ-1027</span>
+                                            <span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">New</span>
+                                            <span class="text-xs text-slate-500">• Posted 5 hrs ago</span>
+                                        </div>
+                                        <h3 class="font-bold text-slate-800 text-base">OPC Cement — 53 Grade</h3>
+                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                                            <span><i class="fa-solid fa-boxes-stacked mr-1 text-blue-500"></i><strong>500 Bags</strong></span>
+                                            <span><i class="fa-solid fa-location-dot mr-1 text-red-500"></i>Greater Noida, Pari Chowk</span>
+                                            <span><i class="fa-solid fa-calendar mr-1 text-amber-500"></i>Required by: 12 Oct 2026</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2 flex-shrink-0">
+                                        <button onclick="viewRequirementDetail('REQ-1027')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+                                        <button onclick="openQuotationModal('REQ-1027', 'OPC Cement 53 Grade', 500, 'Bags')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+                                    </div>
+                                </div>
+
+                                <!-- Requirement Card 3 -->
+                                <div class="bg-slate-50 hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-md font-bold">REQ-1025</span>
+                                            <span class="bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">Reviewing</span>
+                                            <span class="text-xs text-slate-500">• Posted 1 day ago</span>
+                                        </div>
+                                        <h3 class="font-bold text-slate-800 text-base">AAC Blocks (600x200x150 mm)</h3>
+                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                                            <span><i class="fa-solid fa-boxes-stacked mr-1 text-blue-500"></i><strong>1,200 Nos</strong></span>
+                                            <span><i class="fa-solid fa-location-dot mr-1 text-red-500"></i>Ghaziabad, NH-24</span>
+                                            <span><i class="fa-solid fa-calendar mr-1 text-amber-500"></i>Required by: 15 Oct 2026</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2 flex-shrink-0">
+                                        <button onclick="viewRequirementDetail('REQ-1025')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+                                        <button onclick="openQuotationModal('REQ-1025', 'AAC Blocks', 1200, 'Nos')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right 1 Col: Quick Actions & Low Stock Alerts -->
+                        <div class="space-y-6">
+                            <!-- Quick Actions -->
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                                <h3 class="font-bold text-slate-800 text-sm mb-4">Quick Actions</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="openModal('addMaterialModal')" class="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-2 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                            <i class="fa-solid fa-plus text-sm"></i>
+                                        </div>
+                                        <span class="font-semibold text-slate-800 text-xs block">Add Material</span>
+                                        <span class="text-[10px] text-slate-400">Expand catalog</span>
+                                    </button>
+
+                                    <button onclick="switchTab('inventory')" class="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-2 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                            <i class="fa-solid fa-warehouse text-sm"></i>
+                                        </div>
+                                        <span class="font-semibold text-slate-800 text-xs block">Update Stock</span>
+                                        <span class="text-[10px] text-slate-400">Manage inventory</span>
+                                    </button>
+
+                                    <button onclick="switchTab('requests')" class="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group">
+                                        <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                            <i class="fa-solid fa-clipboard-list text-sm"></i>
+                                        </div>
+                                        <span class="font-semibold text-slate-800 text-xs block">View Requests</span>
+                                        <span class="text-[10px] text-slate-400">12 active projects</span>
+                                    </button>
+
+                                    <button onclick="switchTab('invoices'); openModal('createInvoiceModal')" class="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group">
+                                        <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mb-2 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                                            <i class="fa-solid fa-file-invoice text-sm"></i>
+                                        </div>
+                                        <span class="font-semibold text-slate-800 text-xs block">Create Invoice</span>
+                                        <span class="text-[10px] text-slate-400">B2B tax billing</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Low Stock Alerts -->
+                            <div class="bg-white rounded-xl border border-red-200 shadow-sm p-5 bg-gradient-to-br from-white to-red-50/20">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></div>
+                                        <h3 class="font-bold text-slate-800 text-sm">Low Stock Alerts</h3>
+                                    </div>
+                                    <span class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">2 items</span>
+                                </div>
+                                <div class="space-y-3 text-xs">
+                                    <div class="p-3 bg-white border border-red-100 rounded-lg flex items-center justify-between">
+                                        <div>
+                                            <p class="font-bold text-slate-800">River Sand (Coarse)</p>
+                                            <p class="text-red-600 text-[11px]">Stock: 18 Tons (Min: 50 Tons)</p>
+                                        </div>
+                                        <button onclick="switchTab('inventory')" class="px-2.5 py-1.5 bg-red-600 text-white rounded-md text-[11px] font-semibold hover:bg-red-700 transition-all">Restock</button>
+                                    </div>
+                                    <div class="p-3 bg-white border border-red-100 rounded-lg flex items-center justify-between">
+                                        <div>
+                                            <p class="font-bold text-slate-800">White Cement (JK White)</p>
+                                            <p class="text-red-600 text-[11px]">Stock: 12 Bags (Min: 30 Bags)</p>
+                                        </div>
+                                        <button onclick="switchTab('inventory')" class="px-2.5 py-1.5 bg-red-600 text-white rounded-md text-[11px] font-semibold hover:bg-red-700 transition-all">Restock</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: MATERIAL REQUESTS -->
+                <div id="tab-requests" class="tab-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Customer Material Requirements</h1>
+                            <p class="text-xs text-slate-500">Browse and respond to active construction project material requirements across NCR.</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <select class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-500">
+                                <option>All Categories</option>
+                                <option>TMT Steel</option>
+                                <option>Cement</option>
+                                <option>Bricks & Blocks</option>
+                                <option>Sand & Aggregate</option>
+                            </select>
+                            <select class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-500">
+                                <option>Location: All Noida/NCR</option>
+                                <option>Noida</option>
+                                <option>Greater Noida</option>
+                                <option>Ghaziabad</option>
+                                <option>Delhi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Requirements Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                        <th class="p-4">Req ID & Project</th>
+                                        <th class="p-4">Material & Spec</th>
+                                        <th class="p-4">Quantity</th>
+                                        <th class="p-4">Delivery Location</th>
+                                        <th class="p-4">Required By</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="material-requests-tbody" class="divide-y divide-slate-100 text-slate-700">
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">REQ-1028</span>
+                                            <span class="text-[11px] text-slate-400">Alpha Corp Towers</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">TMT Steel Rebars</span>
+                                            <span class="block text-slate-500 text-[11px]">Fe 500 Grade (ISI Certified)</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-800">10 Tons</td>
+                                        <td class="p-4"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>Noida, Sector 62</td>
+                                        <td class="p-4 text-amber-600 font-semibold">8 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">New</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="viewRequirementDetail('REQ-1028')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+                                            <button onclick="openQuotationModal('REQ-1028', 'TMT Steel Fe 500', 10, 'Tons')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">REQ-1027</span>
+                                            <span class="text-[11px] text-slate-400">Greenwoods Residency</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">OPC Cement</span>
+                                            <span class="block text-slate-500 text-[11px]">53 Grade (UltraTech / ACC)</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-800">500 Bags</td>
+                                        <td class="p-4"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>Greater Noida</td>
+                                        <td class="p-4 text-amber-600 font-semibold">12 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">New</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="viewRequirementDetail('REQ-1027')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+                                            <button onclick="openQuotationModal('REQ-1027', 'OPC Cement 53 Grade', 500, 'Bags')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">REQ-1025</span>
+                                            <span class="text-[11px] text-slate-400">Expressway Commercial Hub</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">AAC Blocks</span>
+                                            <span class="block text-slate-500 text-[11px]">600x200x150 mm</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-800">1,200 Nos</td>
+                                        <td class="p-4"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>Ghaziabad, NH-24</td>
+                                        <td class="p-4 text-amber-600 font-semibold">15 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Reviewing</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="viewRequirementDetail('REQ-1025')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+                                            <button onclick="openQuotationModal('REQ-1025', 'AAC Blocks', 1200, 'Nos')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">REQ-1020</span>
+                                            <span class="text-[11px] text-slate-400">Lotus Boulevard Phase 2</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">River Sand (M-Sand)</span>
+                                            <span class="block text-slate-500 text-[11px]">Zone II Plastering Sand</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-800">35 Tons</td>
+                                        <td class="p-4"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>Noida, Sector 100</td>
+                                        <td class="p-4 text-slate-600 font-semibold">18 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Quoted</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="viewRequirementDetail('REQ-1020')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Quote</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: MY QUOTATIONS -->
+                <div id="tab-quotations" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">My Quotations</h1>
+                            <p class="text-xs text-slate-500">Track and manage all B2B quotations submitted to BuildBid customers and project contractors.</p>
+                        </div>
+                        <button onclick="openQuotationModal('REQ-NEW', 'General Material', 1, 'Units')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Create New Quotation</span>
+                        </button>
+                    </div>
+
+                    <!-- Quotation Filter Tabs -->
+                    <div class="flex items-center space-x-2 border-b border-slate-200 pb-3 text-xs font-semibold">
+                        <button class="px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm">All (18)</button>
+                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Draft (3)</button>
+                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Sent & Pending (5)</button>
+                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Accepted (8)</button>
+                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Rejected (2)</button>
+                    </div>
+
+                    <!-- Quotations Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                        <th class="p-4">Quote ID / Ref</th>
+                                        <th class="p-4">Customer Project</th>
+                                        <th class="p-4">Materials</th>
+                                        <th class="p-4">Amount (₹)</th>
+                                        <th class="p-4">Valid Until</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-bold text-blue-600">QT-8842</td>
+                                        <td class="p-4 font-medium text-slate-800">REQ-1025 — Expressway Commercial</td>
+                                        <td class="p-4">AAC Blocks (1,200 Nos)</td>
+                                        <td class="p-4 font-bold text-slate-900">₹78,500</td>
+                                        <td class="p-4 text-slate-500">12 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Accepted (Order Created)</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="showToast('Downloading Quotation PDF...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download</button>
+                                            <button onclick="switchTab('orders')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">View Order</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-bold text-blue-600">QT-8840</td>
+                                        <td class="p-4 font-medium text-slate-800">REQ-1022 — Alpha Corp Towers</td>
+                                        <td class="p-4">TMT Steel Fe 500 (10 Tons)</td>
+                                        <td class="p-4 font-bold text-slate-900">₹5,40,000</td>
+                                        <td class="p-4 text-amber-600 font-semibold">10 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Under Review</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="showToast('Quotation duplicated successfully')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Duplicate</button>
+                                            <button onclick="showToast('Opening Quotation preview')" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-bold text-blue-600">QT-8835</td>
+                                        <td class="p-4 font-medium text-slate-800">REQ-1018 — Greenwoods Residency</td>
+                                        <td class="p-4">OPC Cement 53 Grade (300 Bags)</td>
+                                        <td class="p-4 font-bold text-slate-900">₹1,12,500</td>
+                                        <td class="p-4 text-slate-500">5 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Accepted</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="showToast('Downloading Quotation PDF...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download</button>
+                                            <button onclick="switchTab('orders')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">View Order</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: ORDERS -->
+                <div id="tab-orders" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Order Management</h1>
+                            <p class="text-xs text-slate-500">Fulfill accepted material orders, track delivery dispatches, and manage fulfillment workflows.</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <select class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-500">
+                                <option>Filter: All Active Orders</option>
+                                <option>Processing</option>
+                                <option>Ready for Dispatch</option>
+                                <option>Dispatched</option>
+                                <option>Delivered</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Orders Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                        <th class="p-4">Order ID & Project</th>
+                                        <th class="p-4">Material Details</th>
+                                        <th class="p-4">Order Value</th>
+                                        <th class="p-4">Expected Delivery</th>
+                                        <th class="p-4">Payment</th>
+                                        <th class="p-4">Fulfillment Status</th>
+                                        <th class="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">ORD-1025</span>
+                                            <span class="text-[11px] text-slate-400">Alpha Corp Towers, Noida</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">TMT Steel Fe 500</span>
+                                            <span class="block text-slate-500 text-[11px]">Qty: 10 Tons</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-900">₹5,40,000</td>
+                                        <td class="p-4 text-blue-600 font-semibold">10 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">Paid (Escrow)</span></td>
+                                        <td class="p-4">
+                                            <span class="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Ready for Dispatch</span>
+                                        </td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="openOrderDetail('ORD-1025')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
+                                            <button onclick="switchTab('deliveries')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Dispatch</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">ORD-1022</span>
+                                            <span class="text-[11px] text-slate-400">Greenwoods Residency</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">OPC Cement 53 Grade</span>
+                                            <span class="block text-slate-500 text-[11px]">Qty: 500 Bags</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-900">₹1,85,000</td>
+                                        <td class="p-4 text-blue-600 font-semibold">8 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">Paid</span></td>
+                                        <td class="p-4">
+                                            <span class="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out for Delivery</span>
+                                        </td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="openOrderDetail('ORD-1022')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
+                                            <button onclick="switchTab('deliveries')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">Track</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-medium">
+                                            <span class="text-blue-600 font-bold block">ORD-1019</span>
+                                            <span class="text-[11px] text-slate-400">Expressway Commercial Hub</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800">AAC Blocks</span>
+                                            <span class="block text-slate-500 text-[11px]">Qty: 1,200 Nos</span>
+                                        </td>
+                                        <td class="p-4 font-bold text-slate-900">₹78,500</td>
+                                        <td class="p-4 text-emerald-600 font-semibold">2 Oct 2026</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">Paid</span></td>
+                                        <td class="p-4">
+                                            <span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Completed</span>
+                                        </td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="openOrderDetail('ORD-1019')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Invoice</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: INVENTORY -->
+                <div id="tab-inventory" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Material Inventory Catalog</h1>
+                            <p class="text-xs text-slate-500">Manage real-time stock levels, pricing, SKU codes, and minimum threshold alerts.</p>
+                        </div>
+                        <button onclick="openModal('addMaterialModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add New Material</span>
+                        </button>
+                    </div>
+
+                    <!-- Inventory Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                        <th class="p-4">Material Name & Category</th>
+                                        <th class="p-4">SKU Code</th>
+                                        <th class="p-4">Current Stock</th>
+                                        <th class="p-4">Reserved</th>
+                                        <th class="p-4">Available</th>
+                                        <th class="p-4">Unit Price (₹)</th>
+                                        <th class="p-4">Stock Status</th>
+                                        <th class="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800 block">TMT Steel Rebars Fe 500</span>
+                                            <span class="text-[11px] text-slate-400">Category: TMT Steel</span>
+                                        </td>
+                                        <td class="p-4 font-mono text-slate-600">STEEL-FE500-12</td>
+                                        <td class="p-4 font-bold text-slate-900">145 Tons</td>
+                                        <td class="p-4 text-amber-600 font-semibold">10 Tons</td>
+                                        <td class="p-4 font-bold text-emerald-600">135 Tons</td>
+                                        <td class="p-4 font-bold">₹54,000 / Ton</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="openModal('addMaterialModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Edit</button>
+                                            <button onclick="showToast('Stock updated successfully')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Restock</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800 block">OPC Cement 53 Grade</span>
+                                            <span class="text-[11px] text-slate-400">Category: Cement</span>
+                                        </td>
+                                        <td class="p-4 font-mono text-slate-600">CEM-OPC53-BAG</td>
+                                        <td class="p-4 font-bold text-slate-900">1,250 Bags</td>
+                                        <td class="p-4 text-amber-600 font-semibold">500 Bags</td>
+                                        <td class="p-4 font-bold text-emerald-600">750 Bags</td>
+                                        <td class="p-4 font-bold">₹370 / Bag</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="openModal('addMaterialModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Edit</button>
+                                            <button onclick="showToast('Stock updated successfully')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Restock</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4">
+                                            <span class="font-bold text-slate-800 block">River Sand (Coarse Plastering)</span>
+                                            <span class="text-[11px] text-slate-400">Category: Sand & Aggregate</span>
+                                        </td>
+                                        <td class="p-4 font-mono text-slate-600">SAND-CRS-01</td>
+                                        <td class="p-4 font-bold text-red-600">18 Tons</td>
+                                        <td class="p-4 text-slate-400">0 Tons</td>
+                                        <td class="p-4 font-bold text-red-600">18 Tons</td>
+                                        <td class="p-4 font-bold">₹1,850 / Ton</td>
+                                        <td class="p-4"><span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Low Stock</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="openModal('addMaterialModal')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Edit</button>
+                                            <button onclick="showToast('Restock order initiated')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all">Restock Now</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: DELIVERIES -->
+                <div id="tab-deliveries" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Delivery & Logistics</h1>
+                            <p class="text-xs text-slate-500">Coordinate dispatch trucks, assign logistics partners, and track site drop-offs in real-time.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-blue-600">ORD-1025 • Ready for Dispatch</span>
+                                <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">Truck Assigned</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800">TMT Steel Rebars (10 Tons)</h3>
+                            <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>Alpha Corp Towers, Noida Sector 62</p>
+                            <p class="text-xs text-slate-500"><i class="fa-solid fa-truck mr-1 text-blue-500"></i>Vehicle: UP-16-AZ-4821 (Tata Signa 16-Wheeler)</p>
+                            <div class="pt-2 flex items-center justify-between">
+                                <span class="text-[11px] text-slate-400">Driver: Rajesh Kumar (+91 98765 43210)</span>
+                                <button onclick="showToast('Dispatch status updated to In Transit')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all">Dispatch Now</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-600">ORD-1022 • Out for Delivery</span>
+                                <span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">In Transit</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800">OPC Cement 53 Grade (500 Bags)</h3>
+                            <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>Greenwoods Residency, Greater Noida</p>
+                            <p class="text-xs text-slate-500"><i class="fa-solid fa-truck mr-1 text-blue-500"></i>Vehicle: DL-1L-BC-9012 (Ashok Leyland)</p>
+                            <div class="pt-2 flex items-center justify-between">
+                                <span class="text-[11px] text-slate-400">Expected: Today, 3:30 PM</span>
+                                <button onclick="showToast('Opening live GPS truck tracking...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all">Track GPS</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 7: INVOICES -->
+                <div id="tab-invoices" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">B2B Tax Invoices</h1>
+                            <p class="text-xs text-slate-500">Generate, download, and track GST-compliant tax invoices for fulfilled material orders.</p>
+                        </div>
+                        <button onclick="openModal('createInvoiceModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Create New Invoice</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                        <th class="p-4">Invoice #</th>
+                                        <th class="p-4">Order Ref</th>
+                                        <th class="p-4">Customer Project</th>
+                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Total Amount (₹)</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-bold text-blue-600">INV-2026-089</td>
+                                        <td class="p-4 text-slate-600">ORD-1025</td>
+                                        <td class="p-4 font-medium text-slate-800">Alpha Corp Towers, Noida</td>
+                                        <td class="p-4 text-slate-500">1 Oct 2026</td>
+                                        <td class="p-4 font-bold text-slate-900">₹5,40,000</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Paid</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="showToast('Downloading Tax Invoice PDF...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download PDF</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50 transition-all">
+                                        <td class="p-4 font-bold text-blue-600">INV-2026-088</td>
+                                        <td class="p-4 text-slate-600">ORD-1022</td>
+                                        <td class="p-4 font-medium text-slate-800">Greenwoods Residency</td>
+                                        <td class="p-4 text-slate-500">28 Sep 2026</td>
+                                        <td class="p-4 font-bold text-slate-900">₹1,85,000</td>
+                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Paid</span></td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button onclick="showToast('Downloading Tax Invoice PDF...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download PDF</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 8: PAYMENTS -->
+                <div id="tab-payments" class="tab-content hidden space-y-6">
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">Payments & Escrow Dashboard</h1>
+                        <p class="text-xs text-slate-500">Track payouts, escrow releases, and financial summaries for supplied materials.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold uppercase">Total Sales (YTD)</span>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-2">₹48,50,000</h3>
+                            <p class="text-xs text-emerald-600 mt-1"><i class="fa-solid fa-arrow-up"></i> +18.4% vs last year</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold uppercase">Paid & Settled</span>
+                            <h3 class="text-2xl font-bold text-emerald-600 mt-2">₹43,65,000</h3>
+                            <p class="text-xs text-slate-400 mt-1">Direct to Bank Account (HDFC Bank)</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold uppercase">Pending Escrow Release</span>
+                            <h3 class="text-2xl font-bold text-amber-600 mt-2">₹4,85,000</h3>
+                            <p class="text-xs text-slate-400 mt-1">Releasing upon delivery confirmation</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 9: MESSAGES -->
+                <div id="tab-messages" class="tab-content hidden h-[calc(100vh-140px)] flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 h-full">
+                        <!-- Conversations Sidebar -->
+                        <div class="border-r border-slate-200 flex flex-col">
+                            <div class="p-4 border-b border-slate-200">
+                                <input type="text" placeholder="Search conversations..." class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs">
+                            </div>
+                            <div class="flex-1 overflow-y-auto divide-y divide-slate-100 text-xs">
+                                <div class="p-4 bg-blue-50/60 cursor-pointer border-l-4 border-blue-600">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-bold text-slate-800">Alpha Corp Procurement</span>
+                                        <span class="text-[10px] text-slate-400">10:45 AM</span>
+                                    </div>
+                                    <p class="text-blue-600 font-semibold text-[11px] mb-1">REQ-1028 — TMT Steel Rebars</p>
+                                    <p class="text-slate-500 truncate text-[11px]">Can you arrange morning delivery by 8 Oct?</p>
+                                </div>
+                                <div class="p-4 hover:bg-slate-50 cursor-pointer">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-bold text-slate-800">Greenwoods Engineering</span>
+                                        <span class="text-[10px] text-slate-400">Yesterday</span>
+                                    </div>
+                                    <p class="text-slate-600 font-semibold text-[11px] mb-1">ORD-1022 — OPC Cement</p>
+                                    <p class="text-slate-500 truncate text-[11px]">Truck dispatch note received. Thanks!</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Window -->
+                        <div class="md:col-span-2 flex flex-col h-full bg-slate-50/50">
+                            <!-- Chat Header with Context -->
+                            <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-bold text-slate-800 text-sm">Alpha Corp Procurement Team</h3>
+                                    <p class="text-xs text-blue-600 font-medium">Context: REQ-1028 — TMT Steel Fe 500 (10 Tons)</p>
+                                </div>
+                                <button class="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-semibold">View Requirement</button>
+                            </div>
+                            <!-- Messages List -->
+                            <div class="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
+                                <div class="flex justify-start">
+                                    <div class="bg-white p-3 rounded-xl border border-slate-200 max-w-md shadow-sm">
+                                        <p class="text-slate-800">Hello Rajesh Ji, we posted a requirement for 10 Tons of TMT Steel Fe 500 for our Noida Sector 62 project site. Please review and send your best quotation including transport.</p>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">10:15 AM</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end">
+                                    <div class="bg-blue-600 text-white p-3 rounded-xl max-w-md shadow-sm">
+                                        <p>Namaste! Quotation submitted for ₹5,40,000 inclusive of GST and site delivery to Noida Sector 62. Stock is ready for immediate dispatch.</p>
+                                        <span class="text-[10px] text-blue-200 mt-1 block text-right">10:30 AM</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-start">
+                                    <div class="bg-white p-3 rounded-xl border border-slate-200 max-w-md shadow-sm">
+                                        <p class="text-slate-800">Can you arrange morning delivery by 8 Oct?</p>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">10:45 AM</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Chat Input -->
+                            <div class="p-4 bg-white border-t border-slate-200 flex items-center space-x-3">
+                                <button class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-paperclip text-base"></i></button>
+                                <input type="text" placeholder="Type your message regarding REQ-1028..." class="flex-1 px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs focus:outline-none focus:bg-white focus:border-blue-500">
+                                <button onclick="showToast('Message sent')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 10: ANALYTICS -->
+                <div id="tab-analytics" class="tab-content hidden space-y-6">
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">Seller Business Analytics</h1>
+                        <p class="text-xs text-slate-500">Performance metrics, quotation conversion rates, and material demand trends.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold">Quote Conversion Rate</span>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-2">68.4%</h3>
+                            <p class="text-xs text-emerald-600 mt-1"><i class="fa-solid fa-arrow-up"></i> +4.2% this month</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold">Average Order Value</span>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-2">₹2,45,000</h3>
+                            <p class="text-xs text-emerald-600 mt-1"><i class="fa-solid fa-arrow-up"></i> +8.1% vs last month</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold">Total Quotations Sent</span>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-2">84</h3>
+                            <p class="text-xs text-slate-400 mt-1">Last 30 Days</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs text-slate-500 font-semibold">Fulfillment Success</span>
+                            <h3 class="text-2xl font-bold text-emerald-600 mt-2">99.1%</h3>
+                            <p class="text-xs text-slate-400 mt-1">On-time site deliveries</p>
+                        </div>
+                    </div>
+
+                    <!-- Visual Analytics Mock Card -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 text-sm">Monthly Revenue Trend (₹ Lakhs)</h3>
+                            <div class="flex items-center space-x-2 text-xs">
+                                <span class="px-3 py-1 bg-blue-50 text-blue-600 font-semibold rounded-lg">Last 6 Months</span>
+                            </div>
+                        </div>
+                        <div class="h-64 flex items-end justify-between gap-4 pt-8 px-4 border-b border-slate-200">
+                            <div class="w-1/6 bg-blue-100 hover:bg-blue-200 rounded-t-lg flex flex-col items-center justify-end pb-2 transition-all h-[40%]">
+                                <span class="text-[10px] font-bold text-blue-700">₹3.2L</span>
+                                <span class="text-[10px] text-slate-500 mt-1">May</span>
+                            </div>
+                            <div class="w-1/6 bg-blue-200 hover:bg-blue-300 rounded-t-lg flex flex-col items-center justify-end pb-2 transition-all h-[55%]">
+                                <span class="text-[10px] font-bold text-blue-700">₹3.8L</span>
+                                <span class="text-[10px] text-slate-500 mt-1">Jun</span>
+                            </div>
+                            <div class="w-1/6 bg-blue-400 hover:bg-blue-500 rounded-t-lg flex flex-col items-center justify-end pb-2 transition-all h-[65%]">
+                                <span class="text-[10px] font-bold text-white">₹4.2L</span>
+                                <span class="text-[10px] text-slate-500 mt-1">Jul</span>
+                            </div>
+                            <div class="w-1/6 bg-blue-500 hover:bg-blue-600 rounded-t-lg flex flex-col items-center justify-end pb-2 transition-all h-[75%]">
+                                <span class="text-[10px] font-bold text-white">₹4.5L</span>
+                                <span class="text-[10px] text-slate-500 mt-1">Aug</span>
+                            </div>
+                            <div class="w-1/6 bg-blue-600 hover:bg-blue-700 rounded-t-lg flex flex-col items-center justify-end pb-2 transition-all h-[85%]">
+                                <span class="text-[10px] font-bold text-white">₹4.85L</span>
+                                <span class="text-[10px] text-slate-500 mt-1">Sep</span>
+                            </div>
+                            <div class="w-1/6 bg-blue-700 hover:bg-blue-800 rounded-t-lg flex flex-col items-center justify-end pb-2 transition-all h-[100%]">
+                                <span class="text-[10px] font-bold text-white">₹5.6L (Proj)</span>
+                                <span class="text-[10px] text-slate-500 mt-1">Oct</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 11: PROFILE & BUSINESS -->
+                <div id="tab-profile" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6 gap-4">
+                            <div class="flex items-center space-x-4">
+                                <div id="seller-profile-avatar" class="w-16 h-16 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-2xl shadow-md">
+                                    RB
+                                </div>
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <h1 id="seller-profile-name" class="text-xl font-bold text-slate-800">Rajesh Building Materials</h1>
+                                        <span class="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center"><i class="fa-solid fa-badge-check mr-1"></i> Verified Supplier</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-0.5">GSTIN: 07AABCR1234F1Z5 • Registered BuildBid Material Provider</p>
+                                </div>
+                            </div>
+                            <button onclick="showToast('Profile updated successfully')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all">Edit Business Profile</button>
+                        </div>
+
+                        <!-- Profile Completion Progress -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-xs">Business Profile Completion</h4>
+                                <p class="text-[11px] text-slate-600 mt-0.5">Your profile is 85% complete. Add your warehousing certifications to reach 100%.</p>
+                            </div>
+                            <div class="w-32 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                <div class="bg-blue-600 h-2.5 rounded-full profile-progress-bar" style="width: 85%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                            <div class="space-y-4">
+                                <h3 class="font-bold text-slate-800 uppercase tracking-wider text-[11px] text-slate-400">Business Details</h3>
+                                <div class="p-3 bg-slate-50 rounded-lg space-y-2">
+                                    <div class="flex justify-between"><span class="text-slate-500">Owner Name:</span><span id="seller-owner-name" class="font-semibold text-slate-800">Rajesh Kumar</span></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Business Type:</span><span class="font-semibold text-slate-800">Proprietorship / Wholesaler</span></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Years in Business:</span><span class="font-semibold text-slate-800">14 Years</span></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Primary Material Focus:</span><span class="font-semibold text-slate-800">TMT Steel, Cement, Bricks, Sand</span></div>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <h3 class="font-bold text-slate-800 uppercase tracking-wider text-[11px] text-slate-400">Location & Service Areas</h3>
+                                <div class="p-3 bg-slate-50 rounded-lg space-y-2">
+                                    <div class="flex justify-between"><span class="text-slate-500">Office Address:</span><span id="seller-office-address" class="font-semibold text-slate-800">Sector 63, Noida, UP - 201301</span></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Service Coverage:</span><span class="font-semibold text-slate-800">Noida, Greater Noida, Ghaziabad, Delhi</span></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Phone:</span><span id="seller-phone" class="font-semibold text-slate-800">+91 98765 43210</span></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Email:</span><span id="seller-email" class="font-semibold text-slate-800">sales@rajeshmaterials.com</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 12: SETTINGS -->
+                <div id="tab-settings" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+                        <h1 class="text-xl font-bold text-slate-800">Account & Supplier Settings</h1>
+                        <div class="space-y-4 text-xs">
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                <div>
+                                    <h4 class="font-bold text-slate-800">Instant RFQ Notifications</h4>
+                                    <p class="text-slate-500 text-[11px]">Receive SMS & WhatsApp notifications when customers post new requirements in Noida.</p>
+                                </div>
+                                <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded">
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                <div>
+                                    <h4 class="font-bold text-slate-800">Auto-Calculate GST & Logistics</h4>
+                                    <p class="text-slate-500 text-[11px]">Automatically include standard 18% GST and regional transportation distance charges.</p>
+                                </div>
+                                <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded">
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                <div>
+                                    <h4 class="font-bold text-slate-800">Account Session</h4>
+                                    <p class="text-slate-500 text-[11px]">Securely sign out of your BuildBid Material Seller account.</p>
+                                </div>
+                                <button onclick="logoutSeller()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL 1: ADD / EDIT MATERIAL MODAL -->
+    <div id="addMaterialModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <h3 class="font-bold text-sm">Add New Construction Material</h3>
+                <button onclick="closeModal('addMaterialModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Material Name</label>
+                        <input type="text" placeholder="e.g. TMT Steel Fe 500" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Category</label>
+                        <select class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                            <option>TMT Steel</option>
+                            <option>Cement</option>
+                            <option>Bricks & Blocks</option>
+                            <option>Sand & Aggregate</option>
+                            <option>Tiles & Flooring</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Initial Stock Qty</label>
+                        <input type="number" placeholder="100" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Unit</label>
+                        <select class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                            <option>Tons</option>
+                            <option>Bags</option>
+                            <option>Nos</option>
+                            <option>Sq.ft</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Selling Price (₹)</label>
+                        <input type="number" placeholder="54000" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Specifications & Grade</label>
+                    <input type="text" placeholder="e.g. ISI Certified, Fe 500D grade" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                </div>
+                <div class="pt-4 flex items-center justify-end space-x-3">
+                    <button onclick="closeModal('addMaterialModal')" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button onclick="closeModal('addMaterialModal'); showToast('Material published to BuildBid catalog successfully!')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm">Publish Material</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: QUOTATION BUILDER MODAL -->
+    <div id="quotationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-sm">Create B2B Quotation</h3>
+                    <p id="quoteModalReqId" class="text-[10px] text-blue-400">Responding to REQ-1028 — TMT Steel Rebars</p>
+                </div>
+                <button onclick="closeModal('quotationModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Material Offered</label>
+                        <input id="qMaterialName" type="text" value="TMT Steel Rebars — Fe 500" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Quantity & Unit</label>
+                        <div class="flex space-x-2">
+                            <input id="qQty" type="number" value="10" class="w-2/3 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                            <input id="qUnit" type="text" value="Tons" class="w-1/3 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Unit Price (₹)</label>
+                        <input id="qUnitPrice" type="number" value="50000" oninput="calculateQuote()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">GST (18%)</label>
+                        <input id="qGst" type="text" value="₹90,000" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg font-bold text-slate-600">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Transport & Delivery (₹)</label>
+                        <input id="qTransport" type="number" value="4000" oninput="calculateQuote()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+                <!-- Live Calculation Box -->
+                <div class="p-4 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 font-medium">Calculated Quotation Total (Incl. GST & Transport)</p>
+                        <p class="text-[10px] text-slate-400">Includes loading, unloading & BuildBid buyer protection escrow</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="qFinalTotal" class="text-xl font-bold text-blue-600">₹5,94,000</span>
+                    </div>
+                </div>
+                <div class="pt-4 flex items-center justify-end space-x-3">
+                    <button onclick="closeModal('quotationModal')" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold">Save Draft</button>
+                    <button onclick="closeModal('quotationModal'); showToast('Quotation successfully submitted to customer project!')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm">Send Quotation Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CREATE INVOICE MODAL -->
+    <div id="createInvoiceModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <h3 class="font-bold text-sm">Generate B2B Tax Invoice</h3>
+                <button onclick="closeModal('createInvoiceModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Select Confirmed Order</label>
+                    <select class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                        <option>ORD-1025 — Alpha Corp Towers (TMT Steel - ₹5,40,000)</option>
+                        <option>ORD-1022 — Greenwoods Residency (OPC Cement - ₹1,85,000)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Invoice Date</label>
+                        <input type="date" value="2026-10-02" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Payment Terms</label>
+                        <input type="text" value="Net 15 Days (Escrow)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+                <div class="pt-4 flex items-center justify-end space-x-3">
+                    <button onclick="closeModal('createInvoiceModal')" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button onclick="closeModal('createInvoiceModal'); showToast('GST Tax Invoice generated and sent to customer!')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm">Generate Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl text-xs font-semibold hidden z-50 flex items-center space-x-3 border border-slate-700">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toast-msg">Action completed successfully</span>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="seller-dashboard.js"></script>
+</body>
+</html>

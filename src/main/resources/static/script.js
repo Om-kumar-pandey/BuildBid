@@ -211,7 +211,7 @@ function navigateToDashboard() {
     if (role === "CONTRACTOR") {
         window.location.href = resolvePath("dashborad.html");
     } else if (role === "MATERIAL_SELLER" || role === "SELLER") {
-        window.location.href = resolvePath("material seller dashboard.html");
+        window.location.href = resolvePath("seller-dashboard.html");
     } else if (role === "PROFESSIONAL" || role === "SERVICE_PROVIDER") {
         window.location.href = resolvePath("professional dashboard.html");
     } else {

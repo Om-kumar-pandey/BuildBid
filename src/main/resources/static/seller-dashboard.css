@@ -1,0 +1,45 @@
+/* ==========================================================================
+   BuildBid — Material Seller Dashboard Stylesheet (seller-dashboard.css)
+   ========================================================================== */
+
+/* Typography */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Custom Theme Color Properties */
+:root {
+    --buildblue-50: #eff6ff;
+    --buildblue-100: #dbeafe;
+    --buildblue-500: #3b82f6;
+    --buildblue-600: #2563eb;
+    --buildblue-700: #1d4ed8;
+    --buildblue-800: #1e40af;
+    --buildblue-900: #1e3a8a;
+    --buildslate-850: #151f32;
+    --buildslate-900: #0f172a;
+}
+
+/* Custom scrollbar for high density enterprise UI */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Profile Progress Bar Utility */
+.profile-progress-bar {
+    width: 85%;
+}
