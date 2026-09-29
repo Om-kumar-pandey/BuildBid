@@ -414,7 +414,7 @@
                             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
                                 <h3 class="font-bold text-slate-800 text-sm mb-4">Quick Actions</h3>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <button onclick="openModal('addMaterialModal')" class="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group">
+                                    <button onclick="window.location.href='add-material.html'" class="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group">
                                         <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-2 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                             <i class="fa-solid fa-plus text-sm"></i>
                                         </div>
@@ -902,7 +902,7 @@
                             <h1 class="text-xl font-bold text-slate-800">B2B Tax Invoices</h1>
                             <p class="text-xs text-slate-500">Generate, download, and track GST-compliant tax invoices for fulfilled material orders.</p>
                         </div>
-                        <button onclick="openModal('createInvoiceModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                        <button onclick="openModal('createInvoiceModal'); if (typeof loadInvoiceMaterials === 'function') loadInvoiceMaterials();" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
                             <i class="fa-solid fa-plus"></i>
                             <span>Create New Invoice</span>
                         </button>
@@ -1328,6 +1328,40 @@
                         <option>ORD-1025 — Alpha Corp Towers (TMT Steel - ₹5,40,000)</option>
                         <option>ORD-1022 — Greenwoods Residency (OPC Cement - ₹1,85,000)</option>
                     </select>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block font-semibold text-slate-700">Material Line Item — सामग्री का चयन करें</label>
+                        <button type="button" onclick="window.location.href='add-material.html?from=invoice'" class="text-blue-600 hover:text-blue-700 font-bold hover:underline flex items-center space-x-1 text-[11px]">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>Add New Material</span>
+                        </button>
+                    </div>
+                    <select id="invoiceMaterialSelect" onchange="onInvoiceMaterialChange(this)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        <option value="">-- Select Material from Inventory Catalog --</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Quantity</label>
+                        <input id="invoiceQty" type="number" placeholder="10" value="10" oninput="calculateInvoiceTotal()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Unit</label>
+                        <input id="invoiceUnit" type="text" placeholder="Tons / Bags" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 font-semibold">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Unit Price (₹)</label>
+                        <input id="invoiceUnitPrice" type="number" placeholder="0" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 font-semibold">
+                    </div>
+                </div>
+                <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-slate-600 font-medium">Estimated Invoice Total (Incl. 18% GST)</span>
+                    </div>
+                    <div>
+                        <span id="invoiceCalculatedTotal" class="text-base font-bold text-blue-600">₹0</span>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>

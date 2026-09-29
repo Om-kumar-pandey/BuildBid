@@ -432,10 +432,26 @@ async function initSellerDashboard() {
     // 5. Fetch dynamic seller inventory
     await loadSellerInventory();
 
-    // 6. Check URL hash for tab navigation (e.g. #inventory)
-    if (window.location.hash) {
-        const hashTab = window.location.hash.replace("#", "").trim();
-        if (hashTab) switchTab(hashTab);
+    // 6. Check URL hash or query params (e.g. #invoices, ?from=invoice)
+    const urlParams = new URLSearchParams(window.location.search);
+    const shouldOpenInvoice = urlParams.get("openInvoice") === "true" || window.location.hash === "#invoices";
+    const lastAdded = sessionStorage.getItem("lastAddedMaterial");
+
+    if (shouldOpenInvoice) {
+        switchTab("invoices");
+        openModal("createInvoiceModal");
+        await loadInvoiceMaterials(lastAdded);
+        if (lastAdded) {
+            sessionStorage.removeItem("lastAddedMaterial");
+            showToast("Newly added material ready for invoice: " + lastAdded);
+        }
+    } else {
+        if (window.location.hash) {
+            const hashTab = window.location.hash.replace("#", "").trim();
+            if (hashTab) switchTab(hashTab);
+        }
+        // Pre-fetch invoice materials
+        loadInvoiceMaterials();
     }
 }
 
@@ -528,6 +544,116 @@ function renderSellerMaterials(materials) {
 }
 
 
+
+/* ==========================================================================
+   DYNAMIC DATA BINDING: INVOICE ENTRY MATERIAL SELECTION
+   ========================================================================== */
+
+async function loadInvoiceMaterials(preselectName) {
+    const select = document.getElementById("invoiceMaterialSelect");
+    if (!select) return;
+
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    try {
+        let materials = [];
+        if (token) {
+            const res = await fetch(API_BASE_URL + "/api/seller/materials", {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+            if (res.ok) {
+                materials = await res.json();
+            }
+        }
+
+        select.innerHTML = '<option value="">-- Select Material from Inventory Catalog --</option>';
+
+        if (Array.isArray(materials) && materials.length > 0) {
+            materials.forEach(mat => {
+                const opt = document.createElement("option");
+                opt.value = mat.materialName || "";
+                opt.textContent = `${mat.materialName || "Material"} (${mat.category || "General"}) — ₹${Number(mat.unitPrice || 0).toLocaleString("en-IN")} / ${mat.unit || "unit"}`;
+                opt.dataset.unit = mat.unit || "";
+                opt.dataset.price = mat.unitPrice != null ? mat.unitPrice : "0";
+                opt.dataset.brand = mat.brand || "";
+                opt.dataset.category = mat.category || "";
+                opt.dataset.stock = mat.availableStock != null ? mat.availableStock : mat.currentStock;
+                select.appendChild(opt);
+            });
+        } else {
+            const defaultOptions = [
+                { name: "TMT Steel Rebars Fe 500", category: "Steel", price: 54000, unit: "Tons" },
+                { name: "OPC Cement 53 Grade", category: "Cement", price: 370, unit: "Bags" },
+                { name: "River Sand (Coarse Plastering)", category: "Sand", price: 1850, unit: "Tons" }
+            ];
+            defaultOptions.forEach(mat => {
+                const opt = document.createElement("option");
+                opt.value = mat.name;
+                opt.textContent = `${mat.name} (${mat.category}) — ₹${mat.price.toLocaleString("en-IN")} / ${mat.unit}`;
+                opt.dataset.unit = mat.unit;
+                opt.dataset.price = mat.price;
+                select.appendChild(opt);
+            });
+        }
+
+        if (preselectName) {
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === preselectName || select.options[i].text.includes(preselectName)) {
+                    select.selectedIndex = i;
+                    onInvoiceMaterialChange(select);
+                    break;
+                }
+            }
+        }
+    } catch (err) {
+        console.warn("Seller Dashboard: Could not load dynamic materials for invoice:", err);
+    }
+}
+
+function onInvoiceMaterialChange(select) {
+    if (!select) return;
+    const selectedOption = select.options[select.selectedIndex];
+    const unitInput = document.getElementById("invoiceUnit");
+    const unitPriceInput = document.getElementById("invoiceUnitPrice");
+
+    if (!selectedOption || !selectedOption.value) {
+        if (unitInput) unitInput.value = "";
+        if (unitPriceInput) unitPriceInput.value = "";
+        calculateInvoiceTotal();
+        return;
+    }
+
+    const unit = selectedOption.dataset.unit || "";
+    const cleanUnit = unit.includes("—") ? unit.split("—")[0].trim() : unit;
+    const price = selectedOption.dataset.price || "0";
+
+    if (unitInput) unitInput.value = cleanUnit;
+    if (unitPriceInput) unitPriceInput.value = price;
+
+    calculateInvoiceTotal();
+}
+
+function calculateInvoiceTotal() {
+    const qtyInput = document.getElementById("invoiceQty");
+    const priceInput = document.getElementById("invoiceUnitPrice");
+    const totalElem = document.getElementById("invoiceCalculatedTotal");
+
+    const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
+    const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+    const subtotal = qty * price;
+    const gst = subtotal * 0.18;
+    const grandTotal = subtotal + gst;
+
+    if (totalElem) {
+        totalElem.innerText = "₹" + Math.round(grandTotal).toLocaleString("en-IN");
+    }
+}
+
 /* ==========================================================================
    ORIGINAL STATIC DASHBOARD INTERACTION METHODS (PRESERVED 100%)
    ========================================================================== */
@@ -579,6 +705,9 @@ function openModal(modalId) {
     if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
+        if (modalId === 'createInvoiceModal' && typeof loadInvoiceMaterials === 'function') {
+            loadInvoiceMaterials();
+        }
     }
 }
 

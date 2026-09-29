@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildBid — Add New Construction Material | नई निर्माण सामग्री जोड़ें</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        buildblue: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        buildslate: {
+                            850: '#151f32',
+                            900: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Dedicated Add Material Styles -->
+    <link rel="stylesheet" href="add-material.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
+
+    <!-- TOP HEADER -->
+    <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="seller-dashboard.html#inventory" class="flex items-center space-x-2.5 group">
+                    <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-600/30 group-hover:bg-blue-500 transition-all">
+                        <i class="fa-solid fa-cube text-base"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-extrabold text-base tracking-tight text-white">Build<span class="text-blue-500">Bid</span></span>
+                            <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">Seller Portal</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400">सामग्री विक्रेता पोर्टल</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Back to Inventory / Invoice Link -->
+            <a id="backLink" href="seller-dashboard.html#inventory" class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+                <i class="fa-solid fa-arrow-left text-blue-400"></i>
+                <span>Back to Inventory — इन्वेंटरी पर वापस जाएं</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN FORM CONTAINER -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Breadcrumb & Page Title -->
+        <div class="mb-6">
+            <nav class="flex items-center space-x-2 text-xs text-slate-500 mb-2">
+                <a href="seller-dashboard.html" class="hover:text-blue-600 transition-colors">Seller Dashboard</a>
+                <span>/</span>
+                <a href="seller-dashboard.html#inventory" class="hover:text-blue-600 transition-colors">Inventory Catalog</a>
+                <span>/</span>
+                <span class="text-slate-800 font-semibold">Add New Material</span>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </span>
+                        <span>Add New Construction Material</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-1 font-medium">
+                        नई निर्माण सामग्री जोड़ें — All categories, materials, and units are displayed in <strong class="text-slate-700">English + Hindi</strong> for Indian suppliers.
+                    </p>
+                </div>
+                <div class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold self-start sm:self-auto">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Real-Time Catalog Sync</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORM CARD -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-2.5">
+                    <i class="fa-solid fa-clipboard-list text-blue-400"></i>
+                    <h2 class="font-bold text-sm tracking-wide">Material Specifications & Inventory Details — सामग्री विवरण</h2>
+                </div>
+                <span class="text-[11px] text-slate-400">* Required fields (अनिवार्य फ़ील्ड)</span>
+            </div>
+
+            <!-- Form -->
+            <form id="addMaterialForm" class="p-6 sm:p-8 space-y-6">
+
+                <!-- SECTION 1: MATERIAL IDENTITY -->
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-2 pb-2 border-b border-slate-100">
+                        <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">1</span>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Category & Material Selection — श्रेणी और सामग्री का चयन</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Category Dropdown -->
+                        <div>
+                            <label for="categorySelect" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Category — श्रेणी <span class="text-red-500">*</span>
+                            </label>
+                            <select id="categorySelect" required class="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
+                                <option value="" disabled selected>-- Select Category / श्रेणी चुनें --</option>
+                                <option value="Cement — सीमेंट">Cement — सीमेंट</option>
+                                <option value="Steel — स्टील">Steel — स्टील</option>
+                                <option value="Sand — रेत">Sand — रेत</option>
+                                <option value="Aggregates — गिट्टी">Aggregates — गिट्टी</option>
+                                <option value="Bricks & Blocks — ईंट और ब्लॉक">Bricks & Blocks — ईंट और ब्लॉक</option>
+                                <option value="Concrete — कंक्रीट">Concrete — कंक्रीट</option>
+                                <option value="Tiles & Flooring — टाइल्स और फर्श">Tiles & Flooring — टाइल्स और फर्श</option>
+                                <option value="Adhesives & Construction Chemicals — चिपकाने और निर्माण रसायन">Adhesives & Construction Chemicals — चिपकाने और निर्माण रसायन</option>
+                                <option value="Plumbing — प्लंबिंग सामग्री">Plumbing — प्लंबिंग सामग्री</option>
+                                <option value="Electrical — बिजली सामग्री">Electrical — बिजली सामग्री</option>
+                                <option value="Paint & Wall Finishing — पेंट और दीवार की फिनिशिंग">Paint & Wall Finishing — पेंट और दीवार की फिनिशिंग</option>
+                                <option value="Waterproofing — वॉटरप्रूफिंग सामग्री">Waterproofing — वॉटरप्रूफिंग सामग्री</option>
+                                <option value="Doors & Windows — दरवाजे और खिड़कियां">Doors & Windows — दरवाजे और खिड़कियां</option>
+                                <option value="Roofing — छत की सामग्री">Roofing — छत की सामग्री</option>
+                                <option value="Wood & Boards — लकड़ी और बोर्ड">Wood & Boards — लकड़ी और बोर्ड</option>
+                                <option value="Sanitary — सैनिटरी सामग्री">Sanitary — सैनिटरी सामग्री</option>
+                                <option value="Hardware — हार्डवेयर">Hardware — हार्डवेयर</option>
+                                <option value="Other — अन्य">Other — अन्य</option>
+                            </select>
+                            <p class="text-[10px] text-slate-400 mt-1">Select from standard construction categories</p>
+                        </div>
+
+                        <!-- Material Name Dropdown -->
+                        <div>
+                            <label for="materialSelect" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Material Name — सामग्री का नाम <span class="text-red-500">*</span>
+                            </label>
+                            <select id="materialSelect" required disabled class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed">
+                                <option value="" disabled selected>-- First select a category above / पहले ऊपर श्रेणी चुनें --</option>
+                            </select>
+                            <p class="text-[10px] text-slate-400 mt-1">Both English and Hindi construction names are listed</p>
+                        </div>
+                    </div>
+
+                    <!-- CUSTOM MATERIAL CONTAINER (Shown if 'Other — अन्य' is selected) -->
+                    <div id="customMaterialContainer" class="hidden p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-4 animate-fade-in">
+                        <div class="flex items-center space-x-2 text-amber-800 text-xs font-bold">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Custom Material Entry — अपनी सामग्री का विवरण दर्ज करें</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="customMaterialName" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                    Custom Material Name — सामग्री का नाम <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="customMaterialName" placeholder="e.g. Decorative Exterior Stone — सजावटी बाहरी पत्थर" class="w-full px-3.5 py-2.5 bg-white border border-amber-300 focus:border-amber-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-amber-500/20 transition-all outline-none">
+                            </div>
+                            <div>
+                                <label for="customMaterialDescription" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                    Material Description — सामग्री का विवरण
+                                </label>
+                                <input type="text" id="customMaterialDescription" placeholder="e.g. Exterior wall decoration material / बाहरी दीवार का सामान" class="w-full px-3.5 py-2.5 bg-white border border-amber-300 focus:border-amber-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-amber-500/20 transition-all outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BRAND & SPECIFICATIONS (OPTIONAL) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+                        <div>
+                            <label for="brandInput" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Brand / Manufacturer — ब्रांड / निर्माता <span class="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            <input type="text" id="brandInput" placeholder="e.g. UltraTech, Tata Tiscon, Astral, Havells, Asian Paints" class="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
+                        </div>
+                        <div>
+                            <label for="specificationsInput" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Specifications & Grade — विनिर्देश / ग्रेड <span class="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            <input type="text" id="specificationsInput" placeholder="e.g. Fe 500D, 53 Grade, ISI Certified, 12mm thickness" class="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: STOCK & INVENTORY QUANTITIES -->
+                <div class="space-y-4 pt-2">
+                    <div class="flex items-center space-x-2 pb-2 border-b border-slate-100">
+                        <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">2</span>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Stock & Quantity Details — स्टॉक और मात्रा विवरण</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Initial Stock Quantity -->
+                        <div>
+                            <label for="initialStockInput" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Initial Stock Quantity — प्रारंभिक स्टॉक मात्रा <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="initialStockInput" min="0.01" step="any" required placeholder="e.g. 500" class="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none pr-10">
+                                <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-layer-group"></i>
+                                </span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Starting inventory count available for dispatch</p>
+                        </div>
+
+                        <!-- Unit of Measurement (Indian Units) -->
+                        <div>
+                            <label for="unitSelect" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Unit of Measurement — मापने की इकाई <span class="text-red-500">*</span>
+                            </label>
+                            <select id="unitSelect" required class="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
+                                <option value="" disabled selected>-- Select Indian Unit / इकाई चुनें --</option>
+                                <option value="Bag — बोरी">Bag — बोरी</option>
+                                <option value="Metric Ton — मीट्रिक टन">Metric Ton — मीट्रिक टन</option>
+                                <option value="Quintal — क्विंटल">Quintal — क्विंटल</option>
+                                <option value="Kilogram — किलोग्राम">Kilogram — किलोग्राम</option>
+                                <option value="Cubic Feet — घन फुट">Cubic Feet — घन फुट (cft)</option>
+                                <option value="Cubic Metre — घन मीटर">Cubic Metre — घन मीटर (cum)</option>
+                                <option value="Piece — नग">Piece — नग</option>
+                                <option value="Number — संख्या">Number — संख्या</option>
+                                <option value="Square Feet — वर्ग फुट">Square Feet — वर्ग फुट (sq.ft)</option>
+                                <option value="Square Metre — वर्ग मीटर">Square Metre — वर्ग मीटर (sq.m)</option>
+                                <option value="Litre — लीटर">Litre — लीटर</option>
+                                <option value="Bundle — बंडल">Bundle — बंडल</option>
+                                <option value="Box — डिब्बा">Box — डिब्बा</option>
+                                <option value="Packet — पैकेट">Packet — पैकेट</option>
+                                <option value="Roll — रोल">Roll — रोल</option>
+                                <option value="Coil — कॉइल">Coil — कॉइल</option>
+                                <option value="Running Feet — रनिंग फुट">Running Feet — रनिंग फुट</option>
+                                <option value="Running Metre — रनिंग मीटर">Running Metre — रनिंग मीटर</option>
+                                <option value="Set — सेट">Set — सेट</option>
+                                <option value="Pair — जोड़ी">Pair — जोड़ी</option>
+                                <option value="Millimetre — मिलीमीटर">Millimetre — मिलीमीटर</option>
+                                <option value="Centimetre — सेंटीमीटर">Centimetre — सेंटीमीटर</option>
+                                <option value="Metre — मीटर">Metre — मीटर</option>
+                                <option value="Gram — ग्राम">Gram — ग्राम</option>
+                            </select>
+                            <p class="text-[10px] text-slate-400 mt-1">Standard units used across Indian construction sites</p>
+                        </div>
+                    </div>
+
+                    <!-- Stock Transparency Banner -->
+                    <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-center justify-between text-xs text-blue-900">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-info text-blue-500"></i>
+                            <span>Initially: <strong>Reserved = 0</strong> &bull; <strong>Available = Current Stock</strong></span>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">Auto In-Stock</span>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: PRICING -->
+                <div class="space-y-4 pt-2">
+                    <div class="flex items-center space-x-2 pb-2 border-b border-slate-100">
+                        <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">3</span>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Pricing — विक्रय मूल्य</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Selling Price Input -->
+                        <div>
+                            <label for="unitPriceInput" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                                Selling Price (₹) — विक्रय मूल्य प्रति इकाई <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-500 pointer-events-none">₹</span>
+                                <input type="number" id="unitPriceInput" min="0.01" step="any" required placeholder="e.g. 370" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Base rate per selected unit excluding extra delivery</p>
+                        </div>
+
+                        <!-- Live Price Preview Badge -->
+                        <div class="flex flex-col justify-end">
+                            <div class="p-3 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between">
+                                <span class="text-xs text-slate-500 font-medium">Catalog Price Display:</span>
+                                <span id="priceDisplayBadge" class="text-sm font-extrabold text-blue-700">₹0.00 / Unit</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORM ACTIONS -->
+                <div class="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-end gap-3">
+                    <a href="seller-dashboard.html#inventory" class="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold text-center transition-all">
+                        Cancel — रद्द करें
+                    </a>
+                    <button type="submit" id="submitMaterialBtn" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 flex items-center justify-center space-x-2 transition-all cursor-pointer">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add Material — सामग्री जोड़ें</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- FLOATING TOAST NOTIFICATION -->
+    <div id="toastNotification" class="fixed bottom-6 right-6 hidden z-50 max-w-md bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl border border-slate-700 flex items-center space-x-3 transition-all">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <div>
+            <p id="toastMessage" class="text-xs font-semibold">Material added successfully — सामग्री सफलतापूर्वक जोड़ दी गई</p>
+            <p id="toastSub" class="text-[10px] text-slate-400">Redirecting to Inventory...</p>
+        </div>
+    </div>
+
+    <!-- Separate JavaScript -->
+    <script src="add-material.js"></script>
+</body>
+</html>
