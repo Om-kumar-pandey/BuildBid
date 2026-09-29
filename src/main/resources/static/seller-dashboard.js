@@ -428,6 +428,15 @@ async function initSellerDashboard() {
     } catch (err) {
         console.warn("Seller Dashboard: Could not load dynamic projects from /api/projects, preserving fallback:", err);
     }
+
+    // 5. Fetch dynamic seller inventory
+    await loadSellerInventory();
+
+    // 6. Check URL hash for tab navigation (e.g. #inventory)
+    if (window.location.hash) {
+        const hashTab = window.location.hash.replace("#", "").trim();
+        if (hashTab) switchTab(hashTab);
+    }
 }
 
 // Execute dashboard initialization as soon as DOM is ready or immediately
@@ -436,6 +445,88 @@ if (document.readyState === "loading") {
 } else {
     initSellerDashboard();
 }
+
+/* ==========================================================================
+   DYNAMIC DATA BINDING: SELLER MATERIAL INVENTORY
+   ========================================================================== */
+
+async function loadSellerInventory() {
+    const token = getCleanToken();
+    if (!token) return;
+
+    const API_BASE_URL = getApiBaseUrl();
+    try {
+        const response = await fetch(API_BASE_URL + "/api/seller/materials", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (response.ok) {
+            const materials = await response.json();
+            if (Array.isArray(materials) && materials.length > 0) {
+                renderSellerMaterials(materials);
+            }
+        }
+    } catch (err) {
+        console.warn("Seller Dashboard: Could not load dynamic materials from /api/seller/materials:", err);
+    }
+}
+
+function renderSellerMaterials(materials) {
+    const tbody = document.getElementById("inventory-table-body");
+    if (!tbody || !Array.isArray(materials) || materials.length === 0) return;
+
+    tbody.innerHTML = "";
+
+    materials.forEach(mat => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50 transition-all";
+
+        const materialName = mat.materialName || "Construction Material";
+        const category = mat.category || "General";
+        const brand = mat.brand ? ` • ${mat.brand}` : "";
+        const specs = mat.specifications ? ` (${mat.specifications})` : "";
+        const currentStock = mat.currentStock != null ? Number(mat.currentStock).toLocaleString("en-IN") : "0";
+        const reservedStock = mat.reservedStock != null ? Number(mat.reservedStock).toLocaleString("en-IN") : "0";
+        const availableStock = mat.availableStock != null ? Number(mat.availableStock).toLocaleString("en-IN") : currentStock;
+        
+        let unitDisplay = mat.unit || "";
+        if (unitDisplay.includes("—")) {
+            unitDisplay = unitDisplay.split("—")[0].trim();
+        }
+        
+        const price = mat.unitPrice != null ? "₹" + Number(mat.unitPrice).toLocaleString("en-IN") : "₹0";
+        
+        const status = mat.stockStatus || "IN_STOCK";
+        let statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock — स्टॉक उपलब्ध</span>';
+        if (status === "LOW_STOCK") {
+            statusBadge = '<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Low Stock — कम स्टॉक</span>';
+        } else if (status === "OUT_OF_STOCK") {
+            statusBadge = '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out of Stock — स्टॉक खत्म</span>';
+        }
+
+        tr.innerHTML = `
+            <td class="p-4">
+                <span class="font-bold text-slate-800 block">${escapeHtml(materialName)}${escapeHtml(specs)}</span>
+                <span class="text-[11px] text-slate-400">Category: ${escapeHtml(category)}${escapeHtml(brand)}</span>
+            </td>
+            <td class="p-4 font-bold text-slate-900">${escapeHtml(currentStock)} ${escapeHtml(unitDisplay)}</td>
+            <td class="p-4 text-amber-600 font-semibold">${escapeHtml(reservedStock)} ${escapeHtml(unitDisplay)}</td>
+            <td class="p-4 font-bold text-emerald-600">${escapeHtml(availableStock)} ${escapeHtml(unitDisplay)}</td>
+            <td class="p-4 font-bold">${escapeHtml(price)} / ${escapeHtml(unitDisplay)}</td>
+            <td class="p-4">${statusBadge}</td>
+            <td class="p-4 text-right space-x-2">
+                <button onclick="window.location.href='add-material.html'" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Add More</button>
+                <button onclick="showToast('Material stock is active')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Restock</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 
 /* ==========================================================================
    ORIGINAL STATIC DASHBOARD INTERACTION METHODS (PRESERVED 100%)

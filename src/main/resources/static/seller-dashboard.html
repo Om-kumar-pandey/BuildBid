@@ -257,7 +257,7 @@
                             <p class="text-slate-300 text-sm">You have <span id="seller-banner-req-count" class="text-blue-300 font-semibold">12 new material requirements</span> matching your catalog in Noida & NCR.</p>
                         </div>
                         <div class="mt-4 md:mt-0 flex items-center space-x-3">
-                            <button onclick="openModal('addMaterialModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 flex items-center space-x-2 transition-all">
+                            <button onclick="window.location.href='add-material.html'" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 flex items-center space-x-2 transition-all">
                                 <i class="fa-solid fa-plus"></i>
                                 <span>Add New Material</span>
                             </button>
@@ -780,9 +780,9 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h1 class="text-xl font-bold text-slate-800">Material Inventory Catalog</h1>
-                            <p class="text-xs text-slate-500">Manage real-time stock levels, pricing, SKU codes, and minimum threshold alerts.</p>
+                            <p class="text-xs text-slate-500">Manage real-time stock levels, pricing, and minimum threshold alerts.</p>
                         </div>
-                        <button onclick="openModal('addMaterialModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                        <button onclick="window.location.href='add-material.html'" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
                             <i class="fa-solid fa-plus"></i>
                             <span>Add New Material</span>
                         </button>
@@ -795,7 +795,6 @@
                                 <thead>
                                     <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
                                         <th class="p-4">Material Name & Category</th>
-                                        <th class="p-4">SKU Code</th>
                                         <th class="p-4">Current Stock</th>
                                         <th class="p-4">Reserved</th>
                                         <th class="p-4">Available</th>
@@ -804,13 +803,12 @@
                                         <th class="p-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                <tbody id="inventory-table-body" class="divide-y divide-slate-100 text-slate-700">
                                     <tr class="hover:bg-slate-50 transition-all">
                                         <td class="p-4">
                                             <span class="font-bold text-slate-800 block">TMT Steel Rebars Fe 500</span>
                                             <span class="text-[11px] text-slate-400">Category: TMT Steel</span>
                                         </td>
-                                        <td class="p-4 font-mono text-slate-600">STEEL-FE500-12</td>
                                         <td class="p-4 font-bold text-slate-900">145 Tons</td>
                                         <td class="p-4 text-amber-600 font-semibold">10 Tons</td>
                                         <td class="p-4 font-bold text-emerald-600">135 Tons</td>
@@ -826,7 +824,6 @@
                                             <span class="font-bold text-slate-800 block">OPC Cement 53 Grade</span>
                                             <span class="text-[11px] text-slate-400">Category: Cement</span>
                                         </td>
-                                        <td class="p-4 font-mono text-slate-600">CEM-OPC53-BAG</td>
                                         <td class="p-4 font-bold text-slate-900">1,250 Bags</td>
                                         <td class="p-4 text-amber-600 font-semibold">500 Bags</td>
                                         <td class="p-4 font-bold text-emerald-600">750 Bags</td>
@@ -842,7 +839,6 @@
                                             <span class="font-bold text-slate-800 block">River Sand (Coarse Plastering)</span>
                                             <span class="text-[11px] text-slate-400">Category: Sand & Aggregate</span>
                                         </td>
-                                        <td class="p-4 font-mono text-slate-600">SAND-CRS-01</td>
                                         <td class="p-4 font-bold text-red-600">18 Tons</td>
                                         <td class="p-4 text-slate-400">0 Tons</td>
                                         <td class="p-4 font-bold text-red-600">18 Tons</td>
