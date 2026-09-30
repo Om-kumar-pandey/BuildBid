@@ -246,8 +246,18 @@ public class MaterialController {
         // 5. Calculate Available Stock & Status
         double availableStock = currentStock - reservedStock;
 
+        Double oldCurrentStock = material.getCurrentStock();
+        Double oldReservedStock = material.getReservedStock() != null ? material.getReservedStock() : 0.0;
+        boolean stockQuantityUnchanged = oldCurrentStock != null
+                && Double.compare(oldCurrentStock, currentStock) == 0
+                && Double.compare(oldReservedStock, reservedStock) == 0;
+
         String stockStatus;
-        if (availableStock <= 0) {
+        if (payload.get("stockStatus") != null && "OUT_OF_STOCK".equalsIgnoreCase(payload.get("stockStatus").toString().trim())) {
+            stockStatus = "OUT_OF_STOCK";
+        } else if ("OUT_OF_STOCK".equalsIgnoreCase(material.getStockStatus()) && stockQuantityUnchanged) {
+            stockStatus = "OUT_OF_STOCK";
+        } else if (availableStock <= 0) {
             stockStatus = "OUT_OF_STOCK";
         } else if (availableStock <= 20.0) {
             stockStatus = "LOW_STOCK";
@@ -276,6 +286,48 @@ public class MaterialController {
 
         Map<String, Object> response = toMaterialMap(updated);
         response.put("message", "Material updated successfully — सामग्री सफलतापूर्वक अपडेट की गई");
+
+        return ResponseEntity.ok(response);
+    }
+
+    @RequestMapping(value = "/{id}/out-of-stock", method = {RequestMethod.PATCH, RequestMethod.PUT, RequestMethod.POST})
+    public ResponseEntity<?> markOutOfStock(@PathVariable("id") Long id,
+                                            Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a seller."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Seller account not found in system."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser seller = userOpt.get();
+        Optional<Material> matOpt = materialRepository.findById(id);
+
+        if (matOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Material not found with ID: " + id));
+        }
+
+        Material material = matOpt.get();
+
+        // Security check: Must belong to authenticated seller
+        if (material.getSeller() == null || !material.getSeller().getId().equals(seller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Forbidden: You cannot modify another seller's material."));
+        }
+
+        material.setStockStatus("OUT_OF_STOCK");
+        Material updated = materialRepository.save(material);
+
+        Map<String, Object> response = toMaterialMap(updated);
+        response.put("message", "Material marked as Out of Stock — सामग्री आउट ऑफ स्टॉक के रूप में चिह्नित की गई");
 
         return ResponseEntity.ok(response);
     }

@@ -74,7 +74,7 @@
                         <i class="fa-solid fa-warehouse w-5 text-center"></i>
                         <span>Inventory</span>
                     </div>
-                    <span class="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full font-medium">2 Low</span>
+                    <span id="nav-inventory-badge" class="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full font-medium">0 Low</span>
                 </a>
 
                 <a href="#deliveries" onclick="switchTab('deliveries')" id="nav-deliveries" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
@@ -1295,12 +1295,18 @@
                 </div>
 
                 <!-- Footer Actions -->
-                <div class="pt-4 flex items-center justify-end space-x-3">
-                    <button type="button" onclick="closeModal('editMaterialModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Cancel</button>
-                    <button type="submit" id="saveEditBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Save Changes — सुरक्षित करें</span>
+                <div class="pt-4 flex items-center justify-between border-t border-slate-100">
+                    <button type="button" id="markOutOfStockBtn" onclick="markCurrentMaterialOutOfStock()" class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-semibold transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-ban"></i>
+                        <span>Item Out of Stock — आइटम आउट ऑफ स्टॉक</span>
                     </button>
+                    <div class="flex items-center space-x-3">
+                        <button type="button" onclick="closeModal('editMaterialModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Cancel</button>
+                        <button type="submit" id="saveEditBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save Changes — सुरक्षित करें</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

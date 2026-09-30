@@ -468,7 +468,10 @@ if (document.readyState === "loading") {
 
 async function loadSellerInventory() {
     const token = getCleanToken();
-    if (!token) return;
+    if (!token) {
+        updateInventoryLowStockBadge();
+        return;
+    }
 
     const API_BASE_URL = getApiBaseUrl();
     try {
@@ -482,8 +485,9 @@ async function loadSellerInventory() {
 
         if (response.ok) {
             const materials = await response.json();
-            if (Array.isArray(materials) && materials.length > 0) {
+            if (Array.isArray(materials)) {
                 renderSellerMaterials(materials);
+                updateInventoryLowStockBadge(materials);
             }
         }
     } catch (err) {
@@ -491,11 +495,39 @@ async function loadSellerInventory() {
     }
 }
 
+function updateInventoryLowStockBadge(materials) {
+    const badge = document.getElementById("nav-inventory-badge") ||
+                  document.querySelector('#nav-inventory span.bg-red-500\\/20');
+    if (!badge) return;
+
+    if (Array.isArray(materials)) {
+        // Count ONLY materials where stockStatus is strictly "LOW_STOCK"
+        // "OUT_OF_STOCK" and "IN_STOCK" are logically separate and must NOT be counted
+        const lowCount = materials.filter(m => m && m.stockStatus === "LOW_STOCK").length;
+        badge.textContent = `${lowCount} Low`;
+    } else {
+        const lowRows = document.querySelectorAll('#inventory-table-body tr');
+        let lowCount = 0;
+        lowRows.forEach(row => {
+            const statusCell = row.children[5];
+            if (statusCell && statusCell.textContent.includes("Low Stock")) {
+                lowCount++;
+            }
+        });
+        badge.textContent = `${lowCount} Low`;
+    }
+}
+
 function renderSellerMaterials(materials) {
     const tbody = document.getElementById("inventory-table-body");
-    if (!tbody || !Array.isArray(materials) || materials.length === 0) return;
+    if (!tbody || !Array.isArray(materials)) return;
 
     tbody.innerHTML = "";
+
+    if (materials.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No materials in catalog yet — कोई सामग्री नहीं मिली</td></tr>`;
+        return;
+    }
 
     materials.forEach(mat => {
         const tr = document.createElement("tr");
@@ -523,9 +555,9 @@ function renderSellerMaterials(materials) {
         const status = mat.stockStatus || "IN_STOCK";
         let statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock — स्टॉक उपलब्ध</span>';
         if (status === "LOW_STOCK") {
-            statusBadge = '<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Low Stock — कम स्टॉक</span>';
+            statusBadge = '<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Low Stock — लो स्टॉक</span>';
         } else if (status === "OUT_OF_STOCK") {
-            statusBadge = '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out of Stock — स्टॉक खत्म</span>';
+            statusBadge = '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out of Stock — आउट ऑफ स्टॉक</span>';
         }
 
         tr.innerHTML = `
@@ -739,6 +771,74 @@ async function saveMaterialEdit(event) {
     }
 }
 
+async function markCurrentMaterialOutOfStock() {
+    const idElem = document.getElementById("editMaterialId");
+    const id = idElem ? idElem.value : "";
+    if (!id) {
+        showToast("Material ID not found", "error");
+        return;
+    }
+
+    const btn = document.getElementById("markOutOfStockBtn");
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i><span>Updating...</span>';
+    }
+
+    try {
+        let updated = false;
+        if (token) {
+            const response = await fetch(API_BASE_URL + "/api/seller/materials/" + encodeURIComponent(id) + "/out-of-stock", {
+                method: "PATCH",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.ok) {
+                updated = true;
+            } else if (response.status === 403) {
+                showToast("Forbidden: You cannot modify another seller's material.", "error");
+                return;
+            } else {
+                const data = await response.json().catch(() => ({}));
+                showToast(data.error || data.message || "Failed to mark item as out of stock", "error");
+                return;
+            }
+        } else {
+            // Local fallback for offline/preview mode
+            updated = true;
+            const row = document.querySelector(`button[onclick*="openEditMaterialModal('${id}')"]`)?.closest("tr");
+            if (row && row.children[5]) {
+                row.children[5].innerHTML = '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out of Stock — आउट ऑफ स्टॉक</span>';
+            }
+            updateInventoryLowStockBadge();
+        }
+
+        if (updated) {
+            closeModal("editMaterialModal");
+            showToast("Item Out of Stock — आइटम आउट ऑफ स्टॉक");
+            // Refresh inventory catalog dynamically without manual browser refresh
+            await loadSellerInventory();
+            if (typeof loadInvoiceMaterials === "function") {
+                loadInvoiceMaterials();
+            }
+        }
+    } catch (err) {
+        console.error("Seller Dashboard: Error marking material out of stock:", err);
+        showToast("Network error updating stock status. Please try again.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-ban mr-2"></i><span>Item Out of Stock — आइटम आउट ऑफ स्टॉक</span>';
+        }
+    }
+}
+
 /* ==========================================================================
    DELETE MATERIAL SYSTEM
    ========================================================================== */
@@ -802,7 +902,10 @@ async function confirmDeleteMaterial() {
             closeModal("deleteMaterialModal");
             showToast("Material deleted successfully. सामग्री सफलतापूर्वक हटाई गई।");
             const row = document.querySelector(`button[onclick*="openDeleteMaterialModal('${materialId}'"]`)?.closest("tr");
-            if (row) row.remove();
+            if (row) {
+                row.remove();
+                updateInventoryLowStockBadge();
+            }
         }
     } catch (err) {
         console.error("Seller Dashboard: Error deleting material:", err);
