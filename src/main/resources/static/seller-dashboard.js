@@ -470,6 +470,7 @@ async function loadSellerInventory() {
     const token = getCleanToken();
     if (!token) {
         updateInventoryLowStockBadge();
+        renderLowStockAlerts();
         return;
     }
 
@@ -488,6 +489,7 @@ async function loadSellerInventory() {
             if (Array.isArray(materials)) {
                 renderSellerMaterials(materials);
                 updateInventoryLowStockBadge(materials);
+                renderLowStockAlerts(materials);
             }
         }
     } catch (err) {
@@ -516,6 +518,87 @@ function updateInventoryLowStockBadge(materials) {
         });
         badge.textContent = `${lowCount} Low`;
     }
+}
+
+function renderLowStockAlerts(materials) {
+    const container = document.getElementById("low-stock-alerts-container");
+    const badge = document.getElementById("low-stock-alerts-badge");
+    if (!container) return;
+
+    let lowStockMaterials = [];
+
+    if (Array.isArray(materials)) {
+        // Filter ONLY materials where stockStatus is strictly "LOW_STOCK"
+        // "OUT_OF_STOCK" and "IN_STOCK" are logically separate and must NOT be shown
+        lowStockMaterials = materials.filter(m => m && m.stockStatus === "LOW_STOCK");
+    } else {
+        // Fallback for static/offline DOM inspection
+        const rows = document.querySelectorAll('#inventory-table-body tr');
+        rows.forEach(row => {
+            const statusCell = row.children[5];
+            if (statusCell && statusCell.textContent.includes("Low Stock")) {
+                const nameSpan = row.querySelector('td:first-child span.font-bold');
+                const stockCell = row.children[3] || row.children[1];
+                const editBtn = row.querySelector('button[onclick*="openEditMaterialModal"]');
+                let id = "3";
+                if (editBtn) {
+                    const m = editBtn.getAttribute("onclick").match(/openEditMaterialModal\(['"]?([^'")]+)/);
+                    if (m) id = m[1];
+                }
+                lowStockMaterials.push({
+                    id: id,
+                    materialName: nameSpan ? nameSpan.textContent.trim() : "Low Stock Material",
+                    availableStock: stockCell ? stockCell.textContent.trim() : "Low",
+                    unit: ""
+                });
+            }
+        });
+    }
+
+    if (badge) {
+        badge.textContent = `${lowStockMaterials.length} item${lowStockMaterials.length === 1 ? '' : 's'}`;
+    }
+
+    container.innerHTML = "";
+
+    if (lowStockMaterials.length === 0) {
+        container.innerHTML = `
+            <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg text-center text-slate-400">
+                <p class="font-medium text-slate-500">No Low Stock Items</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">कोई लो स्टॉक आइटम नहीं</p>
+            </div>
+        `;
+        return;
+    }
+
+    lowStockMaterials.forEach(mat => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "p-3 bg-white border border-red-100 rounded-lg flex items-center justify-between";
+
+        const materialName = mat.materialName || "Material";
+        let stockText = "";
+        if (typeof mat.availableStock === "string") {
+            stockText = mat.availableStock;
+        } else {
+            const currentNum = mat.currentStock != null ? Number(mat.currentStock) : 0;
+            const reservedNum = mat.reservedStock != null ? Number(mat.reservedStock) : 0;
+            const availNum = mat.availableStock != null ? Number(mat.availableStock) : (currentNum - reservedNum);
+            let unitDisplay = mat.unit || "";
+            if (unitDisplay.includes("—")) {
+                unitDisplay = unitDisplay.split("—")[0].trim();
+            }
+            stockText = `${availNum.toLocaleString("en-IN")} ${unitDisplay}`.trim();
+        }
+
+        itemDiv.innerHTML = `
+            <div>
+                <p class="font-bold text-slate-800">${escapeHtml(materialName)}</p>
+                <p class="text-red-600 text-[11px]">Stock: ${escapeHtml(stockText)}</p>
+            </div>
+            <button onclick="openEditMaterialModal('${escapeJs(String(mat.id))}')" class="px-2.5 py-1.5 bg-red-600 text-white rounded-md text-[11px] font-semibold hover:bg-red-700 transition-all">Restock</button>
+        `;
+        container.appendChild(itemDiv);
+    });
 }
 
 function renderSellerMaterials(materials) {
@@ -571,7 +654,7 @@ function renderSellerMaterials(materials) {
             <td class="p-4 font-bold">${escapeHtml(price)} / ${escapeHtml(unitDisplay)}</td>
             <td class="p-4">${statusBadge}</td>
             <td class="p-4 text-right space-x-1.5">
-                <button onclick="openEditMaterialModal('${escapeJs(String(mat.id))}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
+                <button onclick="openEditMaterialModal('${escapeJs(String(mat.id))}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Update</button>
                 <button onclick="openDeleteMaterialModal('${escapeJs(String(mat.id))}', '${escapeJs(String(materialName))}')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg font-semibold transition-all shadow-sm" title="Delete Material — सामग्री हटाएं"><i class="fa-solid fa-trash text-xs"></i></button>
             </td>
         `;
@@ -593,20 +676,24 @@ async function openEditMaterialModal(materialId) {
     try {
         let mat = null;
         if (token) {
-            // Fetch authoritative record from backend
-            const response = await fetch(API_BASE_URL + "/api/seller/materials/" + encodeURIComponent(materialId), {
-                method: "GET",
-                headers: {
-                    "Authorization": "Bearer " + token,
-                    "Content-Type": "application/json"
-                }
-            });
+            try {
+                // Fetch authoritative record from backend
+                const response = await fetch(API_BASE_URL + "/api/seller/materials/" + encodeURIComponent(materialId), {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
 
-            if (response.ok) {
-                mat = await response.json();
-            } else if (response.status === 403) {
-                showToast("Forbidden: You are not authorized to edit this material.", "error");
-                return;
+                if (response.ok) {
+                    mat = await response.json();
+                } else if (response.status === 403) {
+                    showToast("Forbidden: You are not authorized to edit this material.", "error");
+                    return;
+                }
+            } catch (fetchErr) {
+                console.warn("Seller Dashboard: Network error fetching material details, using local fallback:", fetchErr);
             }
         }
 
@@ -817,6 +904,7 @@ async function markCurrentMaterialOutOfStock() {
                 row.children[5].innerHTML = '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out of Stock — आउट ऑफ स्टॉक</span>';
             }
             updateInventoryLowStockBadge();
+            renderLowStockAlerts();
         }
 
         if (updated) {
@@ -905,6 +993,7 @@ async function confirmDeleteMaterial() {
             if (row) {
                 row.remove();
                 updateInventoryLowStockBadge();
+                renderLowStockAlerts();
             }
         }
     } catch (err) {

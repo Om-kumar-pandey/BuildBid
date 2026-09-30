@@ -455,22 +455,12 @@
                                         <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></div>
                                         <h3 class="font-bold text-slate-800 text-sm">Low Stock Alerts</h3>
                                     </div>
-                                    <span class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">2 items</span>
+                                    <span id="low-stock-alerts-badge" class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">0 items</span>
                                 </div>
-                                <div class="space-y-3 text-xs">
-                                    <div class="p-3 bg-white border border-red-100 rounded-lg flex items-center justify-between">
-                                        <div>
-                                            <p class="font-bold text-slate-800">River Sand (Coarse)</p>
-                                            <p class="text-red-600 text-[11px]">Stock: 18 Tons (Min: 50 Tons)</p>
-                                        </div>
-                                        <button onclick="switchTab('inventory')" class="px-2.5 py-1.5 bg-red-600 text-white rounded-md text-[11px] font-semibold hover:bg-red-700 transition-all">Restock</button>
-                                    </div>
-                                    <div class="p-3 bg-white border border-red-100 rounded-lg flex items-center justify-between">
-                                        <div>
-                                            <p class="font-bold text-slate-800">White Cement (JK White)</p>
-                                            <p class="text-red-600 text-[11px]">Stock: 12 Bags (Min: 30 Bags)</p>
-                                        </div>
-                                        <button onclick="switchTab('inventory')" class="px-2.5 py-1.5 bg-red-600 text-white rounded-md text-[11px] font-semibold hover:bg-red-700 transition-all">Restock</button>
+                                <div id="low-stock-alerts-container" class="space-y-3 text-xs">
+                                    <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg text-center text-slate-400">
+                                        <p class="font-medium text-slate-500">No Low Stock Items</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">कोई लो स्टॉक आइटम नहीं</p>
                                     </div>
                                 </div>
                             </div>
@@ -815,7 +805,7 @@
                                         <td class="p-4 font-bold">₹54,000 / Ton</td>
                                         <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock</span></td>
                                         <td class="p-4 text-right space-x-1.5">
-                                            <button onclick="openEditMaterialModal(1)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
+                                            <button onclick="openEditMaterialModal(1)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Update</button>
                                             <button onclick="openDeleteMaterialModal('1', 'TMT Steel Rebars Fe 500')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg font-semibold transition-all shadow-sm" title="Delete Material — सामग्री हटाएं"><i class="fa-solid fa-trash text-xs"></i></button>
                                         </td>
                                     </tr>
@@ -830,7 +820,7 @@
                                         <td class="p-4 font-bold">₹370 / Bag</td>
                                         <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">In Stock</span></td>
                                         <td class="p-4 text-right space-x-1.5">
-                                            <button onclick="openEditMaterialModal(2)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
+                                            <button onclick="openEditMaterialModal(2)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Update</button>
                                             <button onclick="openDeleteMaterialModal('2', 'OPC Cement 53 Grade')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg font-semibold transition-all shadow-sm" title="Delete Material — सामग्री हटाएं"><i class="fa-solid fa-trash text-xs"></i></button>
                                         </td>
                                     </tr>
@@ -845,7 +835,7 @@
                                         <td class="p-4 font-bold">₹1,850 / Ton</td>
                                         <td class="p-4"><span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Low Stock</span></td>
                                         <td class="p-4 text-right space-x-1.5">
-                                            <button onclick="openEditMaterialModal(3)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Edit</button>
+                                            <button onclick="openEditMaterialModal(3)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm">Update</button>
                                             <button onclick="openDeleteMaterialModal('3', 'River Sand (Coarse Plastering)')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg font-semibold transition-all shadow-sm" title="Delete Material — सामग्री हटाएं"><i class="fa-solid fa-trash text-xs"></i></button>
                                         </td>
                                     </tr>
