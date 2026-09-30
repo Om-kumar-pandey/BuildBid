@@ -56,8 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
  * Extracts and displays only FIRST NAME (e.g., 'Heman') and initials ('HK')
  */
 async function initUserSession() {
-    const userNameEl = document.getElementById('userName');
-    const userInitialsEl = document.getElementById('userInitials');
+    const userNameEl = document.getElementById('navUserName') || document.getElementById('userName');
+    const userInitialsEl = document.getElementById('navUserAvatar') || document.getElementById('userInitials');
 
     try {
         let user = JSON.parse(

@@ -11,9 +11,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const navUserName = document.getElementById("navUserName");
+  const navUserName = document.getElementById("navUserName") || document.getElementById("userName");
   const navUserRole = document.getElementById("navUserRole");
-  const navUserAvatar = document.getElementById("navUserAvatar");
+  const navUserAvatar = document.getElementById("navUserAvatar") || document.getElementById("userInitials");
 
   const displayName = (user.name || user.fullName || user.username || "").toString().trim();
 
@@ -42,4 +42,32 @@ document.addEventListener("DOMContentLoaded", () => {
   if (navUserRole && user.role) {
     navUserRole.textContent = String(user.role).replace("ROLE_", "").toUpperCase();
   }
+
+  // Fallback Logout handler for shell continuity
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn && !logoutBtn.dataset.bound) {
+    logoutBtn.dataset.bound = "true";
+    logoutBtn.addEventListener("click", (e) => {
+      if (document.getElementById("custom-toast")) return; // Let custom-toast page handle animated logout
+      e.preventDefault();
+      localStorage.removeItem("marketplaceToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("marketplaceUser");
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("customerUser");
+      localStorage.removeItem("buildbid_user");
+      sessionStorage.removeItem("pendingRedirect");
+      sessionStorage.removeItem("userData");
+      window.location.href = "index.html";
+    });
+  }
+
+  // Intercept clicks on currently unimplemented sidebar items to prevent 404
+  const unimplementedLinks = document.querySelectorAll('.side-menu a[href="javascript:void(0)"]');
+  unimplementedLinks.forEach(link => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+    });
+  });
 });
