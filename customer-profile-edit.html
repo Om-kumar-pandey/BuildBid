@@ -4,33 +4,105 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BuildBid - Edit Customer Profile</title>
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="customer-profile-edit.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="customer-profile-edit.css">
 </head>
 <body>
 
-    <!-- Header Navigation -->
-    <header class="edit-profile-navbar">
-        <div class="navbar-container">
-            <a href="customer dashboard.html" class="nav-brand-logo">
-                <img src="logo.png" alt="BuildBid Logo" class="nav-site-logo">
-                <div class="nav-brand-text">
-                    <span class="nav-brand-title">BuildBid</span>
-                    <span class="nav-brand-subtitle">Build Better, Bid Smarter.</span>
-                </div>
-            </a>
-            <div class="navbar-actions">
-                <a href="customer dashboard.html" class="btn-back-dashboard" id="backToDashboardTopBtn">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span>Back to Dashboard</span>
-                </a>
-            </div>
+  <!-- Top Navbar -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="index.html" class="brand-logo">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
         </div>
-    </header>
+      </a>
+    </div>
+    
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Projects</option>
+            <option>Materials</option>
+            <option>Professionals</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
+    </div>
 
-    <!-- Main Container -->
-    <main class="edit-profile-main">
+    <div class="nav-right">
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+        <img src="https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User" alt="Avatar" class="pill-avatar" id="navAvatar">
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Customer</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Body Layout -->
+  <div class="app-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <ul class="side-menu">
+        <li class="active"><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li>
+          <a href="customer projects.html" class="sidebar-item">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>My Projects</span>
+          </a>
+        </li>
+        <li><a href="my-bids.html"><i class="fa-regular fa-newspaper"></i> My Bids</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-boxes-stacked"></i> Materials Orders</a></li>
+        <li><a href="post-requirements.html"><i class="fa-solid fa-user-plus"></i>Post Requirements</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-user-group"></i> Common Requirements</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-clock"></i>My Orders</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="#" id="logoutBtn" class="logout-action">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+      <!-- Main Container -->
+      <main class="edit-profile-main" style="flex: 1;">
         <div class="edit-profile-wrapper">
 
             <!-- Breadcrumb Navigation -->
@@ -229,7 +301,7 @@
 
                     <!-- Form Action Buttons -->
                     <div class="form-actions-panel">
-                        <button type="button" class="btn-cancel" id="cancelEditBtn">Cancel</button>
+                        <button type="button" class="btn-cancel" id="cancelEditBtn" onclick="window.location.href='customer dashboard.html'">Cancel</button>
                         <button type="submit" class="btn-save" id="saveProfileBtn">
                             <i class="fa-solid fa-floppy-disk"></i>
                             <span>Save Changes</span>
@@ -240,22 +312,73 @@
 
             </div>
 
-        </div>
-    </main>
+      </main>
 
-    <!-- Floating Toast Notification Card -->
-    <div id="statusToast" class="toast-card" role="alert" aria-live="assertive">
-        <div class="toast-icon-wrap" id="toastIconWrap">
-            <i class="fa-solid fa-check" id="toastIcon"></i>
+      <!-- Dashboard Footer -->
+      <footer class="app-footer">
+        <div class="footer-columns">
+          <div class="footer-brand-side">
+            <div class="brand-logo">
+              <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+              <div class="brand-text">
+                <span class="brand-title">BuildBid</span>
+                <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Platform</h4>
+            <a href="#">Projects</a>
+            <a href="#">Materials</a>
+            <a href="#">Professionals</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Company</h4>
+            <a href="#">About Us</a>
+            <a href="#">How It Works</a>
+            <a href="#">Contact Us</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Support</h4>
+            <a href="#">Help Center</a>
+            <a href="#">Terms & Conditions</a>
+            <a href="#">Privacy Policy</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Follow Us</h4>
+            <div class="social-links-row">
+              <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+              <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+              <a href="#"><i class="fa-brands fa-instagram"></i></a>
+              <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            </div>
+          </div>
         </div>
-        <div class="toast-body">
-            <h4 id="toastTitle" class="toast-title">Success</h4>
-            <p id="toastMessage" class="toast-message">Your profile has been updated successfully.</p>
+
+        <div class="footer-copyright-note">
+          &copy; 2026 BuildBid. All rights reserved.
         </div>
-        <button type="button" class="toast-close-btn" id="toastCloseBtn" aria-label="Close notification">&times;</button>
+      </footer>
     </div>
+  </div>
 
-    <!-- JavaScript File Only -->
-    <script src="customer-profile-edit.js"></script>
+  <!-- Floating Toast Notification Card -->
+  <div id="statusToast" class="toast-card" role="alert" aria-live="assertive">
+      <div class="toast-icon-wrap" id="toastIconWrap">
+          <i class="fa-solid fa-check" id="toastIcon"></i>
+      </div>
+      <div class="toast-body">
+          <h4 id="toastTitle" class="toast-title">Success</h4>
+          <p id="toastMessage" class="toast-message">Your profile has been updated successfully.</p>
+      </div>
+      <button type="button" class="toast-close-btn" id="toastCloseBtn" aria-label="Close notification">&times;</button>
+  </div>
+
+  <script src="customer-profile-edit.js"></script>
+  <script src="layout.js"></script>
 </body>
 </html>

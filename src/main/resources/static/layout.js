@@ -13,9 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const navUserName = document.getElementById("navUserName") || document.getElementById("userName");
   const navUserRole = document.getElementById("navUserRole");
+  const navAvatar = document.getElementById("navAvatar");
   const navUserAvatar = document.getElementById("navUserAvatar") || document.getElementById("userInitials");
 
   const displayName = (user.name || user.fullName || user.username || "").toString().trim();
+  const photoUrl = (user.profilePhoto || user.avatarUrl || user.profilePhotoUrl || "").toString().trim();
 
   if (displayName && displayName.toLowerCase() !== "customer" && displayName.toLowerCase() !== "user") {
     // 1. Full name me se sirf FIRST NAME nikalein (e.g., "Heman kumar" -> "Heman")
@@ -27,9 +29,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (navUserName) {
       navUserName.textContent = formattedFirstName;
     }
+  }
 
-    // 2. Avatar Initials (HK ya First Letter)
-    if (navUserAvatar) {
+  // 2. Profile Image & Avatar Synchronization (Shared across all Customer pages)
+  const fallbackAvatarUrl = `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(displayName || "User")}`;
+
+  if (navAvatar && navAvatar.tagName === "IMG") {
+    navAvatar.src = photoUrl ? photoUrl : fallbackAvatarUrl;
+  }
+
+  if (navUserAvatar && navUserAvatar !== navAvatar) {
+    if (photoUrl) {
+      navUserAvatar.style.backgroundImage = `url('${photoUrl}')`;
+      navUserAvatar.style.backgroundSize = "cover";
+      navUserAvatar.style.backgroundPosition = "center";
+      navUserAvatar.textContent = "";
+    } else if (displayName && displayName.toLowerCase() !== "customer" && displayName.toLowerCase() !== "user") {
+      navUserAvatar.style.backgroundImage = "";
       const nameParts = displayName.split(" ").filter(Boolean);
       const initials = nameParts.length > 1 
         ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
