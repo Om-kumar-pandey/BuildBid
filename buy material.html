@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid — Buy Material | सामग्री खरीदें</title>
+  <!-- Google Fonts: Inter & Noto Sans Devanagari -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            buildblue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            },
+            buildslate: {
+              850: '#151f32',
+              900: '#0f172a'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Dedicated Buy Material Styles -->
+  <link rel="stylesheet" href="buy material.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand Logo & Module Badge -->
+      <div class="flex items-center space-x-3">
+        <a href="index.html" class="flex items-center space-x-2.5 group">
+          <img src="logo.png" alt="BuildBid Logo" class="h-9 w-auto object-contain" onerror="this.src='hero-building.jpg'">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-base tracking-tight text-white">Build<span class="text-blue-500">Bid</span></span>
+              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">Buy Material</span>
+            </div>
+            <p class="text-[10px] text-slate-400">सामग्री खरीद पोर्टल</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Right Header Actions: User Pill & Back Button -->
+      <div class="flex items-center space-x-3">
+        <div id="userPill">
+          <!-- Dynamically populated Customer / Contractor identity -->
+          <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+            <i class="fa-solid fa-user text-xs"></i>
+            <span>Buyer</span>
+          </span>
+        </div>
+
+        <a id="backToDashboardBtn" href="customer dashboard.html" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-arrow-left text-blue-400"></i>
+          <span class="hidden sm:inline">Back to Dashboard — डैशबोर्ड पर वापस जाएं</span>
+          <span class="sm:hidden">Dashboard</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Page Breadcrumb & Title -->
+    <div class="mb-5">
+      <nav class="flex items-center space-x-2 text-xs text-slate-500 mb-2">
+        <a href="index.html" class="hover:text-blue-600 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-slate-800 font-semibold">Buy Material — सामग्री खरीदें</span>
+      </nav>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
+            <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-cart-shopping"></i>
+            </span>
+            <span>Buy Material — सामग्री खरीदें</span>
+          </h1>
+          <p class="text-xs text-slate-600 mt-1 font-medium">
+            Post your material requirement and receive direct competitive quotes from verified suppliers in your State, All India, or Local radius.
+          </p>
+          <p class="text-[11px] text-slate-400">
+            अपनी सामग्री की आवश्यकता दर्ज करें और राज्य, पूरे भारत या स्थानीय विक्रेताओं से सर्वश्रेष्ठ कोटेशन प्राप्त करें।
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN FORM -->
+    <form id="buyMaterialForm" class="space-y-6">
+
+      <!-- SECTION 1: MATERIALS REQUIREMENTS (MULTIPLE ITEMS SUPPORT) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">1</span>
+            <h2 class="font-bold text-sm tracking-wide">Material Requirements — आवश्यक निर्माण सामग्री</h2>
+          </div>
+          <span class="text-[11px] text-slate-400">* Multi-item support enabled</span>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-4">
+          <!-- Dynamic Material Rows Container -->
+          <div id="materialsContainer" class="space-y-3.5">
+            <!-- Material items appended dynamically via JS -->
+          </div>
+
+          <!-- Add Another Material Button -->
+          <div class="pt-2 flex justify-start">
+            <button type="button" id="addAnotherMaterialBtn" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all shadow-xs cursor-pointer">
+              <i class="fa-solid fa-plus-circle text-blue-600"></i>
+              <span>+ Add Another Material / + दूसरी सामग्री जोड़ें</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: DELIVERY LOCATION -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">2</span>
+            <h2 class="font-bold text-sm tracking-wide">Delivery Location — डिलीवरी स्थान</h2>
+          </div>
+          <span class="text-[11px] text-slate-400">PIN Code required for seller routing</span>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-4">
+          <!-- Optional Project Picker (if user has active projects) -->
+          <div id="projectPickerContainer" class="hidden pb-2 border-b border-slate-100">
+            <label class="block font-semibold text-xs text-slate-700 mb-1.5">
+              Select Site / Project — परियोजना / साइट चुनें <span class="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <select id="projectSelect" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium outline-none">
+              <option value="">-- Optional: Select an existing Project / साइट चुनें --</option>
+            </select>
+          </div>
+
+          <!-- Address & City -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="deliveryAddress" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                Site Address — साइट का पता <span class="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input type="text" id="deliveryAddress" placeholder="e.g. Sector 150, Noida Express Highway" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium outline-none">
+            </div>
+
+            <div>
+              <label for="deliveryCity" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                City / District — शहर / जिला
+              </label>
+              <input type="text" id="deliveryCity" placeholder="e.g. Greater Noida" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-medium outline-none">
+            </div>
+          </div>
+
+          <!-- State & PIN Code -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="deliveryState" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                State — राज्य <span class="text-rose-500">*</span>
+              </label>
+              <select id="deliveryState" required class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-semibold outline-none">
+                <!-- Populated dynamically via JS, default to Uttar Pradesh -->
+              </select>
+              <p class="text-[10px] text-slate-400 mt-1">Used for State-level supplier matching</p>
+            </div>
+
+            <div>
+              <label for="deliveryPin" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                PIN Code — पिन कोड <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="deliveryPin" required pattern="[0-9]{6}" maxlength="6" placeholder="e.g. 201310" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 font-bold tracking-wider outline-none">
+              <p class="text-[10px] text-slate-400 mt-1">6-digit Indian Postal Code for distance calculation</p>
+            </div>
+          </div>
+
+          <!-- Contact Details & Expected Date -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+            <div>
+              <label for="contactPerson" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                Contact Person — संपर्क व्यक्ति
+              </label>
+              <input type="text" id="contactPerson" placeholder="Name" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 outline-none">
+            </div>
+
+            <div>
+              <label for="contactPhone" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                Contact Number — मोबाइल नंबर
+              </label>
+              <input type="tel" id="contactPhone" placeholder="10-digit mobile" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 outline-none">
+            </div>
+
+            <div>
+              <label for="expectedDate" class="block font-semibold text-xs text-slate-700 mb-1.5">
+                Expected Date — अपेक्षित तारीख
+              </label>
+              <input type="date" id="expectedDate" class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 outline-none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: REQUEST DESTINATION OPTIONS (CORE ROUTING REQUIREMENT) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">3</span>
+            <h2 class="font-bold text-sm tracking-wide">Send Request To / रिक्वेस्ट किसे भेजें</h2>
+          </div>
+          <span class="text-[11px] text-amber-300 font-semibold"><i class="fa-solid fa-route mr-1"></i>Seller Routing</span>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-4">
+          <p class="text-xs text-slate-600 font-medium">
+            Choose which verified sellers will receive this material request:
+          </p>
+
+          <!-- 3 Radio Cards Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- OPTION 1: STATE (DEFAULT!) -->
+            <label class="scope-card active" id="cardState">
+              <input type="radio" name="requestScope" value="STATE" checked>
+              <div class="pr-6 space-y-1.5">
+                <div class="flex items-center space-x-2">
+                  <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-map"></i>
+                  </span>
+                  <span class="font-bold text-sm text-slate-900">State / राज्य</span>
+                </div>
+                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white uppercase tracking-wider">
+                  Default / अनुशंसित
+                </span>
+                <p class="text-xs text-slate-600 font-medium pt-1">
+                  Send request to registered sellers in the selected delivery state.
+                </p>
+                <p class="text-[11px] text-slate-400">
+                  चयनित राज्य के सभी पंजीकृत विक्रेताओं को अनुरोध भेजें।
+                </p>
+              </div>
+            </label>
+
+            <!-- OPTION 2: ALL INDIA -->
+            <label class="scope-card" id="cardAllIndia">
+              <input type="radio" name="requestScope" value="ALL_INDIA">
+              <div class="pr-6 space-y-1.5">
+                <div class="flex items-center space-x-2">
+                  <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-globe"></i>
+                  </span>
+                  <span class="font-bold text-sm text-slate-900">All India / पूरे भारत में</span>
+                </div>
+                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-wider">
+                  Nationwide
+                </span>
+                <p class="text-xs text-slate-600 font-medium pt-1">
+                  Send request to eligible registered sellers across India.
+                </p>
+                <p class="text-[11px] text-slate-400">
+                  पूरे भारत के सत्यापित विक्रेताओं को अनुरोध भेजें।
+                </p>
+              </div>
+            </label>
+
+            <!-- OPTION 3: LOCAL RADIUS -->
+            <label class="scope-card" id="cardLocal">
+              <input type="radio" name="requestScope" value="LOCAL">
+              <div class="pr-6 space-y-1.5">
+                <div class="flex items-center space-x-2">
+                  <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                  </span>
+                  <span class="font-bold text-sm text-slate-900">Local / स्थानीय</span>
+                </div>
+                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
+                  Nearby Suppliers
+                </span>
+                <p class="text-xs text-slate-600 font-medium pt-1">
+                  Send request to eligible sellers near your site.
+                </p>
+                <p class="text-[11px] text-slate-400">
+                  साइट के नजदीकी विक्रेताओं को अनुरोध भेजें।
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <!-- LOCAL RADIUS PILL SELECTOR (Shown only when Local is active) -->
+          <div id="localRadiusGroup" class="hidden p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2 animate-fade-in">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-900">
+                <i class="fa-solid fa-arrows-to-circle mr-1.5 text-amber-600"></i>
+                Select Local Distance Radius — स्थानीय दूरी दायरा चुनें:
+              </span>
+              <div class="flex items-center space-x-2">
+                <button type="button" class="radius-pill active" data-radius="25">
+                  <i class="fa-solid fa-circle-dot mr-1"></i> 25 km
+                </button>
+                <button type="button" class="radius-pill" data-radius="50">
+                  <i class="fa-solid fa-circle-dot mr-1"></i> 50 km
+                </button>
+              </div>
+            </div>
+            <input type="hidden" id="selectedLocalRadius" value="25">
+            <p class="text-[11px] text-amber-700">
+              Only sellers within approximately the chosen radius of your PIN Code will receive this material request.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: SPECIAL NOTES & INSTRUCTIONS -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-2">
+        <label for="specialNotes" class="block font-semibold text-xs text-slate-700">
+          Special Requirements / Notes — विशेष निर्देश <span class="text-slate-400 font-normal">(Optional)</span>
+        </label>
+        <textarea id="specialNotes" rows="2" placeholder="e.g. Fresh OPC cement required. Need mill test certificate for steel. Delivery before 10 AM preferred." class="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-blue-500 rounded-xl text-xs text-slate-800 placeholder-slate-400 outline-none"></textarea>
+      </div>
+
+      <!-- SECTION 5: FINAL SUBMISSION BUTTON -->
+      <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-xs text-slate-500">
+          <i class="fa-solid fa-shield-halved text-emerald-600 mr-1.5"></i>
+          <span>Direct quote requests protected by BuildBid Supplier Network</span>
+        </div>
+
+        <!-- PRIMARY BUTTON: Send Material Request / सामग्री अनुरोध भेजें -->
+        <button type="submit" id="sendMaterialRequestBtn" class="btn-send-material-request w-full sm:w-auto text-sm cursor-pointer">
+          <i class="fa-solid fa-paper-plane text-base"></i>
+          <span>Send Material Request / सामग्री अनुरोध भेजें</span>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- SUCCESS CONFIRMATION MODAL -->
+  <div id="successModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-center space-y-5 animate-fade-in">
+      <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+
+      <div class="space-y-1">
+        <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">
+          Material Request Sent Successfully
+        </h3>
+        <p class="text-xs text-emerald-700 font-bold">
+          सामग्री अनुरोध सफलतापूर्वक भेज दिया गया है
+        </p>
+      </div>
+
+      <!-- Summary Details -->
+      <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-left space-y-2 text-xs">
+        <div class="flex justify-between items-center pb-1.5 border-b border-slate-200">
+          <span class="text-slate-500">Request ID — अनुरोध संख्या:</span>
+          <span id="successReqId" class="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">MR-1001</span>
+        </div>
+        <div class="flex justify-between items-center pb-1.5 border-b border-slate-200">
+          <span class="text-slate-500">Total Items — कुल सामग्री:</span>
+          <span id="successItemCount" class="font-bold text-slate-800">1 Material</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-500">Destination Scope — गंतव्य:</span>
+          <span id="successScope" class="font-bold text-slate-800">State Sellers</span>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        Eligible suppliers have been notified and will review your requirements.
+      </p>
+
+      <div class="pt-2">
+        <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer">
+          Done — वापस जाएं
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING TOAST NOTIFICATION -->
+  <div id="buyToast" class="fixed bottom-6 right-6 z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 flex items-center text-xs">
+    <i id="buyToastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base mr-2.5"></i>
+    <span id="buyToastMsg" class="font-semibold">Notification message</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="buy material.js"></script>
+</body>
+</html>

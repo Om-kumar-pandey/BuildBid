@@ -455,7 +455,10 @@ public class MarketplaceBackendApplication {
                                     "/styles.css",
                                     "/about build bid video.mp4", "/about%20build%20bid%20video.mp4",
                                     "/hero-building.jpg",
-                                    "/logo.png"
+                                    "/logo.png",
+                                    "/buy material.html", "/buy%20material.html",
+                                    "/buy material.css", "/buy%20material.css",
+                                    "/buy material.js", "/buy%20material.js"
                             ).permitAll()
                             .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

@@ -1471,6 +1471,75 @@
         </div>
     </div>
 
+    <!-- MODAL 4: BUY MATERIAL REQUEST DETAILS MODAL -->
+    <div id="materialRequestDetailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h3 class="font-bold text-sm" id="detailModalTitle">Material Request #MR-1001</h3>
+                        <span id="detailModalStatus" class="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full font-bold">NEW</span>
+                    </div>
+                    <p id="detailModalSubtitle" class="text-[11px] text-slate-400">Direct Buyer Requirement</p>
+                </div>
+                <button onclick="closeModal('materialRequestDetailModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
+                <!-- Location & Scope Header -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-600">
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Buyer Role</span>
+                        <span id="detailModalBuyerRole" class="font-bold text-slate-800">CUSTOMER</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Scope</span>
+                        <span id="detailModalScope" class="font-bold text-blue-600">STATE</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Delivery State</span>
+                        <span id="detailModalState" class="font-bold text-slate-800">Uttar Pradesh</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">PIN Code</span>
+                        <span id="detailModalPin" class="font-bold text-slate-800">201301</span>
+                    </div>
+                </div>
+
+                <!-- Delivery Address -->
+                <div class="p-3 bg-blue-50/60 border border-blue-200 rounded-xl">
+                    <span class="block text-[10px] font-semibold uppercase text-blue-600 mb-0.5">Site / Delivery Address</span>
+                    <p id="detailModalAddress" class="text-slate-700 font-medium"></p>
+                </div>
+
+                <!-- Material Items List -->
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center justify-between">
+                        <span>Requested Materials — आवश्यक सामग्री सूची</span>
+                        <span id="detailModalItemCount" class="text-[11px] text-slate-500 font-normal">1 Item</span>
+                    </h4>
+                    <div id="detailModalItemsList" class="space-y-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Special Notes if any -->
+                <div id="detailModalNotesContainer" class="p-3 bg-amber-50 border border-amber-200 rounded-xl hidden">
+                    <span class="block text-[10px] font-semibold uppercase text-amber-700 mb-0.5">Buyer Notes</span>
+                    <p id="detailModalNotes" class="text-slate-700"></p>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200">
+                    <button onclick="closeModal('materialRequestDetailModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Close — बंद करें</button>
+                    <button id="detailModalQuoteBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                        <span>Send Quote — कोटेशन भेजें</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl text-xs font-semibold hidden z-50 flex items-center space-x-3 border border-slate-700">
         <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>

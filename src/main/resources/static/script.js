@@ -241,7 +241,7 @@ function handleProtectedAction(actionType) {
             showMessage("Contractor marketplace coming soon!");
             break;
         case "BUY_MATERIALS":
-            showMessage("Materials marketplace coming soon!");
+            window.location.href = resolvePath("buy material.html");
             break;
         case "HIRE_PROFESSIONALS":
             window.location.href = resolvePath("hire-professionals.html");

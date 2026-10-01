@@ -210,11 +210,19 @@ function bindSellerProfile(profile) {
 }
 
 /* ==========================================================================
-   DYNAMIC DATA BINDING: CUSTOMER PROJECT REQUIREMENTS
+   DYNAMIC DATA BINDING: CUSTOMER PROJECT REQUIREMENTS & BUY MATERIAL REQUESTS
    ========================================================================== */
 
-function renderIncomingRequirements(projects) {
-    if (!Array.isArray(projects) || projects.length === 0) return;
+window.cachedMaterialRequests = window.cachedMaterialRequests || {};
+
+function renderIncomingRequirements(projects = [], materialRequests = []) {
+    // Cache material requests by business requestId or database id
+    if (Array.isArray(materialRequests)) {
+        materialRequests.forEach(mr => {
+            const key = mr.requestId || ("MR-" + mr.id);
+            window.cachedMaterialRequests[key] = mr;
+        });
+    }
 
     const listContainer = document.getElementById("incoming-requirements-list");
     const tbody = document.getElementById("material-requests-tbody");
@@ -222,7 +230,7 @@ function renderIncomingRequirements(projects) {
     const bannerReqCount = document.getElementById("seller-banner-req-count");
     const navReqBadge = document.getElementById("nav-requests-badge");
 
-    const totalCount = projects.length;
+    const totalCount = (Array.isArray(projects) ? projects.length : 0) + (Array.isArray(materialRequests) ? materialRequests.length : 0);
     if (countLabel) countLabel.innerText = totalCount;
     if (bannerReqCount) bannerReqCount.innerText = `${totalCount} active customer material requirements`;
     if (navReqBadge) navReqBadge.innerText = totalCount;
@@ -230,19 +238,248 @@ function renderIncomingRequirements(projects) {
     // Render Dashboard Home incoming requirements (limit to 5 in summary)
     if (listContainer) {
         listContainer.innerHTML = "";
-        const displayProjects = projects.slice(0, 5);
-        displayProjects.forEach(p => {
-            listContainer.appendChild(createRequirementCard(p));
-        });
+        let displayedCount = 0;
+        if (Array.isArray(materialRequests)) {
+            materialRequests.slice(0, 5).forEach(mr => {
+                listContainer.appendChild(createMaterialRequestCard(mr));
+                displayedCount++;
+            });
+        }
+        if (Array.isArray(projects) && displayedCount < 5) {
+            projects.slice(0, 5 - displayedCount).forEach(p => {
+                listContainer.appendChild(createRequirementCard(p));
+            });
+        }
     }
 
     // Render Material Requests Tab Table (full list)
     if (tbody) {
         tbody.innerHTML = "";
-        projects.forEach(p => {
-            tbody.appendChild(createRequirementRow(p));
+        // Render Buy Material requests first (direct buyer orders)
+        if (Array.isArray(materialRequests)) {
+            materialRequests.forEach(mr => {
+                tbody.appendChild(createMaterialRequestRow(mr));
+            });
+        }
+        // Then render project material requirements
+        if (Array.isArray(projects)) {
+            projects.forEach(p => {
+                tbody.appendChild(createRequirementRow(p));
+            });
+        }
+    }
+}
+
+function createMaterialRequestCard(mr) {
+    const div = document.createElement("div");
+    div.className = "bg-slate-50 hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4";
+
+    const rId = mr.requestId || ("MR-" + mr.id);
+    const buyerRole = (mr.buyerRole || "BUYER").toUpperCase();
+    const items = mr.items || [];
+    const firstItem = items[0] || {};
+    const title = mr.materialSummary || firstItem.materialName || "Material Requirement";
+    const locStr = [mr.city, mr.state].filter(Boolean).join(", ") || mr.state || "Regional Site";
+    const timeAgo = formatTimeAgo(mr.createdAt);
+    const status = mr.status || "NEW";
+    const statusClass = (status === "NEW" || status === "Open")
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-blue-100 text-blue-700";
+
+    const scope = (mr.requestScope || "STATE").toUpperCase();
+    let scopeBadge = "";
+    if (scope === "ALL_INDIA") {
+        scopeBadge = `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">All India</span>`;
+    } else if (scope === "LOCAL") {
+        scopeBadge = `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Local (${mr.localRadius || 25} km)</span>`;
+    } else {
+        scopeBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">State: ${escapeHtml(mr.state || '')}</span>`;
+    }
+
+    div.innerHTML = `
+        <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+                <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-md font-bold">${escapeHtml(rId)}</span>
+                <span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-bold">${escapeHtml(buyerRole)}</span>
+                <span class="${statusClass} text-[10px] px-2 py-0.5 rounded-full font-semibold">${escapeHtml(status)}</span>
+                ${scopeBadge}
+                <span class="text-xs text-slate-500">• ${escapeHtml(timeAgo)}</span>
+            </div>
+            <h3 class="font-bold text-slate-800 text-base">${escapeHtml(title)}</h3>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                <span><i class="fa-solid fa-boxes-stacked mr-1 text-blue-500"></i><strong>${items.length} ${items.length === 1 ? 'Material' : 'Materials'}</strong></span>
+                <span><i class="fa-solid fa-location-dot mr-1 text-red-500"></i>${escapeHtml(locStr)} (PIN: ${escapeHtml(mr.pinCode || '')})</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 flex-shrink-0">
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+        </div>
+    `;
+    return div;
+}
+
+function createMaterialRequestRow(mr) {
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-slate-50 transition-all";
+
+    const rId = mr.requestId || ("MR-" + mr.id);
+    const buyerRole = (mr.buyerRole || "BUYER").toUpperCase();
+    const items = mr.items || [];
+    const firstItem = items[0] || {};
+    
+    // Materials summary
+    let matSummary = mr.materialSummary || firstItem.materialName || "Material";
+    let specText = "";
+    if (items.length === 1) {
+        const parts = [];
+        if (firstItem.brand) parts.push("Brand: " + firstItem.brand);
+        if (firstItem.specification) parts.push(firstItem.specification);
+        specText = parts.join(" • ") || firstItem.category || "";
+    } else {
+        specText = `${items.length} materials requested in single order`;
+    }
+
+    let qtyStr = "";
+    if (items.length === 1) {
+        qtyStr = `${firstItem.quantity} ${firstItem.unit || ''}`;
+    } else {
+        qtyStr = `${items.length} Items`;
+    }
+
+    const locStr = [mr.city, mr.state].filter(Boolean).join(", ") || mr.state || "Regional Site";
+    const status = mr.status || "NEW";
+    const statusClass = (status === "NEW" || status === "Open")
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-blue-100 text-blue-700";
+
+    let scopeBadge = "";
+    const scope = (mr.requestScope || "STATE").toUpperCase();
+    if (scope === "ALL_INDIA") {
+        scopeBadge = `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">All India</span>`;
+    } else if (scope === "LOCAL") {
+        scopeBadge = `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Local (${mr.localRadius || 25} km)</span>`;
+    } else {
+        scopeBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">State: ${escapeHtml(mr.state || '')}</span>`;
+    }
+
+    tr.innerHTML = `
+        <td class="p-4 font-medium">
+            <span class="text-blue-600 font-bold block">${escapeHtml(rId)}</span>
+            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">${escapeHtml(buyerRole)}</span>
+        </td>
+        <td class="p-4">
+            <span class="font-bold text-slate-800">${escapeHtml(matSummary)}</span>
+            <span class="block text-slate-500 text-[11px]">${escapeHtml(specText)}</span>
+        </td>
+        <td class="p-4 font-bold text-slate-800">${escapeHtml(qtyStr)}</td>
+        <td class="p-4">
+            <i class="fa-solid fa-location-dot text-red-500 mr-1"></i>${escapeHtml(locStr)}
+            <span class="block text-slate-400 text-[10px]">PIN: ${escapeHtml(mr.pinCode || '')}</span>
+        </td>
+        <td class="p-4">${scopeBadge}</td>
+        <td class="p-4"><span class="${statusClass} px-2.5 py-1 rounded-full text-[10px] font-bold">${escapeHtml(status)}</span></td>
+        <td class="p-4 text-right space-x-2">
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+        </td>
+    `;
+    return tr;
+}
+
+function openMaterialRequestModal(requestId) {
+    const mr = window.cachedMaterialRequests[requestId];
+    if (!mr) {
+        showToast('Request details not found for ' + requestId);
+        return;
+    }
+
+    const titleEl = document.getElementById('detailModalTitle');
+    const statusEl = document.getElementById('detailModalStatus');
+    const subEl = document.getElementById('detailModalSubtitle');
+    const roleEl = document.getElementById('detailModalBuyerRole');
+    const scopeEl = document.getElementById('detailModalScope');
+    const stateEl = document.getElementById('detailModalState');
+    const pinEl = document.getElementById('detailModalPin');
+    const addrEl = document.getElementById('detailModalAddress');
+
+    if (titleEl) titleEl.innerText = 'Material Request #' + (mr.requestId || mr.id);
+    if (statusEl) statusEl.innerText = mr.status || 'NEW';
+    if (subEl) subEl.innerText = (mr.buyerRole || 'BUYER') + ' Direct Material Request';
+    if (roleEl) roleEl.innerText = mr.buyerRole || 'CUSTOMER';
+
+    let scopeLabel = mr.requestScope || 'STATE';
+    if (scopeLabel === 'LOCAL' && mr.localRadius) {
+        scopeLabel += ` (${mr.localRadius} km)`;
+    }
+    if (scopeEl) scopeEl.innerText = scopeLabel;
+    if (stateEl) stateEl.innerText = mr.state || '-';
+    if (pinEl) pinEl.innerText = mr.pinCode || '-';
+    if (addrEl) {
+        const fullAddr = [mr.deliveryAddress, mr.city, mr.state, mr.pinCode ? 'PIN: ' + mr.pinCode : ''].filter(Boolean).join(', ');
+        addrEl.innerText = fullAddr || 'Delivery Address Not Specified';
+    }
+
+    const itemsContainer = document.getElementById('detailModalItemsList');
+    if (itemsContainer) {
+        itemsContainer.innerHTML = '';
+        const items = mr.items || [];
+        const countEl = document.getElementById('detailModalItemCount');
+        if (countEl) countEl.innerText = `${items.length} ${items.length === 1 ? 'Material' : 'Materials'}`;
+
+        items.forEach((it, idx) => {
+            const itemCard = document.createElement('div');
+            itemCard.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1';
+            
+            const matName = it.materialName || it.customMaterial || 'Material';
+            const brandStr = it.brand || it.customBrand ? `Brand: ${it.brand || it.customBrand}` : '';
+            const specStr = it.specification || it.customSpecification ? `Spec: ${it.specification || it.customSpecification}` : '';
+            const notesStr = it.notes ? `Note: ${it.notes}` : '';
+            const detailsArr = [brandStr, specStr, notesStr].filter(Boolean);
+
+            itemCard.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-800 text-sm">${idx + 1}. ${escapeHtml(matName)}</span>
+                    <span class="font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-xs">
+                        ${escapeHtml(String(it.quantity))} ${escapeHtml(it.unit || '')}
+                    </span>
+                </div>
+                <div class="text-[11px] text-slate-500">
+                    <span class="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded mr-2 text-[10px] font-semibold">${escapeHtml(it.category || 'General')}</span>
+                    ${detailsArr.length > 0 ? detailsArr.map(escapeHtml).join(' • ') : ''}
+                </div>
+            `;
+            itemsContainer.appendChild(itemCard);
         });
     }
+
+    const notesContainer = document.getElementById('detailModalNotesContainer');
+    const notesElem = document.getElementById('detailModalNotes');
+    if (notesContainer && notesElem) {
+        if (mr.specialNotes && mr.specialNotes.trim()) {
+            notesElem.innerText = mr.specialNotes;
+            notesContainer.classList.remove('hidden');
+        } else {
+            notesContainer.classList.add('hidden');
+        }
+    }
+
+    const quoteBtn = document.getElementById('detailModalQuoteBtn');
+    if (quoteBtn) {
+        quoteBtn.onclick = function() {
+            closeModal('materialRequestDetailModal');
+            const items = mr.items || [];
+            const firstItem = items[0] || {};
+            openQuotationModal(
+                mr.requestId || ('MR-' + mr.id),
+                firstItem.materialName || mr.materialSummary || 'Requested Material',
+                firstItem.quantity || 1,
+                firstItem.unit || 'Units'
+            );
+        };
+    }
+
+    openModal('materialRequestDetailModal');
 }
 
 function createRequirementCard(p) {
@@ -409,25 +646,8 @@ async function initSellerDashboard() {
         console.error("Seller Dashboard: Network error contacting /api/me:", err);
     }
 
-    // 4. Fetch dynamic customer project requirements using GET /api/projects
-    try {
-        const projResponse = await fetch(API_BASE_URL + "/api/projects", {
-            method: "GET",
-            headers: {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-            }
-        });
-
-        if (projResponse.ok) {
-            const projects = await projResponse.json();
-            if (Array.isArray(projects) && projects.length > 0) {
-                renderIncomingRequirements(projects);
-            }
-        }
-    } catch (err) {
-        console.warn("Seller Dashboard: Could not load dynamic projects from /api/projects, preserving fallback:", err);
-    }
+    // 4. Fetch dynamic customer project requirements and Buy Material requests
+    await refreshSellerRequests();
 
     // 5. Fetch dynamic seller inventory
     await loadSellerInventory();
@@ -1146,6 +1366,56 @@ function switchTab(tabId) {
     if (targetNav) {
         targetNav.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
         targetNav.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+    }
+
+    if (tabId === 'requests' && typeof refreshSellerRequests === 'function') {
+        refreshSellerRequests();
+    }
+}
+
+/**
+ * Fetch and refresh both Buy Material requests and Customer Project requirements
+ */
+async function refreshSellerRequests() {
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    if (!token) return;
+
+    let fetchedProjects = [];
+    let fetchedMaterialRequests = [];
+
+    try {
+        const mrResponse = await fetch(API_BASE_URL + "/api/material-requests/seller", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (mrResponse.ok) {
+            fetchedMaterialRequests = await mrResponse.json();
+        }
+    } catch (err) {
+        console.warn("Seller Dashboard: Could not reload /api/material-requests/seller:", err);
+    }
+
+    try {
+        const projResponse = await fetch(API_BASE_URL + "/api/projects", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (projResponse.ok) {
+            fetchedProjects = await projResponse.json();
+        }
+    } catch (err) {
+        console.warn("Seller Dashboard: Could not reload /api/projects:", err);
+    }
+
+    if (fetchedProjects.length > 0 || fetchedMaterialRequests.length > 0) {
+        renderIncomingRequirements(fetchedProjects, fetchedMaterialRequests);
     }
 }
 

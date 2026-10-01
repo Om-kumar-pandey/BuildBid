@@ -229,7 +229,7 @@ function handleProtectedAction(actionType) {
             window.location.href = resolvePath("contactor.html");
             break;
         case "BUY_MATERIALS":
-            window.location.href = resolvePath("material seller dashboard.html");
+            window.location.href = resolvePath("buy material.html");
             break;
         case "HIRE_PROFESSIONALS":
             window.location.href = resolvePath("hire-professionals.html");
