@@ -863,19 +863,19 @@ function sortAndRenderResults(activeScope, locQuery, pinQuery, radius) {
 
     // Badging
     const badgeHtml = isVerifiedExpert
-      ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-shield-check text-blue-600 mr-1"></i> Verified Expert</span>`
-      : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Active Trade</span>`;
+      ? `<span class="pro-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-shield-check text-blue-600 mr-1 flex-shrink-0"></i><span>Verified Expert</span></span>`
+      : `<span class="pro-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check text-emerald-600 mr-1 flex-shrink-0"></i><span>Active Trade</span></span>`;
 
     // Distance & Match Hierarchy Tag
     let matchTagHtml = "";
     if (srv.matchPriority === "EXACT_PINCODE") {
-      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200"><i class="fa-solid fa-location-dot mr-1 text-orange-600"></i> Exact Pincode (${escapeHTML(srv.professionalPincode || pinVal || 'Match')})</span>`;
+      matchTagHtml = `<span class="pro-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200"><i class="fa-solid fa-location-dot mr-1 text-orange-600 flex-shrink-0"></i><span>Exact Pincode (${escapeHTML(srv.professionalPincode || pinVal || 'Match')})</span></span>`;
     } else if (srv.matchPriority === "RADIUS_MATCH" && srv.distanceKm != null) {
-      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"><i class="fa-solid fa-compass mr-1 text-amber-600"></i> ~${srv.distanceKm} km away</span>`;
+      matchTagHtml = `<span class="pro-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"><i class="fa-solid fa-compass mr-1 text-amber-600 flex-shrink-0"></i><span>~${srv.distanceKm} km away</span></span>`;
     } else if (srv.matchPriority === "DISTRICT_MATCH") {
-      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-map mr-1 text-slate-500"></i> ${escapeHTML(srv.professionalDistrict || 'Same District')}</span>`;
+      matchTagHtml = `<span class="pro-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-map mr-1 text-slate-500 flex-shrink-0"></i><span>${escapeHTML(srv.professionalDistrict || 'Same District')}</span></span>`;
     } else if (srv.matchPriority === "STATE_MATCH") {
-      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-globe mr-1 text-blue-500"></i> ${escapeHTML(srv.professionalState || 'State Match')}</span>`;
+      matchTagHtml = `<span class="pro-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-globe mr-1 text-blue-500 flex-shrink-0"></i><span>${escapeHTML(srv.professionalState || 'State Match')}</span></span>`;
     }
 
     // Initials fallback
@@ -885,24 +885,24 @@ function sortAndRenderResults(activeScope, locQuery, pinQuery, radius) {
       <div class="pro-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
         <!-- Card Header: Provider Identity & Badge -->
         <div>
-          <div class="flex items-start justify-between">
-            <div class="flex items-center space-x-3">
+          <div class="pro-card-header flex items-start justify-between gap-2.5 w-full min-w-0">
+            <div class="pro-card-identity flex items-center space-x-3 min-w-0 flex-1">
               ${avatar ? `
-                <img src="${escapeAttribute(avatar)}" alt="${escapeAttribute(proName)}" class="w-10 h-10 rounded-xl object-cover border border-slate-200">
+                <img src="${escapeAttribute(avatar)}" alt="${escapeAttribute(proName)}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0">
               ` : `
                 <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-xs flex-shrink-0">
                   ${initials}
                 </div>
               `}
-              <div class="overflow-hidden">
+              <div class="pro-card-identity-text overflow-hidden min-w-0 flex-1">
                 <h4 class="text-sm font-bold text-slate-900 truncate">${escapeHTML(proName)}</h4>
                 <p class="text-[11px] text-slate-500 truncate flex items-center mt-0.5">
-                  <i class="fa-solid fa-location-dot text-slate-400 mr-1 text-[10px]"></i>
-                  <span>${escapeHTML(proLocation)}</span>
+                  <i class="fa-solid fa-location-dot text-slate-400 mr-1 text-[10px] flex-shrink-0"></i>
+                  <span class="truncate">${escapeHTML(proLocation)}</span>
                 </p>
               </div>
             </div>
-            <div class="flex flex-col items-end space-y-1">
+            <div class="pro-card-badges flex flex-col items-end space-y-1 flex-shrink-0">
               ${badgeHtml}
               ${matchTagHtml}
             </div>
