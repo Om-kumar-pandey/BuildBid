@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid Pro — Add New Service | नई सेवा जोड़ें</title>
+
+  <!-- Google Fonts: Inter & Noto Sans Devanagari (Hindi) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              navy: '#0f172a',
+              slate: '#1e293b',
+              surface: '#f8fafc',
+              border: '#e2e8f0',
+              muted: '#64748b'
+            },
+            accent: {
+              emerald: '#10b981',
+              blue: '#0284c7',
+              amber: '#f59e0b',
+              purple: '#8b5cf6',
+              rose: '#f43f5e'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif']
+          },
+          boxShadow: {
+            'subtle': '0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05)',
+            'card': '0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 2px 4px -2px rgba(15, 23, 42, 0.04)',
+            'float': '0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.03)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Dedicated Styles -->
+  <link rel="stylesheet" href="add-new-service.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="professional dashboard.html#services" class="flex items-center space-x-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-white shadow-md shadow-orange-600/30 group-hover:bg-orange-500 transition-all">
+            <i class="fa-solid fa-briefcase text-sm"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-base tracking-tight text-white">Build<span class="text-orange-500">Bid</span> Pro</span>
+              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">Service Portal</span>
+            </div>
+            <p class="text-[10px] text-slate-400">पेशेवर सेवा प्रबंधन पोर्टल</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Back to Dashboard Link -->
+      <a href="professional dashboard.html#services" class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold transition-all shadow-sm">
+        <i class="fa-solid fa-arrow-left text-orange-400"></i>
+        <span>Back to Dashboard — डैशबोर्ड पर वापस जाएं</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb & Page Title -->
+    <div class="mb-6">
+      <nav class="flex items-center space-x-2 text-xs text-slate-500 mb-2">
+        <a href="professional dashboard.html" class="hover:text-orange-600 transition-colors">Professional Dashboard</a>
+        <span>/</span>
+        <a href="professional dashboard.html#services" class="hover:text-orange-600 transition-colors">My Service Catalog</a>
+        <span>/</span>
+        <span class="text-slate-800 font-semibold">Add New Service — नई सेवा जोड़ें</span>
+      </nav>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2.5">
+            <span class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-plus"></i>
+            </span>
+            <span>Add New Service — नई सेवा जोड़ें</span>
+          </h1>
+          <p class="text-xs text-slate-500 mt-1 font-medium">
+            Publish your construction skills, pricing rates, and service scope in <strong class="text-slate-700">English + Hindi</strong> for Direct Hire customers.
+          </p>
+        </div>
+
+        <div class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold self-start sm:self-auto">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Verified Master Catalog Sync</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2-COLUMN LAYOUT: FORM & LIVE PREVIEW -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- LEFT COLUMN: STEP-BY-STEP FORM (8 COLS) -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <form id="add-service-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+
+          <!-- STEP 1: SELECT CATEGORY -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-subtle p-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                  <span class="w-5 h-5 rounded-full bg-orange-600 text-white text-[11px] font-bold flex items-center justify-center">1</span>
+                  <span>Select Service Category — सेवा श्रेणी चुनें <span class="text-rose-500">*</span></span>
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">Choose the primary construction or trade domain for your service offering.</p>
+              </div>
+            </div>
+
+            <!-- Categories Grid (Dynamic) -->
+            <div id="categories-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div class="col-span-full py-8 text-center text-xs text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin text-orange-600 text-base mb-2 block"></i>
+                <span>Loading categories from BuildBid Master Catalog... / श्रेणियाँ लोड हो रही हैं...</span>
+              </div>
+            </div>
+            <input type="hidden" id="selected-category-id" required>
+          </div>
+
+          <!-- STEP 2: SELECT MASTER SERVICE -->
+          <div id="section-services" class="bg-white rounded-2xl border border-slate-200 shadow-subtle p-6 transition-all duration-300 opacity-60 pointer-events-none">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                  <span class="w-5 h-5 rounded-full bg-orange-600 text-white text-[11px] font-bold flex items-center justify-center">2</span>
+                  <span>Select Service — सेवा चुनें <span class="text-rose-500">*</span></span>
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">Select a standardized construction service from the category.</p>
+              </div>
+            </div>
+
+            <!-- Master Services Grid (Dynamic) -->
+            <div id="services-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="col-span-full py-6 text-center text-xs text-slate-400">
+                <i class="fa-regular fa-hand-pointer text-slate-300 text-base mb-1 block"></i>
+                <span>Please select a category above first. / कृपया पहले ऊपर एक श्रेणी चुनें।</span>
+              </div>
+            </div>
+            <input type="hidden" id="selected-master-service-id" required>
+          </div>
+
+          <!-- VERIFICATION STATUS NOTICE BANNER (DYNAMIC) -->
+          <div id="verification-banner" class="hidden rounded-2xl p-4 transition-all duration-300">
+            <!-- Dynamic notice populated by JS -->
+          </div>
+
+          <!-- STEP 3: CREDENTIAL VERIFICATION (CONDITIONAL: SHOWN ONLY IF verificationRequired == true) -->
+          <div id="section-credentials" class="hidden bg-white rounded-2xl border border-amber-200 shadow-subtle p-6 transition-all duration-300">
+            <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="w-5 h-5 rounded-full bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center">3</span>
+                  <h2 class="text-sm font-bold text-slate-900">Professional Credential Verification — पेशेवर सत्यापन</h2>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Required — आवश्यक</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                  High-level engineering, design, and consultancy services require verified credentials before public publication.
+                </p>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <!-- Qualification Title -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  Qualification Title / Degree — योग्यता उपाधि / डिग्री <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="credential-qualification" placeholder="e.g. B.Tech Civil Engineering / B.Arch / Dip. Architecture" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                <p class="text-[10px] text-slate-400 mt-1">Specify your degree, diploma, or certification name.</p>
+              </div>
+
+              <!-- Registration / License Number & Authority -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Registration / License Number — लाइसेंस नंबर <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="credential-license" placeholder="e.g. COA-CA/2018/98120 or IEI-M-1402" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Issuing Authority — जारी करने वाला प्राधिकरण <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="credential-authority" placeholder="e.g. Council of Architecture / Institution of Engineers" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                </div>
+              </div>
+
+              <!-- Document Upload -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  Supporting Credential Document — प्रमाण-पत्र दस्तावेज़ <span class="text-rose-500">*</span>
+                </label>
+                <div id="drop-zone" class="border-2 border-dashed border-slate-200 hover:border-orange-400 rounded-2xl p-5 text-center transition bg-slate-50/50 cursor-pointer">
+                  <input type="file" id="credential-file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                  <div id="upload-placeholder">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-700">Click or Drag & Drop certificate here to upload</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Supported formats: <strong class="text-slate-600">PDF, JPG, JPEG, PNG</strong> (Max file size: <strong class="text-slate-600">5 MB</strong>)</p>
+                  </div>
+                  <div id="upload-preview" class="hidden flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3 text-left">
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                      <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-sm flex-shrink-0">
+                        <i id="upload-icon" class="fa-solid fa-file-pdf"></i>
+                      </div>
+                      <div class="overflow-hidden">
+                        <p id="upload-filename" class="text-xs font-bold text-slate-800 truncate">Certificate.pdf</p>
+                        <p id="upload-filesize" class="text-[10px] text-slate-400">1.2 MB</p>
+                      </div>
+                    </div>
+                    <button type="button" onclick="removeUploadedFile(event)" class="text-slate-400 hover:text-rose-600 px-2 py-1 text-xs">
+                      <i class="fa-solid fa-trash-can mr-1"></i> Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 4: SERVICE DETAILS & PRICING -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-subtle p-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                  <span id="step-number-pricing" class="w-5 h-5 rounded-full bg-orange-600 text-white text-[11px] font-bold flex items-center justify-center">3</span>
+                  <span>Pricing, Scope & Service Area — मूल्य, कार्यक्षेत्र एवं सेवा क्षेत्र <span class="text-rose-500">*</span></span>
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">Define your published commercial rates and service parameters.</p>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <!-- Bilingual Service Title -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Service Title (English) — सेवा शीर्षक (अंग्रेज़ी) <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="service-title-en" required placeholder="e.g. Site Structural Inspection & Audit" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Service Title (Hindi) — सेवा शीर्षक (हिंदी) <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="service-title-hi" required placeholder="e.g. साइट स्ट्रक्चरल निरीक्षण एवं ऑडिट" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                </div>
+              </div>
+
+              <!-- Price & Pricing Unit -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Base Price (₹ INR) — आधार मूल्य <span class="text-rose-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">₹</span>
+                    <input type="number" id="service-price" required min="1" step="0.01" placeholder="3500" class="w-full pl-8 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition font-bold text-slate-900">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Pricing Unit — मूल्य निर्धारण इकाई <span class="text-rose-500">*</span>
+                  </label>
+                  <select id="service-pricing-unit" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                    <option value="Per Visit">Per Visit / प्रति विज़िट</option>
+                    <option value="Per Day">Per Day / प्रति दिन</option>
+                    <option value="Per Sq Ft">Per Sq Ft / प्रति वर्ग फुट</option>
+                    <option value="Per Project">Per Project / प्रति प्रोजेक्ट</option>
+                    <option value="Per Month">Per Month / प्रति माह</option>
+                    <option value="Per Room">Per Room / प्रति कमरा</option>
+                    <option value="Per Hour">Per Hour / प्रति घंटा</option>
+                    <option value="Per Drawing">Per Drawing / प्रति ड्रॉइंग</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Turnaround Time, Service Radius, & Service Mode -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Turnaround Time — कार्य पूरा होने का समय <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" id="service-turnaround" required placeholder="e.g. 1-2 Days / 1-2 दिन" value="1-2 Days" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Service Area Radius (km) — सेवा क्षेत्र दायरा <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="number" id="service-radius" required min="1" max="500" value="25" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Service Mode — सेवा का माध्यम <span class="text-rose-500">*</span>
+                  </label>
+                  <select id="service-mode" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                    <option value="ON_SITE">On-Site / साइट पर</option>
+                    <option value="REMOTE">Remote / ऑनलाइन / रिमोट</option>
+                    <option value="BOTH">Both / दोनों</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Short Description -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  Short Description — संक्षिप्त विवरण (1-2 Lines) <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="service-short-desc" required maxlength="500" placeholder="e.g. Comprehensive on-site RCC structural soundness evaluation with stamped report." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+              </div>
+
+              <!-- Detailed Description -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  Detailed Scope & Procedures — विस्तृत विवरण एवं कार्य प्रक्रिया
+                </label>
+                <textarea id="service-detailed-desc" rows="3" placeholder="Explain your specific methodology, testing steps, compliance checks, or execution timeline..." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition"></textarea>
+              </div>
+
+              <!-- Included & Not Included -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-emerald-700 mb-1">
+                    <i class="fa-solid fa-circle-check mr-1"></i> What's Included — क्या शामिल है
+                  </label>
+                  <textarea id="service-whats-included" rows="2" placeholder="e.g. Initial inspection, measurement report, contractor briefing..." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition"></textarea>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-rose-700 mb-1">
+                    <i class="fa-solid fa-circle-xmark mr-1"></i> What's Not Included — क्या शामिल नहीं है
+                  </label>
+                  <textarea id="service-whats-not-included" rows="2" placeholder="e.g. Laboratory concrete core testing, material supply, retrofitting labor..." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBMIT ACTIONS -->
+          <div class="flex items-center justify-between pt-2">
+            <a href="professional dashboard.html#services" class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition">
+              Cancel — रद्द करें
+            </a>
+            <button type="submit" id="submit-btn" class="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 transition flex items-center space-x-2">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>Publish Service — सेवा प्रकाशित करें</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- RIGHT COLUMN: LIVE CUSTOMER PREVIEW (4 COLS) -->
+      <div class="lg:col-span-4 sticky top-24 space-y-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-subtle p-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <span class="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+              <i class="fa-solid fa-eye text-orange-600"></i>
+              <span>Live Card Preview — ग्राहक पूर्वावलोकन</span>
+            </span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">Customer View</span>
+          </div>
+
+          <!-- PREVIEW CARD (MIMICS DASHBOARD / DIRECT HIRE CARD) -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-subtle p-5 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-start justify-between">
+                <div class="overflow-hidden pr-2">
+                  <h3 id="prev-title-en" class="text-sm font-bold text-slate-900 truncate">Select a service...</h3>
+                  <p id="prev-title-hi" class="text-xs text-slate-500">सेवा चुनें...</p>
+                  <div class="mt-1.5 flex items-baseline space-x-1">
+                    <span id="prev-price" class="text-lg font-extrabold text-orange-600">₹0</span>
+                    <span id="prev-unit" class="text-xs text-slate-400 font-normal"> / Per Visit</span>
+                  </div>
+                </div>
+                <span id="prev-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 flex-shrink-0">
+                  Select Service
+                </span>
+              </div>
+
+              <p id="prev-desc" class="text-xs text-slate-600 mt-3 line-clamp-3">Service summary and inspection scope will appear here as you type.</p>
+
+              <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+                <div>
+                  <i class="fa-regular fa-clock text-slate-400 mr-1"></i>
+                  <span id="prev-turnaround">1-2 Days</span>
+                </div>
+                <div>
+                  <i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>
+                  <span id="prev-radius">25 km Radius</span>
+                </div>
+                <div class="col-span-2">
+                  <i class="fa-solid fa-cube text-slate-400 mr-1"></i>
+                  <span id="prev-mode">On-Site Service</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Action Mock -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span class="text-[11px] text-slate-400 font-medium">BuildBid Direct Hire Ready</span>
+              <button type="button" class="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg font-bold text-xs pointer-events-none">
+                Hire Now
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500 space-y-1.5">
+            <p class="font-semibold text-slate-700 flex items-center space-x-1">
+              <i class="fa-solid fa-shield-halved text-orange-600"></i>
+              <span>Verification Privacy Notice</span>
+            </p>
+            <p>Your uploaded degrees and license numbers are stored securely for administration review only and will <strong class="text-slate-700">never be exposed</strong> in public customer cards.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script src="add-new-service.js"></script>
+</body>
+</html>

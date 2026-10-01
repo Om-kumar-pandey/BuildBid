@@ -1394,7 +1394,7 @@ function renderEarnings(container) {
   `;
 }
 
-function renderServices(container) {
+async function renderServices(container) {
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto">
       <div class="flex items-center justify-between">
@@ -1402,43 +1402,112 @@ function renderServices(container) {
           <h2 class="text-lg font-bold text-slate-900">My Service Catalog & Published Rates</h2>
           <p class="text-xs text-slate-500">Configure prices, scope terms, and inspection turnaround for your public profile.</p>
         </div>
-        <button onclick="openModal('modal-add-service')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition shadow-sm">
+        <button onclick="window.location.href='add-new-service.html'" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition shadow-sm flex items-center space-x-1.5">
           <i class="fa-solid fa-plus mr-1.5"></i> Add New Service
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-5">
-        ${currentPro.services.map(srv => `
-          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-5 flex flex-col justify-between space-y-3">
-            <div>
-              <div class="flex items-start justify-between">
-                <div>
-                  <h3 class="text-sm font-bold text-slate-900">${srv.name}</h3>
-                  <span class="text-base font-extrabold text-orange-600">${srv.price}</span>
-                  <span class="text-xs text-slate-400 font-normal"> / ${srv.type}</span>
-                </div>
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${srv.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}">
-                  ${srv.active ? 'Active on Profile' : 'Hidden'}
-                </span>
-              </div>
-              <p class="text-xs text-slate-600 mt-2">${srv.desc}</p>
-              <p class="text-[11px] text-slate-500 mt-2"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> Turnaround: <strong>${srv.duration}</strong></p>
-            </div>
-
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <button onclick="toggleServiceActive(${srv.id})" class="font-semibold text-slate-600 hover:text-slate-900">
-                ${srv.active ? '<i class="fa-regular fa-eye-slash mr-1"></i> Deactivate' : '<i class="fa-regular fa-eye mr-1"></i> Activate'}
-              </button>
-              <div class="space-x-1.5">
-                <button onclick="showToast('Service updated in cache', 'info')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-xs transition">Edit</button>
-                <button onclick="deleteService(${srv.id})" class="px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg font-semibold text-xs transition">Remove</button>
-              </div>
-            </div>
-          </div>
-        `).join('')}
+      <div id="services-grid" class="grid grid-cols-2 gap-5">
+        <div class="col-span-2 py-8 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200 p-6">
+          <i class="fa-solid fa-spinner fa-spin text-orange-600 text-lg mb-2 block"></i>
+          <span>Loading published services from server...</span>
+        </div>
       </div>
     </div>
   `;
+
+  const grid = document.getElementById('services-grid');
+  if (!grid) return;
+
+  const token = getCleanToken();
+  let services = [];
+
+  if (token) {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/professional/services`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (res.ok) {
+        services = await res.json();
+      }
+    } catch (e) {
+      console.warn("Could not load services from backend, using cached state:", e);
+    }
+  }
+
+  // Fallback to local persona services if backend returned empty array initially and persona has services
+  const hasBackendServices = services && services.length > 0;
+  const listToRender = hasBackendServices ? services : currentPro.services;
+
+  if (!listToRender || listToRender.length === 0) {
+    grid.innerHTML = `
+      <div class="col-span-2 py-12 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200 p-8 shadow-subtle">
+        <div class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-3 text-lg">
+          <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">No Services Published Yet — अभी तक कोई सेवा नहीं जोड़ी गई</h3>
+        <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">Publish your specialized construction skills, pricing rates, and turnaround times for customers to hire directly.</p>
+        <button onclick="window.location.href='add-new-service.html'" class="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition shadow-sm inline-flex items-center space-x-1.5">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Add Your First Service — पहली सेवा जोड़ें</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = listToRender.map(srv => {
+    const title = srv.serviceTitleEn || srv.name || 'Custom Service';
+    const titleHi = srv.serviceTitleHi ? `<span class="text-xs text-slate-500 font-normal">/ ${srv.serviceTitleHi}</span>` : '';
+    const price = typeof srv.price === 'number' ? `₹${Number(srv.price).toLocaleString('en-IN')}` : (srv.price || '₹0');
+    const unit = srv.pricingUnit || srv.type || 'Per Visit';
+    const duration = srv.turnaroundTime || srv.duration || '1-3 Days';
+    const desc = srv.shortDescription || srv.desc || srv.detailedDescription || 'Professional construction service scope.';
+    const isPending = srv.verificationStatus === 'PENDING';
+    const isActive = srv.active;
+
+    let badgeHtml = '';
+    if (!isActive) {
+      badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200"><i class="fa-solid fa-eye-slash mr-1"></i> Hidden — छिपा हुआ</span>`;
+    } else if (isPending) {
+      badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200"><i class="fa-solid fa-hourglass-half mr-1"></i> Verification Pending — सत्यापन लंबित</span>`;
+    } else {
+      badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check mr-1"></i> Active on Profile — प्रोफ़ाइल पर सक्रिय</span>`;
+    }
+
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-5 flex flex-col justify-between space-y-3">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="pr-2">
+              <h3 class="text-sm font-bold text-slate-900">${title} ${titleHi}</h3>
+              <span class="text-base font-extrabold text-orange-600">${price}</span>
+              <span class="text-xs text-slate-400 font-normal"> / ${unit}</span>
+            </div>
+            ${badgeHtml}
+          </div>
+          <p class="text-xs text-slate-600 mt-2">${desc}</p>
+          <div class="flex items-center space-x-4 mt-2 text-[11px] text-slate-500">
+            <span><i class="fa-regular fa-clock text-slate-400 mr-1"></i> Turnaround: <strong>${duration}</strong></span>
+            ${srv.serviceMode ? `<span><i class="fa-solid fa-cube text-slate-400 mr-1"></i> Mode: <strong>${srv.serviceMode}</strong></span>` : ''}
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <button onclick="toggleServiceActive(${srv.id})" class="font-semibold text-slate-600 hover:text-slate-900 flex items-center space-x-1">
+            ${isActive ? '<i class="fa-regular fa-eye-slash"></i><span>Deactivate</span>' : '<i class="fa-regular fa-eye"></i><span>Activate</span>'}
+          </button>
+          <div class="space-x-1.5">
+            <button onclick="showToast('Service editing is being upgraded — सेवा संपादन जल्द उपलब्ध होगा', 'info')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-xs transition">Edit</button>
+            <button onclick="deleteService(${srv.id})" class="px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg font-semibold text-xs transition">Remove</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderPortfolio(container) {
@@ -1846,29 +1915,31 @@ function handleProposalSubmit(e) {
 }
 
 function handleNewService(e) {
-  e.preventDefault();
-  const title = document.getElementById('srv-title').value;
-  const rate = '₹' + document.getElementById('srv-rate').value;
-  const basis = document.getElementById('srv-basis').value;
-  const turnaround = document.getElementById('srv-turnaround').value;
-  const desc = document.getElementById('srv-desc').value;
-
-  currentPro.services.unshift({
-    id: Date.now(),
-    name: title,
-    price: rate,
-    type: basis,
-    duration: turnaround,
-    desc: desc,
-    active: true
-  });
-
-  closeModal('modal-add-service');
-  showToast(`Service "${title}" published to your public profile`, 'success');
-  navigate('services');
+  if (e && e.preventDefault) e.preventDefault();
+  window.location.href = 'add-new-service.html';
 }
 
-function toggleServiceActive(id) {
+async function toggleServiceActive(id) {
+  const token = getCleanToken();
+  if (token) {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/professional/services/${id}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        showToast(`Service "${updated.serviceTitleEn || ''}" is now ${updated.active ? 'active' : 'hidden'}`, 'info');
+        navigate('services');
+        return;
+      }
+    } catch (e) {
+      console.warn("API toggle error:", e);
+    }
+  }
   const s = currentPro.services.find(x => x.id === id);
   if (s) {
     s.active = !s.active;
@@ -1877,7 +1948,29 @@ function toggleServiceActive(id) {
   }
 }
 
-function deleteService(id) {
+async function deleteService(id) {
+  if (!confirm("Are you sure you want to remove this service from your catalog? / क्या आप वाकई इस सेवा को हटाना चाहते हैं?")) {
+    return;
+  }
+  const token = getCleanToken();
+  if (token) {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/professional/services/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (res.ok) {
+        showToast('Service removed from catalog — सेवा सफलतापूर्वक हटा दी गई', 'info');
+        navigate('services');
+        return;
+      }
+    } catch (e) {
+      console.warn("API delete error:", e);
+    }
+  }
   currentPro.services = currentPro.services.filter(x => x.id !== id);
   showToast('Service removed from catalog', 'info');
   navigate('services');
@@ -1982,5 +2075,11 @@ window.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  navigate('dashboard');
+  const hash = (window.location.hash || '').replace('#', '').trim();
+  const validRoutes = ['dashboard', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages'];
+  if (hash && validRoutes.includes(hash)) {
+    navigate(hash);
+  } else {
+    navigate('dashboard');
+  }
 });

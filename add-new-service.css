@@ -1,0 +1,82 @@
+/* ==========================================================================
+   BuildBid Pro — Add New Service Styles (add-new-service.css)
+   Consistent with Professional Dashboard & bilingual Indian typography
+   ========================================================================== */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Category Card Selection */
+.category-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.category-card:hover {
+  border-color: #f97316;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+}
+
+.category-card.selected {
+  border-color: #ea580c;
+  background-color: #fff7ed;
+  box-shadow: 0 0 0 2px #ea580c;
+}
+
+/* Master Service Card Selection */
+.service-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.service-card:hover {
+  border-color: #f97316;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.04);
+}
+
+.service-card.selected {
+  border-color: #ea580c;
+  background-color: #fff7ed;
+  box-shadow: 0 0 0 2px #ea580c;
+}
+
+/* Drag and Drop Zone */
+#drop-zone.dragover {
+  border-color: #ea580c;
+  background-color: #fff7ed;
+}
+
+/* Toast Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-item {
+  animation: slideInUp 0.25s ease-out forwards;
+  pointer-events: auto;
+}

@@ -198,7 +198,7 @@
         </div>
 
         <!-- Quick Primary Action Button -->
-        <button onclick="openModal('modal-add-service')" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+        <button onclick="window.location.href='add-new-service.html'" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
           <i class="fa-solid fa-plus text-xs"></i>
           <span>Add Service</span>
         </button>
@@ -331,48 +331,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Add New Service -->
-  <div id="modal-add-service" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
-    <div class="bg-white rounded-2xl max-w-lg w-full shadow-float border border-slate-200 p-6">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-        <h3 class="text-sm font-bold text-slate-900">Add New Service Offering</h3>
-        <button onclick="closeModal('modal-add-service')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <form onsubmit="handleNewService(event)" class="space-y-3.5 text-xs">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Service Title</label>
-          <input type="text" id="srv-title" required placeholder="e.g. Reinforced Concrete Structure Inspection" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500">
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Base Price (₹ INR)</label>
-            <input type="number" id="srv-rate" required placeholder="4500" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500">
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Pricing Basis</label>
-            <select id="srv-basis" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500 bg-white">
-              <option value="Per Visit">Per Visit / Inspection</option>
-              <option value="Per Sq. Ft">Per Sq. Ft</option>
-              <option value="Fixed Quote">Fixed Project Quote</option>
-              <option value="Per Day">Per Day / Rate</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Turnaround Time</label>
-          <input type="text" id="srv-turnaround" required placeholder="e.g. 2 Business Days" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500">
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Detailed Description</label>
-          <textarea id="srv-desc" rows="3" required placeholder="Explain specific deliverables, stamped reports, and visit procedures..." class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500"></textarea>
-        </div>
-        <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeModal('modal-add-service')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold">Publish Service</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- MODAL: Confirmation -->
   <div id="modal-confirm" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">

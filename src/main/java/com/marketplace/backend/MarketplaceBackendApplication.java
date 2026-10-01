@@ -457,7 +457,7 @@ public class MarketplaceBackendApplication {
                                     "/hero-building.jpg",
                                     "/logo.png"
                             ).permitAll()
-                            .requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
+                            .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create", "/api/projects/create").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").authenticated()
