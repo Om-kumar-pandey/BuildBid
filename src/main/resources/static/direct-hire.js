@@ -218,9 +218,47 @@ function setupEventListeners() {
   if (clearLocBtn) {
     clearLocBtn.addEventListener("click", () => {
       const input = document.getElementById("location-input");
-      if (input) {
-        input.value = "";
-        input.focus();
+      const pinInput = document.getElementById("pincode-input");
+      const gpsStatus = document.getElementById("gps-detection-status");
+      if (input) input.value = "";
+      if (pinInput) pinInput.value = "";
+      if (gpsStatus) gpsStatus.classList.add("hidden");
+      currentSearchLocationState = {
+        scope: "AUTO",
+        locationText: "",
+        pincode: "",
+        state: "",
+        city: "",
+        district: "",
+        latitude: null,
+        longitude: null,
+        radiusKm: getSelectedRadius()
+      };
+      if (input) input.focus();
+    });
+  }
+
+  // Invalidate GPS coordinates if user manually changes the text after auto-detection
+  const locationInputEl = document.getElementById("location-input");
+  if (locationInputEl) {
+    locationInputEl.addEventListener("input", () => {
+      if (currentSearchLocationState.latitude != null && locationInputEl.value.trim() !== currentSearchLocationState.locationText) {
+        currentSearchLocationState.latitude = null;
+        currentSearchLocationState.longitude = null;
+        const gpsStatus = document.getElementById("gps-detection-status");
+        if (gpsStatus) gpsStatus.classList.add("hidden");
+      }
+    });
+  }
+
+  const pincodeInputEl = document.getElementById("pincode-input");
+  if (pincodeInputEl) {
+    pincodeInputEl.addEventListener("input", () => {
+      if (currentSearchLocationState.latitude != null && pincodeInputEl.value.trim() !== currentSearchLocationState.pincode) {
+        currentSearchLocationState.latitude = null;
+        currentSearchLocationState.longitude = null;
+        const gpsStatus = document.getElementById("gps-detection-status");
+        if (gpsStatus) gpsStatus.classList.add("hidden");
       }
     });
   }
@@ -397,12 +435,36 @@ function preselectServiceById(serviceId) {
 }
 
 // ============================================================
-// 5. LOCATION LOGIC (OPTION A: GPS / OPTION B: MANUAL)
+// 5. LOCATION LOGIC (OPTION A: GPS / OPTION B: MANUAL / RADIUS)
 // ============================================================
+
+let currentSearchLocationState = {
+  scope: "AUTO",
+  locationText: "",
+  pincode: "",
+  state: "",
+  city: "",
+  district: "",
+  latitude: null,
+  longitude: null,
+  radiusKm: 50
+};
+
+function getSelectedRadius() {
+  const radSelect = document.getElementById("radius-select");
+  if (radSelect && radSelect.value) {
+    const val = parseFloat(radSelect.value);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  return 50;
+}
 
 function handleAutoLocation() {
   const locationInput = document.getElementById("location-input");
+  const pincodeInput = document.getElementById("pincode-input");
   const autoBtn = document.getElementById("btn-auto-location");
+  const gpsStatusDiv = document.getElementById("gps-detection-status");
+  const gpsStatusText = document.getElementById("gps-detection-text");
   if (!locationInput) return;
 
   if (!navigator.geolocation) {
@@ -420,21 +482,30 @@ function handleAutoLocation() {
     async (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      locationInput.placeholder = "Resolving city with OpenStreetMap...";
+      locationInput.placeholder = "Resolving city, district & pincode...";
 
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
           headers: { 'User-Agent': 'BuildBid-DirectHire/1.0' }
         });
         const data = await response.json();
 
         let resolvedLocation = "";
+        let detectedPincode = "";
+        let detectedCity = "";
+        let detectedDistrict = "";
+        let detectedState = "";
+
         if (data && data.address) {
           const addr = data.address;
-          const cityOrDistrict = addr.city || addr.town || addr.county || addr.state_district || "";
-          const state = addr.state || "";
-          if (cityOrDistrict && state) {
-            resolvedLocation = `${cityOrDistrict}, ${state}`;
+          detectedCity = addr.city || addr.town || addr.suburb || addr.neighbourhood || "";
+          detectedDistrict = addr.state_district || addr.county || "";
+          detectedState = addr.state || "";
+          detectedPincode = (addr.postcode || "").replace(/\D/g, "");
+
+          const cityOrDistrict = detectedCity || detectedDistrict;
+          if (cityOrDistrict && detectedState) {
+            resolvedLocation = `${cityOrDistrict}, ${detectedState}`;
           } else if (cityOrDistrict) {
             resolvedLocation = cityOrDistrict;
           } else if (data.display_name) {
@@ -442,17 +513,46 @@ function handleAutoLocation() {
           }
         }
 
+        currentSearchLocationState = {
+          scope: "AUTO_DETECTED",
+          locationText: resolvedLocation,
+          pincode: detectedPincode,
+          city: detectedCity,
+          district: detectedDistrict,
+          state: detectedState,
+          latitude: lat,
+          longitude: lng,
+          radiusKm: getSelectedRadius()
+        };
+
         if (resolvedLocation) {
           locationInput.value = resolvedLocation;
-          showToast(`📍 Location detected: ${resolvedLocation}`, "success");
-        } else {
-          locationInput.placeholder = "e.g. Noida, Delhi, Lucknow";
-          showToast("Could not determine precise locality. Please enter city manually.", "info");
         }
+        if (detectedPincode && pincodeInput) {
+          pincodeInput.value = detectedPincode;
+        }
+
+        if (gpsStatusDiv && gpsStatusText) {
+          gpsStatusText.textContent = `GPS: ${resolvedLocation || 'Locked'}${detectedPincode ? ` • PIN: ${detectedPincode}` : ''}`;
+          gpsStatusDiv.classList.remove("hidden");
+        }
+
+        showToast(`📍 GPS Detected: ${resolvedLocation || 'Location resolved'}${detectedPincode ? ` (PIN: ${detectedPincode})` : ''}`, "success");
       } catch (err) {
         console.error("Geocoding reverse error:", err);
-        locationInput.placeholder = "e.g. Noida, Delhi, Lucknow";
-        showToast("Network error getting address from GPS. Please type your city.", "error");
+        locationInput.placeholder = "e.g. Noida, Greater Noida, Delhi";
+        currentSearchLocationState = {
+          scope: "AUTO_DETECTED",
+          locationText: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          pincode: "",
+          city: "",
+          district: "",
+          state: "",
+          latitude: lat,
+          longitude: lng,
+          radiusKm: getSelectedRadius()
+        };
+        showToast("GPS coordinates locked. Manual address can be typed.", "info");
       } finally {
         if (autoBtn) {
           autoBtn.disabled = false;
@@ -467,19 +567,65 @@ function handleAutoLocation() {
         autoBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs text-orange-600 mr-1.5"></i> <span>Auto Detect Current Location</span>`;
       }
       locationInput.placeholder = "e.g. Noida, Delhi, Lucknow";
-      showToast("Location permission was denied or unavailable. Please type your city manually.", "info");
+      showToast("Location permission was denied or unavailable. Please type your city/pincode manually.", "info");
     },
     { timeout: 10000, enableHighAccuracy: true }
   );
 }
 
-function setQuickLocation(city) {
+function setQuickLocation(city, pincode = "") {
   const locInput = document.getElementById("location-input");
-  if (locInput) {
-    locInput.value = city;
-    showToast(`Location set to: ${city}`, "info");
-  }
+  const pinInput = document.getElementById("pincode-input");
+  const gpsStatusDiv = document.getElementById("gps-detection-status");
+  if (gpsStatusDiv) gpsStatusDiv.classList.add("hidden");
+
+  if (locInput) locInput.value = city;
+  if (pinInput) pinInput.value = pincode;
+
+  const isState = city.toLowerCase().includes("pradesh") || city.toLowerCase() === "delhi";
+
+  currentSearchLocationState = {
+    scope: pincode ? "PINCODE" : (isState ? "STATE" : "CITY"),
+    locationText: city,
+    pincode: pincode,
+    state: isState ? city : "",
+    city: !isState ? city : "",
+    district: "",
+    latitude: null,
+    longitude: null,
+    radiusKm: getSelectedRadius()
+  };
+
+  showToast(`Location set to: ${city} ${pincode ? `(${pincode})` : ''}`, "info");
 }
+
+function setAnywhereLocation() {
+  const locInput = document.getElementById("location-input");
+  const pinInput = document.getElementById("pincode-input");
+  const gpsStatusDiv = document.getElementById("gps-detection-status");
+  if (gpsStatusDiv) gpsStatusDiv.classList.add("hidden");
+
+  if (locInput) locInput.value = "Anywhere";
+  if (pinInput) pinInput.value = "";
+
+  currentSearchLocationState = {
+    scope: "ANYWHERE",
+    locationText: "Anywhere",
+    pincode: "",
+    state: "",
+    city: "",
+    district: "",
+    latitude: null,
+    longitude: null,
+    radiusKm: 50
+  };
+
+  showToast("🌐 Location set to Anywhere (all locations included)", "info");
+}
+
+window.setQuickLocation = setQuickLocation;
+window.setAnywhereLocation = setAnywhereLocation;
+window.getSelectedRadius = getSelectedRadius;
 
 // ============================================================
 // 6. PROCEED SEARCH ACTION
@@ -494,7 +640,28 @@ async function handleProceedSearch() {
   }
 
   const locationInput = document.getElementById("location-input");
-  const locationQuery = locationInput ? locationInput.value.trim() : "";
+  const pincodeInput = document.getElementById("pincode-input");
+  const locVal = locationInput ? locationInput.value.trim() : "";
+  const pinVal = pincodeInput ? pincodeInput.value.trim() : "";
+  const radiusKm = getSelectedRadius();
+
+  // Determine effective locationScope
+  let effectiveScope = "AUTO";
+  if (locVal.toLowerCase() === "anywhere") {
+    effectiveScope = "ANYWHERE";
+  } else if (pinVal && /^\d{6}$/.test(pinVal)) {
+    effectiveScope = "PINCODE";
+  } else if (/^\d{6}$/.test(locVal)) {
+    effectiveScope = "PINCODE";
+  } else if (currentSearchLocationState.scope === "AUTO_DETECTED" && currentSearchLocationState.latitude && currentSearchLocationState.longitude) {
+    effectiveScope = "AUTO_DETECTED";
+  } else if (locVal.toLowerCase().includes("pradesh") || locVal.toLowerCase() === "up" || locVal.toLowerCase() === "delhi") {
+    effectiveScope = "STATE";
+  } else if (locVal) {
+    effectiveScope = "CITY";
+  } else {
+    effectiveScope = "ANYWHERE";
+  }
 
   // Switch to dedicated Step 3 continuation view (hides Step 1 & 2 config view)
   const configView = document.getElementById("direct-hire-config-view");
@@ -518,11 +685,42 @@ async function handleProceedSearch() {
 
   // Query Backend Direct Hire Search API
   try {
-    let url = `${API_BASE_URL}/api/public/direct-hire/search?masterServiceId=${selectedMasterServiceId}`;
-    if (locationQuery) {
-      url += `&location=${encodeURIComponent(locationQuery)}`;
+    const params = new URLSearchParams();
+    params.append("masterServiceId", selectedMasterServiceId);
+    if (selectedCategoryId) params.append("categoryId", selectedCategoryId);
+    params.append("locationScope", effectiveScope);
+    params.append("radiusKm", radiusKm);
+
+    if (effectiveScope === "PINCODE") {
+      const targetPin = (pinVal && /^\d{6}$/.test(pinVal)) ? pinVal : locVal;
+      params.append("pincode", targetPin);
+      if (locVal && locVal !== targetPin) params.append("location", locVal);
+      if (currentSearchLocationState.latitude != null && currentSearchLocationState.longitude != null) {
+        params.append("latitude", currentSearchLocationState.latitude);
+        params.append("longitude", currentSearchLocationState.longitude);
+      }
+    } else if (effectiveScope === "STATE") {
+      params.append("state", locVal);
+      params.append("location", locVal);
+    } else if (effectiveScope === "AUTO_DETECTED") {
+      if (locVal) params.append("location", locVal);
+      if (pinVal) params.append("pincode", pinVal);
+      if (currentSearchLocationState.latitude != null) params.append("latitude", currentSearchLocationState.latitude);
+      if (currentSearchLocationState.longitude != null) params.append("longitude", currentSearchLocationState.longitude);
+      if (currentSearchLocationState.state) params.append("state", currentSearchLocationState.state);
+      if (currentSearchLocationState.district) params.append("district", currentSearchLocationState.district);
+    } else if (effectiveScope === "ANYWHERE") {
+      // Unrestricted location
+    } else {
+      if (locVal) params.append("location", locVal);
+      if (pinVal) params.append("pincode", pinVal);
+      if (currentSearchLocationState.latitude != null && currentSearchLocationState.longitude != null) {
+        params.append("latitude", currentSearchLocationState.latitude);
+        params.append("longitude", currentSearchLocationState.longitude);
+      }
     }
 
+    const url = `${API_BASE_URL}/api/public/direct-hire/search?${params.toString()}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Search API responded with status: " + res.status);
 
@@ -530,7 +728,7 @@ async function handleProceedSearch() {
     currentSearchResults = Array.isArray(data) ? data : [];
 
     if (loadingIndicator) loadingIndicator.classList.add("hidden");
-    sortAndRenderResults();
+    sortAndRenderResults(effectiveScope, locVal, pinVal, radiusKm);
   } catch (err) {
     console.error("Direct hire search error:", err);
     if (loadingIndicator) loadingIndicator.classList.add("hidden");
@@ -553,11 +751,14 @@ async function handleProceedSearch() {
 // 7. RENDER PROFESSIONAL SERVICE CARDS
 // ============================================================
 
-function sortAndRenderResults() {
+function sortAndRenderResults(activeScope, locQuery, pinQuery, radius) {
   const grid = document.getElementById("results-grid");
   const countBar = document.getElementById("results-summary-bar");
   const locationInput = document.getElementById("location-input");
-  const locationQuery = locationInput ? locationInput.value.trim() : "";
+  const pincodeInput = document.getElementById("pincode-input");
+  const locationVal = locQuery !== undefined ? locQuery : (locationInput ? locationInput.value.trim() : "");
+  const pinVal = pinQuery !== undefined ? pinQuery : (pincodeInput ? pincodeInput.value.trim() : "");
+  const searchRadius = radius || getSelectedRadius();
 
   if (!grid) return;
 
@@ -571,16 +772,30 @@ function sortAndRenderResults() {
 
   // Summary bar update
   if (countBar) {
-    const locText = locationQuery ? `in <strong>"${escapeHTML(locationQuery)}"</strong>` : `across <strong>all registered locations</strong>`;
+    let locLabel = "";
+    if (activeScope === "ANYWHERE" || (!locationVal && !pinVal) || locationVal.toLowerCase() === "anywhere") {
+      locLabel = `across <strong>all supported locations</strong>`;
+    } else if (pinVal) {
+      locLabel = `in Pincode <strong>"${escapeHTML(pinVal)}"</strong> + nearby within ${searchRadius} KM`;
+    } else if (activeScope === "STATE") {
+      locLabel = `across State <strong>"${escapeHTML(locationVal)}"</strong>`;
+    } else if (locationVal) {
+      locLabel = `in <strong>"${escapeHTML(locationVal)}"</strong> (nearby up to ${searchRadius} KM)`;
+    } else {
+      locLabel = `across <strong>all registered locations</strong>`;
+    }
+
+    const hasLocationFilter = Boolean(locationVal || pinVal);
+
     countBar.innerHTML = `
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
         <div>
           <span class="text-xs font-medium text-slate-600">Showing</span>
           <span class="text-sm font-extrabold text-slate-900 px-1.5">${sorted.length}</span>
-          <span class="text-xs text-slate-600">verified professionals for <strong>"${escapeHTML(selectedMasterServiceTitle)}"</strong> ${locText}</span>
+          <span class="text-xs text-slate-600">verified professionals for <strong>"${escapeHTML(selectedMasterServiceTitle)}"</strong> ${locLabel}</span>
         </div>
         <div class="flex items-center space-x-2">
-          ${locationQuery ? `
+          ${hasLocationFilter ? `
             <button onclick="clearLocationAndReSearch()" class="text-[11px] font-semibold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1 rounded-lg transition border border-orange-200">
               <i class="fa-solid fa-xmark mr-1"></i> Clear Location Filter
             </button>
@@ -590,25 +805,39 @@ function sortAndRenderResults() {
     `;
   }
 
+  // Check for Pincode empty exact match fallback requirement (Section 15)
+  let pincodeFallbackNotice = "";
+  if ((pinVal || activeScope === "PINCODE") && sorted.length > 0) {
+    const hasExact = sorted.some(s => s.matchPriority === "EXACT_PINCODE");
+    if (!hasExact) {
+      const displayPin = pinVal || locationVal;
+      pincodeFallbackNotice = `
+        <div class="col-span-full mb-1 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center space-x-2">
+          <i class="fa-solid fa-circle-info text-amber-600 flex-shrink-0 text-sm"></i>
+          <span>No professionals found in exact Pincode <strong>${escapeHTML(displayPin)}</strong>. Showing nearby verified professionals within <strong>${searchRadius} KM</strong>.</span>
+        </div>
+      `;
+    }
+  }
+
   // Empty state handling
   if (sorted.length === 0) {
+    const displayTarget = pinVal || locationVal || selectedMasterServiceTitle;
     grid.innerHTML = `
       <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
         <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-3.5 text-2xl">
           <i class="fa-solid fa-user-slash"></i>
         </div>
-        <h3 class="text-base font-bold text-slate-900">No professionals found for "${escapeHTML(selectedMasterServiceTitle)}" ${locationQuery ? `in "${escapeHTML(locationQuery)}"` : ''}</h3>
+        <h3 class="text-base font-bold text-slate-900">No professionals found for "${escapeHTML(selectedMasterServiceTitle)}" in "${escapeHTML(displayTarget)}"</h3>
         <p class="text-xs text-slate-500 mt-1.5 max-w-md mx-auto">
-          Currently, no active service providers have registered with this specific trade in this area.
-          Try clearing the location to see all available professionals or select another service.
+          Currently, no active service providers have registered within this geographical scope (${searchRadius} KM radius).
+          Try searching with "Anywhere" to see all available professionals or choose a different trade.
         </p>
         <div class="mt-5 flex items-center justify-center space-x-3">
-          ${locationQuery ? `
-            <button onclick="clearLocationAndReSearch()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition shadow-sm">
-              <i class="fa-solid fa-earth-asia mr-1.5"></i> Show All Locations / सभी स्थान दिखाएं
-            </button>
-          ` : ''}
-          <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+          <button onclick="clearLocationAndReSearch()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition shadow-sm">
+            <i class="fa-solid fa-earth-asia mr-1.5"></i> Show All Locations / सभी स्थान दिखाएं
+          </button>
+          <button onclick="handleBackToConfig()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
             <i class="fa-solid fa-arrow-up mr-1.5"></i> Change Service Trade
           </button>
         </div>
@@ -618,7 +847,7 @@ function sortAndRenderResults() {
   }
 
   // Render Result Cards
-  grid.innerHTML = sorted.map(srv => {
+  const cardsHtml = sorted.map(srv => {
     const proName = srv.professionalName || 'Verified Professional';
     const proLocation = srv.professionalLocation || 'Location On Request';
     const title = srv.serviceTitleEn || srv.serviceName || selectedMasterServiceTitle;
@@ -627,7 +856,7 @@ function sortAndRenderResults() {
     const unit = srv.pricingUnit || 'Per Visit';
     const duration = srv.turnaroundTime || '1-3 Days';
     const mode = srv.serviceMode || 'ON_SITE';
-    const radius = srv.serviceAreaRadiusKm || 25;
+    const radiusVal = srv.serviceAreaRadiusKm || 25;
     const desc = srv.shortDescription || srv.detailedDescription || 'Professional construction service scope.';
     const isVerifiedExpert = srv.verificationStatus === 'VERIFIED';
     const avatar = srv.profilePhotoUrl;
@@ -636,6 +865,18 @@ function sortAndRenderResults() {
     const badgeHtml = isVerifiedExpert
       ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-shield-check text-blue-600 mr-1"></i> Verified Expert</span>`
       : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Active Trade</span>`;
+
+    // Distance & Match Hierarchy Tag
+    let matchTagHtml = "";
+    if (srv.matchPriority === "EXACT_PINCODE") {
+      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200"><i class="fa-solid fa-location-dot mr-1 text-orange-600"></i> Exact Pincode (${escapeHTML(srv.professionalPincode || pinVal || 'Match')})</span>`;
+    } else if (srv.matchPriority === "RADIUS_MATCH" && srv.distanceKm != null) {
+      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"><i class="fa-solid fa-compass mr-1 text-amber-600"></i> ~${srv.distanceKm} km away</span>`;
+    } else if (srv.matchPriority === "DISTRICT_MATCH") {
+      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-map mr-1 text-slate-500"></i> ${escapeHTML(srv.professionalDistrict || 'Same District')}</span>`;
+    } else if (srv.matchPriority === "STATE_MATCH") {
+      matchTagHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-globe mr-1 text-blue-500"></i> ${escapeHTML(srv.professionalState || 'State Match')}</span>`;
+    }
 
     // Initials fallback
     const initials = proName.split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "P";
@@ -661,7 +902,10 @@ function sortAndRenderResults() {
                 </p>
               </div>
             </div>
-            ${badgeHtml}
+            <div class="flex flex-col items-end space-y-1">
+              ${badgeHtml}
+              ${matchTagHtml}
+            </div>
           </div>
 
           <!-- Service Title & Authoritative Price -->
@@ -691,7 +935,7 @@ function sortAndRenderResults() {
             </div>
             <div class="flex items-center space-x-1.5 col-span-2">
               <i class="fa-solid fa-location-crosshairs text-slate-400"></i>
-              <span>Coverage: <strong>Within ${radius} km radius</strong></span>
+              <span>Coverage: <strong>Within ${radiusVal} km radius</strong></span>
             </div>
           </div>
         </div>
@@ -708,11 +952,28 @@ function sortAndRenderResults() {
       </div>
     `;
   }).join("");
+
+  grid.innerHTML = (pincodeFallbackNotice ? pincodeFallbackNotice : '') + cardsHtml;
 }
 
 function clearLocationAndReSearch() {
   const locInput = document.getElementById("location-input");
+  const pinInput = document.getElementById("pincode-input");
+  const gpsStatusDiv = document.getElementById("gps-detection-status");
   if (locInput) locInput.value = "";
+  if (pinInput) pinInput.value = "";
+  if (gpsStatusDiv) gpsStatusDiv.classList.add("hidden");
+  currentSearchLocationState = {
+    scope: "ANYWHERE",
+    locationText: "",
+    pincode: "",
+    state: "",
+    city: "",
+    district: "",
+    latitude: null,
+    longitude: null,
+    radiusKm: 50
+  };
   handleProceedSearch();
 }
 

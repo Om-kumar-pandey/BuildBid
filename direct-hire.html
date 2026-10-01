@@ -205,12 +205,16 @@
             <span>Option A — Auto GPS Detection</span>
           </div>
           <p class="text-[11px] text-slate-600 leading-relaxed">
-            Quickly detect your live city and district using browser geolocation and reverse address lookup.
+            Quickly detect your live city, district & pincode using browser geolocation and reverse address lookup.
           </p>
           <button type="button" id="btn-auto-location" class="w-full py-2.5 px-4 bg-white hover:bg-orange-50 border border-orange-300 text-orange-800 text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center space-x-2">
             <i class="fa-solid fa-location-crosshairs text-orange-600"></i>
             <span>Auto Detect Current Location</span>
           </button>
+          <div id="gps-detection-status" class="hidden text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center space-x-2">
+            <i class="fa-solid fa-circle-check text-emerald-600 flex-shrink-0"></i>
+            <span id="gps-detection-text" class="truncate font-medium"></span>
+          </div>
         </div>
 
         <!-- Option B: Manual Input -->
@@ -220,28 +224,55 @@
               <i class="fa-solid fa-keyboard text-slate-500"></i>
               <span>Option B — Manual Location</span>
             </div>
-            <button type="button" id="btn-clear-location" class="text-[11px] text-slate-500 hover:text-slate-800 font-medium">
-              <i class="fa-solid fa-xmark mr-0.5"></i> Clear
-            </button>
-          </div>
-
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            <div class="flex items-center space-x-2">
+              <button type="button" id="btn-anywhere-location" onclick="setAnywhereLocation()" class="text-[11px] px-2.5 py-1 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold border border-orange-300 transition flex items-center space-x-1">
+                <i class="fa-solid fa-earth-asia text-orange-600"></i>
+                <span>Anywhere / सभी स्थान</span>
+              </button>
+              <button type="button" id="btn-clear-location" class="text-[11px] text-slate-500 hover:text-slate-800 font-medium">
+                <i class="fa-solid fa-xmark mr-0.5"></i> Clear
+              </button>
             </div>
-            <input type="text" id="location-input" placeholder="e.g. Noida, Delhi, Lucknow, Gurugram" class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition">
           </div>
 
-          <!-- Quick City Chips -->
-          <div class="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span class="text-slate-400 text-[10px] font-semibold uppercase">Popular:</span>
-            <button type="button" onclick="setQuickLocation('Noida')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Noida</button>
-            <button type="button" onclick="setQuickLocation('Greater Noida')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Greater Noida</button>
-            <button type="button" onclick="setQuickLocation('Delhi')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Delhi</button>
-            <button type="button" onclick="setQuickLocation('Gurugram')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Gurugram</button>
-            <button type="button" onclick="setQuickLocation('Ghaziabad')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Ghaziabad</button>
-            <button type="button" onclick="setQuickLocation('Lucknow')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Lucknow</button>
-            <button type="button" onclick="setQuickLocation('Jaipur')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Jaipur</button>
+          <!-- Dual Input: City / District / State OR Pincode -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+            <div class="sm:col-span-8 relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-solid fa-city text-xs"></i>
+              </div>
+              <input type="text" id="location-input" placeholder="Enter City / District / State (e.g. Greater Noida)" class="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition">
+            </div>
+
+            <div class="sm:col-span-4 relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-solid fa-map-pin text-xs"></i>
+              </div>
+              <input type="text" id="pincode-input" maxlength="6" placeholder="Pincode (e.g. 201310)" class="w-full pl-8 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition">
+            </div>
+          </div>
+
+          <!-- Radius & Quick Chips Row -->
+          <div class="pt-1 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-slate-400 text-[10px] font-semibold uppercase">Popular:</span>
+              <button type="button" onclick="setQuickLocation('Noida', '201301')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Noida</button>
+              <button type="button" onclick="setQuickLocation('Greater Noida', '201310')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Greater Noida (201310)</button>
+              <button type="button" onclick="setQuickLocation('Delhi', '110001')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Delhi</button>
+              <button type="button" onclick="setQuickLocation('Gurugram', '122001')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Gurugram</button>
+              <button type="button" onclick="setQuickLocation('Ghaziabad', '201001')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Ghaziabad</button>
+              <button type="button" onclick="setQuickLocation('Lucknow', '226001')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Lucknow</button>
+              <button type="button" onclick="setQuickLocation('Uttar Pradesh', '')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Uttar Pradesh (State)</button>
+            </div>
+
+            <div class="flex items-center space-x-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+              <i class="fa-solid fa-circle-nodes text-orange-600 text-xs"></i>
+              <label for="radius-select" class="text-slate-500 font-medium text-[11px]">Radius:</label>
+              <select id="radius-select" class="bg-transparent text-slate-800 font-bold text-[11px] focus:outline-none cursor-pointer">
+                <option value="50" selected>50 KM (Default)</option>
+                <option value="25">25 KM (Local)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

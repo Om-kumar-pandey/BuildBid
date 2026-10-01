@@ -216,17 +216,39 @@ public class ProfessionalServiceController {
     public ResponseEntity<?> searchDirectHire(
             @RequestParam(value = "masterServiceId", required = false) Long masterServiceId,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
-            @RequestParam(value = "location", required = false) String location
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "locationScope", required = false) String locationScope,
+            @RequestParam(value = "pincode", required = false) String pincode,
+            @RequestParam(value = "state", required = false) String state,
+            @RequestParam(value = "city", required = false) String city,
+            @RequestParam(value = "district", required = false) String district,
+            @RequestParam(value = "latitude", required = false) Double latitude,
+            @RequestParam(value = "longitude", required = false) Double longitude,
+            @RequestParam(value = "radiusKm", required = false) Double radiusKm
     ) {
-        List<ProfessionalService> services = professionalServiceService.searchDirectHireServices(
+        List<ProfessionalServiceService.DirectHireSearchResult> results = professionalServiceService.searchDirectHireServicesAdvanced(
                 masterServiceId,
                 categoryId,
-                location
+                locationScope,
+                location,
+                pincode,
+                state,
+                city,
+                district,
+                latitude,
+                longitude,
+                radiusKm
         );
 
         List<Map<String, Object>> response = new ArrayList<>();
-        for (ProfessionalService s : services) {
-            response.add(toDirectHireCardMap(s));
+        for (ProfessionalServiceService.DirectHireSearchResult r : results) {
+            Map<String, Object> card = toDirectHireCardMap(r.service());
+            card.put("distanceKm", r.distanceKm());
+            card.put("matchPriority", r.matchPriority());
+            card.put("professionalPincode", r.professionalPincode());
+            card.put("professionalDistrict", r.professionalDistrict());
+            card.put("professionalState", r.professionalState());
+            response.add(card);
         }
         return ResponseEntity.ok(response);
     }

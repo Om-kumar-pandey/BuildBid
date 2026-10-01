@@ -23,18 +23,21 @@ public class ProfessionalServiceService {
     private final MasterServiceRepository masterServiceRepository;
     private final ServiceCategoryRepository serviceCategoryRepository;
     private final MarketplaceBackendApplication.UserRepository userRepository;
+    private final GeoLocationService geoLocationService;
 
     @Autowired
     public ProfessionalServiceService(
             ProfessionalServiceRepository professionalServiceRepository,
             MasterServiceRepository masterServiceRepository,
             ServiceCategoryRepository serviceCategoryRepository,
-            MarketplaceBackendApplication.UserRepository userRepository
+            MarketplaceBackendApplication.UserRepository userRepository,
+            GeoLocationService geoLocationService
     ) {
         this.professionalServiceRepository = professionalServiceRepository;
         this.masterServiceRepository = masterServiceRepository;
         this.serviceCategoryRepository = serviceCategoryRepository;
         this.userRepository = userRepository;
+        this.geoLocationService = geoLocationService;
     }
 
     // ========================================================
@@ -345,6 +348,15 @@ public class ProfessionalServiceService {
         );
     }
 
+    public record DirectHireSearchResult(
+            ProfessionalService service,
+            Double distanceKm,
+            String matchPriority, // EXACT_PINCODE, RADIUS_MATCH, DISTRICT_MATCH, STATE_MATCH, ANYWHERE, FALLBACK
+            String professionalPincode,
+            String professionalDistrict,
+            String professionalState
+    ) {}
+
     /**
      * Searches active and verified professional services across all providers for Direct Hire.
      * Enforces that basic trades (NOT_REQUIRED) and verified credential services (VERIFIED) are returned.
@@ -354,6 +366,195 @@ public class ProfessionalServiceService {
         String cleanLoc = (location != null && !location.trim().isEmpty()) ? location.trim() : null;
         Set<VerificationStatus> eligibleStatuses = Set.of(VerificationStatus.NOT_REQUIRED, VerificationStatus.VERIFIED);
         return professionalServiceRepository.searchDirectHireServices(eligibleStatuses, masterServiceId, categoryId, cleanLoc);
+    }
+
+    /**
+     * Advanced normalized multi-tier location search for Direct Hire:
+     * Tier 1: Exact Pincode matching (Priority 1)
+     * Tier 2: Geographical Haversine distance radius (default 50 KM, supports 25-50 KM)
+     * Tier 3: District and City alias normalization (e.g. Greater Noida <-> Gautam Buddha Nagar)
+     * Tier 4: State-wide search (e.g. Uttar Pradesh)
+     * Tier 5: Anywhere search (unrestricted location, category + trade filters stay active)
+     */
+    public List<DirectHireSearchResult> searchDirectHireServicesAdvanced(
+            Long masterServiceId,
+            Long categoryId,
+            String locationScope,
+            String location,
+            String pincode,
+            String state,
+            String city,
+            String district,
+            Double latitude,
+            Double longitude,
+            Double radiusKm
+    ) {
+        Set<VerificationStatus> eligibleStatuses = Set.of(VerificationStatus.NOT_REQUIRED, VerificationStatus.VERIFIED);
+        List<ProfessionalService> allEligible = professionalServiceRepository.findEligibleDirectHireServices(
+                eligibleStatuses,
+                masterServiceId,
+                categoryId
+        );
+
+        String scope = (locationScope != null && !locationScope.trim().isEmpty())
+                ? locationScope.trim().toUpperCase() : "AUTO";
+
+        String cleanLoc = (location != null && !location.trim().isEmpty()) ? location.trim() : null;
+        String cleanPin = (pincode != null && !pincode.trim().isEmpty()) ? pincode.trim() : null;
+        String cleanState = (state != null && !state.trim().isEmpty()) ? state.trim() : null;
+
+        // If location is "anywhere" or scope is ANYWHERE
+        if ("ANYWHERE".equals(scope) || (cleanLoc != null && cleanLoc.equalsIgnoreCase("anywhere"))
+                || (cleanLoc == null && cleanPin == null && cleanState == null && latitude == null && longitude == null)) {
+            List<DirectHireSearchResult> results = new ArrayList<>();
+            for (ProfessionalService ps : allEligible) {
+                GeoLocationService.GeoLocation pGeo = geoLocationService.resolveLocation(ps.getProfessionalLocation());
+                results.add(new DirectHireSearchResult(
+                        ps,
+                        null,
+                        "ANYWHERE",
+                        pGeo != null ? pGeo.pincode() : null,
+                        pGeo != null ? pGeo.district() : null,
+                        pGeo != null ? pGeo.state() : null
+                ));
+            }
+            return results;
+        }
+
+        // Check if query is explicitly State-level
+        if ("STATE".equals(scope) || (cleanLoc != null && geoLocationService.isStateQuery(cleanLoc)) || cleanState != null) {
+            String targetState = cleanState != null ? cleanState : geoLocationService.normalizeStateName(cleanLoc);
+            List<DirectHireSearchResult> results = new ArrayList<>();
+            for (ProfessionalService ps : allEligible) {
+                String profLoc = ps.getProfessionalLocation();
+                GeoLocationService.GeoLocation pGeo = geoLocationService.resolveLocation(profLoc);
+                String pState = pGeo != null ? pGeo.state() : null;
+                boolean stateMatch = (pState != null && pState.equalsIgnoreCase(targetState))
+                        || (profLoc != null && profLoc.toLowerCase().contains(targetState.toLowerCase()));
+                if (stateMatch) {
+                    results.add(new DirectHireSearchResult(
+                            ps,
+                            null,
+                            "STATE_MATCH",
+                            pGeo != null ? pGeo.pincode() : null,
+                            pGeo != null ? pGeo.district() : null,
+                            pState
+                    ));
+                }
+            }
+            return results;
+        }
+
+        // Pincode / Radius / City / GPS resolution
+        Double searchLat = latitude;
+        Double searchLng = longitude;
+        String searchPin = cleanPin;
+
+        // If Pincode is in location string, extract it
+        if (searchPin == null && cleanLoc != null) {
+            GeoLocationService.GeoLocation resolved = geoLocationService.resolveLocation(cleanLoc);
+            if (resolved != null) {
+                if (resolved.pincode() != null && !resolved.pincode().isEmpty()) {
+                    searchPin = resolved.pincode();
+                }
+                if (searchLat == null && resolved.hasCoordinates()) {
+                    searchLat = resolved.latitude();
+                    searchLng = resolved.longitude();
+                }
+            }
+        } else if (searchPin != null && (searchLat == null || searchLng == null)) {
+            GeoLocationService.GeoLocation pinGeo = geoLocationService.resolveLocation(searchPin);
+            if (pinGeo != null && pinGeo.hasCoordinates()) {
+                searchLat = pinGeo.latitude();
+                searchLng = pinGeo.longitude();
+            }
+        }
+
+        final double maxRadius = (radiusKm != null && radiusKm > 0) ? radiusKm : 50.0;
+        final String effectiveTargetPin = searchPin;
+        final Double effectiveSearchLat = searchLat;
+        final Double effectiveSearchLng = searchLng;
+        final String effectiveSearchLoc = cleanLoc != null ? cleanLoc : searchPin;
+
+        List<DirectHireSearchResult> exactPincodeMatches = new ArrayList<>();
+        List<DirectHireSearchResult> nearbyRadiusMatches = new ArrayList<>();
+        List<DirectHireSearchResult> districtFallbackMatches = new ArrayList<>();
+
+        for (ProfessionalService ps : allEligible) {
+            String profLoc = ps.getProfessionalLocation();
+            GeoLocationService.GeoLocation pGeo = geoLocationService.resolveLocation(profLoc);
+            String pPin = pGeo != null ? pGeo.pincode() : null;
+            String pDistrict = pGeo != null ? pGeo.district() : null;
+            String pState = pGeo != null ? pGeo.state() : null;
+
+            // 1. Exact Pincode Check
+            if (effectiveTargetPin != null && !effectiveTargetPin.isEmpty() && effectiveTargetPin.equals(pPin)) {
+                Double dist = null;
+                if (effectiveSearchLat != null && effectiveSearchLng != null && pGeo != null && pGeo.hasCoordinates()) {
+                    dist = geoLocationService.calculateHaversineDistanceKm(effectiveSearchLat, effectiveSearchLng, pGeo.latitude(), pGeo.longitude());
+                } else {
+                    dist = 0.0;
+                }
+                exactPincodeMatches.add(new DirectHireSearchResult(ps, dist, "EXACT_PINCODE", pPin, pDistrict, pState));
+                continue;
+            }
+
+            // 2. Nearby Distance Radius Check
+            if (effectiveSearchLat != null && effectiveSearchLng != null && pGeo != null && pGeo.hasCoordinates()) {
+                double dist = geoLocationService.calculateHaversineDistanceKm(
+                        effectiveSearchLat, effectiveSearchLng,
+                        pGeo.latitude(), pGeo.longitude()
+                );
+                if (dist <= maxRadius) {
+                    nearbyRadiusMatches.add(new DirectHireSearchResult(ps, dist, "RADIUS_MATCH", pPin, pDistrict, pState));
+                    continue;
+                }
+            }
+
+            // 3. District / City Alias Match Check (e.g. Greater Noida vs Gautam Buddha Nagar)
+            if (effectiveSearchLoc != null && profLoc != null && geoLocationService.areLocationsEquivalent(effectiveSearchLoc, profLoc)) {
+                Double dist = (effectiveSearchLat != null && effectiveSearchLng != null && pGeo != null && pGeo.hasCoordinates())
+                        ? geoLocationService.calculateHaversineDistanceKm(effectiveSearchLat, effectiveSearchLng, pGeo.latitude(), pGeo.longitude())
+                        : 15.0; // estimated within district
+                districtFallbackMatches.add(new DirectHireSearchResult(ps, dist, "DISTRICT_MATCH", pPin, pDistrict, pState));
+            }
+        }
+
+        // Sort exact pincode matches by distance (if available) or price
+        exactPincodeMatches.sort(Comparator.comparing(r -> r.distanceKm() != null ? r.distanceKm() : 0.0));
+
+        // Sort nearby matches by distance ascending
+        nearbyRadiusMatches.sort(Comparator.comparing(r -> r.distanceKm() != null ? r.distanceKm() : 999.0));
+
+        // Sort district fallback matches
+        districtFallbackMatches.sort(Comparator.comparing(r -> r.distanceKm() != null ? r.distanceKm() : 999.0));
+
+        // Combine according to Priority Order: Exact Pincode -> Nearby Radius -> District Fallback
+        List<DirectHireSearchResult> combined = new ArrayList<>();
+        combined.addAll(exactPincodeMatches);
+        combined.addAll(nearbyRadiusMatches);
+        combined.addAll(districtFallbackMatches);
+
+        // Fallback: If still empty and location text was provided, do fallback substring match on location
+        if (combined.isEmpty() && cleanLoc != null) {
+            String lowerLoc = cleanLoc.toLowerCase();
+            for (ProfessionalService ps : allEligible) {
+                String profLoc = ps.getProfessionalLocation();
+                if (profLoc != null && (profLoc.toLowerCase().contains(lowerLoc) || lowerLoc.contains(profLoc.toLowerCase()))) {
+                    GeoLocationService.GeoLocation pGeo = geoLocationService.resolveLocation(profLoc);
+                    combined.add(new DirectHireSearchResult(
+                            ps,
+                            null,
+                            "FALLBACK",
+                            pGeo != null ? pGeo.pincode() : null,
+                            pGeo != null ? pGeo.district() : null,
+                            pGeo != null ? pGeo.state() : null
+                    ));
+                }
+            }
+        }
+
+        return combined;
     }
 
 

@@ -27,6 +27,18 @@ public interface ProfessionalServiceRepository extends JpaRepository<Professiona
 
     long countByProfessional_IdAndActiveTrue(Long professionalId);
 
+    @Query("SELECT ps FROM ProfessionalService ps " +
+           "WHERE ps.active = true " +
+           "AND ps.verificationStatus IN :statuses " +
+           "AND (:masterServiceId IS NULL OR ps.masterService.id = :masterServiceId) " +
+           "AND (:categoryId IS NULL OR ps.masterService.category.id = :categoryId) " +
+           "ORDER BY ps.price ASC, ps.createdAt DESC")
+    List<ProfessionalService> findEligibleDirectHireServices(
+            @Param("statuses") Collection<VerificationStatus> statuses,
+            @Param("masterServiceId") Long masterServiceId,
+            @Param("categoryId") Long categoryId
+    );
+
     /**
      * Searches all active and eligible services across all professionals for Direct Hire.
      * Supports optional filtering by MasterService ID, Category ID, and location substring.
