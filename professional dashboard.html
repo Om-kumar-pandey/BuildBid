@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid Pro — Professional & Service Provider Portal (Desktop Workspace)</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Professional Dashboard Custom Stylesheet -->
+  <link rel="stylesheet" href="professional dashboard.css">
+</head>
+
+<body class="bg-[#f8fafc] text-slate-800 font-sans antialiased h-full flex overflow-hidden select-none">
+
+  <!-- Interactive Desktop Toast Notification Stack -->
+  <div id="toast-container" class="fixed top-6 right-8 z-50 flex flex-col space-y-3 pointer-events-none w-96"></div>
+
+  <!-- FIXED LEFT DESKTOP SIDEBAR (280px Width) -->
+  <aside class="w-[280px] bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-subtle">
+    <!-- Logo & Branding Header -->
+    <div class="h-16 px-6 border-b border-slate-200/80 flex items-center justify-between bg-white">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center text-white font-bold text-lg shadow-sm shadow-orange-500/20">
+          <i class="fa-solid fa-helmet-safety"></i>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold tracking-tight text-slate-900">BUILD<span class="text-orange-600">BID</span></span>
+          <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 -mt-1">Pro Enterprise Hub</span>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded">v2.4</span>
+    </div>
+
+    <!-- Professional Profile Mini-Card -->
+    <div class="p-4 border-b border-slate-100 bg-slate-50/70">
+      <div class="flex items-center space-x-3">
+        <div class="relative">
+          <img id="side-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" alt="Avatar" class="w-12 h-12 rounded-xl object-cover ring-2 ring-orange-500/20 shadow-sm" onerror="this.src='https://placehold.co/160x160/e2e8f0/475569?text=Pro'">
+          <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[9px] ring-2 ring-white" title="Verified Badge">
+            <i class="fa-solid fa-check"></i>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h4 id="side-name" class="text-sm font-bold text-slate-900 truncate">Rahul Sharma</h4>
+          <p id="side-role" class="text-xs text-orange-600 font-semibold truncate">Civil Engineer</p>
+          <div class="flex items-center mt-1 text-[11px] text-slate-500">
+            <i class="fa-solid fa-location-dot text-slate-400 mr-1 text-[10px]"></i>
+            <span id="side-loc" class="truncate">Noida, Uttar Pradesh</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Switcher Banner in Sidebar -->
+      <div class="mt-3 pt-3 border-t border-slate-200/60">
+        <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1.5">
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-user-gear text-orange-500"></i> Trade Simulator</span>
+          <span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Active</span>
+        </div>
+        <select id="sidebar-role-select" onchange="switchPersona(this.value)" class="w-full text-xs bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-slate-700 font-medium focus:ring-1 focus:ring-orange-500 outline-none cursor-pointer hover:border-slate-300 transition">
+          <option value="civil_engineer">Rahul Sharma (Civil Engineer)</option>
+          <option value="interior_designer">Priya Verma (Interior Designer)</option>
+          <option value="electrician">Amit Kumar (Electrician)</option>
+          <option value="plumber">Rakesh Yadav (Plumber)</option>
+          <option value="mason">Sanjay Kumar (Mason / Mistri)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Navigation Menu Items (Desktop Layout) -->
+    <div class="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+      <!-- Main Category -->
+      <div>
+        <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Console</span>
+        <nav class="mt-1.5 space-y-1">
+          <button onclick="navigate('dashboard')" data-route="dashboard" class="nav-link active w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-chart-pie w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Dashboard Overview</span>
+          </button>
+          <button onclick="navigate('find-work')" data-route="find-work" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-magnifying-glass-location w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="flex-1 text-left font-medium">Find Work Leads</span>
+            <span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">8 Live</span>
+          </button>
+          <button onclick="navigate('requests')" data-route="requests" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-clipboard-list w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="flex-1 text-left font-medium">Client Requests</span>
+            <span id="side-req-badge" class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">12</span>
+          </button>
+          <button onclick="navigate('projects')" data-route="projects" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-building-shield w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="flex-1 text-left font-medium">Active Work & Milestones</span>
+            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md">4 Active</span>
+          </button>
+          <button onclick="navigate('schedule')" data-route="schedule" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-calendar-days w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Schedule & Calendar</span>
+          </button>
+          <button onclick="navigate('messages')" data-route="messages" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-comments w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="flex-1 text-left font-medium">Client Messages</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Business Operations -->
+      <div>
+        <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Business & Revenue</span>
+        <nav class="mt-1.5 space-y-1">
+          <button onclick="navigate('earnings')" data-route="earnings" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-wallet w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Earnings & Payments</span>
+          </button>
+          <button onclick="navigate('services')" data-route="services" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-toolbox w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">My Services Catalog</span>
+          </button>
+          <button onclick="navigate('portfolio')" data-route="portfolio" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-images w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Portfolio & Completed Work</span>
+          </button>
+          <button onclick="navigate('reviews')" data-route="reviews" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-star-half-stroke w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Client Reviews (4.8 ★)</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Professional Identity -->
+      <div>
+        <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Identity & Compliance</span>
+        <nav class="mt-1.5 space-y-1">
+          <button onclick="navigate('profile')" data-route="profile" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-user-tie w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Public Profile Preview</span>
+          </button>
+          <button onclick="navigate('documents')" data-route="documents" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-shield-halved w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Documents & Licenses</span>
+            <i class="fa-solid fa-circle-check text-emerald-500 text-[10px] ml-auto"></i>
+          </button>
+          <button onclick="navigate('availability')" data-route="availability" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <i class="fa-solid fa-location-crosshairs w-5 mr-2.5 text-slate-400 text-sm"></i>
+            <span class="font-medium">Service Area (25 km)</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Quick Help & Support Footer Card -->
+    <div class="p-3.5 border-t border-slate-200 bg-slate-50/70">
+      <div class="rounded-xl bg-white p-3 border border-slate-200 text-left shadow-2xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-900">Dedicated Support</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-0.5">BuildBid Partner Helpline</p>
+        <button onclick="showToast('Calling BuildBid Partner Helpline 1800-BUILDBID...', 'info')" class="mt-2 w-full py-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition text-center">
+          <i class="fa-solid fa-phone text-[10px] mr-1"></i> 1800-BUILDBID
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN DESKTOP CONTENT AREA (1440px - 1920px Widescreen Container) -->
+  <div class="flex-1 flex flex-col min-w-0 bg-[#f8fafc] overflow-hidden">
+    <!-- Top Header Bar -->
+    <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between z-20 flex-shrink-0 shadow-2xs">
+      <!-- Left: Dynamic Greeting & Real-time Indicator -->
+      <div class="flex items-center space-x-6">
+        <div>
+          <h1 id="top-greeting" class="text-base font-bold text-slate-900 leading-tight">
+            Good Morning, Rahul 👋
+          </h1>
+          <p class="text-xs text-slate-500 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span id="top-subtext">Active for on-site civil consultations</span> • <span class="font-semibold text-slate-700" id="live-datetime">October 2026</span>
+          </p>
+        </div>
+
+        <div class="h-6 w-px bg-slate-200 hidden xl:block"></div>
+
+        <!-- Role Badge Display -->
+        <div class="hidden xl:flex items-center space-x-2 bg-orange-50 border border-orange-200 text-orange-800 px-3 py-1 rounded-full text-xs font-semibold">
+          <i class="fa-solid fa-user-check text-orange-600"></i>
+          <span id="top-role-badge">Civil Engineer</span>
+        </div>
+      </div>
+
+      <!-- Right: Global Search, Quick Action, Role Selector, Notifications, Avatar -->
+      <div class="flex items-center space-x-4">
+        <!-- Global Search Bar with Keyboard Shortcut (Ctrl+K) -->
+        <div class="relative w-80">
+          <input type="text" id="global-search" onkeyup="handleSearch(this.value)" placeholder="Search projects, clients, BOQ items..." class="w-full text-xs pl-9 pr-12 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 transition">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+          <span class="absolute right-2.5 top-2 px-1.5 py-0.5 bg-slate-200/70 border border-slate-300/80 rounded text-[10px] font-mono text-slate-500">Ctrl+K</span>
+        </div>
+
+        <!-- Quick Primary Action Button -->
+        <button onclick="openModal('modal-add-service')" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Add Service</span>
+        </button>
+
+        <div class="h-6 w-px bg-slate-200"></div>
+
+        <!-- Notification Bell with Dropdown Trigger -->
+        <div class="relative">
+          <button onclick="toggleNotificationDropdown()" class="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition">
+            <i class="fa-regular fa-bell text-base"></i>
+            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-600 rounded-full ring-2 ring-white"></span>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-float border border-slate-200 py-3 z-50">
+            <div class="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-900">Notifications (3 New)</span>
+              <button onclick="showToast('All notifications marked as read', 'success')" class="text-[11px] text-orange-600 hover:underline">Mark all read</button>
+            </div>
+            <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto text-xs" id="notif-list">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="pt-2 px-4 text-center border-t border-slate-100">
+              <button onclick="navigate('requests'); toggleNotificationDropdown();" class="text-xs text-slate-600 font-semibold hover:text-orange-600">View All Requests</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Shortcut -->
+        <button onclick="navigate('messages')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition relative">
+          <i class="fa-regular fa-envelope text-base"></i>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white"></span>
+        </button>
+
+        <div class="h-6 w-px bg-slate-200"></div>
+
+        <!-- User Profile Dropdown -->
+        <div class="relative">
+          <button onclick="toggleUserDropdown()" class="flex items-center space-x-2.5 p-1 rounded-xl hover:bg-slate-100 transition">
+            <img id="top-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" alt="Avatar" class="w-8 h-8 rounded-lg object-cover border border-slate-200">
+            <span id="top-name" class="text-xs font-bold text-slate-800">Rahul Sharma</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+          </button>
+
+          <div id="user-menu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-float border border-slate-200 py-2 z-50">
+            <div class="px-4 py-2 border-b border-slate-100">
+              <p id="menu-name" class="text-xs font-bold text-slate-900">Rahul Sharma</p>
+              <p id="menu-id" class="text-[10px] text-slate-400">ID: BBD-PRO-84920</p>
+            </div>
+            <button onclick="navigate('profile'); toggleUserDropdown();" class="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center">
+              <i class="fa-regular fa-id-badge mr-2.5 text-slate-400 w-4"></i> Public Profile
+            </button>
+            <button onclick="navigate('documents'); toggleUserDropdown();" class="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center">
+              <i class="fa-solid fa-shield-halved mr-2.5 text-slate-400 w-4"></i> Verification Documents
+            </button>
+            <button onclick="navigate('earnings'); toggleUserDropdown();" class="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center">
+              <i class="fa-solid fa-receipt mr-2.5 text-slate-400 w-4"></i> Escrow Statements
+            </button>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button onclick="promptLogout()" class="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center font-medium">
+              <i class="fa-solid fa-power-off mr-2.5 text-rose-400 w-4"></i> Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- DESKTOP SCROLLABLE MAIN VIEWPORT -->
+    <main id="main-view" class="flex-1 overflow-y-auto p-8 bg-[#f8fafc]">
+      <!-- Views are dynamically injected by JavaScript -->
+    </main>
+  </div>
+
+  <!-- MODAL: View Request Scope & Details -->
+  <div id="modal-request-detail" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-float border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center space-x-2.5">
+          <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+          <h3 class="text-sm font-bold text-slate-900">Client Service Request Details</h3>
+        </div>
+        <button onclick="closeModal('modal-request-detail')" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4" id="modal-request-body">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Submit Official Work Proposal -->
+  <div id="modal-proposal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-float border border-slate-200 p-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Send Work Proposal & Quotation</h3>
+          <p class="text-xs text-slate-500" id="proposal-target-desc">Official quotation for client inspection</p>
+        </div>
+        <button onclick="closeModal('modal-proposal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="handleProposalSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Contract Amount (₹ INR)</label>
+          <input type="number" id="prop-amt" required placeholder="e.g. 35000" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Execution Duration</label>
+            <input type="text" id="prop-duration" required placeholder="e.g. 5 Business Days" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Earliest Site Date</label>
+            <input type="date" id="prop-date" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Technical Scope & Milestone Breakdown</label>
+          <textarea id="prop-notes" rows="4" required placeholder="Specify site inspection methodology, deliverables, and payment schedule..." class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none"></textarea>
+        </div>
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2.5">
+          <i class="fa-solid fa-shield-halved mt-0.5 text-amber-600"></i>
+          <span>BuildBid Escrow Guarantee: Payment is secured upfront from the customer before on-site work begins and released after your milestone sign-off.</span>
+        </div>
+        <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-proposal')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm">Submit Proposal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add New Service -->
+  <div id="modal-add-service" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-float border border-slate-200 p-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <h3 class="text-sm font-bold text-slate-900">Add New Service Offering</h3>
+        <button onclick="closeModal('modal-add-service')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="handleNewService(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Service Title</label>
+          <input type="text" id="srv-title" required placeholder="e.g. Reinforced Concrete Structure Inspection" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Base Price (₹ INR)</label>
+            <input type="number" id="srv-rate" required placeholder="4500" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Pricing Basis</label>
+            <select id="srv-basis" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500 bg-white">
+              <option value="Per Visit">Per Visit / Inspection</option>
+              <option value="Per Sq. Ft">Per Sq. Ft</option>
+              <option value="Fixed Quote">Fixed Project Quote</option>
+              <option value="Per Day">Per Day / Rate</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Turnaround Time</label>
+          <input type="text" id="srv-turnaround" required placeholder="e.g. 2 Business Days" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Detailed Description</label>
+          <textarea id="srv-desc" rows="3" required placeholder="Explain specific deliverables, stamped reports, and visit procedures..." class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-orange-500"></textarea>
+        </div>
+        <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-add-service')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold">Publish Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Confirmation -->
+  <div id="modal-confirm" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-float border border-slate-200">
+      <div id="confirm-icon-box" class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3 text-lg">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 id="confirm-title" class="text-base font-bold text-slate-900">Are you sure?</h3>
+      <p id="confirm-msg" class="text-xs text-slate-500 mt-1 mb-5">This action cannot be undone.</p>
+      <div class="flex gap-2">
+        <button onclick="closeModal('modal-confirm')" class="flex-1 py-2 text-xs font-semibold border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50">Cancel</button>
+        <button id="confirm-action-btn" class="flex-1 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Professional Dashboard Script -->
+  <script src="professional dashboard.js"></script>
+</body>
+</html>
