@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid — Direct Hire | सीधे पेशेवर को हायर करें</title>
+
+  <!-- Google Fonts: Inter & Noto Sans Devanagari -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              navy: '#0f172a',
+              slate: '#1e293b',
+              surface: '#f8fafc',
+              border: '#e2e8f0',
+              muted: '#64748b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Dedicated Styles -->
+  <link rel="stylesheet" href="direct-hire.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
+
+  <!-- ============================================================
+       TOP NAVIGATION BAR
+       ============================================================ -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo & Brand Title -->
+      <div class="flex items-center space-x-3.5">
+        <a href="index.html" class="flex items-center space-x-2.5">
+          <img src="logo.png" alt="BuildBid Logo" class="h-9 w-auto object-contain">
+          <div>
+            <span class="text-base font-extrabold text-slate-900 tracking-tight flex items-center">
+              BuildBid <span class="ml-1.5 px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-orange-600 text-white tracking-wide">Direct Hire</span>
+            </span>
+            <span class="text-[10px] text-slate-400 block -mt-0.5">सीधे सत्यापित पेशेवर हायर करें</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- User Role Indicator & Back to Dashboard -->
+      <div class="flex items-center space-x-3">
+        <div id="user-role-pill">
+          <!-- Dynamically populated by direct-hire.js -->
+        </div>
+
+        <button type="button" id="back-to-dashboard-btn" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-semibold transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Dashboard</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       MAIN HERO BANNER & STEPPER
+       ============================================================ -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Hero Card -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+      <div class="relative z-10 max-w-3xl">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 text-orange-300 text-xs font-semibold mb-3 backdrop-blur-xs border border-white/10">
+          <i class="fa-solid fa-user-check text-xs"></i>
+          <span>Verified Professional Marketplace • सिंगल सोर्स ऑफ़ ट्रुथ</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          Direct Hire Construction Specialists & Engineers
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+          Select a trade, enter your location, and hire registered professionals directly. All service rates are published transparently by the providers themselves — no bidding, no guesswork.
+        </p>
+      </div>
+
+      <!-- Decorative pattern -->
+      <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none text-white text-[180px]">
+        <i class="fa-solid fa-helmet-safety"></i>
+      </div>
+    </div>
+
+    <!-- Stepper Indicator -->
+    <div class="grid grid-cols-3 gap-3 text-xs">
+      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+          1
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 block">Select Service Trade</span>
+          <span class="text-[11px] text-slate-500">Master Construction Catalog</span>
+        </div>
+      </div>
+      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+          2
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 block">Provide Location</span>
+          <span class="text-[11px] text-slate-500">Auto GPS or Manual City</span>
+        </div>
+      </div>
+      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
+          3
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 block">Compare & Direct Hire</span>
+          <span class="text-[11px] text-slate-500">Exact Published Rates</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         STEP 1: DYNAMIC SERVICE SELECTION (MASTER CATALOG)
+         ============================================================ -->
+    <section id="services-selection-section" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-subtle space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center">
+            <span class="w-6 h-6 rounded-lg bg-orange-600 text-white flex items-center justify-center text-xs font-bold mr-2">1</span>
+            What service do you need? — आपको किस सेवा की आवश्यकता है?
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Select a category and choose the specialized trade from the BuildBid Master Catalog.</p>
+        </div>
+        <div id="selected-service-summary">
+          <!-- Populated when a service is selected -->
+        </div>
+      </div>
+
+      <!-- Categories Level 1 -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+          Service Category / सेवा श्रेणी:
+        </label>
+        <div id="catalog-loading" class="py-6 text-center text-xs text-slate-500">
+          <i class="fa-solid fa-spinner fa-spin text-orange-600 text-base mb-1 block"></i>
+          <span>Loading dynamic service categories from server...</span>
+        </div>
+        <div id="categories-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <!-- Populated by direct-hire.js from /api/public/master-catalog -->
+        </div>
+      </div>
+
+      <!-- Master Services Level 2 -->
+      <div class="pt-4 border-t border-slate-100">
+        <div class="flex items-center justify-between mb-2.5">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Select Trade / Type of Work / काम का प्रकार:
+          </label>
+          <span id="category-services-count" class="text-[11px] font-semibold text-slate-400">Loading...</span>
+        </div>
+        <div id="services-chips-container" class="flex flex-wrap gap-2.5">
+          <!-- Populated dynamically when category is selected -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         STEP 2: LOCATION SELECTION (AUTO GPS OR MANUAL)
+         ============================================================ -->
+    <section class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-subtle space-y-5">
+      <div class="border-b border-slate-100 pb-4">
+        <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center">
+          <span class="w-6 h-6 rounded-lg bg-orange-600 text-white flex items-center justify-center text-xs font-bold mr-2">2</span>
+          Where do you need the service? — सेवा का स्थान
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Use your current GPS coordinates or enter your city / district manually.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <!-- Option A: Auto-detect GPS -->
+        <div class="lg:col-span-5 bg-orange-50/50 rounded-2xl border border-orange-200/80 p-5 space-y-3">
+          <div class="flex items-center space-x-2 text-orange-950 font-bold text-xs">
+            <i class="fa-solid fa-crosshairs text-orange-600"></i>
+            <span>Option A — Auto GPS Detection</span>
+          </div>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            Quickly detect your live city and district using browser geolocation and reverse address lookup.
+          </p>
+          <button type="button" id="btn-auto-location" class="w-full py-2.5 px-4 bg-white hover:bg-orange-50 border border-orange-300 text-orange-800 text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-location-crosshairs text-orange-600"></i>
+            <span>Auto Detect Current Location</span>
+          </button>
+        </div>
+
+        <!-- Option B: Manual Input -->
+        <div class="lg:col-span-7 bg-slate-50/70 rounded-2xl border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2 text-slate-900 font-bold text-xs">
+              <i class="fa-solid fa-keyboard text-slate-500"></i>
+              <span>Option B — Manual Location</span>
+            </div>
+            <button type="button" id="btn-clear-location" class="text-[11px] text-slate-500 hover:text-slate-800 font-medium">
+              <i class="fa-solid fa-xmark mr-0.5"></i> Clear
+            </button>
+          </div>
+
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            </div>
+            <input type="text" id="location-input" placeholder="e.g. Noida, Delhi, Lucknow, Gurugram" class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition">
+          </div>
+
+          <!-- Quick City Chips -->
+          <div class="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span class="text-slate-400 text-[10px] font-semibold uppercase">Popular:</span>
+            <button type="button" onclick="setQuickLocation('Noida')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Noida</button>
+            <button type="button" onclick="setQuickLocation('Greater Noida')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Greater Noida</button>
+            <button type="button" onclick="setQuickLocation('Delhi')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Delhi</button>
+            <button type="button" onclick="setQuickLocation('Gurugram')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Gurugram</button>
+            <button type="button" onclick="setQuickLocation('Ghaziabad')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Ghaziabad</button>
+            <button type="button" onclick="setQuickLocation('Lucknow')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Lucknow</button>
+            <button type="button" onclick="setQuickLocation('Jaipur')" class="px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-orange-400 text-slate-600 hover:text-orange-600 transition">Jaipur</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         PROCEED ACTION BAR (NO CUSTOMER BUDGET INPUT)
+         ============================================================ -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg flex-shrink-0">
+          <i class="fa-solid fa-tags"></i>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-slate-900 block">Transparent Provider Pricing</span>
+          <span class="text-[11px] text-slate-500">Registered professionals are displayed with their own published rates (e.g. ₹700 / Per Day).</span>
+        </div>
+      </div>
+
+      <button type="button" id="btn-proceed-search" class="px-8 py-3 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white text-xs font-extrabold rounded-2xl transition shadow-sm hover:shadow flex items-center justify-center space-x-2 flex-shrink-0">
+        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+        <span>PROCEED TO VIEW PROFESSIONALS / आगे बढ़ें</span>
+      </button>
+    </div>
+
+    <!-- ============================================================
+         STEP 3: RESULTS SECTION (ALL MATCHING PROFESSIONALS)
+         ============================================================ -->
+    <section id="results-section" class="space-y-4 pt-2 hidden">
+      <!-- Section Title & Sorting Control -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 flex items-center">
+            <span class="w-6 h-6 rounded-lg bg-orange-600 text-white flex items-center justify-center text-xs font-bold mr-2">3</span>
+            Available Professionals / उपलब्ध पेशेवर
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Compare verified profiles, published rates, and turnaround times.</p>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <label for="sort-by-select" class="text-xs font-semibold text-slate-500 flex-shrink-0">
+            <i class="fa-solid fa-arrow-down-short-wide mr-1"></i> Sort:
+          </label>
+          <select id="sort-by-select" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <option value="default">Default Order</option>
+            <option value="low-to-high">Price: Low to High</option>
+            <option value="high-to-low">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Summary Bar -->
+      <div id="results-summary-bar">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Search Loading State -->
+      <div id="search-loading" class="hidden py-16 text-center bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+        <i class="fa-solid fa-spinner fa-spin text-orange-600 text-3xl mb-3 block"></i>
+        <h3 class="text-sm font-bold text-slate-900">Finding Available Professionals...</h3>
+        <p class="text-xs text-slate-500 mt-1">Querying active verified services from BuildBid database...</p>
+      </div>
+
+      <!-- Results Grid -->
+      <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Professional service cards rendered by direct-hire.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       SERVICE SCOPE MODAL (VIEW SERVICE DETAILS)
+       ============================================================ -->
+  <div id="service-scope-modal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-xl rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="p-6 overflow-y-auto" id="modal-scope-content">
+        <!-- Populated dynamically by openServiceScopeModal() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DIRECT HIRE REQUEST CONFIRMATION MODAL (PHASE 1 PREVIEW)
+       ============================================================ -->
+  <div id="hire-confirmation-modal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white w-full max-w-md rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="p-6 overflow-y-auto" id="modal-hire-content">
+        <!-- Populated dynamically by openHireModal() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TOAST NOTIFICATION COMPONENT
+       ============================================================ -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden transform transition-all duration-300 translate-y-4 opacity-0">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-float flex items-center space-x-2 text-xs border border-slate-800 max-w-md">
+      <i id="toast-icon" class="fa-solid fa-circle-info text-blue-400 text-sm"></i>
+      <span id="toast-message" class="font-medium">Notification</span>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="direct-hire.js"></script>
+</body>
+</html>

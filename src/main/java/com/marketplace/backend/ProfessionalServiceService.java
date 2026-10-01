@@ -346,6 +346,18 @@ public class ProfessionalServiceService {
     }
 
     /**
+     * Searches active and verified professional services across all providers for Direct Hire.
+     * Enforces that basic trades (NOT_REQUIRED) and verified credential services (VERIFIED) are returned.
+     * Inactive, pending, and rejected services are strictly excluded.
+     */
+    public List<ProfessionalService> searchDirectHireServices(Long masterServiceId, Long categoryId, String location) {
+        String cleanLoc = (location != null && !location.trim().isEmpty()) ? location.trim() : null;
+        Set<VerificationStatus> eligibleStatuses = Set.of(VerificationStatus.NOT_REQUIRED, VerificationStatus.VERIFIED);
+        return professionalServiceRepository.searchDirectHireServices(eligibleStatuses, masterServiceId, categoryId, cleanLoc);
+    }
+
+
+    /**
      * Admin-only verification pipeline method.
      * Transition PENDING -> VERIFIED or PENDING -> REJECTED.
      */

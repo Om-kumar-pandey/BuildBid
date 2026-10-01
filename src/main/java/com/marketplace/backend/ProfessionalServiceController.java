@@ -205,6 +205,33 @@ public class ProfessionalServiceController {
         return ResponseEntity.ok(professionalServiceService.getAllActiveMasterServices());
     }
 
+    /**
+     * Public search endpoint for Direct Hire (used by Customer, Contractor, Professional):
+     * Searches active and eligible professional services across all registered professionals.
+     * Supports optional filtering by masterServiceId, categoryId, and location.
+     *
+     * Privacy guarantee: phone, email, documentData, and password hashes are strictly excluded.
+     */
+    @GetMapping("/api/public/direct-hire/search")
+    public ResponseEntity<?> searchDirectHire(
+            @RequestParam(value = "masterServiceId", required = false) Long masterServiceId,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "location", required = false) String location
+    ) {
+        List<ProfessionalService> services = professionalServiceService.searchDirectHireServices(
+                masterServiceId,
+                categoryId,
+                location
+        );
+
+        List<Map<String, Object>> response = new ArrayList<>();
+        for (ProfessionalService s : services) {
+            response.add(toDirectHireCardMap(s));
+        }
+        return ResponseEntity.ok(response);
+    }
+
+
     // ========================================================
     // 3. ADMIN VERIFICATION FOUNDATION
     // ========================================================
@@ -318,4 +345,54 @@ public class ProfessionalServiceController {
 
         return map;
     }
+
+    /**
+     * Maps a ProfessionalService to a public Direct Hire result card.
+     * Strictly omits private fields (phone, email, passwordHash, documentData).
+     */
+    private Map<String, Object> toDirectHireCardMap(ProfessionalService s) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("serviceId", s.getId());
+        map.put("professionalId", s.getProfessionalId());
+        map.put("professionalName", s.getProfessionalName());
+        map.put("professionalLocation", s.getProfessionalLocation());
+        map.put("profilePhotoUrl", s.getProfessional() != null ? s.getProfessional().getProfilePhotoUrl() : null);
+
+        if (s.getMasterService() != null) {
+            map.put("masterServiceId", s.getMasterService().getId());
+            map.put("serviceName", s.getMasterService().getTitleEn());
+            map.put("masterServiceTitleEn", s.getMasterService().getTitleEn());
+            map.put("masterServiceTitleHi", s.getMasterService().getTitleHi());
+            if (s.getMasterService().getCategory() != null) {
+                map.put("categoryId", s.getMasterService().getCategory().getId());
+                map.put("categoryCode", s.getMasterService().getCategory().getCode());
+                map.put("categoryNameEn", s.getMasterService().getCategory().getNameEn());
+                map.put("categoryNameHi", s.getMasterService().getCategory().getNameHi());
+                map.put("categoryIcon", s.getMasterService().getCategory().getIcon());
+            }
+        } else {
+            map.put("serviceName", s.getServiceTitleEn());
+        }
+
+        map.put("serviceTitleEn", s.getServiceTitleEn());
+        map.put("serviceTitleHi", s.getServiceTitleHi());
+        map.put("shortDescription", s.getShortDescription());
+        map.put("detailedDescription", s.getDetailedDescription());
+        map.put("whatsIncluded", s.getWhatsIncluded());
+        map.put("whatsNotIncluded", s.getWhatsNotIncluded());
+        map.put("price", s.getPrice());
+        map.put("pricingUnit", s.getPricingUnit());
+        map.put("turnaroundTime", s.getTurnaroundTime());
+        map.put("serviceAreaRadiusKm", s.getServiceAreaRadiusKm());
+        map.put("serviceMode", s.getServiceMode());
+        map.put("verificationRequired", s.isVerificationRequired());
+        map.put("verificationStatus", s.getVerificationStatus().name());
+        map.put("qualificationTitle", s.getQualificationTitle());
+        map.put("licenseNumber", s.getLicenseNumber());
+        map.put("issuingAuthority", s.getIssuingAuthority());
+        map.put("createdAt", s.getCreatedAt());
+
+        return map;
+    }
 }
+
