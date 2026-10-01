@@ -124,13 +124,7 @@ function setupUserHeader() {
 
     if (backBtn) {
       backBtn.onclick = () => {
-        if (roleRaw === "CONTRACTOR") {
-          window.location.href = "contractor-dashboard.html";
-        } else if (roleRaw === "PROFESSIONAL" || roleRaw === "SERVICE_PROVIDER") {
-          window.location.href = "professional dashboard.html";
-        } else {
-          window.location.href = "customer dashboard.html";
-        }
+        window.location.href = getDashboardUrlForCurrentUser();
       };
     }
   } else {
@@ -146,6 +140,70 @@ function setupUserHeader() {
     }
   }
 }
+
+// Role-aware dashboard routing detection
+function getDashboardUrlForCurrentUser() {
+  const user = getCurrentUser();
+  if (user) {
+    const roleRaw = (user.role || (user.roles && user.roles[0]) || "").toString().replace("ROLE_", "").toUpperCase();
+    if (roleRaw === "CONTRACTOR") {
+      return "contractor-dashboard.html";
+    } else if (roleRaw === "PROFESSIONAL" || roleRaw === "SERVICE_PROVIDER") {
+      return "professional dashboard.html";
+    } else {
+      return "customer dashboard.html";
+    }
+  }
+  return "index.html";
+}
+
+function handleStep3GoToDashboard() {
+  window.location.href = getDashboardUrlForCurrentUser();
+}
+
+// Stepper visual indicator state updater
+function updateStepper(activeStep) {
+  const b1 = document.getElementById("stepper-step-1-badge");
+  const b2 = document.getElementById("stepper-step-2-badge");
+  const b3 = document.getElementById("stepper-step-3-badge");
+  const c1 = document.getElementById("stepper-step-1");
+  const c2 = document.getElementById("stepper-step-2");
+  const c3 = document.getElementById("stepper-step-3");
+
+  if (!b1 || !b2 || !b3) return;
+
+  if (activeStep === 3) {
+    b1.className = "w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0";
+    b2.className = "w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0";
+    b3.className = "w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0";
+    if (c1) c1.className = "bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition";
+    if (c2) c2.className = "bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition";
+    if (c3) c3.className = "bg-white p-3.5 rounded-2xl border border-orange-300 flex items-center space-x-3 transition shadow-xs";
+  } else {
+    b1.className = "w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0";
+    b2.className = "w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs flex-shrink-0";
+    b3.className = "w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0";
+    if (c1) c1.className = "bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition";
+    if (c2) c2.className = "bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition";
+    if (c3) c3.className = "bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition";
+  }
+}
+
+// Dedicated continuation view navigation: return from Step 3 to Step 1 & 2 view preserving selections
+function handleBackToConfig() {
+  const configView = document.getElementById("direct-hire-config-view");
+  const resultsSection = document.getElementById("results-section");
+
+  if (resultsSection) resultsSection.classList.add("hidden");
+  if (configView) configView.classList.remove("hidden");
+
+  updateStepper(1);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Expose handlers globally for HTML inline onclick
+window.handleBackToConfig = handleBackToConfig;
+window.handleStep3GoToDashboard = handleStep3GoToDashboard;
 
 // Bind UI event listeners
 function setupEventListeners() {
@@ -438,12 +496,17 @@ async function handleProceedSearch() {
   const locationInput = document.getElementById("location-input");
   const locationQuery = locationInput ? locationInput.value.trim() : "";
 
-  // Smooth scroll down to results section
+  // Switch to dedicated Step 3 continuation view (hides Step 1 & 2 config view)
+  const configView = document.getElementById("direct-hire-config-view");
+  if (configView) configView.classList.add("hidden");
+
   const resultsSection = document.getElementById("results-section");
   if (resultsSection) {
     resultsSection.classList.remove("hidden");
-    resultsSection.scrollIntoView({ behavior: "smooth" });
   }
+
+  updateStepper(3);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 
   const grid = document.getElementById("results-grid");
   const countBar = document.getElementById("results-summary-bar");
@@ -639,7 +702,7 @@ function sortAndRenderResults() {
             <i class="fa-regular fa-file-lines mr-1 text-slate-500"></i> View Service Scope
           </button>
           <button type="button" onclick="openHireModal(${srv.serviceId})" class="flex-1 py-2 px-3 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition text-center shadow-sm hover:shadow">
-            <i class="fa-solid fa-handshake mr-1"></i> Direct Hire
+            <i class="fa-solid fa-paper-plane mr-1"></i> Send Request
           </button>
         </div>
       </div>
@@ -747,7 +810,7 @@ function openServiceScopeModal(serviceId) {
         Close / बंद करें
       </button>
       <button onclick="closeModals(); openHireModal(${srv.serviceId});" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition shadow-sm">
-        <i class="fa-solid fa-handshake mr-1.5"></i> Direct Hire This Professional
+        <i class="fa-solid fa-paper-plane mr-1.5"></i> Send Request
       </button>
     </div>
   `;
@@ -778,10 +841,10 @@ function openHireModal(serviceId) {
     <!-- Header -->
     <div class="text-center pb-4 border-b border-slate-100">
       <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto mb-2.5 text-xl">
-        <i class="fa-solid fa-handshake"></i>
+        <i class="fa-solid fa-paper-plane"></i>
       </div>
-      <h3 class="text-base font-bold text-slate-900">Direct Hire Request</h3>
-      <p class="text-xs text-slate-500 mt-0.5">Direct hiring from registered BuildBid Professional</p>
+      <h3 class="text-base font-bold text-slate-900">Send Service Request</h3>
+      <p class="text-xs text-slate-500 mt-0.5">Send direct service request to registered BuildBid Professional</p>
     </div>
 
     <!-- Provider & Rate Summary -->
@@ -828,7 +891,7 @@ function openHireModal(serviceId) {
         Cancel / वापस जाएं
       </button>
       <button onclick="handleConfirmDirectHire('${escapeAttribute(proName)}', '${escapeAttribute(title)}')" class="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition shadow-sm">
-        <i class="fa-solid fa-check mr-1.5"></i> Confirm Selection
+        <i class="fa-solid fa-paper-plane mr-1.5"></i> Send Request
       </button>
     </div>
   `;
@@ -839,7 +902,7 @@ function openHireModal(serviceId) {
 
 function handleConfirmDirectHire(proName, serviceTitle) {
   closeModals();
-  showToast(`Direct Hire selection confirmed for ${proName} (${serviceTitle})! Dispatch flow activated.`, "success");
+  showToast(`Request sent to ${proName} (${serviceTitle})! Dispatch flow activated.`, "success");
 }
 
 function closeModals() {

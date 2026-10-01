@@ -52,7 +52,7 @@ const PERSONAS = {
     about: "Licensed Civil & Structural Engineer specialized in RCC building audits, beam & column reinforcement detailing, BOQ estimation, and municipal building bylaws approvals across Delhi NCR.",
     skills: ["Structural Audit", "BOQ Estimation", "RCC Detailing", "AutoCAD", "Slump Testing", "Seismic Compliance"],
     stats: {
-      newRequests: 12,
+      newRequests: 0,
       activeProjects: 4,
       completedProjects: 37,
       upcomingWork: 6,
@@ -68,11 +68,7 @@ const PERSONAS = {
       { id: 3, name: "Residential Construction Supervision", price: "₹25,000", type: "Per Month", duration: "Project Life", desc: "Regular weekly 3-day quality checks, slab casting supervision, and contractor compliance audits.", active: true },
       { id: 4, name: "Foundation & Soil Soil-Bearing Consultation", price: "₹6,000", type: "Per Site", duration: "2 Days", desc: "Recommendation of raft or isolated footings based on soil investigation metrics.", active: false }
     ],
-    requests: [
-      { id: "REQ-7101", customer: "Amit Kumar", project: "Duplex Villa Structural Consultation", service: "Civil Engineer", location: "Sector 44, Noida", budget: "₹25,000", date: "10 Oct 2026", distance: "8.4 km", time: "2 hrs ago", status: "New", desc: "Need structural engineer to inspect lintel and beam placement for a 3-storey independent duplex." },
-      { id: "REQ-7092", customer: "Sunil Narang", project: "BOQ for Commercial Warehouse", service: "Civil Engineer", location: "Greater Noida West", budget: "₹18,000", date: "14 Oct 2026", distance: "14.2 km", time: "5 hrs ago", status: "Pending", desc: "Complete material quantity estimation needed prior to vendor tendering." },
-      { id: "REQ-7080", customer: "Vikas Mehra", project: "Slab Casting Quality Audit", service: "Civil Engineer", location: "Indirapuram, Ghaziabad", budget: "₹7,500", date: "18 Oct 2026", distance: "11.0 km", time: "1 day ago", status: "Accepted", desc: "On-site sampling and slump test supervision for second-floor roof slab." }
-    ],
+    requests: [],
     projects: [
       { id: "PRJ-901", name: "Greenfield Villa Structural Works", customer: "Vikram Singhania", service: "Civil Supervision", start: "02 Sep 2026", deadline: "28 Oct 2026", budget: "₹75,000", progress: 68, status: "Active", nextMilestone: "Roof Slab Casting" },
       { id: "PRJ-902", name: "Apex Heights Foundation Audit", customer: "Apex Infra Tech", service: "Structural Consultation", start: "20 Sep 2026", deadline: "15 Oct 2026", budget: "₹42,000", progress: 85, status: "Active", nextMilestone: "Final Safety Stamped Report" },
@@ -102,7 +98,7 @@ const PERSONAS = {
     about: "Award-winning interior stylist focusing on modern biophilic residential spaces, ergonomic modular kitchens, false ceiling lighting design, and photorealistic 3D visualization.",
     skills: ["3D Rendering", "Modular Kitchens", "False Ceiling", "Lighting Design", "Material Curation", "Space Planning"],
     stats: {
-      newRequests: 15,
+      newRequests: 0,
       activeProjects: 5,
       completedProjects: 48,
       upcomingWork: 8,
@@ -117,10 +113,7 @@ const PERSONAS = {
       { id: 12, name: "Turnkey Modular Kitchen Design", price: "₹18,000", type: "Fixed Quote", duration: "4 Days", desc: "Cabinet spatial layout, quartz countertop selection, and Hafele/Blum hardware BOQ.", active: true },
       { id: 13, name: "False Ceiling & Ambient Lighting Plan", price: "₹12,000", type: "Per Floor", duration: "3 Days", desc: "Detailed CAD electrical co-ordination drawings for POP cove lighting and magnetic tracks.", active: true }
     ],
-    requests: [
-      { id: "REQ-7204", customer: "Deepak Agarwal", project: "4BHK Luxury Penthouse Makeover", service: "Interior Designer", location: "Golf Course Road, Gurugram", budget: "₹1,40,000", date: "12 Oct 2026", distance: "4.5 km", time: "30 mins ago", status: "New", desc: "Full modern contemporary interior design with walk-in closets and bespoke bar counter." },
-      { id: "REQ-7201", customer: "Ritika Sen", project: "Modular Kitchen & Living Refresh", service: "Interior Designer", location: "DLF Phase 4, Gurugram", budget: "₹45,000", date: "15 Oct 2026", distance: "6.1 km", time: "4 hrs ago", status: "Pending", desc: "Scandinavian open layout design with pantry optimization." }
-    ],
+    requests: [],
     projects: [
       { id: "PRJ-911", name: "DLF Magnolias 3BHK Renovation", customer: "Rajiv Singhal", service: "Interior Architecture", start: "10 Aug 2026", deadline: "30 Oct 2026", budget: "₹1,85,000", progress: 74, status: "Active", nextMilestone: "Custom Wardrobes Installation" }
     ],
@@ -147,7 +140,7 @@ const PERSONAS = {
     about: "Govt. Licensed Class-A Wireman specializing in complete conduit wiring for new builds, DB box distribution, short circuit detection, smart home automation, and solar inverter setup.",
     skills: ["Conduit Wiring", "MCB/DB Dressing", "Smart Automation", "Earthing & Surge", "Load Calculation"],
     stats: {
-      newRequests: 18,
+      newRequests: 0,
       activeProjects: 3,
       completedProjects: 112,
       upcomingWork: 11,
@@ -161,9 +154,7 @@ const PERSONAS = {
       { id: 21, name: "Complete Residential Conduit Wiring", price: "₹24", type: "Per Sq. Ft", duration: "5-7 Days", desc: "Laying ISI conduits, copper pull wiring, switchboard fixing, and loop testing.", active: true },
       { id: 22, name: "Main Distribution Board (DB) Dressing", price: "₹2,200", type: "Per Panel", duration: "4 Hours", desc: "RCCB/MCB distribution balance, phase segregations, and neutral link testing.", active: true }
     ],
-    requests: [
-      { id: "REQ-7301", customer: "Manish Joshi", project: "Complete 3-Floor House Wiring", service: "Electrician", location: "Saket, New Delhi", budget: "₹38,000", date: "11 Oct 2026", distance: "3.2 km", time: "1 hr ago", status: "New", desc: "Fresh building conduit wire pull with Polycab cables and Legrand DB installation." }
-    ],
+    requests: [],
     projects: [
       { id: "PRJ-921", name: "Green Park Commercial Showroom Wiring", customer: "Komal Sethi", service: "Electrical Installation", start: "28 Sep 2026", deadline: "14 Oct 2026", budget: "₹34,000", progress: 60, status: "Active", nextMilestone: "DB Box Wiring & Phase Balancing" }
     ],
@@ -190,7 +181,7 @@ const PERSONAS = {
     about: "Certified piping & sanitation technician expert in CPVC/UPVC concealed pipe layouts, grohe/kohler diverter installations, water tank booster pumps, and underground drainage slope alignments.",
     skills: ["CPVC/UPVC Piping", "Concealed Diverters", "Booster Pumps", "Drainage Outflow", "Leak Inspection"],
     stats: {
-      newRequests: 9,
+      newRequests: 0,
       activeProjects: 2,
       completedProjects: 78,
       upcomingWork: 4,
@@ -204,9 +195,7 @@ const PERSONAS = {
       { id: 31, name: "Concealed Bathroom Pipe Fitting", price: "₹6,500", type: "Per Bathroom", duration: "2 Days", desc: "Pressure-tested hot/cold lines with wall-hung commode chair bracket mounting.", active: true },
       { id: 32, name: "Overhead Tank & Pressure Booster Setup", price: "₹2,800", type: "Per Setup", duration: "Half Day", desc: "Multi-point distribution lines with anti-vibration mountings.", active: true }
     ],
-    requests: [
-      { id: "REQ-7401", customer: "Harsh Bansal", project: "Master Bath Concealed Diverter Installation", service: "Plumber", location: "Vasundhara, Ghaziabad", budget: "₹8,500", date: "09 Oct 2026", distance: "4.8 km", time: "40 mins ago", status: "New", desc: "Need Grohe 3-inlet thermostatic diverter fitted inside brick chase with pressure test." }
-    ],
+    requests: [],
     projects: [
       { id: "PRJ-931", name: "Duplex Sanitary Pipeline Setup", customer: "Pooja Chawla", service: "Plumbing Contract", start: "22 Sep 2026", deadline: "12 Oct 2026", budget: "₹26,000", progress: 80, status: "Active", nextMilestone: "Sanitary Ware Fixing" }
     ],
@@ -232,7 +221,7 @@ const PERSONAS = {
     about: "Head Mistri leading skilled labor crews for first-class red brickwork, 1:4 plastering, PCC levelling, AAC lightweight block laying, and precision tile leveling systems.",
     skills: ["AAC Blockwork", "Red Brick Masonry", "Sponge Plastering", "Tile Cladding", "Foundation PCC"],
     stats: {
-      newRequests: 11,
+      newRequests: 0,
       activeProjects: 3,
       completedProjects: 93,
       upcomingWork: 5,
@@ -246,9 +235,7 @@ const PERSONAS = {
       { id: 41, name: "9-inch Red Brick / AAC Block Masonry", price: "₹18", type: "Per Sq. Ft", duration: "Team Work", desc: "Plumb line verified mortar bonding with expansion joint treatment.", active: true },
       { id: 42, name: "Double Coat Sand Face External Plaster", price: "₹14", type: "Per Sq. Ft", duration: "Team Work", desc: "Water-resistant cement mortar with smooth sponge finish.", active: true }
     ],
-    requests: [
-      { id: "REQ-7501", customer: "Rajender Pal", project: "Boundary Wall & Gate Pillar Masonry", service: "Mason / Mistri", location: "Sector 1, Greater Noida", budget: "₹32,000", date: "16 Oct 2026", distance: "9.2 km", time: "3 hrs ago", status: "New", desc: "180 running feet 6-ft high 9-inch brick boundary wall with RCC column encasement." }
-    ],
+    requests: [],
     projects: [
       { id: "PRJ-941", name: "Farmhouse AAC Block Outer Boundary", customer: "Alok Goel", service: "Masonry Contract", start: "25 Sep 2026", deadline: "20 Oct 2026", budget: "₹58,000", progress: 45, status: "Active", nextMilestone: "Coping & Internal Plastering" }
     ],
@@ -388,6 +375,73 @@ async function fetchAndUpdateProfile() {
     }
   } catch (err) {
     console.warn("Could not fetch profile from backend:", err);
+  }
+}
+
+function updateSidebarRequestBadge(count) {
+  const badge = document.getElementById('side-req-badge');
+  if (badge) {
+    const val = typeof count === 'number' ? count : ((currentPro && currentPro.requests) ? currentPro.requests.length : 0);
+    badge.innerText = val;
+  }
+}
+
+async function fetchAndUpdateRequests() {
+  const token = getCleanToken();
+  if (!token) {
+    updateSidebarRequestBadge(0);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/professional/requests`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const backendRequests = await res.json();
+      if (Array.isArray(backendRequests)) {
+        currentPro.requests = backendRequests.map(req => ({
+          id: req.id || req.requestId || ('REQ-' + req.numericId),
+          numericId: req.numericId,
+          project: req.project || 'Untitled Project',
+          customer: req.customer || 'Client',
+          service: req.service || currentPro.type || 'Service',
+          location: req.location || currentPro.location || '',
+          distance: req.distance || '',
+          date: req.date || '--',
+          budget: req.budget ? req.budget : '--',
+          rawBudget: req.rawBudget,
+          status: req.status || 'New',
+          desc: req.desc || '',
+          time: req.time || ''
+        }));
+
+        updateSidebarRequestBadge(currentPro.requests.length);
+        if (currentPro && currentPro.stats) {
+          currentPro.stats.newRequests = currentPro.requests.filter(r => (r.status || '').toLowerCase() === 'new').length;
+          const statElem = document.getElementById('stat-new-requests');
+          if (statElem) statElem.innerText = currentPro.stats.newRequests;
+        }
+
+        if (activeRoute === 'requests' || activeRoute === 'dashboard') {
+          const container = document.getElementById('main-view');
+          if (container) {
+            if (activeRoute === 'requests') renderRequests(container);
+            else if (activeRoute === 'dashboard') renderDashboard(container);
+          }
+        }
+      }
+    } else {
+      console.warn("Could not fetch requests from backend, status:", res.status);
+      updateSidebarRequestBadge(currentPro && currentPro.requests ? currentPro.requests.length : 0);
+    }
+  } catch (err) {
+    console.warn("Could not fetch requests from backend:", err);
+    updateSidebarRequestBadge(currentPro && currentPro.requests ? currentPro.requests.length : 0);
   }
 }
 
@@ -556,6 +610,7 @@ function navigate(route) {
       break;
     case 'requests':
       renderRequests(container);
+      fetchAndUpdateRequests();
       break;
     case 'projects':
       renderProjects(container);
@@ -757,30 +812,36 @@ function renderDashboard(container) {
           </div>
 
           <div class="space-y-3.5 flex-1">
-            ${currentPro.requests.map(req => `
+            ${(!currentPro.requests || currentPro.requests.length === 0) ? `
+              <div class="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                <span>No pending service requests.</span>
+              </div>
+            ` : currentPro.requests.map(req => `
               <div class="p-4 rounded-xl border border-slate-200/90 hover:border-orange-300 transition bg-white space-y-3">
                 <div class="flex items-start justify-between">
                   <div>
                     <div class="flex items-center gap-2">
                       <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700">${req.service}</span>
-                      <span class="text-xs text-slate-400">• ${req.distance} away</span>
+                      <span class="text-xs text-slate-400">• ${req.distance ? req.distance + ' away' : 'Local'}</span>
                     </div>
                     <h4 class="text-sm font-bold text-slate-900 mt-1">${req.project}</h4>
                     <p class="text-xs text-slate-500">Client: <strong class="text-slate-700">${req.customer}</strong> • <i class="fa-solid fa-location-dot text-[10px]"></i> ${req.location}</p>
                   </div>
                   <div class="text-right">
-                    <span class="text-sm font-extrabold text-slate-900 block">${req.budget}</span>
-                    <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock"></i> ${req.time}</span>
+                    <span class="text-sm font-extrabold text-slate-900 block">${req.budget ? req.budget : '--'}</span>
+                    <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock"></i> ${req.time || ''}</span>
                   </div>
                 </div>
 
-                <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">${req.desc}</p>
+                <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">${req.desc || ''}</p>
 
                 <div class="flex items-center justify-between pt-1">
-                  <span class="text-[11px] font-semibold text-slate-500">Requested: ${req.date}</span>
+                  <span class="text-[11px] font-semibold text-slate-500">Requested: ${req.date || '--'}</span>
                   <div class="flex items-center space-x-2">
                     <button onclick="openRequestModal('${req.id}')" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">View Scope</button>
-                    <button onclick="acceptRequest('${req.id}')" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition">Accept Request</button>
+                    ${(req.status || '').toLowerCase() === 'new' ? `
+                      <button onclick="acceptRequest('${req.id}')" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition">Accept Request</button>
+                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -1087,7 +1148,7 @@ function renderRequests(container) {
         <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
           <div class="flex items-center space-x-2">
             <span class="text-xs font-bold text-slate-800">Filtered Table View</span>
-            <span class="text-[11px] text-slate-500">(${currentPro.requests.length} Requests total)</span>
+            <span class="text-[11px] text-slate-500">(${currentPro.requests ? currentPro.requests.length : 0} Requests total)</span>
           </div>
           <div class="text-xs text-slate-500 flex items-center space-x-2">
             <i class="fa-solid fa-shield text-emerald-600"></i>
@@ -1110,7 +1171,14 @@ function renderRequests(container) {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              ${currentPro.requests.map(req => `
+              ${(!currentPro.requests || currentPro.requests.length === 0) ? `
+                <tr>
+                  <td colspan="8" class="p-8 text-center text-slate-400">
+                    <i class="fa-regular fa-clipboard text-2xl mb-2 block text-slate-300"></i>
+                    <span>No client service requests found at this time.</span>
+                  </td>
+                </tr>
+              ` : currentPro.requests.map(req => `
                 <tr class="hover:bg-slate-50 transition">
                   <td class="p-4 font-mono font-bold text-slate-800">${req.id}</td>
                   <td class="p-4">
@@ -1118,18 +1186,19 @@ function renderRequests(container) {
                     <div class="text-[11px] text-slate-500">Client: ${req.customer}</div>
                   </td>
                   <td class="p-4 font-medium text-slate-700">${req.service}</td>
-                  <td class="p-4 text-slate-600">${req.location} (${req.distance})</td>
-                  <td class="p-4 text-slate-600">${req.date}</td>
-                  <td class="p-4 font-bold text-slate-900">${req.budget}</td>
+                  <td class="p-4 text-slate-600">${req.location}${req.distance ? ` (${req.distance})` : ''}</td>
+                  <td class="p-4 text-slate-600">${req.date || '--'}</td>
+                  <td class="p-4 font-bold text-slate-900">${req.budget ? req.budget : '--'}</td>
                   <td class="p-4">
                     <span class="px-2.5 py-1 rounded-md text-[10px] font-bold ${
-                      req.status === 'New' ? 'bg-orange-100 text-orange-700' :
-                      req.status === 'Accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                      (req.status || '').toLowerCase() === 'new' ? 'bg-orange-100 text-orange-700' :
+                      (req.status || '').toLowerCase() === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
+                      (req.status || '').toLowerCase() === 'declined' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'
                     }">${req.status}</span>
                   </td>
                   <td class="p-4 text-right space-x-1.5">
                     <button onclick="openRequestModal('${req.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs transition">View Scope</button>
-                    ${req.status === 'New' ? `
+                    ${(req.status || '').toLowerCase() === 'new' ? `
                       <button onclick="acceptRequest('${req.id}')" class="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold text-xs shadow-sm transition">Accept</button>
                       <button onclick="promptDecline('${req.id}')" class="px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg font-semibold text-xs transition">Decline</button>
                     ` : ''}
@@ -1840,30 +1909,31 @@ function renderReviews(container) {
 }
 
 function openRequestModal(reqId) {
-  const req = currentPro.requests.find(r => r.id === reqId) || currentPro.requests[0];
+  const req = (currentPro.requests || []).find(r => String(r.id) === String(reqId)) || (currentPro.requests && currentPro.requests[0]);
+  if (!req) return;
   const body = document.getElementById('modal-request-body');
   body.innerHTML = `
     <div class="space-y-4 text-xs">
       <div class="p-4 bg-slate-50 rounded-xl space-y-1">
         <span class="text-[10px] font-bold text-orange-600 uppercase tracking-wider">${req.service}</span>
         <h4 class="text-sm font-bold text-slate-900">${req.project}</h4>
-        <p class="text-slate-500">Customer: <strong class="text-slate-700">${req.customer}</strong> • Target Date: ${req.date}</p>
+        <p class="text-slate-500">Customer: <strong class="text-slate-700">${req.customer}</strong> • Target Date: ${req.date || '--'}</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div class="p-3.5 border border-slate-200 rounded-xl">
           <span class="text-slate-400 block text-[10px]">Estimated Budget</span>
-          <span class="text-base font-extrabold text-slate-900">${req.budget}</span>
+          <span class="text-base font-extrabold text-slate-900">${req.budget ? req.budget : '--'}</span>
         </div>
         <div class="p-3.5 border border-slate-200 rounded-xl">
           <span class="text-slate-400 block text-[10px]">Site Distance</span>
-          <span class="text-base font-extrabold text-slate-900">${req.distance}</span>
+          <span class="text-base font-extrabold text-slate-900">${req.distance || '--'}</span>
         </div>
       </div>
 
       <div>
         <h5 class="font-bold text-slate-800 mb-1">Project Scope & Client Requirements</h5>
-        <p class="text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">${req.desc}</p>
+        <p class="text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">${req.desc || 'No additional scope details provided.'}</p>
       </div>
 
       <div class="p-3 bg-blue-50 rounded-xl text-blue-800 text-[11px] flex items-center space-x-2">
@@ -1873,19 +1943,38 @@ function openRequestModal(reqId) {
 
       <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
         <button onclick="closeModal('modal-request-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold">Close</button>
-        <button onclick="acceptRequest('${req.id}'); closeModal('modal-request-detail');" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm">Accept Request</button>
+        ${(req.status || '').toLowerCase() === 'new' ? `
+          <button onclick="acceptRequest('${req.id}'); closeModal('modal-request-detail');" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm">Accept Request</button>
+        ` : ''}
       </div>
     </div>
   `;
   openModal('modal-request-detail');
 }
 
-function acceptRequest(reqId) {
-  const r = currentPro.requests.find(x => x.id === reqId);
+async function acceptRequest(reqId) {
+  const r = (currentPro.requests || []).find(x => String(x.id) === String(reqId));
   if (r) {
     r.status = 'Accepted';
     showToast(`Request ${reqId} accepted and added to Active Works pipeline!`, 'success');
     navigate(activeRoute);
+
+    const token = getCleanToken();
+    if (token) {
+      try {
+        await fetch(`${getApiBaseUrl()}/api/professional/requests/${encodeURIComponent(reqId)}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ status: 'Accepted' })
+        });
+      } catch (e) {
+        console.warn("Could not sync request acceptance to backend:", e);
+      }
+    }
   }
 }
 
@@ -1894,11 +1983,29 @@ function promptDecline(reqId) {
   document.getElementById('confirm-title').innerText = "Decline Work Request?";
   document.getElementById('confirm-msg').innerText = "The client will be matched with another verified professional in your area.";
 
-  confirmBtn.onclick = () => {
-    currentPro.requests = currentPro.requests.filter(r => r.id !== reqId);
+  confirmBtn.onclick = async () => {
+    currentPro.requests = (currentPro.requests || []).filter(r => String(r.id) !== String(reqId));
+    updateSidebarRequestBadge(currentPro.requests.length);
     closeModal('modal-confirm');
     showToast(`Request ${reqId} was declined`, 'info');
     navigate(activeRoute);
+
+    const token = getCleanToken();
+    if (token) {
+      try {
+        await fetch(`${getApiBaseUrl()}/api/professional/requests/${encodeURIComponent(reqId)}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ status: 'Declined' })
+        });
+      } catch (e) {
+        console.warn("Could not sync request decline to backend:", e);
+      }
+    }
   };
   openModal('modal-confirm');
 }
@@ -2049,8 +2156,14 @@ window.addEventListener('DOMContentLoaded', () => {
   // Synchronously sync identity from stored session (zero flash)
   syncIdentityWithStoredSession();
 
+  // Initialize sidebar request badge from cached/current state
+  updateSidebarRequestBadge();
+
   // Asynchronously fetch fresh profile from backend
   fetchAndUpdateProfile();
+
+  // Asynchronously fetch fresh client requests from backend
+  fetchAndUpdateRequests();
 
   // Populate notification dropdown initial content
   const notifList = document.getElementById('notif-list');

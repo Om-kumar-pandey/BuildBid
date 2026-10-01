@@ -106,8 +106,8 @@
 
     <!-- Stepper Indicator -->
     <div class="grid grid-cols-3 gap-3 text-xs">
-      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+      <div id="stepper-step-1" class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition">
+        <div id="stepper-step-1-badge" class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
           1
         </div>
         <div>
@@ -115,8 +115,8 @@
           <span class="text-[11px] text-slate-500">Master Construction Catalog</span>
         </div>
       </div>
-      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+      <div id="stepper-step-2" class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition">
+        <div id="stepper-step-2-badge" class="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
           2
         </div>
         <div>
@@ -124,8 +124,8 @@
           <span class="text-[11px] text-slate-500">Auto GPS or Manual City</span>
         </div>
       </div>
-      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
+      <div id="stepper-step-3" class="bg-white p-3.5 rounded-2xl border border-slate-200 flex items-center space-x-3 transition">
+        <div id="stepper-step-3-badge" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
           3
         </div>
         <div>
@@ -134,6 +134,11 @@
         </div>
       </div>
     </div>
+
+    <!-- ============================================================
+         CONFIGURATION VIEW (STEP 1 & STEP 2)
+         ============================================================ -->
+    <div id="direct-hire-config-view" class="space-y-6">
 
     <!-- ============================================================
          STEP 1: DYNAMIC SERVICE SELECTION (MASTER CATALOG)
@@ -261,11 +266,22 @@
         <span>PROCEED TO VIEW PROFESSIONALS / आगे बढ़ें</span>
       </button>
     </div>
+    </div><!-- End direct-hire-config-view -->
 
     <!-- ============================================================
-         STEP 3: RESULTS SECTION (ALL MATCHING PROFESSIONALS)
+         STEP 3: RESULTS SECTION (DEDICATED CONTINUATION VIEW)
          ============================================================ -->
     <section id="results-section" class="space-y-4 pt-2 hidden">
+      <!-- Step 3 Top Navigation Bar -->
+      <div class="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+        <button type="button" id="btn-step3-back" onclick="handleBackToConfig()" class="inline-flex items-center px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition shadow-xs">
+          <i class="fa-solid fa-arrow-left mr-2"></i> Back
+        </button>
+        <button type="button" id="btn-step3-dashboard" onclick="handleStep3GoToDashboard()" class="inline-flex items-center px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs">
+          <i class="fa-solid fa-gauge mr-2"></i> Go to Dashboard
+        </button>
+      </div>
+
       <!-- Section Title & Sorting Control -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
