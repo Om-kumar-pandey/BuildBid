@@ -234,6 +234,8 @@ function selectCategory(categoryId) {
   document.getElementById("selected-master-service-id").value = "";
   hideVerificationNotice();
   hideCredentialSection();
+  applyBasicTradeForm(false);
+  document.getElementById("step-number-pricing").innerText = "3";
   updateLivePreview();
 }
 
@@ -315,11 +317,13 @@ function selectMasterService(serviceId) {
     // Basic service flow
     showBasicVerificationNotice();
     hideCredentialSection();
+    applyBasicTradeForm(true);
     document.getElementById("step-number-pricing").innerText = "3";
   } else {
     // Credential service flow
     showCredentialVerificationNotice();
     showCredentialSection();
+    applyBasicTradeForm(false);
     document.getElementById("step-number-pricing").innerText = "4";
   }
 
@@ -397,6 +401,73 @@ function hideCredentialSection() {
   document.getElementById("credential-qualification").required = false;
   document.getElementById("credential-license").required = false;
   document.getElementById("credential-authority").required = false;
+}
+
+function applyBasicTradeForm(isBasic) {
+  const shortDescContainer = document.getElementById("field-short-desc-container");
+  const shortDescInput = document.getElementById("service-short-desc");
+  const detailedDescContainer = document.getElementById("field-detailed-desc-container");
+  const scopeFeaturesContainer = document.getElementById("field-scope-features-container");
+  const turnaroundContainer = document.getElementById("field-turnaround-container");
+  const turnaroundInput = document.getElementById("service-turnaround");
+  const gridParams = document.getElementById("grid-service-params");
+
+  if (isBasic) {
+    // 1. Short Description: completely hide, remove validation
+    if (shortDescContainer) shortDescContainer.classList.add("hidden");
+    if (shortDescInput) {
+      shortDescInput.required = false;
+      shortDescInput.value = "";
+    }
+
+    // 2. Details, Scope & Procedure: completely hide, remove validation
+    if (detailedDescContainer) detailedDescContainer.classList.add("hidden");
+    const detailedDescInput = document.getElementById("service-detailed-desc");
+    if (detailedDescInput) detailedDescInput.value = "";
+
+    // 3 & 4. What's Included & What's Not Included: completely hide, remove validation
+    if (scopeFeaturesContainer) scopeFeaturesContainer.classList.add("hidden");
+    const whatsIncludedInput = document.getElementById("service-whats-included");
+    if (whatsIncludedInput) whatsIncludedInput.value = "";
+    const whatsNotIncludedInput = document.getElementById("service-whats-not-included");
+    if (whatsNotIncludedInput) whatsNotIncludedInput.value = "";
+
+    // 5. Service Completion Time (Turnaround Time): completely hide, remove validation
+    if (turnaroundContainer) turnaroundContainer.classList.add("hidden");
+    if (turnaroundInput) {
+      turnaroundInput.required = false;
+      turnaroundInput.value = "";
+    }
+
+    // Adjust grid columns for remaining 2 fields (radius & mode)
+    if (gridParams) {
+      gridParams.classList.remove("sm:grid-cols-3");
+      gridParams.classList.add("sm:grid-cols-2");
+    }
+  } else {
+    // Non-basic / Verification-required services: keep/show all fields
+    if (shortDescContainer) shortDescContainer.classList.remove("hidden");
+    if (shortDescInput) {
+      // Short description is strictly OPTIONAL for non-basic services
+      shortDescInput.required = false;
+    }
+
+    if (detailedDescContainer) detailedDescContainer.classList.remove("hidden");
+    if (scopeFeaturesContainer) scopeFeaturesContainer.classList.remove("hidden");
+
+    if (turnaroundContainer) turnaroundContainer.classList.remove("hidden");
+    if (turnaroundInput) {
+      turnaroundInput.required = true;
+      if (!turnaroundInput.value.trim()) {
+        turnaroundInput.value = "1-2 Days";
+      }
+    }
+
+    if (gridParams) {
+      gridParams.classList.remove("sm:grid-cols-2");
+      gridParams.classList.add("sm:grid-cols-3");
+    }
+  }
 }
 
 // ========================================================
@@ -530,6 +601,8 @@ function setupLivePreviewListeners() {
 }
 
 function updateLivePreview() {
+  const isBasicTrade = selectedService && selectedService.verificationRequired === false;
+
   const titleEn = document.getElementById("service-title-en")?.value.trim() || (selectedService?.titleEn || "Select a service...");
   const titleHi = document.getElementById("service-title-hi")?.value.trim() || (selectedService?.titleHi || "सेवा चुनें...");
   const priceVal = parseFloat(document.getElementById("service-price")?.value) || 0;
@@ -537,7 +610,8 @@ function updateLivePreview() {
   const turnaround = document.getElementById("service-turnaround")?.value.trim() || "1-2 Days";
   const radius = document.getElementById("service-radius")?.value || "25";
   const mode = document.getElementById("service-mode")?.value || "ON_SITE";
-  const desc = document.getElementById("service-short-desc")?.value.trim() || "Service summary and inspection scope will appear here as you type.";
+  const rawShortDesc = document.getElementById("service-short-desc")?.value.trim() || "";
+  const desc = rawShortDesc || (isBasicTrade ? "" : "Service summary and inspection scope will appear here as you type.");
 
   // Mode label
   let modeLabel = "On-Site Service";
@@ -550,6 +624,7 @@ function updateLivePreview() {
   const prevPrice = document.getElementById("prev-price");
   const prevUnit = document.getElementById("prev-unit");
   const prevTurnaround = document.getElementById("prev-turnaround");
+  const prevTurnaroundItem = document.getElementById("prev-turnaround-item");
   const prevRadius = document.getElementById("prev-radius");
   const prevMode = document.getElementById("prev-mode");
   const prevDesc = document.getElementById("prev-desc");
@@ -559,10 +634,22 @@ function updateLivePreview() {
   if (prevTitleHi) prevTitleHi.innerText = titleHi;
   if (prevPrice) prevPrice.innerText = "₹" + priceVal.toLocaleString("en-IN");
   if (prevUnit) prevUnit.innerText = " / " + unit.split("/")[0].trim();
-  if (prevTurnaround) prevTurnaround.innerText = turnaround;
   if (prevRadius) prevRadius.innerText = radius + " km Radius";
   if (prevMode) prevMode.innerText = modeLabel;
-  if (prevDesc) prevDesc.innerText = desc;
+
+  if (isBasicTrade) {
+    if (prevDesc) prevDesc.classList.add("hidden");
+    if (prevTurnaroundItem) prevTurnaroundItem.classList.add("hidden");
+  } else {
+    if (prevDesc) {
+      prevDesc.classList.remove("hidden");
+      prevDesc.innerText = desc;
+    }
+    if (prevTurnaroundItem) {
+      prevTurnaroundItem.classList.remove("hidden");
+      if (prevTurnaround) prevTurnaround.innerText = turnaround;
+    }
+  }
 
   // Status badge update
   if (prevBadge) {
@@ -652,17 +739,19 @@ async function handleFormSubmit(e) {
   }
 
   // 5. Build Payload strictly adhering to Phase 1 contract
+  const isBasicTrade = selectedService.verificationRequired === false;
+
   const payload = {
     masterServiceId: selectedService.id,
     serviceTitleEn: document.getElementById("service-title-en").value.trim(),
     serviceTitleHi: document.getElementById("service-title-hi").value.trim(),
-    shortDescription: document.getElementById("service-short-desc").value.trim(),
-    detailedDescription: document.getElementById("service-detailed-desc")?.value.trim() || "",
-    whatsIncluded: document.getElementById("service-whats-included")?.value.trim() || "",
-    whatsNotIncluded: document.getElementById("service-whats-not-included")?.value.trim() || "",
+    shortDescription: isBasicTrade ? "" : (document.getElementById("service-short-desc")?.value.trim() || ""),
+    detailedDescription: isBasicTrade ? "" : (document.getElementById("service-detailed-desc")?.value.trim() || ""),
+    whatsIncluded: isBasicTrade ? "" : (document.getElementById("service-whats-included")?.value.trim() || ""),
+    whatsNotIncluded: isBasicTrade ? "" : (document.getElementById("service-whats-not-included")?.value.trim() || ""),
     price: priceVal,
     pricingUnit: document.getElementById("service-pricing-unit").value.trim(),
-    turnaroundTime: document.getElementById("service-turnaround").value.trim(),
+    turnaroundTime: isBasicTrade ? "" : (document.getElementById("service-turnaround")?.value.trim() || ""),
     serviceAreaRadiusKm: parseInt(document.getElementById("service-radius").value, 10) || 25,
     serviceMode: document.getElementById("service-mode").value,
     qualificationTitle: selectedService.verificationRequired ? qualTitle : null,

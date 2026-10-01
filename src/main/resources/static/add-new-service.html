@@ -305,8 +305,8 @@
               </div>
 
               <!-- Turnaround Time, Service Radius, & Service Mode -->
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
+              <div id="grid-service-params" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div id="field-turnaround-container">
                   <label class="block text-xs font-semibold text-slate-700 mb-1">
                     Turnaround Time — कार्य पूरा होने का समय <span class="text-rose-500">*</span>
                   </label>
@@ -331,15 +331,15 @@
               </div>
 
               <!-- Short Description -->
-              <div>
+              <div id="field-short-desc-container">
                 <label class="block text-xs font-semibold text-slate-700 mb-1">
-                  Short Description — संक्षिप्त विवरण (1-2 Lines) <span class="text-rose-500">*</span>
+                  Short Description — संक्षिप्त विवरण (1-2 Lines)
                 </label>
-                <input type="text" id="service-short-desc" required maxlength="500" placeholder="e.g. Comprehensive on-site RCC structural soundness evaluation with stamped report." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                <input type="text" id="service-short-desc" maxlength="500" placeholder="e.g. Comprehensive on-site RCC structural soundness evaluation with stamped report." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
               </div>
 
               <!-- Detailed Description -->
-              <div>
+              <div id="field-detailed-desc-container">
                 <label class="block text-xs font-semibold text-slate-700 mb-1">
                   Detailed Scope & Procedures — विस्तृत विवरण एवं कार्य प्रक्रिया
                 </label>
@@ -347,14 +347,14 @@
               </div>
 
               <!-- Included & Not Included -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <div id="field-scope-features-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div id="field-whats-included-container">
                   <label class="block text-xs font-semibold text-emerald-700 mb-1">
                     <i class="fa-solid fa-circle-check mr-1"></i> What's Included — क्या शामिल है
                   </label>
                   <textarea id="service-whats-included" rows="2" placeholder="e.g. Initial inspection, measurement report, contractor briefing..." class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition"></textarea>
                 </div>
-                <div>
+                <div id="field-whats-not-included-container">
                   <label class="block text-xs font-semibold text-rose-700 mb-1">
                     <i class="fa-solid fa-circle-xmark mr-1"></i> What's Not Included — क्या शामिल नहीं है
                   </label>
@@ -408,7 +408,7 @@
               <p id="prev-desc" class="text-xs text-slate-600 mt-3 line-clamp-3">Service summary and inspection scope will appear here as you type.</p>
 
               <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-                <div>
+                <div id="prev-turnaround-item">
                   <i class="fa-regular fa-clock text-slate-400 mr-1"></i>
                   <span id="prev-turnaround">1-2 Days</span>
                 </div>
