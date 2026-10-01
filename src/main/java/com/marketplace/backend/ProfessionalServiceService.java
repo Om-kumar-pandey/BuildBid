@@ -194,7 +194,7 @@ public class ProfessionalServiceService {
      * Retrieves all published services for the authenticated professional.
      */
     public List<ProfessionalService> getServicesForProfessional(MarketplaceBackendApplication.MarketplaceUser user) {
-        return professionalServiceRepository.findByProfessionalIdOrderByCreatedAtDesc(user.getId());
+        return professionalServiceRepository.findByProfessional_IdOrderByCreatedAtDesc(user.getId());
     }
 
     /**
@@ -339,7 +339,7 @@ public class ProfessionalServiceService {
      * Credential services are ONLY shown if VERIFIED. Basic services are shown if NOT_REQUIRED.
      */
     public List<ProfessionalService> getPublicServicesForProfessional(Long professionalId) {
-        return professionalServiceRepository.findByProfessionalIdAndActiveTrueAndVerificationStatusIn(
+        return professionalServiceRepository.findByProfessional_IdAndActiveTrueAndVerificationStatusIn(
                 professionalId,
                 Set.of(VerificationStatus.NOT_REQUIRED, VerificationStatus.VERIFIED)
         );
