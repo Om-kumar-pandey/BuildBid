@@ -38,7 +38,7 @@ tailwind.config = {
 const PERSONAS = {
   civil_engineer: {
     id: "BBD-CE-84920",
-    name: "Rahul Sharma",
+    name: "Professional",
     type: "Civil Engineer",
     category: "Structural Consultation & BOQ",
     location: "Noida, Uttar Pradesh",
@@ -88,7 +88,7 @@ const PERSONAS = {
 
   interior_designer: {
     id: "BBD-ID-33910",
-    name: "Priya Verma",
+    name: "Professional",
     type: "Interior Designer",
     category: "Interior Architecture & Spatial Design",
     location: "Gurugram, Haryana",
@@ -133,7 +133,7 @@ const PERSONAS = {
 
   electrician: {
     id: "BBD-EL-40291",
-    name: "Amit Kumar",
+    name: "Professional",
     type: "Electrician",
     category: "Electrical Contracting & Maintenance",
     location: "Delhi (South)",
@@ -176,7 +176,7 @@ const PERSONAS = {
 
   plumber: {
     id: "BBD-PL-55102",
-    name: "Rakesh Yadav",
+    name: "Professional",
     type: "Plumber",
     category: "Sanitary & Plumbing Specialist",
     location: "Ghaziabad, Uttar Pradesh",
@@ -218,7 +218,7 @@ const PERSONAS = {
 
   mason: {
     id: "BBD-MS-30988",
-    name: "Sanjay Kumar",
+    name: "Professional",
     type: "Mason / Mistri",
     category: "Civil Masonry & Plastering Specialist",
     location: "Greater Noida, Uttar Pradesh",
@@ -259,9 +259,170 @@ const PERSONAS = {
   }
 };
 
-let activePersonaKey = 'civil_engineer';
+function getApiBaseUrl() {
+  if (typeof window !== 'undefined' && window.location) {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+  }
+  return 'https://buildbid-ap3j.onrender.com';
+}
+
+function getCleanToken() {
+  let token = localStorage.getItem("token") || 
+              localStorage.getItem("authToken") || 
+              localStorage.getItem("marketplaceToken") || 
+              sessionStorage.getItem("token") || "";
+  if (!token) return "";
+  token = String(token).trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+      token = token.slice(1, -1).trim();
+      changed = true;
+    }
+    if (token.startsWith("Bearer ")) {
+      token = token.substring(7).trim();
+      changed = true;
+    }
+  }
+  return token;
+}
+
+function normalizeProfessionalType(raw) {
+  if (!raw || typeof raw !== 'string') return 'Professional';
+  const val = raw.trim();
+  const lower = val.toLowerCase().replace(/_/g, ' ');
+  if (lower.includes('civil') || lower === 'engineer') return 'Civil Engineer';
+  if (lower.includes('architect')) return 'Architect';
+  if (lower.includes('interior')) return 'Interior Designer';
+  if (lower.includes('electric')) return 'Electrician';
+  if (lower.includes('plumb')) return 'Plumber';
+  if (lower.includes('mason') || lower.includes('mistri')) return 'Mason / Mistri';
+  if (lower.includes('carpent')) return 'Carpenter';
+  return val.charAt(0).toUpperCase() + val.slice(1);
+}
+
+function applyProfessionalIdentity(name, location, type) {
+  if (name && name.trim()) {
+    currentPro.name = name.trim();
+  }
+  if (location && location.trim()) {
+    currentPro.location = location.trim();
+  }
+  if (type && type.trim()) {
+    currentPro.type = type.trim();
+    currentPro.category = type.trim();
+  }
+
+  // Update DOM elements
+  const sideName = document.getElementById('side-name');
+  if (sideName) sideName.innerText = currentPro.name;
+
+  const sideRole = document.getElementById('side-role');
+  if (sideRole) sideRole.innerText = currentPro.type;
+
+  const sideLoc = document.getElementById('side-loc');
+  if (sideLoc) sideLoc.innerText = currentPro.location;
+
+  const topGreeting = document.getElementById('top-greeting');
+  if (topGreeting) topGreeting.innerHTML = `Good Morning, ${currentPro.name} 👋`;
+
+  const topRoleBadge = document.getElementById('top-role-badge');
+  if (topRoleBadge) topRoleBadge.innerText = currentPro.type;
+
+  const topName = document.getElementById('top-name');
+  if (topName) topName.innerText = currentPro.name;
+
+  const menuName = document.getElementById('menu-name');
+  if (menuName) menuName.innerText = currentPro.name;
+
+  const topSubtext = document.getElementById('top-subtext');
+  if (topSubtext) topSubtext.innerText = `Active for on-site ${currentPro.type.toLowerCase()} consultations`;
+}
+
+function syncIdentityWithStoredSession() {
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch (e) {}
+
+  if (cachedUser) {
+    const name = cachedUser.name || cachedUser.fullName || cachedUser.username || "";
+    const location = cachedUser.location || "";
+    const rawType = cachedUser.category || cachedUser.profession || cachedUser.professionalType || cachedUser.type || "";
+    const type = normalizeProfessionalType(rawType);
+    applyProfessionalIdentity(name, location, type);
+  }
+}
+
+async function fetchAndUpdateProfile() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (res.ok) {
+      const profile = await res.json();
+      const name = profile.name || profile.fullName || profile.username || "";
+      const location = profile.location || "";
+      let cachedUser = null;
+      try {
+        const raw = localStorage.getItem("currentUser");
+        if (raw) cachedUser = JSON.parse(raw);
+      } catch (e) {}
+      const rawType = (cachedUser && (cachedUser.category || cachedUser.profession || cachedUser.type)) || profile.category || profile.profession || profile.type || "";
+      const type = normalizeProfessionalType(rawType);
+
+      applyProfessionalIdentity(name, location, type);
+
+      // Re-render active route view with fresh values
+      navigate(activeRoute);
+    }
+  } catch (err) {
+    console.warn("Could not fetch profile from backend:", err);
+  }
+}
+
+function executeLogout() {
+  localStorage.removeItem("marketplaceToken");
+  localStorage.removeItem("token");
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("customerUser");
+  localStorage.removeItem("buildbid_user");
+  sessionStorage.removeItem("pendingRedirect");
+  sessionStorage.removeItem("userData");
+  window.location.href = "index.html";
+}
+
+function getInitialPersonaKey() {
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) {
+      const u = JSON.parse(raw);
+      const cat = (u.category || u.profession || u.professionalType || u.type || "").toLowerCase();
+      if (cat.includes("interior")) return "interior_designer";
+      if (cat.includes("electric")) return "electrician";
+      if (cat.includes("plumb")) return "plumber";
+      if (cat.includes("mason") || cat.includes("mistri")) return "mason";
+    }
+  } catch (e) {}
+  return "civil_engineer";
+}
+
+let activePersonaKey = getInitialPersonaKey();
 let activeRoute = 'dashboard';
 let currentPro = JSON.parse(JSON.stringify(PERSONAS[activePersonaKey]));
+syncIdentityWithStoredSession();
 
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
@@ -339,23 +500,37 @@ function switchPersona(newKey) {
   activePersonaKey = newKey;
   currentPro = JSON.parse(JSON.stringify(PERSONAS[newKey]));
 
+  // Ensure dynamic identity is preserved
+  syncIdentityWithStoredSession();
+
   // Update Sidebar & Header Elements
-  document.getElementById('sidebar-role-select').value = newKey;
-  document.getElementById('side-name').innerText = currentPro.name;
-  document.getElementById('side-role').innerText = currentPro.type;
-  document.getElementById('side-loc').innerText = currentPro.location;
-  document.getElementById('side-avatar').src = currentPro.avatar;
+  const sideSelect = document.getElementById('sidebar-role-select');
+  if (sideSelect) sideSelect.value = newKey;
+  const sideName = document.getElementById('side-name');
+  if (sideName) sideName.innerText = currentPro.name;
+  const sideRole = document.getElementById('side-role');
+  if (sideRole) sideRole.innerText = currentPro.type;
+  const sideLoc = document.getElementById('side-loc');
+  if (sideLoc) sideLoc.innerText = currentPro.location;
+  const sideAvatar = document.getElementById('side-avatar');
+  if (sideAvatar) sideAvatar.src = currentPro.avatar;
 
-  document.getElementById('top-greeting').innerHTML = `Good Day, ${currentPro.name} 👋`;
-  document.getElementById('top-role-badge').innerText = currentPro.type;
-  document.getElementById('top-name').innerText = currentPro.name;
-  document.getElementById('top-avatar').src = currentPro.avatar;
-  document.getElementById('menu-name').innerText = currentPro.name;
-  document.getElementById('menu-id').innerText = `ID: ${currentPro.id}`;
+  const topGreeting = document.getElementById('top-greeting');
+  if (topGreeting) topGreeting.innerHTML = `Good Morning, ${currentPro.name} 👋`;
+  const topRoleBadge = document.getElementById('top-role-badge');
+  if (topRoleBadge) topRoleBadge.innerText = currentPro.type;
+  const topName = document.getElementById('top-name');
+  if (topName) topName.innerText = currentPro.name;
+  const topAvatar = document.getElementById('top-avatar');
+  if (topAvatar) topAvatar.src = currentPro.avatar;
+  const menuName = document.getElementById('menu-name');
+  if (menuName) menuName.innerText = currentPro.name;
+  const menuId = document.getElementById('menu-id');
+  if (menuId) menuId.innerText = `ID: ${currentPro.id}`;
 
-  // Re-render the current view with newly loaded trade metadata
+  // Re-render the current view
   navigate(activeRoute);
-  showToast(`Active trade switched to ${currentPro.type} (${currentPro.name})`, 'success');
+  showToast(`Active trade updated to ${currentPro.type}`, 'success');
 }
 
 function navigate(route) {
@@ -1764,12 +1939,26 @@ function promptLogout() {
   document.getElementById('confirm-msg').innerText = "You will be signed out from this desktop session.";
   confirmBtn.onclick = () => {
     closeModal('modal-confirm');
-    showToast('Signed out successfully', 'info');
+    executeLogout();
   };
   openModal('modal-confirm');
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  // Auth guard: if user is not authenticated, redirect to login
+  const token = getCleanToken();
+  const cachedUser = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+  if (!token && !cachedUser) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  // Synchronously sync identity from stored session (zero flash)
+  syncIdentityWithStoredSession();
+
+  // Asynchronously fetch fresh profile from backend
+  fetchAndUpdateProfile();
+
   // Populate notification dropdown initial content
   const notifList = document.getElementById('notif-list');
   if (notifList) {
