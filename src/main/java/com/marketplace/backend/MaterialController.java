@@ -14,12 +14,15 @@ public class MaterialController {
 
     private final MaterialRepository materialRepository;
     private final MarketplaceBackendApplication.UserRepository userRepository;
+    private final GeoLocationService geoLocationService;
 
     @Autowired
     public MaterialController(MaterialRepository materialRepository,
-                              MarketplaceBackendApplication.UserRepository userRepository) {
+                              MarketplaceBackendApplication.UserRepository userRepository,
+                              GeoLocationService geoLocationService) {
         this.materialRepository = materialRepository;
         this.userRepository = userRepository;
+        this.geoLocationService = geoLocationService;
     }
 
     @PostMapping({"", "/"})
@@ -102,7 +105,43 @@ public class MaterialController {
             stockStatus = "IN_STOCK";
         }
 
-        // 8. Persist material entity
+        // 8. Transportation Policy Configuration
+        String deliveryLocation = payload.get("deliveryLocation") != null ? payload.get("deliveryLocation").toString().trim() : "";
+        if (deliveryLocation.isEmpty() && seller.getLocation() != null) {
+            deliveryLocation = seller.getLocation().trim();
+        }
+
+        Double deliveryRadiusKm = parseDoubleSafe(payload.get("deliveryRadiusKm"));
+        if (deliveryRadiusKm != null && deliveryRadiusKm < 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Delivery radius cannot be negative — डिलीवरी का दायरा नकारात्मक नहीं हो सकता"));
+        }
+
+        String transportBasis = payload.get("transportationChargeBasis") != null ? payload.get("transportationChargeBasis").toString().trim() : null;
+        Double transportRate = parseDoubleSafe(payload.get("transportationRate"));
+
+        if (transportBasis != null && !transportBasis.isEmpty()) {
+            if ("Free Delivery".equalsIgnoreCase(transportBasis)) {
+                transportRate = 0.0;
+            } else if (!"As Applicable".equalsIgnoreCase(transportBasis)) {
+                if (transportRate == null || transportRate < 0) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Valid non-negative Transportation Rate is required for selected basis — चयनित आधार के लिए वैध परिवहन दर आवश्यक है"));
+                }
+            }
+        }
+
+        String beyondRadiusPolicy = payload.get("beyondRadiusPolicy") != null ? payload.get("beyondRadiusPolicy").toString().trim() : "";
+        if (beyondRadiusPolicy.isEmpty()) {
+            beyondRadiusPolicy = "Fair transportation amount will be charged.";
+        }
+
+        Boolean transportEnabled = null;
+        if (payload.get("transportationPolicyEnabled") != null) {
+            transportEnabled = Boolean.parseBoolean(payload.get("transportationPolicyEnabled").toString());
+        } else {
+            transportEnabled = (transportBasis != null && !transportBasis.isEmpty()) || (deliveryRadiusKm != null && deliveryRadiusKm > 0);
+        }
+
+        // 9. Persist material entity
         Material material = new Material();
         material.setSeller(seller);
         material.setCategory(category);
@@ -116,6 +155,12 @@ public class MaterialController {
         material.setUnit(unit);
         material.setUnitPrice(unitPrice);
         material.setStockStatus(stockStatus);
+        material.setDeliveryLocation(deliveryLocation);
+        material.setDeliveryRadiusKm(deliveryRadiusKm);
+        material.setTransportationChargeBasis(transportBasis);
+        material.setTransportationRate(transportRate);
+        material.setBeyondRadiusPolicy(beyondRadiusPolicy);
+        material.setTransportationPolicyEnabled(transportEnabled);
 
         Material saved = materialRepository.save(material);
 
@@ -282,6 +327,43 @@ public class MaterialController {
             material.setDescription(payload.get("description").toString().trim());
         }
 
+        // 7. Update Transportation Policy fields
+        if (payload.containsKey("deliveryLocation")) {
+            material.setDeliveryLocation(payload.get("deliveryLocation") != null ? payload.get("deliveryLocation").toString().trim() : "");
+        }
+        if (payload.containsKey("deliveryRadiusKm")) {
+            Double radius = parseDoubleSafe(payload.get("deliveryRadiusKm"));
+            if (radius != null && radius < 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Delivery radius cannot be negative — डिलीवरी का दायरा नकारात्मक नहीं हो सकता"));
+            }
+            material.setDeliveryRadiusKm(radius);
+        }
+        if (payload.containsKey("transportationChargeBasis")) {
+            String basis = payload.get("transportationChargeBasis") != null ? payload.get("transportationChargeBasis").toString().trim() : "";
+            material.setTransportationChargeBasis(basis.isEmpty() ? null : basis);
+        }
+        if (payload.containsKey("transportationRate")) {
+            Double rate = parseDoubleSafe(payload.get("transportationRate"));
+            String currentBasis = material.getTransportationChargeBasis();
+            if (currentBasis != null && !"Free Delivery".equalsIgnoreCase(currentBasis) && !"As Applicable".equalsIgnoreCase(currentBasis)) {
+                if (rate == null || rate < 0) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Valid non-negative Transportation Rate is required — वैध परिवहन दर आवश्यक है"));
+                }
+            } else if ("Free Delivery".equalsIgnoreCase(currentBasis)) {
+                rate = 0.0;
+            }
+            material.setTransportationRate(rate);
+        }
+        if (payload.containsKey("beyondRadiusPolicy")) {
+            String beyond = payload.get("beyondRadiusPolicy") != null ? payload.get("beyondRadiusPolicy").toString().trim() : "";
+            material.setBeyondRadiusPolicy(beyond.isEmpty() ? "Fair transportation amount will be charged." : beyond);
+        }
+        if (payload.containsKey("transportationPolicyEnabled")) {
+            material.setTransportationPolicyEnabled(Boolean.parseBoolean(payload.get("transportationPolicyEnabled").toString()));
+        } else if (material.getTransportationChargeBasis() != null || material.getDeliveryRadiusKm() != null) {
+            material.setTransportationPolicyEnabled(true);
+        }
+
         Material updated = materialRepository.save(material);
 
         Map<String, Object> response = toMaterialMap(updated);
@@ -387,8 +469,126 @@ public class MaterialController {
         map.put("unit", m.getUnit());
         map.put("unitPrice", m.getUnitPrice());
         map.put("stockStatus", m.getStockStatus());
+        map.put("deliveryLocation", m.getDeliveryLocation() != null ? m.getDeliveryLocation() : "");
+        map.put("deliveryRadiusKm", m.getDeliveryRadiusKm());
+        map.put("transportationChargeBasis", m.getTransportationChargeBasis() != null ? m.getTransportationChargeBasis() : "");
+        map.put("transportationRate", m.getTransportationRate());
+        map.put("beyondRadiusPolicy", m.getBeyondRadiusPolicy() != null ? m.getBeyondRadiusPolicy() : "Fair transportation amount will be charged.");
+        map.put("transportationPolicyEnabled", m.getTransportationPolicyEnabled() != null ? m.getTransportationPolicyEnabled() : false);
         map.put("createdAt", m.getCreatedAt() != null ? m.getCreatedAt().toString() : "");
         return map;
+    }
+
+    @PostMapping("/calculate-transportation")
+    public ResponseEntity<?> calculateTransportation(@RequestBody Map<String, Object> payload) {
+        Long materialId = null;
+        if (payload.get("materialId") != null) {
+            try {
+                materialId = Long.parseLong(payload.get("materialId").toString());
+            } catch (Exception ignored) {}
+        }
+        if (materialId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "materialId is required"));
+        }
+
+        Optional<Material> matOpt = materialRepository.findById(materialId);
+        if (matOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Material not found with ID: " + materialId));
+        }
+
+        Material material = matOpt.get();
+        Double quantity = parseDoubleSafe(payload.get("quantity"));
+        if (quantity == null || quantity <= 0) {
+            quantity = 1.0;
+        }
+
+        Double distanceKm = parseDoubleSafe(payload.get("distanceKm"));
+        String buyerLocation = payload.get("buyerLocation") != null ? payload.get("buyerLocation").toString().trim() : "";
+
+        // If distance not provided explicitly, compute from buyerLocation and seller location
+        if (distanceKm == null && !buyerLocation.isEmpty()) {
+            String origin = material.getDeliveryLocation();
+            if ((origin == null || origin.isBlank()) && material.getSeller() != null) {
+                origin = material.getSeller().getLocation();
+            }
+
+            if (origin != null && !origin.isBlank()) {
+                GeoLocationService.GeoLocation originGeo = geoLocationService.resolveLocation(origin);
+                GeoLocationService.GeoLocation buyerGeo = geoLocationService.resolveLocation(buyerLocation);
+
+                if (originGeo != null && originGeo.hasCoordinates() && buyerGeo != null && buyerGeo.hasCoordinates()) {
+                    distanceKm = geoLocationService.calculateHaversineDistanceKm(
+                            originGeo.latitude(), originGeo.longitude(),
+                            buyerGeo.latitude(), buyerGeo.longitude()
+                    );
+                } else if (geoLocationService.areLocationsEquivalent(origin, buyerLocation)) {
+                    distanceKm = 10.0;
+                }
+            }
+        }
+
+        if (distanceKm == null) {
+            distanceKm = 0.0;
+        }
+
+        Double standardRadius = material.getDeliveryRadiusKm() != null ? material.getDeliveryRadiusKm() : 25.0;
+        boolean withinRadius = (material.getDeliveryRadiusKm() == null) || (distanceKm <= standardRadius);
+
+        String basis = material.getTransportationChargeBasis() != null ? material.getTransportationChargeBasis().trim() : "Free Delivery";
+        Double rate = material.getTransportationRate() != null ? material.getTransportationRate() : 0.0;
+
+        Double transportationAmount = 0.0;
+        boolean fairAmountMessage = false;
+
+        if (withinRadius) {
+            if ("Free Delivery".equalsIgnoreCase(basis)) {
+                transportationAmount = 0.0;
+            } else if ("As Applicable".equalsIgnoreCase(basis)) {
+                transportationAmount = 0.0;
+                fairAmountMessage = true;
+            } else if ("Per Order".equalsIgnoreCase(basis)) {
+                transportationAmount = rate;
+            } else if ("Per KM".equalsIgnoreCase(basis)) {
+                transportationAmount = Math.round((distanceKm * rate) * 100.0) / 100.0;
+            } else if ("Per 100 Pieces".equalsIgnoreCase(basis)) {
+                transportationAmount = Math.round(((quantity / 100.0) * rate) * 100.0) / 100.0;
+            } else if ("Per 500 Pieces".equalsIgnoreCase(basis)) {
+                transportationAmount = Math.round(((quantity / 500.0) * rate) * 100.0) / 100.0;
+            } else if ("Per 1000 Pieces".equalsIgnoreCase(basis)) {
+                transportationAmount = Math.round(((quantity / 1000.0) * rate) * 100.0) / 100.0;
+            } else {
+                // Per Bag, Per Piece, Per KG, Per Ton, Per CFT, Per Cubic Meter
+                transportationAmount = Math.round((quantity * rate) * 100.0) / 100.0;
+            }
+        } else {
+            // Beyond radius: DO NOT charge automatic transportation, show fair transportation message!
+            transportationAmount = 0.0;
+            fairAmountMessage = true;
+        }
+
+        double unitPrice = material.getUnitPrice() != null ? material.getUnitPrice() : 0.0;
+        double materialTotal = Math.round((quantity * unitPrice) * 100.0) / 100.0;
+        double grandTotal = Math.round((materialTotal + transportationAmount) * 100.0) / 100.0;
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("materialId", material.getId());
+        res.put("materialName", material.getMaterialName());
+        res.put("quantity", quantity);
+        res.put("unit", material.getUnit());
+        res.put("unitPrice", unitPrice);
+        res.put("materialTotal", materialTotal);
+        res.put("distanceKm", distanceKm);
+        res.put("standardRadiusKm", standardRadius);
+        res.put("withinRadius", withinRadius);
+        res.put("beyondRadius", !withinRadius);
+        res.put("transportationChargeBasis", basis);
+        res.put("transportationRate", rate);
+        res.put("transportationAmount", transportationAmount);
+        res.put("grandTotal", grandTotal);
+        res.put("beyondRadiusPolicy", material.getBeyondRadiusPolicy() != null ? material.getBeyondRadiusPolicy() : "Fair transportation amount will be charged.");
+        res.put("customerMessage", (!withinRadius || fairAmountMessage) ? "Fair transportation amount will be charged." : null);
+
+        return ResponseEntity.ok(res);
     }
 
     private Double parseDoubleSafe(Object obj) {

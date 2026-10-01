@@ -50,6 +50,24 @@ public class Material {
     @Column(name = "stock_status", nullable = false, length = 50)
     private String stockStatus;
 
+    @Column(name = "delivery_location", length = 200)
+    private String deliveryLocation;
+
+    @Column(name = "delivery_radius_km")
+    private Double deliveryRadiusKm;
+
+    @Column(name = "transportation_charge_basis", length = 100)
+    private String transportationChargeBasis;
+
+    @Column(name = "transportation_rate")
+    private Double transportationRate;
+
+    @Column(name = "beyond_radius_policy", columnDefinition = "TEXT")
+    private String beyondRadiusPolicy = "Fair transportation amount will be charged.";
+
+    @Column(name = "transportation_policy_enabled")
+    private Boolean transportationPolicyEnabled = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -116,6 +134,24 @@ public class Material {
 
     public String getStockStatus() { return stockStatus; }
     public void setStockStatus(String stockStatus) { this.stockStatus = stockStatus; }
+
+    public String getDeliveryLocation() { return deliveryLocation; }
+    public void setDeliveryLocation(String deliveryLocation) { this.deliveryLocation = deliveryLocation; }
+
+    public Double getDeliveryRadiusKm() { return deliveryRadiusKm; }
+    public void setDeliveryRadiusKm(Double deliveryRadiusKm) { this.deliveryRadiusKm = deliveryRadiusKm; }
+
+    public String getTransportationChargeBasis() { return transportationChargeBasis; }
+    public void setTransportationChargeBasis(String transportationChargeBasis) { this.transportationChargeBasis = transportationChargeBasis; }
+
+    public Double getTransportationRate() { return transportationRate; }
+    public void setTransportationRate(Double transportationRate) { this.transportationRate = transportationRate; }
+
+    public String getBeyondRadiusPolicy() { return beyondRadiusPolicy; }
+    public void setBeyondRadiusPolicy(String beyondRadiusPolicy) { this.beyondRadiusPolicy = beyondRadiusPolicy; }
+
+    public Boolean getTransportationPolicyEnabled() { return transportationPolicyEnabled; }
+    public void setTransportationPolicyEnabled(Boolean transportationPolicyEnabled) { this.transportationPolicyEnabled = transportationPolicyEnabled; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

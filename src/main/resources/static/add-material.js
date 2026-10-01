@@ -286,6 +286,100 @@ document.addEventListener("DOMContentLoaded", function() {
     const addMaterialForm = document.getElementById("addMaterialForm");
     const submitBtn = document.getElementById("submitMaterialBtn");
 
+    // Transportation Policy Elements
+    const deliveryLocationInput = document.getElementById("deliveryLocationInput");
+    const deliveryRadiusInput = document.getElementById("deliveryRadiusInput");
+    const transportBasisSelect = document.getElementById("transportBasisSelect");
+    const transportRateInput = document.getElementById("transportRateInput");
+    const transportRateLabel = document.getElementById("transportRateLabel");
+    const transportRateRequiredStar = document.getElementById("transportRateRequiredStar");
+    const transportRateHelp = document.getElementById("transportRateHelp");
+    const beyondRadiusPolicyInput = document.getElementById("beyondRadiusPolicyInput");
+
+    // Pre-populate Delivery Location from authenticated seller profile
+    try {
+        const userKeys = ["currentUser", "marketplaceUser", "userData", "loggedInUser", "customerUser"];
+        for (const k of userKeys) {
+            const raw = localStorage.getItem(k) || sessionStorage.getItem(k);
+            if (raw) {
+                const u = JSON.parse(raw);
+                if (u && (u.location || u.address || u.city)) {
+                    const locParts = [u.location || u.address, u.city, u.state, u.pincode].filter(Boolean);
+                    if (locParts.length > 0 && deliveryLocationInput && !deliveryLocationInput.value) {
+                        deliveryLocationInput.value = locParts.join(", ");
+                    }
+                    break;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Could not prefill seller delivery location:", e);
+    }
+
+    // Dynamic Transportation Rate Label & Placeholder Updater
+    function updateTransportBasisUI() {
+        if (!transportBasisSelect) return;
+        const basis = transportBasisSelect.value;
+        if (!basis) {
+            if (transportRateLabel) transportRateLabel.innerHTML = 'Transportation Amount: ₹ / Unit <span class="text-red-500">*</span>';
+            return;
+        }
+
+        if (basis === "Free Delivery") {
+            if (transportRateLabel) transportRateLabel.innerHTML = 'Transportation Amount: <span class="text-emerald-600 font-bold">₹0 (Free Delivery — निःशुल्क)</span>';
+            if (transportRateInput) {
+                transportRateInput.value = "0";
+                transportRateInput.disabled = true;
+                transportRateInput.classList.add("bg-slate-100", "cursor-not-allowed");
+                transportRateInput.classList.remove("bg-white", "bg-slate-50");
+            }
+            if (transportRateRequiredStar) transportRateRequiredStar.classList.add("hidden");
+            if (transportRateHelp) transportRateHelp.innerText = "No transportation charge applied to customers within standard radius";
+        } else if (basis === "As Applicable") {
+            if (transportRateLabel) transportRateLabel.innerHTML = 'Transportation Policy: <span class="text-blue-700 font-bold">As Applicable — लागू नीति अनुसार</span>';
+            if (transportRateInput) {
+                transportRateInput.disabled = true;
+                transportRateInput.value = "";
+                transportRateInput.placeholder = "Fair transportation amount will be charged";
+                transportRateInput.classList.add("bg-slate-100", "cursor-not-allowed");
+                transportRateInput.classList.remove("bg-white", "bg-slate-50");
+            }
+            if (transportRateRequiredStar) transportRateRequiredStar.classList.add("hidden");
+            if (transportRateHelp) transportRateHelp.innerText = "Fair transportation policy will be communicated for this material";
+        } else {
+            if (transportRateInput) {
+                transportRateInput.disabled = false;
+                transportRateInput.classList.remove("bg-slate-100", "cursor-not-allowed");
+                transportRateInput.classList.add("bg-slate-50");
+            }
+            if (transportRateRequiredStar) transportRateRequiredStar.classList.remove("hidden");
+
+            let unitName = basis.replace("Per ", "");
+            if (transportRateLabel) {
+                transportRateLabel.innerHTML = `Transportation Amount: ₹ / ${escapeHtml(unitName)} <span class="text-red-500">*</span>`;
+            }
+            if (transportRateHelp) {
+                transportRateHelp.innerText = `Enter the rate per ${unitName} for deliveries within standard radius`;
+            }
+
+            if (basis === "Per Bag") transportRateInput.placeholder = "e.g. 15";
+            else if (basis === "Per Piece") transportRateInput.placeholder = "e.g. 1";
+            else if (basis === "Per 100 Pieces") transportRateInput.placeholder = "e.g. 150";
+            else if (basis === "Per 500 Pieces") transportRateInput.placeholder = "e.g. 750";
+            else if (basis === "Per 1000 Pieces") transportRateInput.placeholder = "e.g. 1500";
+            else if (basis === "Per KG") transportRateInput.placeholder = "e.g. 5";
+            else if (basis === "Per Ton") transportRateInput.placeholder = "e.g. 1500";
+            else if (basis === "Per CFT") transportRateInput.placeholder = "e.g. 45";
+            else if (basis === "Per Cubic Meter") transportRateInput.placeholder = "e.g. 1200";
+            else if (basis === "Per Order") transportRateInput.placeholder = "e.g. 500";
+            else if (basis === "Per KM") transportRateInput.placeholder = "e.g. 25";
+        }
+    }
+
+    if (transportBasisSelect) {
+        transportBasisSelect.addEventListener("change", updateTransportBasisUI);
+    }
+
     // Handle Category Selection
     categorySelect.addEventListener("change", function() {
         const selectedCategory = this.value;
@@ -322,6 +416,18 @@ document.addEventListener("DOMContentLoaded", function() {
             otherOpt.textContent = "Other — अन्य (Custom Material)";
             materialSelect.appendChild(otherOpt);
         }
+
+        // Smart transportation basis defaults based on category
+        if (selectedCategory.includes("Cement") || selectedCategory.includes("सीमेंट")) {
+            if (transportBasisSelect) transportBasisSelect.value = "Per Bag";
+        } else if (selectedCategory.includes("Steel") || selectedCategory.includes("स्टील")) {
+            if (transportBasisSelect) transportBasisSelect.value = "Per Ton";
+        } else if (selectedCategory.includes("Bricks") || selectedCategory.includes("ईंट")) {
+            if (transportBasisSelect) transportBasisSelect.value = "Per Piece";
+        } else if (selectedCategory.includes("Sand") || selectedCategory.includes("Aggregates") || selectedCategory.includes("रेत") || selectedCategory.includes("गिट्टी")) {
+            if (transportBasisSelect) transportBasisSelect.value = "Per CFT";
+        }
+        updateTransportBasisUI();
 
         // If category is "Other — अन्य", show custom input immediately
         if (selectedCategory === "Other — अन्य") {
@@ -465,6 +571,34 @@ document.addEventListener("DOMContentLoaded", function() {
         const brand = document.getElementById("brandInput") ? document.getElementById("brandInput").value.trim() : "";
         const specifications = document.getElementById("specificationsInput") ? document.getElementById("specificationsInput").value.trim() : "";
 
+        // Validate Transportation Policy Fields
+        const deliveryLocation = deliveryLocationInput ? deliveryLocationInput.value.trim() : "";
+        const deliveryRadiusKm = parseFloat(deliveryRadiusInput ? deliveryRadiusInput.value : 0);
+        if (isNaN(deliveryRadiusKm) || deliveryRadiusKm < 0) {
+            showToast("Please enter a valid Standard Delivery Radius (>= 0 KM) — वैध वितरण दायरा दर्ज करें", "error");
+            if (deliveryRadiusInput) deliveryRadiusInput.focus();
+            return;
+        }
+
+        const transportBasis = transportBasisSelect ? transportBasisSelect.value.trim() : "";
+        if (!transportBasis) {
+            showToast("Please select Transportation Charge Basis — परिवहन शुल्क का आधार चुनें", "error");
+            if (transportBasisSelect) transportBasisSelect.focus();
+            return;
+        }
+
+        let transportRate = 0;
+        if (transportBasis !== "Free Delivery" && transportBasis !== "As Applicable") {
+            transportRate = parseFloat(transportRateInput ? transportRateInput.value : 0);
+            if (isNaN(transportRate) || transportRate < 0 || (transportRateInput && transportRateInput.value.trim() === "")) {
+                showToast("Please enter a valid Transportation Rate (>= 0) — वैध परिवहन दर दर्ज करें", "error");
+                if (transportRateInput) transportRateInput.focus();
+                return;
+            }
+        }
+
+        const beyondRadiusPolicy = beyondRadiusPolicyInput ? beyondRadiusPolicyInput.value.trim() : "Fair transportation amount will be charged.";
+
         // Construct Material Payload
         const payload = {
             category: category,
@@ -476,7 +610,13 @@ document.addEventListener("DOMContentLoaded", function() {
             currentStock: initialStock,
             reservedStock: reservedStock,
             unit: unit,
-            unitPrice: unitPrice
+            unitPrice: unitPrice,
+            deliveryLocation: deliveryLocation,
+            deliveryRadiusKm: deliveryRadiusKm,
+            transportationChargeBasis: transportBasis,
+            transportationRate: transportRate,
+            beyondRadiusPolicy: beyondRadiusPolicy,
+            transportationPolicyEnabled: true
         };
 
         // Submit API Request

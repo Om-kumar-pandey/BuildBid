@@ -863,10 +863,27 @@ function renderSellerMaterials(materials) {
             statusBadge = '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Out of Stock — आउट ऑफ स्टॉक</span>';
         }
 
+        let transportPill = '';
+        if (mat.transportationPolicyEnabled) {
+            const radText = (mat.deliveryRadiusKm != null ? mat.deliveryRadiusKm : 20) + " KM";
+            if (mat.transportationChargeBasis === "Free Delivery") {
+                transportPill = `<div class="mt-1 flex items-center text-[10px] font-semibold text-emerald-600"><i class="fa-solid fa-truck-fast mr-1 text-[9px]"></i>Free Delivery • ${escapeHtml(radText)}</div>`;
+            } else if (mat.transportationChargeBasis === "As Applicable") {
+                transportPill = `<div class="mt-1 flex items-center text-[10px] font-semibold text-slate-500"><i class="fa-solid fa-truck mr-1 text-[9px]"></i>As Applicable • ${escapeHtml(radText)}</div>`;
+            } else {
+                const rateFormatted = mat.transportationRate != null ? "₹" + Number(mat.transportationRate).toLocaleString("en-IN") : "₹0";
+                const basisFormatted = mat.transportationChargeBasis ? mat.transportationChargeBasis.replace("Per ", "/") : "";
+                transportPill = `<div class="mt-1 flex items-center text-[10px] font-semibold text-blue-700"><i class="fa-solid fa-truck mr-1 text-[9px]"></i>${rateFormatted} ${escapeHtml(basisFormatted)} • ${escapeHtml(radText)}</div>`;
+            }
+        } else {
+            transportPill = `<div class="mt-1 flex items-center text-[10px] text-slate-400"><i class="fa-solid fa-truck mr-1 text-[9px] text-slate-300"></i>Transportation details not specified</div>`;
+        }
+
         tr.innerHTML = `
             <td class="p-4">
                 <span class="font-bold text-slate-800 block">${escapeHtml(materialName)}${escapeHtml(specs)}</span>
                 <span class="text-[11px] text-slate-400">Category: ${escapeHtml(category)}${escapeHtml(brand)}</span>
+                ${transportPill}
             </td>
             <td class="p-4 font-bold text-slate-900">${escapeHtml(currentStock)} ${escapeHtml(unitDisplay)}</td>
             <td class="p-4 text-amber-600 font-semibold">${escapeHtml(reservedStock)} ${escapeHtml(unitDisplay)}</td>
@@ -954,11 +971,54 @@ async function openEditMaterialModal(materialId) {
         if (specsElem) specsElem.value = mat.specifications || "";
         if (descElem) descElem.value = mat.description || "";
 
+        // Populate Transportation Policy in Edit Modal
+        const locElem = document.getElementById("editDeliveryLocation");
+        const radElem = document.getElementById("editDeliveryRadius");
+        const basisElem = document.getElementById("editTransportBasis");
+        const rateElem = document.getElementById("editTransportRate");
+        const beyondElem = document.getElementById("editBeyondRadiusPolicy");
+
+        if (locElem) locElem.value = mat.deliveryLocation || "";
+        if (radElem) radElem.value = mat.deliveryRadiusKm != null ? mat.deliveryRadiusKm : 20;
+        if (basisElem) basisElem.value = mat.transportationChargeBasis || "";
+        if (rateElem) rateElem.value = mat.transportationRate != null ? mat.transportationRate : "";
+        if (beyondElem) beyondElem.value = mat.beyondRadiusPolicy || "Fair transportation amount will be charged.";
+
+        updateEditTransportBasisUI();
         calculateEditAvailableStock();
         openModal("editMaterialModal");
     } catch (err) {
         console.error("Seller Dashboard: Error loading material for edit:", err);
         showToast("Network error loading material details", "error");
+    }
+}
+
+function updateEditTransportBasisUI() {
+    const basisElem = document.getElementById("editTransportBasis");
+    const rateElem = document.getElementById("editTransportRate");
+    const labelElem = document.getElementById("editTransportRateLabel");
+    if (!basisElem) return;
+
+    const basis = basisElem.value;
+    if (basis === "Free Delivery") {
+        if (labelElem) labelElem.innerHTML = 'Transportation Rate: <span class="text-emerald-600 font-bold">₹0 (Free Delivery)</span>';
+        if (rateElem) {
+            rateElem.value = "0";
+            rateElem.disabled = true;
+        }
+    } else if (basis === "As Applicable") {
+        if (labelElem) labelElem.innerHTML = 'Transportation Policy: <span class="text-blue-700 font-bold">As Applicable</span>';
+        if (rateElem) {
+            rateElem.value = "";
+            rateElem.disabled = true;
+            rateElem.placeholder = "Fair transportation policy";
+        }
+    } else {
+        if (rateElem) rateElem.disabled = false;
+        let unitName = basis ? basis.replace("Per ", "") : "Unit";
+        if (labelElem) {
+            labelElem.innerHTML = `Transportation Amount: ₹ / ${escapeHtml(unitName)} <span class="text-red-500">*</span>`;
+        }
     }
 }
 
@@ -1004,6 +1064,11 @@ async function saveMaterialEdit(event) {
     const brandElem = document.getElementById("editBrand");
     const specsElem = document.getElementById("editSpecifications");
     const descElem = document.getElementById("editDescription");
+    const locElem = document.getElementById("editDeliveryLocation");
+    const radElem = document.getElementById("editDeliveryRadius");
+    const basisElem = document.getElementById("editTransportBasis");
+    const rateElem = document.getElementById("editTransportRate");
+    const beyondElem = document.getElementById("editBeyondRadiusPolicy");
     const saveBtn = document.getElementById("saveEditBtn");
 
     const id = idElem ? idElem.value : "";
@@ -1028,13 +1093,35 @@ async function saveMaterialEdit(event) {
         return;
     }
 
+    const deliveryRadiusKm = radElem && radElem.value !== "" ? parseFloat(radElem.value) : 20;
+    if (isNaN(deliveryRadiusKm) || deliveryRadiusKm < 0) {
+        showToast("Please enter a valid Standard Delivery Radius (>= 0 KM)", "error");
+        return;
+    }
+
+    const transportBasis = basisElem ? basisElem.value : "";
+    let transportRate = 0;
+    if (transportBasis && transportBasis !== "Free Delivery" && transportBasis !== "As Applicable") {
+        transportRate = parseFloat(rateElem ? rateElem.value : 0);
+        if (isNaN(transportRate) || transportRate < 0) {
+            showToast("Please enter a valid non-negative Transportation Rate", "error");
+            return;
+        }
+    }
+
     const payload = {
         currentStock: currentStock,
         reservedStock: reservedStock,
         unitPrice: unitPrice,
         brand: brandElem ? brandElem.value.trim() : "",
         specifications: specsElem ? specsElem.value.trim() : "",
-        description: descElem ? descElem.value.trim() : ""
+        description: descElem ? descElem.value.trim() : "",
+        deliveryLocation: locElem ? locElem.value.trim() : "",
+        deliveryRadiusKm: deliveryRadiusKm,
+        transportationChargeBasis: transportBasis,
+        transportationRate: transportRate,
+        beyondRadiusPolicy: beyondElem ? beyondElem.value.trim() : "Fair transportation amount will be charged.",
+        transportationPolicyEnabled: Boolean(transportBasis || deliveryRadiusKm)
     };
 
     const token = getCleanToken();
@@ -1266,13 +1353,16 @@ async function loadInvoiceMaterials(preselectName) {
                 opt.dataset.brand = mat.brand || "";
                 opt.dataset.category = mat.category || "";
                 opt.dataset.stock = mat.availableStock != null ? mat.availableStock : mat.currentStock;
+                opt.dataset.transportBasis = mat.transportationChargeBasis || "";
+                opt.dataset.transportRate = mat.transportationRate != null ? mat.transportationRate : "0";
+                opt.dataset.transportEnabled = mat.transportationPolicyEnabled ? "true" : "false";
                 select.appendChild(opt);
             });
         } else {
             const defaultOptions = [
-                { name: "TMT Steel Rebars Fe 500", category: "Steel", price: 54000, unit: "Tons" },
-                { name: "OPC Cement 53 Grade", category: "Cement", price: 370, unit: "Bags" },
-                { name: "River Sand (Coarse Plastering)", category: "Sand", price: 1850, unit: "Tons" }
+                { name: "TMT Steel Rebars Fe 500", category: "Steel", price: 54000, unit: "Tons", transportBasis: "Per Ton", transportRate: 1500 },
+                { name: "OPC Cement 53 Grade", category: "Cement", price: 370, unit: "Bags", transportBasis: "Per Bag", transportRate: 15 },
+                { name: "River Sand (Coarse Plastering)", category: "Sand", price: 1850, unit: "Tons", transportBasis: "Per Ton", transportRate: 500 }
             ];
             defaultOptions.forEach(mat => {
                 const opt = document.createElement("option");
@@ -1280,6 +1370,8 @@ async function loadInvoiceMaterials(preselectName) {
                 opt.textContent = `${mat.name} (${mat.category}) — ₹${mat.price.toLocaleString("en-IN")} / ${mat.unit}`;
                 opt.dataset.unit = mat.unit;
                 opt.dataset.price = mat.price;
+                opt.dataset.transportBasis = mat.transportBasis || "";
+                opt.dataset.transportRate = mat.transportRate || "0";
                 select.appendChild(opt);
             });
         }
@@ -1303,10 +1395,15 @@ function onInvoiceMaterialChange(select) {
     const selectedOption = select.options[select.selectedIndex];
     const unitInput = document.getElementById("invoiceUnit");
     const unitPriceInput = document.getElementById("invoiceUnitPrice");
+    const transportInput = document.getElementById("invoiceTransportAmount");
+    const transportBasisInput = document.getElementById("invoiceTransportBasis");
+    const qtyInput = document.getElementById("invoiceQty");
 
     if (!selectedOption || !selectedOption.value) {
         if (unitInput) unitInput.value = "";
         if (unitPriceInput) unitPriceInput.value = "";
+        if (transportInput) transportInput.value = "0";
+        if (transportBasisInput) transportBasisInput.value = "";
         calculateInvoiceTotal();
         return;
     }
@@ -1314,9 +1411,40 @@ function onInvoiceMaterialChange(select) {
     const unit = selectedOption.dataset.unit || "";
     const cleanUnit = unit.includes("—") ? unit.split("—")[0].trim() : unit;
     const price = selectedOption.dataset.price || "0";
+    const transportBasis = selectedOption.dataset.transportBasis || "";
+    const transportRate = parseFloat(selectedOption.dataset.transportRate || 0) || 0;
+    const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
 
     if (unitInput) unitInput.value = cleanUnit;
     if (unitPriceInput) unitPriceInput.value = price;
+
+    if (transportBasisInput) {
+        if (transportBasis === "Free Delivery") {
+            transportBasisInput.value = "Free Delivery (₹0)";
+            if (transportInput) transportInput.value = "0";
+        } else if (transportBasis === "As Applicable") {
+            transportBasisInput.value = "As Applicable";
+            if (transportInput) transportInput.value = "0";
+        } else if (transportBasis) {
+            transportBasisInput.value = `₹${transportRate} / ${transportBasis.replace("Per ", "")}`;
+            let autoTransport = 0;
+            if (transportBasis === "Per Order") {
+                autoTransport = transportRate;
+            } else if (transportBasis === "Per 100 Pieces") {
+                autoTransport = Math.round((qty / 100.0) * transportRate);
+            } else if (transportBasis === "Per 500 Pieces") {
+                autoTransport = Math.round((qty / 500.0) * transportRate);
+            } else if (transportBasis === "Per 1000 Pieces") {
+                autoTransport = Math.round((qty / 1000.0) * transportRate);
+            } else {
+                autoTransport = Math.round(qty * transportRate);
+            }
+            if (transportInput) transportInput.value = autoTransport;
+        } else {
+            transportBasisInput.value = "Not Specified";
+            if (transportInput) transportInput.value = "0";
+        }
+    }
 
     calculateInvoiceTotal();
 }
@@ -1324,16 +1452,25 @@ function onInvoiceMaterialChange(select) {
 function calculateInvoiceTotal() {
     const qtyInput = document.getElementById("invoiceQty");
     const priceInput = document.getElementById("invoiceUnitPrice");
+    const transportInput = document.getElementById("invoiceTransportAmount");
+    const matSubtotalElem = document.getElementById("invoiceMaterialSubtotal");
+    const transportDisplayElem = document.getElementById("invoiceTransportDisplay");
+    const gstDisplayElem = document.getElementById("invoiceGstDisplay");
     const totalElem = document.getElementById("invoiceCalculatedTotal");
 
     const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
     const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
-    const subtotal = qty * price;
-    const gst = subtotal * 0.18;
-    const grandTotal = subtotal + gst;
+    const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
 
+    const subtotal = Math.round(qty * price);
+    const gst = Math.round((subtotal + transport) * 0.18);
+    const grandTotal = subtotal + transport + gst;
+
+    if (matSubtotalElem) matSubtotalElem.innerText = "₹" + subtotal.toLocaleString("en-IN");
+    if (transportDisplayElem) transportDisplayElem.innerText = "₹" + transport.toLocaleString("en-IN");
+    if (gstDisplayElem) gstDisplayElem.innerText = "₹" + gst.toLocaleString("en-IN");
     if (totalElem) {
-        totalElem.innerText = "₹" + Math.round(grandTotal).toLocaleString("en-IN");
+        totalElem.innerText = "₹" + grandTotal.toLocaleString("en-IN");
     }
 }
 

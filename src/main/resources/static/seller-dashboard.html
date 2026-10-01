@@ -1291,6 +1291,71 @@
                     <textarea id="editDescription" rows="2" placeholder="Additional details regarding material availability..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg"></textarea>
                 </div>
 
+                <!-- Transportation Policy Section -->
+                <div class="pt-3 border-t border-slate-200 space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-truck-fast text-blue-600 text-xs"></i>
+                        <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wide">Transportation Policy — परिवहन नीति</h4>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">
+                                Delivery Location — प्रेषण स्थल
+                            </label>
+                            <input type="text" id="editDeliveryLocation" placeholder="Seller Yard / Address" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">
+                                Standard Delivery Radius (KM) — सामान्य दायरा <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="editDeliveryRadius" min="0" step="any" placeholder="20" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800 pr-10">
+                                <span class="absolute right-3 top-2 text-[11px] font-bold text-slate-500 pointer-events-none">KM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">
+                                Transportation Charge Basis — परिवहन आधार <span class="text-red-500">*</span>
+                            </label>
+                            <select id="editTransportBasis" onchange="updateEditTransportBasisUI()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800">
+                                <option value="" disabled>-- Select Basis --</option>
+                                <option value="Per Bag">Per Bag — प्रति बोरी (Cement)</option>
+                                <option value="Per Piece">Per Piece — प्रति नग (Bricks, Blocks)</option>
+                                <option value="Per 100 Pieces">Per 100 Pieces — प्रति 100 नग</option>
+                                <option value="Per 500 Pieces">Per 500 Pieces — प्रति 500 नग</option>
+                                <option value="Per 1000 Pieces">Per 1000 Pieces — प्रति 1000 नग</option>
+                                <option value="Per KG">Per KG — प्रति किलोग्राम</option>
+                                <option value="Per Ton">Per Ton — प्रति टन (Steel, Aggregates)</option>
+                                <option value="Per CFT">Per CFT — प्रति घन फुट (Sand)</option>
+                                <option value="Per Cubic Meter">Per Cubic Meter — प्रति घन मीटर</option>
+                                <option value="Per Order">Per Order — प्रति ऑर्डर</option>
+                                <option value="Per KM">Per KM — प्रति किलोमीटर</option>
+                                <option value="As Applicable">As Applicable — लागू नीति अनुसार</option>
+                                <option value="Free Delivery">Free Delivery — निःशुल्क वितरण</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="editTransportRateLabel" class="block font-semibold text-slate-700 mb-1">
+                                Transportation Rate (₹) — परिवहन दर
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-xs font-bold text-slate-500 pointer-events-none">₹</span>
+                                <input type="number" id="editTransportRate" min="0" step="any" placeholder="15" class="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg text-[11px] text-slate-700 flex items-center justify-between">
+                        <span class="text-slate-600 font-medium"><i class="fa-solid fa-circle-info text-blue-500 mr-1.5"></i>Beyond Radius Policy:</span>
+                        <span class="font-bold text-blue-900 italic">Fair transportation amount will be charged.</span>
+                        <input type="hidden" id="editBeyondRadiusPolicy" value="Fair transportation amount will be charged.">
+                    </div>
+                </div>
+
                 <!-- Footer Actions -->
                 <div class="pt-4 flex items-center justify-between border-t border-slate-100">
                     <button type="button" id="markOutOfStockBtn" onclick="markCurrentMaterialOutOfStock()" class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-semibold transition-all flex items-center space-x-2">
@@ -1445,12 +1510,32 @@
                         <input id="invoiceUnitPrice" type="number" placeholder="0" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 font-semibold">
                     </div>
                 </div>
-                <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <span class="text-slate-600 font-medium">Estimated Invoice Total (Incl. 18% GST)</span>
+                        <label class="block font-semibold text-slate-700 mb-1">Delivery Transportation (₹) — परिवहन शुल्क</label>
+                        <input id="invoiceTransportAmount" type="number" min="0" placeholder="0" value="0" oninput="calculateInvoiceTotal()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
                     </div>
                     <div>
-                        <span id="invoiceCalculatedTotal" class="text-base font-bold text-blue-600">₹0</span>
+                        <label class="block font-semibold text-slate-700 mb-1">Transportation Basis</label>
+                        <input id="invoiceTransportBasis" type="text" placeholder="e.g. ₹15 / Bag or Free" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-600">
+                    </div>
+                </div>
+                <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Material Subtotal:</span>
+                        <span id="invoiceMaterialSubtotal" class="font-semibold text-slate-800">₹0</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Delivery Transportation:</span>
+                        <span id="invoiceTransportDisplay" class="font-semibold text-slate-800">₹0</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Estimated GST (18%):</span>
+                        <span id="invoiceGstDisplay" class="font-semibold text-slate-800">₹0</span>
+                    </div>
+                    <div class="pt-1.5 border-t border-blue-200 flex items-center justify-between font-bold text-sm text-blue-900">
+                        <span>Estimated Invoice Total:</span>
+                        <span id="invoiceCalculatedTotal" class="text-base text-blue-600">₹0</span>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
