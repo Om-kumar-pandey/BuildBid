@@ -21,7 +21,7 @@ function loadContractorSession() {
   currentContractor = JSON.parse(raw);
 
   const name = currentContractor.name || currentContractor.username || "Contractor";
-  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "HK";
+  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "C";
 
   document.getElementById("top-nav-name").textContent = name;
   const avatarEl = document.getElementById("top-nav-avatar-text");
@@ -250,6 +250,10 @@ function logoutUser() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("marketplaceToken");
   localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("token");
+  localStorage.removeItem("buildbid_current_user");
+  sessionStorage.removeItem("currentUser");
+  sessionStorage.removeItem("token");
   window.location.href = "index.html";
 }
 

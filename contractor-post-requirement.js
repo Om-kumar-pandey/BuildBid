@@ -13,14 +13,24 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function setupContractorHeader() {
-  const rawUser = localStorage.getItem("currentUser") || localStorage.getItem("loggedInUser");
+  const rawUser = localStorage.getItem("currentUser") || localStorage.getItem("loggedInUser") || sessionStorage.getItem("currentUser");
+  let name = "Contractor";
+  let initials = "C";
   if (rawUser) {
     try {
       const user = JSON.parse(rawUser);
-      const name = user.name || user.username || "Contractor";
-      document.getElementById("contractorNameDisplay").textContent = name;
-      document.getElementById("contractorAvatar").textContent = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+      name = user.name || user.username || user.companyName || name;
+      initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || initials;
     } catch(e) {}
+  }
+  const nameElem = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
+  if (nameElem) nameElem.textContent = name;
+  const avatarText = document.getElementById("top-nav-avatar-text");
+  if (avatarText) {
+    avatarText.textContent = initials;
+  } else {
+    const avatarElem = document.getElementById("top-nav-avatar") || document.getElementById("contractorAvatar");
+    if (avatarElem) avatarElem.textContent = initials;
   }
 }
 
@@ -398,4 +408,15 @@ function detectUserLocation() {
   }, () => {
     locInput.placeholder = "e.g., Indore, Madhya Pradesh";
   });
+}
+
+function logoutUser() {
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("marketplaceToken");
+  localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("token");
+  localStorage.removeItem("buildbid_current_user");
+  sessionStorage.removeItem("currentUser");
+  sessionStorage.removeItem("token");
+  window.location.href = "index.html";
 }

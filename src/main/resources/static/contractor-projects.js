@@ -53,7 +53,7 @@ function setupContractorSession() {
   try {
     const user = JSON.parse(rawData);
     const displayName = user.name || user.username || "Contractor";
-    const initials = displayName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "HK";
+    const initials = displayName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "C";
 
     const nameElem = document.getElementById("top-nav-name");
     if (nameElem) nameElem.textContent = displayName;

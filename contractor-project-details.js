@@ -1109,3 +1109,14 @@ function showErrorState(title, desc) {
   if (descEl) descEl.textContent = desc;
   if (errorBox) errorBox.style.display = "block";
 }
+
+function logoutUser() {
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("marketplaceToken");
+  localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("token");
+  localStorage.removeItem("buildbid_current_user");
+  sessionStorage.removeItem("currentUser");
+  sessionStorage.removeItem("token");
+  window.location.href = "index.html";
+}

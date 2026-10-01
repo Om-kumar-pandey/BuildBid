@@ -75,10 +75,15 @@ function initDynamicContractor() {
         }
     }
 
-    const nameElem = document.getElementById("contractorNameDisplay");
+    const nameElem = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
     if (nameElem) nameElem.textContent = name;
-    const avatarElem = document.getElementById("contractorAvatar");
-    if (avatarElem) avatarElem.textContent = initials;
+    const avatarText = document.getElementById("top-nav-avatar-text");
+    if (avatarText) {
+        avatarText.textContent = initials;
+    } else {
+        const avatarElem = document.getElementById("top-nav-avatar") || document.getElementById("contractorAvatar");
+        if (avatarElem) avatarElem.textContent = initials;
+    }
 }
 
 async function initDynamicProjectData() {
@@ -740,7 +745,8 @@ function addExcluded() { addExcludedRowData(); }
 function updateReview() {
     calculateFinalBid();
     document.getElementById("reviewProjectName").textContent = activeProject ? (activeProject.title || activeProject.id) : "Customer Project";
-    document.getElementById("reviewContractorName").textContent = document.getElementById("contractorNameDisplay").textContent;
+    const nameDisplay = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
+    document.getElementById("reviewContractorName").textContent = nameDisplay ? nameDisplay.textContent : "Contractor";
     document.getElementById("reviewBidTitle").textContent = document.getElementById("bidTitle").value || "Contractor Proposal";
     document.getElementById("reviewDuration").textContent = (document.getElementById("duration").value || 0) + " Days";
 
@@ -786,7 +792,8 @@ async function submitBid() {
         return;
     }
 
-    const contractorName = document.getElementById("contractorNameDisplay").textContent;
+    const nameDisplay = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
+    const contractorName = nameDisplay ? nameDisplay.textContent : "Contractor";
     const token = getCleanToken();
 
     const payload = {
@@ -836,4 +843,15 @@ async function submitBid() {
 
     alert(`Quotation Submitted Successfully!\nProject: ${payload.projectTitle}\nFinal Bid: ${payload.finalAmount}\nStatus: UNDER REVIEW`);
     window.location.href = "contractor-projects.html";
+}
+
+function logoutUser() {
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("marketplaceToken");
+    localStorage.removeItem("marketplaceUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("buildbid_current_user");
+    sessionStorage.removeItem("currentUser");
+    sessionStorage.removeItem("token");
+    window.location.href = "index.html";
 }

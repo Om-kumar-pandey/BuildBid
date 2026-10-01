@@ -83,6 +83,9 @@ function renderContractorDashboard(user) {
   const topNavBadge = document.getElementById("top-nav-badge");
   if (topNavBadge) topNavBadge.textContent = "Verified Contractor";
 
+  const topNavAvatarText = document.getElementById("top-nav-avatar-text");
+  if (topNavAvatarText) topNavAvatarText.textContent = initials;
+
   // Banner Details
   const bannerName = document.getElementById("banner-contractor-name");
   if (bannerName) {
@@ -357,7 +360,10 @@ function logoutUser() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("marketplaceToken");
   localStorage.removeItem("marketplaceUser");
+  localStorage.removeItem("token");
   localStorage.removeItem("buildbid_current_user");
+  sessionStorage.removeItem("currentUser");
+  sessionStorage.removeItem("token");
   window.location.href = "index.html";
 }
 
