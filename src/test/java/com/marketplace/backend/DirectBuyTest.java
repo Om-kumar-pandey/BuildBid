@@ -453,4 +453,109 @@ public class DirectBuyTest {
         assertEquals("DIRECT_MATERIAL", body.get("requestType"));
         assertEquals(18000.0, ((Number) body.get("materialAmount")).doubleValue(), 0.01);
     }
+
+    @Test
+    public void testSellerMatchingOtherMaterial_ExactInventoryMatchShowsSeller() {
+        Material chemMat = new Material();
+        ReflectionTestUtils.setField(chemMat, "id", 601L);
+        chemMat.setSeller(sellerUser);
+        chemMat.setMaterialName("Waterproofing Chemical");
+        chemMat.setCategory("Adhesives & Chemicals");
+        chemMat.setUnit("Bag");
+        chemMat.setUnitPrice(850.0);
+        chemMat.setCurrentStock(50.0);
+        chemMat.setReservedStock(0.0);
+        chemMat.setTransportationPolicyEnabled(true);
+        chemMat.setTransportationChargeBasis("Free Delivery");
+        chemMat.setDeliveryRadiusKm(50.0);
+
+        when(materialRepository.findAll()).thenReturn(Collections.singletonList(chemMat));
+
+        Map<String, Object> req = new HashMap<>();
+        req.put("materialName", "Other — अन्य");
+        req.put("customMaterialName", "Waterproofing Chemical");
+        req.put("quantity", 20);
+        req.put("state", "Uttar Pradesh");
+        req.put("city", "Noida");
+        req.put("pincode", "201301");
+        req.put("address", "Sector 62, Noida");
+
+        ResponseEntity<?> response = directBuyController.findMatchingSellers(req);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertTrue((Boolean) body.get("success"));
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sellers = (List<Map<String, Object>>) body.get("sellers");
+        assertEquals(1, sellers.size());
+        assertEquals("Waterproofing Chemical", sellers.get(0).get("materialName"));
+        assertEquals(850.0, ((Number) sellers.get(0).get("unitPrice")).doubleValue(), 0.01);
+    }
+
+    @Test
+    public void testSellerMatchingOtherMaterial_NoMatchingInventoryReturnsEmptyList() {
+        Material cementMat = new Material();
+        ReflectionTestUtils.setField(cementMat, "id", 501L);
+        cementMat.setSeller(sellerUser);
+        cementMat.setMaterialName("UltraTech Cement");
+        cementMat.setUnit("Bag");
+        cementMat.setUnitPrice(420.0);
+        cementMat.setCurrentStock(100.0);
+        cementMat.setReservedStock(0.0);
+
+        when(materialRepository.findAll()).thenReturn(Collections.singletonList(cementMat));
+
+        Map<String, Object> req = new HashMap<>();
+        req.put("materialName", "Other — अन्य");
+        req.put("customMaterialName", "Waterproofing Chemical");
+        req.put("quantity", 20);
+        req.put("state", "Uttar Pradesh");
+        req.put("city", "Noida");
+        req.put("pincode", "201301");
+        req.put("address", "Sector 62, Noida");
+
+        ResponseEntity<?> response = directBuyController.findMatchingSellers(req);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sellers = (List<Map<String, Object>>) body.get("sellers");
+        assertTrue(sellers.isEmpty(), "No sellers must be returned when no seller inventory matches custom material");
+    }
+
+    @Test
+    public void testSellerMatchingOtherMaterial_EmptyCustomNameRejected() {
+        Map<String, Object> req = new HashMap<>();
+        req.put("materialName", "Other — अन्य");
+        req.put("customMaterialName", "");
+        req.put("quantity", 20);
+        req.put("state", "Uttar Pradesh");
+        req.put("city", "Noida");
+        req.put("pincode", "201301");
+
+        ResponseEntity<?> response = directBuyController.findMatchingSellers(req);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertTrue(body.get("error").toString().contains("सामग्री का नाम दर्ज करें"));
+    }
+
+    @Test
+    public void testSellerMatching_InvalidQuantityRejected() {
+        Map<String, Object> req = new HashMap<>();
+        req.put("materialName", "UltraTech Cement");
+        req.put("quantity", 0);
+        req.put("state", "Uttar Pradesh");
+        req.put("city", "Noida");
+        req.put("pincode", "201301");
+
+        ResponseEntity<?> response = directBuyController.findMatchingSellers(req);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertTrue(body.get("error").toString().contains("मान्य मात्रा"));
+    }
 }

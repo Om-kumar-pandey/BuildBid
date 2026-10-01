@@ -46,27 +46,37 @@ public class DirectBuyController {
             if (name == null || name.isBlank()) continue;
             name = name.trim();
 
-            double avail = (m.getCurrentStock() != null ? m.getCurrentStock() : 0.0)
-                    - (m.getReservedStock() != null ? m.getReservedStock() : 0.0);
+            if (m.getSeller() != null && !m.getSeller().isEnabled()) {
+                continue;
+            }
+
+            double avail = 0.0;
+            if (m.getAvailableStock() != null && m.getAvailableStock() > 0) {
+                avail = m.getAvailableStock();
+            } else if (m.getCurrentStock() != null) {
+                avail = m.getCurrentStock() - (m.getReservedStock() != null ? m.getReservedStock() : 0.0);
+            }
+
             if (avail <= 0 || "OUT_OF_STOCK".equalsIgnoreCase(m.getStockStatus())) {
                 continue; // only show materials with active stock
             }
 
-            if (!distinctMaterials.containsKey(name)) {
+            String key = name.toLowerCase();
+            if (!distinctMaterials.containsKey(key)) {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("name", name);
                 item.put("category", m.getCategory() != null ? m.getCategory() : "General");
                 item.put("unit", m.getUnit() != null ? m.getUnit() : "Units");
                 item.put("typicalPrice", m.getUnitPrice() != null ? m.getUnitPrice() : 0.0);
-                distinctMaterials.put(name, item);
+                distinctMaterials.put(key, item);
             }
         }
 
         List<Map<String, Object>> result = new ArrayList<>(distinctMaterials.values());
         // Sort alphabetically
-        result.sort(Comparator.comparing(a -> a.get("name").toString()));
+        result.sort(Comparator.comparing(a -> a.get("name").toString(), String.CASE_INSENSITIVE_ORDER));
 
-        // Append 'Other' option
+        // Always append 'Other' option at the very end
         Map<String, Object> otherOption = new LinkedHashMap<>();
         otherOption.put("name", "Other — अन्य");
         otherOption.put("category", "Other — अन्य");
@@ -122,19 +132,23 @@ public class DirectBuyController {
             if (processedSellerIds.contains(seller.getId())) continue;
 
             // 1. PRIMARY FILTER: Material must match the requested material
-            if (!isOther) {
-                if (!matchesMaterialName(mat.getMaterialName(), materialName)) {
-                    continue;
-                }
+            String targetMaterial = isOther ? customMaterialName : materialName;
+            if (!matchesMaterialName(mat.getMaterialName(), targetMaterial)) {
+                continue;
             }
 
             // 2. STOCK CHECK: Must have sufficient available stock
-            double availableStock = (mat.getCurrentStock() != null ? mat.getCurrentStock() : 0.0)
-                    - (mat.getReservedStock() != null ? mat.getReservedStock() : 0.0);
+            double availableStock = 0.0;
+            if (mat.getAvailableStock() != null && mat.getAvailableStock() > 0) {
+                availableStock = mat.getAvailableStock();
+            } else if (mat.getCurrentStock() != null) {
+                availableStock = mat.getCurrentStock() - (mat.getReservedStock() != null ? mat.getReservedStock() : 0.0);
+            }
+
             if (availableStock <= 0 || "OUT_OF_STOCK".equalsIgnoreCase(mat.getStockStatus())) {
                 continue;
             }
-            if (!isOther && availableStock < quantity) {
+            if (availableStock < quantity) {
                 continue; // Insufficient stock for the requested quantity
             }
 
@@ -220,7 +234,7 @@ public class DirectBuyController {
             card.put("sellerPincode", sellerGeo != null && sellerGeo.pincode() != null ? sellerGeo.pincode() : pincode);
 
             card.put("materialId", mat.getId());
-            card.put("materialName", isOther ? customMaterialName : mat.getMaterialName());
+            card.put("materialName", mat.getMaterialName());
             card.put("category", mat.getCategory());
             card.put("unitPrice", unitPrice);
             card.put("unit", mat.getUnit() != null ? mat.getUnit() : "Units");
@@ -591,6 +605,7 @@ public class DirectBuyController {
         if (inventoryName == null || requestedName == null) return false;
         String a = normalizeMaterialName(inventoryName);
         String b = normalizeMaterialName(requestedName);
+        if (a.isEmpty() || b.isEmpty()) return false;
         return a.contains(b) || b.contains(a);
     }
 
@@ -598,7 +613,7 @@ public class DirectBuyController {
         if (s == null) return "";
         // remove bilingual suffix after '—'
         String clean = s.split("—")[0].trim().toLowerCase();
-        return clean.replaceAll("[^a-z0-9]", "");
+        return clean.replaceAll("[^\\p{L}\\p{N}]", "");
     }
 
     private Double parseDoubleSafe(Object obj) {

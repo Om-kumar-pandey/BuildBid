@@ -466,6 +466,8 @@ public class MarketplaceBackendApplication {
                             ).permitAll()
                             .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/direct-buy/materials").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/api/direct-buy/matching-sellers").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create", "/api/projects/create").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/projects", "/api/projects/**").permitAll()

@@ -169,10 +169,63 @@ async function loadAvailableMaterials() {
   if (!select) return;
 
   try {
-    const res = await fetch(API_BASE_URL + "/api/direct-buy/materials");
+    const token = getCleanToken();
+    const headers = { "Accept": "application/json" };
+    if (token) {
+      headers["Authorization"] = "Bearer " + token;
+    }
+
+    const res = await fetch(API_BASE_URL + "/api/direct-buy/materials", { headers });
     if (res.ok) {
       const data = await res.json();
-      availableMaterials = Array.isArray(data) ? data : [];
+      let rawList = [];
+      if (Array.isArray(data)) {
+        rawList = data;
+      } else if (data && Array.isArray(data.materials)) {
+        rawList = data.materials;
+      } else if (data && Array.isArray(data.data)) {
+        rawList = data.data;
+      }
+
+      availableMaterials = [];
+      const seen = new Set();
+      rawList.forEach(item => {
+        let name = "";
+        let unit = "Units";
+        let isOther = false;
+        let typicalPrice = 0;
+
+        if (typeof item === "string") {
+          name = item.trim();
+          isOther = name.toLowerCase().includes("other") || name.includes("अन्य");
+        } else if (item && typeof item === "object") {
+          name = (item.name || item.materialName || "").toString().trim();
+          unit = (item.unit || "Units").toString().trim();
+          isOther = Boolean(item.isOther) || name.toLowerCase().includes("other") || name.includes("अन्य");
+          typicalPrice = item.typicalPrice || 0;
+        }
+
+        if (!name || isOther) return;
+
+        const key = name.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          availableMaterials.push({
+            name: name,
+            unit: unit,
+            isOther: false,
+            typicalPrice: typicalPrice
+          });
+        }
+      });
+
+      // Always ensure "Other — अन्य" is present at the end of the catalog
+      availableMaterials.push({
+        name: "Other — अन्य",
+        unit: "Units",
+        isOther: true,
+        typicalPrice: 0
+      });
 
       select.innerHTML = '<option value="" disabled selected>-- Select a material from seller inventory — सामग्री चुनें --</option>';
       availableMaterials.forEach(m => {
@@ -185,11 +238,12 @@ async function loadAvailableMaterials() {
         select.appendChild(opt);
       });
     } else {
-      select.innerHTML = '<option value="" disabled>Could not load materials</option>';
+      console.error("Direct Buy Materials API failed:", res.status, res.statusText);
+      select.innerHTML = '<option value="" disabled>Unable to load materials. Please try again. — सामग्री लोड करने में असमर्थ</option>';
     }
   } catch (err) {
-    console.warn("Could not fetch available materials:", err);
-    select.innerHTML = '<option value="" disabled>Offline mode - select material</option>';
+    console.error("Could not fetch available materials from backend:", err);
+    select.innerHTML = '<option value="" disabled>Unable to load materials. Please try again. — सामग्री लोड करने में असमर्थ</option>';
   }
 }
 
@@ -197,12 +251,13 @@ function handleMaterialSelectionChange() {
   const select = document.getElementById("directMaterialSelect");
   const unitBadge = document.getElementById("directUnitBadge");
   const customBox = document.getElementById("directCustomMaterialBox");
+  const customNameInput = document.getElementById("directCustomName");
   if (!select) return;
 
   const selectedOpt = select.options[select.selectedIndex];
   if (!selectedOpt) return;
 
-  const isOther = selectedOpt.dataset.isOther === "true" || selectedOpt.value.includes("Other");
+  const isOther = selectedOpt.dataset.isOther === "true" || selectedOpt.value.includes("Other") || selectedOpt.value.includes("अन्य");
   const unit = selectedOpt.dataset.unit || "Units";
   const cleanUnit = unit.includes("—") ? unit.split("—")[0].trim() : unit;
 
@@ -213,6 +268,9 @@ function handleMaterialSelectionChange() {
   if (customBox) {
     if (isOther) {
       customBox.classList.remove("hidden");
+      if (customNameInput) {
+        customNameInput.focus();
+      }
     } else {
       customBox.classList.add("hidden");
     }
@@ -236,11 +294,13 @@ async function handleProceedSearch(e) {
 
   const matSelect = document.getElementById("directMaterialSelect");
   const materialName = matSelect ? matSelect.value.trim() : "";
-  const quantity = parseFloat(document.getElementById("directQuantity") ? document.getElementById("directQuantity").value : 0);
+  const quantityInput = document.getElementById("directQuantity");
+  const quantityVal = quantityInput ? quantityInput.value.trim() : "";
+  const quantity = parseFloat(quantityVal);
 
   const customName = document.getElementById("directCustomName") ? document.getElementById("directCustomName").value.trim() : "";
   const customUnit = document.getElementById("directCustomUnit") ? document.getElementById("directCustomUnit").value.trim() : "";
-  const isOther = materialName.includes("Other") || (matSelect && matSelect.options[matSelect.selectedIndex]?.dataset.isOther === "true");
+  const isOther = materialName.toLowerCase().includes("other") || materialName.includes("अन्य") || (matSelect && matSelect.options[matSelect.selectedIndex]?.dataset.isOther === "true");
 
   if (!state || !city || !pincode || !address) {
     showToast("Please fill all delivery location fields — कृपया पूरा डिलीवरी पता भरें", "warning");
@@ -258,18 +318,23 @@ async function handleProceedSearch(e) {
   }
 
   if (isOther && !customName) {
-    showToast("Please enter the custom material name — सामग्री का नाम दर्ज करें", "warning");
+    showToast("Please enter the material name — कृपया सामग्री का नाम दर्ज करें", "warning");
+    if (document.getElementById("directCustomName")) {
+      document.getElementById("directCustomName").focus();
+    }
     return;
   }
 
-  if (isNaN(quantity) || quantity <= 0) {
+  if (!quantityVal || isNaN(quantity) || quantity <= 0) {
     showToast("Please enter a valid quantity (> 0) — मान्य मात्रा दर्ज करें", "warning");
+    if (quantityInput) quantityInput.focus();
     return;
   }
 
   currentSearchPayload = {
     materialName: isOther ? customName : materialName,
     customMaterialName: customName,
+    isOther: isOther,
     quantity: quantity,
     state: state,
     city: city,
@@ -288,9 +353,15 @@ async function handleProceedSearch(e) {
   }
 
   try {
+    const token = getCleanToken();
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = "Bearer " + token;
+    }
+
     const res = await fetch(API_BASE_URL + "/api/direct-buy/matching-sellers", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify(currentSearchPayload)
     });
 
@@ -341,9 +412,9 @@ function renderMatchingSellers(sellers) {
         <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl">
           <i class="fa-solid fa-box-open"></i>
         </div>
-        <h4 class="font-bold text-slate-800 text-sm">No Sellers Currently Have Sufficient Stock in this Region</h4>
+        <h4 class="font-bold text-slate-800 text-sm">No sellers found for this material in your selected location.</h4>
         <p class="text-xs text-slate-500 max-w-md mx-auto">
-          We could not find a seller with at least <strong>${escapeHtml(String(currentSearchPayload?.quantity || ''))} ${escapeHtml(currentSearchPayload?.unit || '')}</strong> of ${escapeHtml(currentSearchPayload?.materialName || 'this material')} in your delivery radius.
+          इस सामग्री के लिए आपकी चुनी गई लोकेशन में कोई विक्रेता नहीं मिला।
         </p>
         <p class="text-[11px] text-slate-400">
           Tip: You can reduce the requested quantity or post a material requirement to request custom supply.
