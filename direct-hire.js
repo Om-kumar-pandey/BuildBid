@@ -111,6 +111,9 @@ function setupUserHeader() {
       } else if (roleRaw === "PROFESSIONAL" || roleRaw === "SERVICE_PROVIDER") {
         roleBadge = "Professional";
         roleColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+      } else if (roleRaw === "MATERIAL_SELLER" || roleRaw === "SELLER") {
+        roleBadge = "Material Seller";
+        roleColor = "bg-purple-50 text-purple-700 border-purple-200";
       }
 
       userPill.innerHTML = `
@@ -150,6 +153,8 @@ function getDashboardUrlForCurrentUser() {
       return "contractor-dashboard.html";
     } else if (roleRaw === "PROFESSIONAL" || roleRaw === "SERVICE_PROVIDER") {
       return "professional dashboard.html";
+    } else if (roleRaw === "MATERIAL_SELLER" || roleRaw === "SELLER") {
+      return "seller-dashboard.html";
     } else {
       return "customer dashboard.html";
     }
@@ -1084,9 +1089,12 @@ function openServiceScopeModal(serviceId) {
 // 9. DIRECT HIRE CONFIRMATION MODAL (PHASE 1 PREVIEW)
 // ============================================================
 
+let currentHireService = null;
+
 function openHireModal(serviceId) {
   const srv = currentSearchResults.find(s => s.serviceId === serviceId);
   if (!srv) return;
+  currentHireService = srv;
 
   const modal = document.getElementById("hire-confirmation-modal");
   const content = document.getElementById("modal-hire-content");
@@ -1151,7 +1159,7 @@ function openHireModal(serviceId) {
       <button onclick="closeModals()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
         Cancel / वापस जाएं
       </button>
-      <button onclick="handleConfirmDirectHire('${escapeAttribute(proName)}', '${escapeAttribute(title)}')" class="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition shadow-sm">
+      <button id="btn-confirm-direct-hire" onclick="handleConfirmDirectHire(${srv.serviceId})" class="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition shadow-sm">
         <i class="fa-solid fa-paper-plane mr-1.5"></i> Send Request
       </button>
     </div>
@@ -1161,9 +1169,82 @@ function openHireModal(serviceId) {
   modal.classList.add("flex");
 }
 
-function handleConfirmDirectHire(proName, serviceTitle) {
-  closeModals();
-  showToast(`Request sent to ${proName} (${serviceTitle})! Dispatch flow activated.`, "success");
+async function handleConfirmDirectHire(serviceIdOrName, maybeTitle) {
+  let srv = null;
+  if (typeof serviceIdOrName === "number") {
+    srv = currentSearchResults.find(s => s.serviceId === serviceIdOrName);
+  } else if (currentHireService) {
+    srv = currentHireService;
+  } else if (typeof serviceIdOrName === "string") {
+    srv = currentSearchResults.find(s => s.professionalName === serviceIdOrName);
+  }
+
+  const token = getCleanToken();
+  if (!token) {
+    showToast("Please log in to send a service request.", "error");
+    return;
+  }
+
+  const user = getCurrentUser();
+  const proName = srv ? (srv.professionalName || 'Professional') : (typeof serviceIdOrName === "string" ? serviceIdOrName : "Professional");
+  const serviceTitle = srv ? (srv.serviceTitleEn || srv.serviceName || selectedMasterServiceTitle) : (maybeTitle || "Direct Hire");
+
+  const sendBtn = document.getElementById("btn-confirm-direct-hire");
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Sending...';
+  }
+
+  let roleRaw = user ? (user.role || (user.roles && user.roles[0]) || "").toString().replace("ROLE_", "").toUpperCase() : "CUSTOMER";
+  if (roleRaw === "SELLER") roleRaw = "MATERIAL_SELLER";
+
+  const payload = {
+    professionalServiceId: srv ? srv.serviceId : null,
+    professionalId: srv ? (srv.professionalId || null) : null,
+    requestedService: serviceTitle,
+    projectName: `${serviceTitle} - Direct Hire`,
+    projectScope: `Direct hire service request sent to ${proName}.`,
+    location: srv && srv.professionalLocation ? srv.professionalLocation : (typeof currentSearchLocationState !== "undefined" && currentSearchLocationState ? currentSearchLocationState.locationText : ""),
+    distance: srv && srv.distanceKm != null ? `${srv.distanceKm} km` : "",
+    turnaround: srv ? (srv.turnaroundTime || "1-3 Days") : "1-3 Days",
+    clientBudget: srv && srv.price != null ? srv.price : null,
+    requesterType: roleRaw
+  };
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/professional/requests`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.error || errData.message || `Request failed with status ${res.status}`;
+      console.error("Direct Hire Request Failed:", res.status, errMsg, errData);
+      showToast(`Failed to send request: ${errMsg}`, "error");
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Send Request';
+      }
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    console.log("Direct Hire Request Successful:", data);
+    closeModals();
+    showToast(`Request sent successfully to ${proName}!`, "success");
+  } catch (err) {
+    console.error("Direct Hire Network/API Error:", err);
+    showToast("Network error: Could not connect to server. Please try again.", "error");
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Send Request';
+    }
+  }
 }
 
 function closeModals() {
@@ -1178,6 +1259,10 @@ function closeModals() {
     hireModal.classList.remove("flex");
   }
 }
+
+window.openHireModal = openHireModal;
+window.handleConfirmDirectHire = handleConfirmDirectHire;
+window.closeModals = closeModals;
 
 // ============================================================
 // 10. TOAST NOTIFICATION UTILITY
