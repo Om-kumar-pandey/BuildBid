@@ -282,13 +282,24 @@ function createMaterialRequestCard(mr) {
     const locStr = [mr.city, mr.state].filter(Boolean).join(", ") || mr.state || "Regional Site";
     const timeAgo = formatTimeAgo(mr.createdAt);
     const status = mr.status || "NEW";
-    const statusClass = (status === "NEW" || status === "Open")
+    const statusClass = (status === "NEW" || status === "Open" || status === "PENDING")
         ? "bg-emerald-100 text-emerald-700"
-        : "bg-blue-100 text-blue-700";
+        : (status === "ACCEPTED" ? "bg-teal-100 text-teal-800" : "bg-blue-100 text-blue-700");
+
+    const isDirectBuy = (mr.requestType === "DIRECT_MATERIAL");
+
+    let reqTypeBadge = "";
+    if (isDirectBuy) {
+        reqTypeBadge = `<span class="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1"><i class="fa-solid fa-bolt text-[9px]"></i>Direct Material Request / सीधे सामग्री अनुरोध</span>`;
+    } else {
+        reqTypeBadge = `<span class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Posted Requirement / मटेरियल आवश्यकता</span>`;
+    }
 
     const scope = (mr.requestScope || "STATE").toUpperCase();
     let scopeBadge = "";
-    if (scope === "ALL_INDIA") {
+    if (isDirectBuy) {
+        scopeBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">Direct Order</span>`;
+    } else if (scope === "ALL_INDIA") {
         scopeBadge = `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">All India</span>`;
     } else if (scope === "LOCAL") {
         scopeBadge = `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Local (${mr.localRadius || 25} km)</span>`;
@@ -296,10 +307,31 @@ function createMaterialRequestCard(mr) {
         scopeBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">State: ${escapeHtml(mr.state || '')}</span>`;
     }
 
+    let actionButtons = "";
+    if (isDirectBuy) {
+        actionButtons = `
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
+                <i class="fa-solid fa-bolt text-xs"></i>
+                <span>Review Order</span>
+            </button>
+        `;
+    } else {
+        actionButtons = `
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+        `;
+    }
+
+    let financialSnippet = "";
+    if (isDirectBuy && mr.estimatedTotal) {
+        financialSnippet = `<span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Total: ₹${Number(mr.estimatedTotal).toLocaleString('en-IN')}</span>`;
+    }
+
     div.innerHTML = `
         <div class="space-y-1.5">
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-1.5">
                 <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-md font-bold">${escapeHtml(rId)}</span>
+                ${reqTypeBadge}
                 <span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-bold">${escapeHtml(buyerRole)}</span>
                 <span class="${statusClass} text-[10px] px-2 py-0.5 rounded-full font-semibold">${escapeHtml(status)}</span>
                 ${scopeBadge}
@@ -309,11 +341,11 @@ function createMaterialRequestCard(mr) {
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
                 <span><i class="fa-solid fa-boxes-stacked mr-1 text-blue-500"></i><strong>${items.length} ${items.length === 1 ? 'Material' : 'Materials'}</strong></span>
                 <span><i class="fa-solid fa-location-dot mr-1 text-red-500"></i>${escapeHtml(locStr)} (PIN: ${escapeHtml(mr.pinCode || '')})</span>
+                ${financialSnippet}
             </div>
         </div>
         <div class="flex items-center space-x-2 flex-shrink-0">
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
-            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+            ${actionButtons}
         </div>
     `;
     return div;
@@ -328,10 +360,14 @@ function createMaterialRequestRow(mr) {
     const items = mr.items || [];
     const firstItem = items[0] || {};
     
+    const isDirectBuy = (mr.requestType === "DIRECT_MATERIAL");
+
     // Materials summary
     let matSummary = mr.materialSummary || firstItem.materialName || "Material";
     let specText = "";
-    if (items.length === 1) {
+    if (isDirectBuy) {
+        specText = `Direct Inventory Purchase • ₹${Number(mr.materialPrice || 0).toLocaleString('en-IN')}/${firstItem.unit || 'unit'}`;
+    } else if (items.length === 1) {
         const parts = [];
         if (firstItem.brand) parts.push("Brand: " + firstItem.brand);
         if (firstItem.specification) parts.push(firstItem.specification);
@@ -349,13 +385,15 @@ function createMaterialRequestRow(mr) {
 
     const locStr = [mr.city, mr.state].filter(Boolean).join(", ") || mr.state || "Regional Site";
     const status = mr.status || "NEW";
-    const statusClass = (status === "NEW" || status === "Open")
+    const statusClass = (status === "NEW" || status === "Open" || status === "PENDING")
         ? "bg-emerald-100 text-emerald-700"
-        : "bg-blue-100 text-blue-700";
+        : (status === "ACCEPTED" ? "bg-teal-100 text-teal-800" : "bg-blue-100 text-blue-700");
 
     let scopeBadge = "";
     const scope = (mr.requestScope || "STATE").toUpperCase();
-    if (scope === "ALL_INDIA") {
+    if (isDirectBuy) {
+        scopeBadge = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">Direct Order</span>`;
+    } else if (scope === "ALL_INDIA") {
         scopeBadge = `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">All India</span>`;
     } else if (scope === "LOCAL") {
         scopeBadge = `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Local (${mr.localRadius || 25} km)</span>`;
@@ -363,14 +401,32 @@ function createMaterialRequestRow(mr) {
         scopeBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">State: ${escapeHtml(mr.state || '')}</span>`;
     }
 
+    let typeTag = isDirectBuy
+        ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-bold uppercase block w-fit mb-1">Direct Buy</span>`
+        : `<span class="text-[10px] bg-blue-100 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold uppercase block w-fit mb-1">Posted Req</span>`;
+
+    let actionButtons = "";
+    if (isDirectBuy) {
+        actionButtons = `
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">Review Order</button>
+        `;
+    } else {
+        actionButtons = `
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+        `;
+    }
+
     tr.innerHTML = `
         <td class="p-4 font-medium">
             <span class="text-blue-600 font-bold block">${escapeHtml(rId)}</span>
+            ${typeTag}
             <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">${escapeHtml(buyerRole)}</span>
         </td>
         <td class="p-4">
             <span class="font-bold text-slate-800">${escapeHtml(matSummary)}</span>
             <span class="block text-slate-500 text-[11px]">${escapeHtml(specText)}</span>
+            ${isDirectBuy && mr.estimatedTotal ? `<span class="block text-emerald-700 font-bold text-[11px]">Total: ₹${Number(mr.estimatedTotal).toLocaleString('en-IN')}</span>` : ''}
         </td>
         <td class="p-4 font-bold text-slate-800">${escapeHtml(qtyStr)}</td>
         <td class="p-4">
@@ -380,8 +436,7 @@ function createMaterialRequestRow(mr) {
         <td class="p-4">${scopeBadge}</td>
         <td class="p-4"><span class="${statusClass} px-2.5 py-1 rounded-full text-[10px] font-bold">${escapeHtml(status)}</span></td>
         <td class="p-4 text-right space-x-2">
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
-            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+            ${actionButtons}
         </td>
     `;
     return tr;
@@ -394,6 +449,8 @@ function openMaterialRequestModal(requestId) {
         return;
     }
 
+    const isDirectBuy = (mr.requestType === 'DIRECT_MATERIAL');
+
     const titleEl = document.getElementById('detailModalTitle');
     const statusEl = document.getElementById('detailModalStatus');
     const subEl = document.getElementById('detailModalSubtitle');
@@ -403,16 +460,29 @@ function openMaterialRequestModal(requestId) {
     const pinEl = document.getElementById('detailModalPin');
     const addrEl = document.getElementById('detailModalAddress');
 
-    if (titleEl) titleEl.innerText = 'Material Request #' + (mr.requestId || mr.id);
+    if (titleEl) titleEl.innerText = (isDirectBuy ? 'Direct Purchase #' : 'Material Request #') + (mr.requestId || mr.id);
     if (statusEl) statusEl.innerText = mr.status || 'NEW';
-    if (subEl) subEl.innerText = (mr.buyerRole || 'BUYER') + ' Direct Material Request';
-    if (roleEl) roleEl.innerText = mr.buyerRole || 'CUSTOMER';
-
-    let scopeLabel = mr.requestScope || 'STATE';
-    if (scopeLabel === 'LOCAL' && mr.localRadius) {
-        scopeLabel += ` (${mr.localRadius} km)`;
+    
+    if (subEl) {
+        subEl.innerText = isDirectBuy 
+            ? 'DIRECT MATERIAL REQUEST — सीधे सामग्री खरीदने का अनुरोध'
+            : 'POSTED MATERIAL REQUIREMENT — मटेरियल आवश्यकता';
     }
-    if (scopeEl) scopeEl.innerText = scopeLabel;
+
+    const buyerNameStr = mr.buyerName ? `${mr.buyerName} (${mr.buyerRole || 'BUYER'})` : (mr.buyerRole || 'CUSTOMER');
+    if (roleEl) roleEl.innerText = buyerNameStr;
+
+    if (scopeEl) {
+        if (isDirectBuy) {
+            scopeEl.innerText = 'DIRECT (लक्षित विक्रेता)';
+        } else {
+            let scopeLabel = mr.requestScope || 'STATE';
+            if (scopeLabel === 'LOCAL' && mr.localRadius) {
+                scopeLabel += ` (${mr.localRadius} km)`;
+            }
+            scopeEl.innerText = scopeLabel;
+        }
+    }
     if (stateEl) stateEl.innerText = mr.state || '-';
     if (pinEl) pinEl.innerText = mr.pinCode || '-';
     if (addrEl) {
@@ -420,10 +490,11 @@ function openMaterialRequestModal(requestId) {
         addrEl.innerText = fullAddr || 'Delivery Address Not Specified';
     }
 
+    const items = mr.items || [];
+    const firstItem = items[0] || {};
     const itemsContainer = document.getElementById('detailModalItemsList');
     if (itemsContainer) {
         itemsContainer.innerHTML = '';
-        const items = mr.items || [];
         const countEl = document.getElementById('detailModalItemCount');
         if (countEl) countEl.innerText = `${items.length} ${items.length === 1 ? 'Material' : 'Materials'}`;
 
@@ -464,22 +535,127 @@ function openMaterialRequestModal(requestId) {
         }
     }
 
+    // Direct Buy financial snapshot elements
+    const snapshotContainer = document.getElementById('detailModalDirectSnapshot');
+    const unitPriceEl = document.getElementById('detailModalUnitPrice');
+    const matAmountEl = document.getElementById('detailModalMatAmount');
+    const transportEl = document.getElementById('detailModalTransport');
+    const estTotalEl = document.getElementById('detailModalEstTotal');
+    const verCodeEl = document.getElementById('detailModalVerCode');
+
+    const acceptBtn = document.getElementById('detailModalAcceptBtn');
+    const declineBtn = document.getElementById('detailModalDeclineBtn');
     const quoteBtn = document.getElementById('detailModalQuoteBtn');
-    if (quoteBtn) {
-        quoteBtn.onclick = function() {
-            closeModal('materialRequestDetailModal');
-            const items = mr.items || [];
-            const firstItem = items[0] || {};
-            openQuotationModal(
-                mr.requestId || ('MR-' + mr.id),
-                firstItem.materialName || mr.materialSummary || 'Requested Material',
-                firstItem.quantity || 1,
-                firstItem.unit || 'Units'
-            );
-        };
+
+    if (isDirectBuy) {
+        if (snapshotContainer) {
+            snapshotContainer.classList.remove('hidden');
+            if (unitPriceEl) unitPriceEl.innerText = mr.materialPrice ? '₹' + Number(mr.materialPrice).toLocaleString('en-IN') + ' / ' + (firstItem.unit || 'unit') : '₹0';
+            if (matAmountEl) matAmountEl.innerText = mr.materialAmount ? '₹' + Number(mr.materialAmount).toLocaleString('en-IN') : '₹0';
+            if (transportEl) transportEl.innerText = mr.transportationCost ? '₹' + Number(mr.transportationCost).toLocaleString('en-IN') : '₹0';
+            if (estTotalEl) estTotalEl.innerText = mr.estimatedTotal ? '₹' + Number(mr.estimatedTotal).toLocaleString('en-IN') : '₹0';
+            if (verCodeEl) {
+                if (mr.verificationCode) {
+                    verCodeEl.innerText = 'Code: ' + mr.verificationCode;
+                    verCodeEl.classList.remove('hidden');
+                } else if (mr.status === 'ACCEPTED') {
+                    verCodeEl.innerText = 'Accepted';
+                    verCodeEl.classList.remove('hidden');
+                } else {
+                    verCodeEl.innerText = 'Verification Code on Accept';
+                    verCodeEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        if (quoteBtn) quoteBtn.classList.add('hidden');
+
+        if (mr.status === 'PENDING' || mr.status === 'NEW' || mr.status === 'Open') {
+            if (acceptBtn) {
+                acceptBtn.classList.remove('hidden');
+                acceptBtn.onclick = () => acceptDirectBuyRequest(mr.id, rId);
+            }
+            if (declineBtn) {
+                declineBtn.classList.remove('hidden');
+                declineBtn.onclick = () => declineDirectBuyRequest(mr.id, rId);
+            }
+        } else {
+            if (acceptBtn) acceptBtn.classList.add('hidden');
+            if (declineBtn) declineBtn.classList.add('hidden');
+        }
+    } else {
+        if (snapshotContainer) snapshotContainer.classList.add('hidden');
+        if (acceptBtn) acceptBtn.classList.add('hidden');
+        if (declineBtn) declineBtn.classList.add('hidden');
+        if (quoteBtn) {
+            quoteBtn.classList.remove('hidden');
+            quoteBtn.onclick = function() {
+                closeModal('materialRequestDetailModal');
+                const items = mr.items || [];
+                const firstItem = items[0] || {};
+                openQuotationModal(
+                    mr.requestId || ('MR-' + mr.id),
+                    firstItem.materialName || mr.materialSummary || 'Requested Material',
+                    firstItem.quantity || 1,
+                    firstItem.unit || 'Units'
+                );
+            };
+        }
     }
 
     openModal('materialRequestDetailModal');
+}
+
+async function acceptDirectBuyRequest(id, rId) {
+    if (!confirm('Are you sure you want to accept this Direct Material Request?')) return;
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/accept`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Direct Material Request accepted! Verification code: ' + (data.verificationCode || ''));
+            closeModal('materialRequestDetailModal');
+            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+        } else {
+            showToast(data.message || 'Failed to accept request');
+        }
+    } catch (err) {
+        console.error('Accept error:', err);
+        showToast('Network error while accepting request');
+    }
+}
+
+async function declineDirectBuyRequest(id, rId) {
+    if (!confirm('Are you sure you want to decline this Direct Material Request?')) return;
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/decline`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Direct Material Request declined.');
+            closeModal('materialRequestDetailModal');
+            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+        } else {
+            showToast(data.message || 'Failed to decline request');
+        }
+    } catch (err) {
+        console.error('Decline error:', err);
+        showToast('Network error while declining request');
+    }
 }
 
 function createRequirementCard(p) {

@@ -73,6 +73,28 @@ public class MaterialRequest {
     @Column(name = "status", nullable = false, length = 50)
     private String status = "NEW"; // NEW, VIEWED, RESPONDED, CLOSED
 
+    @Column(name = "request_type", length = 50)
+    private String requestType = "POSTED_REQUIREMENT"; // POSTED_REQUIREMENT or DIRECT_MATERIAL
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_seller_id")
+    private MarketplaceBackendApplication.MarketplaceUser targetSeller;
+
+    @Column(name = "material_price")
+    private Double materialPrice;
+
+    @Column(name = "transportation_cost")
+    private Double transportationCost;
+
+    @Column(name = "material_amount")
+    private Double materialAmount;
+
+    @Column(name = "estimated_total")
+    private Double estimatedTotal;
+
+    @Column(name = "verification_code", length = 50)
+    private String verificationCode;
+
     @Column(name = "special_notes", columnDefinition = "TEXT")
     private String specialNotes;
 
@@ -97,6 +119,9 @@ public class MaterialRequest {
         }
         if (this.requestScope == null || this.requestScope.isBlank()) {
             this.requestScope = "STATE";
+        }
+        if (this.requestType == null || this.requestType.isBlank()) {
+            this.requestType = "POSTED_REQUIREMENT";
         }
     }
 
@@ -180,6 +205,27 @@ public class MaterialRequest {
 
     public List<MaterialRequestItem> getItems() { return items; }
     public void setItems(List<MaterialRequestItem> items) { this.items = items; }
+
+    public String getRequestType() { return requestType; }
+    public void setRequestType(String requestType) { this.requestType = requestType; }
+
+    public MarketplaceBackendApplication.MarketplaceUser getTargetSeller() { return targetSeller; }
+    public void setTargetSeller(MarketplaceBackendApplication.MarketplaceUser targetSeller) { this.targetSeller = targetSeller; }
+
+    public Double getMaterialPrice() { return materialPrice; }
+    public void setMaterialPrice(Double materialPrice) { this.materialPrice = materialPrice; }
+
+    public Double getTransportationCost() { return transportationCost; }
+    public void setTransportationCost(Double transportationCost) { this.transportationCost = transportationCost; }
+
+    public Double getMaterialAmount() { return materialAmount; }
+    public void setMaterialAmount(Double materialAmount) { this.materialAmount = materialAmount; }
+
+    public Double getEstimatedTotal() { return estimatedTotal; }
+    public void setEstimatedTotal(Double estimatedTotal) { this.estimatedTotal = estimatedTotal; }
+
+    public String getVerificationCode() { return verificationCode; }
+    public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

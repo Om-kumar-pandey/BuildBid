@@ -20,4 +20,8 @@ public interface MaterialRequestRepository extends JpaRepository<MaterialRequest
     List<MaterialRequest> findByRequestScopeOrderByCreatedAtDesc(String requestScope);
 
     List<MaterialRequest> findByStatusOrderByCreatedAtDesc(String status);
+
+    List<MaterialRequest> findByTargetSellerOrderByCreatedAtDesc(MarketplaceBackendApplication.MarketplaceUser targetSeller);
+
+    List<MaterialRequest> findByTargetSellerAndRequestTypeOrderByCreatedAtDesc(MarketplaceBackendApplication.MarketplaceUser targetSeller, String requestType);
 }

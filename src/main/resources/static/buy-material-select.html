@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid — Choose Material Purchase Mode | सामग्री खरीद का तरीका चुनें</title>
+  <!-- Google Fonts: Inter & Noto Sans Devanagari -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            buildblue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="index.html" class="flex items-center space-x-2.5">
+          <img src="logo.png" alt="BuildBid Logo" class="h-9 w-auto object-contain" onerror="this.src='hero-building.jpg'">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-base tracking-tight text-white">Build<span class="text-blue-500">Bid</span></span>
+              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">Buy Material</span>
+            </div>
+            <p class="text-[10px] text-slate-400">सामग्री खरीद पोर्टल</p>
+          </div>
+        </a>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <a id="backToDashboardBtn" href="customer dashboard.html" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-arrow-left text-blue-400"></i>
+          <span>Dashboard — डैशबोर्ड</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col justify-center">
+
+    <!-- Header & Subtitle -->
+    <div class="text-center max-w-2xl mx-auto mb-10 space-y-2">
+      <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+        <i class="fa-solid fa-cart-shopping text-xs"></i>
+        <span>Material Procurement — सामग्री खरीद</span>
+      </span>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+        Choose How You Want to Buy Material
+      </h1>
+      <p class="text-sm font-medium text-slate-600">
+        सामग्री खरीदने का पसंदीदा तरीका चुनें
+      </p>
+      <p class="text-xs text-slate-400">
+        Select between direct inventory purchase from nearby sellers or posting a competitive custom supply requirement.
+      </p>
+    </div>
+
+    <!-- TWO OPTIONS GRID -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- OPTION 1: DIRECT BUY MATERIAL -->
+      <div class="bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-200 hover:shadow-xl group relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-bl-xl tracking-wider">
+          Instant Inventory
+        </div>
+        <div class="space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+
+          <div>
+            <span class="text-[11px] font-bold uppercase text-emerald-600 tracking-wider">Option 1 / विकल्प 1</span>
+            <h2 class="text-xl font-extrabold text-slate-900 mt-0.5">
+              Direct Buy Material
+            </h2>
+            <p class="text-xs font-semibold text-slate-600">सीधे सामग्री खरीदें</p>
+          </div>
+
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Select a material, quantity and delivery location, compare matching sellers, review the price and transportation cost, and send a direct purchase request to the selected seller.
+          </p>
+
+          <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1.5 text-[11px] text-slate-600">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i>
+              <span>Live seller inventory price & stock</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i>
+              <span>Locked transportation cost estimate</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i>
+              <span>Single material direct fulfillment</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-6">
+          <a href="direct-buy-material.html" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center justify-center space-x-2 group-hover:shadow-emerald-500/20">
+            <span>Direct Buy Material — सीधे सामग्री खरीदें</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- OPTION 2: POST MATERIAL REQUIREMENT (EXISTING FLOW) -->
+      <div class="bg-white border-2 border-slate-200 hover:border-blue-500 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-200 hover:shadow-xl group relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-bl-xl tracking-wider">
+          Competitive Quotes
+        </div>
+        <div class="space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all">
+            <i class="fa-solid fa-bullhorn"></i>
+          </div>
+
+          <div>
+            <span class="text-[11px] font-bold uppercase text-blue-600 tracking-wider">Option 2 / विकल्प 2</span>
+            <h2 class="text-xl font-extrabold text-slate-900 mt-0.5">
+              Post Material Requirement
+            </h2>
+            <p class="text-xs font-semibold text-slate-600">मटेरियल आवश्यकता पोस्ट करें</p>
+          </div>
+
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Post your material requirement and allow relevant sellers to respond. Ideal when purchasing multiple construction materials together or receiving competitive supplier quotations.
+          </p>
+
+          <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1.5 text-[11px] text-slate-600">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-blue-500 text-xs"></i>
+              <span>Multi-material list in one request</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-blue-500 text-xs"></i>
+              <span>Broadcast to State, All India or Local radius</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-blue-500 text-xs"></i>
+              <span>Compare bids from multiple suppliers</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-6">
+          <a href="buy material.html" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center justify-center space-x-2 group-hover:shadow-blue-500/20">
+            <span>Post Material Requirement — आवश्यकता पोस्ट करें</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Auto adjust back button based on role
+      const storageKeys = ["currentUser", "customerUser", "loggedInUser", "marketplaceUser", "userData"];
+      let user = null;
+      for (const k of storageKeys) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(k) || sessionStorage.getItem(k));
+          if (parsed && typeof parsed === "object") { user = parsed; break; }
+        } catch(e) {}
+      }
+      if (user) {
+        const role = (user.role || (user.roles && user.roles[0]) || "").toString().toUpperCase();
+        const backBtn = document.getElementById("backToDashboardBtn");
+        if (backBtn && role.includes("CONTRACTOR")) {
+          backBtn.href = "contractor-dashboard.html";
+        }
+      }
+    });
+  </script>
+</body>
+</html>

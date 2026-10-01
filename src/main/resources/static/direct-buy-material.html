@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid — Direct Buy Material | सीधे सामग्री खरीदें</title>
+  <!-- Google Fonts: Inter & Noto Sans Devanagari -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            buildblue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Dedicated Direct Buy Styles -->
+  <link rel="stylesheet" href="direct-buy-material.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand Logo & Module Badge -->
+      <div class="flex items-center space-x-3">
+        <a href="index.html" class="flex items-center space-x-2.5 group">
+          <img src="logo.png" alt="BuildBid Logo" class="h-9 w-auto object-contain" onerror="this.src='hero-building.jpg'">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-base tracking-tight text-white">Build<span class="text-blue-500">Bid</span></span>
+              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Direct Buy</span>
+            </div>
+            <p class="text-[10px] text-slate-400">सीधे सामग्री खरीदें</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Right Header Actions: User Pill & Back Button -->
+      <div class="flex items-center space-x-3">
+        <div id="userPill">
+          <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+            <i class="fa-solid fa-user text-xs"></i>
+            <span>Buyer</span>
+          </span>
+        </div>
+
+        <a id="backToDashboardBtn" href="customer dashboard.html" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-arrow-left text-blue-400"></i>
+          <span class="hidden sm:inline">Back to Dashboard — डैशबोर्ड पर वापस जाएं</span>
+          <span class="sm:hidden">Dashboard</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Page Breadcrumb & Title -->
+    <div class="mb-5">
+      <nav class="flex items-center space-x-2 text-xs text-slate-500 mb-2">
+        <a href="index.html" class="hover:text-blue-600 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-slate-500">Buy Material</span>
+        <span>/</span>
+        <span class="text-slate-800 font-semibold">Direct Buy — सीधे सामग्री खरीदें</span>
+      </nav>
+      <div>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2.5">
+          <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-bolt"></i>
+          </span>
+          <span>Direct Buy Material — सीधे सामग्री खरीदें</span>
+        </h1>
+        <p class="text-xs text-slate-600 mt-1 font-medium">
+          Buy a specific material directly from available sellers near your location. Review actual inventory prices, available stock, and transportation cost before placing your order.
+        </p>
+        <p class="text-[11px] text-slate-400">
+          अपने क्षेत्र के उपलब्ध विक्रेताओं से सीधे सामग्री खरीदें। ऑर्डर भेजने से पहले वास्तविक इन्वेंटरी मूल्य, स्टॉक और परिवहन लागत की जांच करें।
+        </p>
+      </div>
+    </div>
+
+    <!-- STEP 1 & 2 FORM: LOCATION & MATERIAL SELECTION -->
+    <form id="directSearchForm" class="space-y-6">
+
+      <!-- SECTION 1: DELIVERY LOCATION -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="step-badge bg-blue-600 text-white">1</span>
+            <h2 class="font-bold text-sm tracking-wide">Delivery Location — डिलीवरी स्थान</h2>
+          </div>
+          <span class="text-[11px] text-slate-400">Pincode primary seller routing</span>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <!-- State -->
+            <div>
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                State — राज्य <span class="text-rose-500">*</span>
+              </label>
+              <select id="directState" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs font-medium text-slate-900 outline-none" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <!-- City -->
+            <div>
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                City / District — शहर / जिला <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="directCity" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs font-semibold text-slate-900 outline-none" placeholder="e.g. Greater Noida" required>
+            </div>
+
+            <!-- Pincode -->
+            <div>
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                PIN Code — पिन कोड <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="directPincode" maxlength="6" pattern="[0-9]{6}" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs font-bold text-slate-900 outline-none" placeholder="e.g. 201310" required>
+            </div>
+          </div>
+
+          <!-- Full Delivery Address -->
+          <div>
+            <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+              Full Delivery Address / Site Location — पूरा पता / साइट स्थान <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="directAddress" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs text-slate-900 outline-none" placeholder="Plot / Street / Landmark / Area details" required>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                Contact Person — संपर्क व्यक्ति <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="directContactPerson" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs text-slate-900 outline-none" placeholder="Your name" required>
+            </div>
+            <div>
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                Contact Phone — संपर्क फोन <span class="text-rose-500">*</span>
+              </label>
+              <input type="tel" id="directContactPhone" maxlength="15" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs text-slate-900 outline-none" placeholder="10-digit mobile number" required>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: SELECT MATERIAL & QUANTITY (ONE MATERIAL PER REQUEST) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center space-x-2.5">
+            <span class="step-badge bg-blue-600 text-white">2</span>
+            <h2 class="font-bold text-sm tracking-wide">Select Material — सामग्री चुनें</h2>
+          </div>
+          <span class="text-[11px] text-amber-300 font-semibold">* One material per Direct Buy request</span>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <!-- Material Selection (From Seller Inventory) -->
+            <div class="sm:col-span-2">
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                Select Material — सामग्री का चयन करें <span class="text-rose-500">*</span>
+              </label>
+              <select id="directMaterialSelect" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs font-semibold text-slate-900 outline-none" required>
+                <option value="" disabled selected>-- Loading available materials from seller inventory... --</option>
+              </select>
+            </div>
+
+            <!-- Quantity & Unit -->
+            <div>
+              <label class="block font-semibold text-[11px] text-slate-700 mb-1">
+                Quantity — मात्रा <span class="text-rose-500">*</span>
+              </label>
+              <div class="flex items-center space-x-1.5">
+                <input type="number" id="directQuantity" min="0.01" step="any" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 focus:border-blue-500 rounded-lg text-xs font-bold text-slate-900 outline-none" placeholder="e.g. 100" required>
+                <span id="directUnitBadge" class="px-2.5 py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-bold whitespace-nowrap">Units</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Material Inputs (Appears if 'Other' selected) -->
+          <div id="directCustomMaterialBox" class="hidden p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3">
+            <div class="flex items-center space-x-1.5 text-amber-800 text-xs font-bold">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>Custom Material Details — अन्य सामग्री का नाम और इकाई</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="text" id="directCustomName" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs text-slate-900 outline-none" placeholder="Material name — जैसे: व्हाइट सीमेंट / विशेष सरिया">
+              <input type="text" id="directCustomUnit" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs text-slate-900 outline-none" placeholder="Unit — जैसे: Bag / Ton / Piece">
+            </div>
+          </div>
+
+          <!-- PROCEED BUTTON (DOES NOT CREATE REQUEST) -->
+          <div class="pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100">
+            <p class="text-[11px] text-slate-500 flex items-center">
+              <i class="fa-solid fa-circle-info text-blue-500 mr-1.5 text-xs"></i>
+              <span>Clicking Proceed searches available sellers with stock. <strong>No order is created yet.</strong></span>
+            </p>
+            <button type="submit" id="proceedSearchBtn" class="inline-flex items-center justify-center space-x-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer">
+              <span>Proceed to Find Sellers — आगे बढ़ें</span>
+              <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- SECTION 3: MATCHING SELLERS RESULTS (DYNAMICALLY POPULATED) -->
+    <div id="matchingSellersSection" class="hidden mt-8 space-y-4 animate-fade-in">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-900 flex items-center space-x-2">
+            <span class="step-badge bg-emerald-600 text-white">3</span>
+            <span>Available Sellers with Stock — उपलब्ध विक्रेता</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5" id="matchSummaryText">Matching sellers found in your region</p>
+        </div>
+        <span id="matchingCountBadge" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">0 Sellers</span>
+      </div>
+
+      <!-- Sellers Grid -->
+      <div id="sellersContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- SECTION 4: REVIEW & CONFIRMATION MODAL -->
+    <div id="reviewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-fade-in">
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Direct Buy Confirmation</span>
+            <h3 class="font-extrabold text-base text-white">Review & Confirm Purchase — पुष्टि करें</h3>
+          </div>
+          <button type="button" onclick="closeReviewModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          <!-- Buyer & Seller Summary Cards -->
+          <div class="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+            <div>
+              <p class="text-[10px] uppercase text-slate-400 font-bold">Buyer / ग्राहक</p>
+              <p id="revBuyerName" class="font-bold text-slate-800">Rahul Sharma</p>
+              <p id="revBuyerRole" class="text-[10px] text-blue-600 font-semibold">CUSTOMER</p>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase text-slate-400 font-bold">Seller / विक्रेता</p>
+              <p id="revSellerName" class="font-bold text-slate-800">Gupta Materials</p>
+              <p id="revSellerLoc" class="text-[10px] text-slate-500">Greater Noida, UP</p>
+            </div>
+          </div>
+
+          <!-- Material Details -->
+          <div class="p-3.5 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500">Material — सामग्री:</span>
+              <span id="revMaterialName" class="font-bold text-slate-900">UltraTech Cement</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500">Requested Quantity — मात्रा:</span>
+              <span id="revQuantity" class="font-bold text-slate-900">100 Bags</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500">Seller Unit Price — दर:</span>
+              <span id="revUnitPrice" class="font-semibold text-slate-800">₹420 / Bag</span>
+            </div>
+          </div>
+
+          <!-- Price & Transportation Breakdown -->
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">Material Subtotal — सामग्री राशि:</span>
+              <span id="revMaterialAmount" class="font-bold text-slate-900">₹42,000</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-slate-600">Transportation Cost — परिवहन लागत:</span>
+                <p id="revTransportNotice" class="text-[10px] text-slate-400"></p>
+              </div>
+              <span id="revTransportCost" class="font-bold text-slate-900">₹1,500</span>
+            </div>
+            <div class="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
+              <span class="font-extrabold text-slate-900">Estimated Total — अनुमानित कुल:</span>
+              <span id="revEstimatedTotal" class="font-extrabold text-emerald-600 text-base">₹43,500</span>
+            </div>
+          </div>
+
+          <!-- Delivery Address Confirmation -->
+          <div class="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <span class="font-bold text-slate-700 block mb-0.5"><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> Delivery To:</span>
+            <span id="revDeliveryAddress">-</span>
+          </div>
+
+          <!-- Notice -->
+          <p class="text-[10px] text-slate-400 text-center">
+            * Point-in-time price and transportation cost are locked with this request.
+          </p>
+
+          <!-- FINAL ACTION BUTTON -->
+          <button type="button" id="confirmSendRequestBtn" onclick="submitDirectBuyRequest()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Send Request to Buy Material — सामग्री खरीदने का अनुरोध भेजें</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: SUCCESS MODAL -->
+    <div id="successModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 text-center space-y-4 animate-fade-in">
+        <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">Request Sent Successfully</span>
+          <h3 class="text-lg font-extrabold text-slate-900 mt-1">Direct Buy Request Placed!</h3>
+          <p class="text-xs text-slate-500 mt-0.5">आपका सामग्री खरीद अनुरोध विक्रेता को भेज दिया गया है</p>
+        </div>
+
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5 text-left">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Request ID:</span>
+            <span id="successReqId" class="font-bold text-blue-600">DMR-1001</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Verification Code:</span>
+            <span id="successVerCode" class="font-bold text-emerald-700 font-mono">BB-DM-482913</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Seller:</span>
+            <span id="successSeller" class="font-semibold text-slate-800">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Estimated Total:</span>
+            <span id="successTotal" class="font-bold text-slate-900">-</span>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-500">
+          The seller will review your request and confirm fulfillment. You can track this in your dashboard.
+        </p>
+
+        <button type="button" onclick="closeSuccessModal()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all">
+          Go to Dashboard — डैशबोर्ड पर जाएं
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="directToast" class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2.5 text-xs border border-slate-700">
+    <i id="directToastIcon" class="fa-solid fa-circle-info text-blue-400"></i>
+    <span id="directToastMsg">Notification message</span>
+  </div>
+
+  <script src="direct-buy-material.js"></script>
+</body>
+</html>

@@ -458,7 +458,11 @@ public class MarketplaceBackendApplication {
                                     "/logo.png",
                                     "/buy material.html", "/buy%20material.html",
                                     "/buy material.css", "/buy%20material.css",
-                                    "/buy material.js", "/buy%20material.js"
+                                    "/buy material.js", "/buy%20material.js",
+                                    "/direct-buy-material.html",
+                                    "/direct-buy-material.css",
+                                    "/direct-buy-material.js",
+                                    "/buy-material-select.html"
                             ).permitAll()
                             .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

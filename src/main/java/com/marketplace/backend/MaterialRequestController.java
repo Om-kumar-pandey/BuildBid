@@ -371,40 +371,48 @@ public class MaterialRequestController {
         List<Map<String, Object>> matching = new ArrayList<>();
 
         for (MaterialRequest req : allRequests) {
-            // Closed requests are not shown in active pool
-            if ("CLOSED".equalsIgnoreCase(req.getStatus())) {
+            // Closed or declined requests are not shown in active pool
+            if ("CLOSED".equalsIgnoreCase(req.getStatus()) || "DECLINED".equalsIgnoreCase(req.getStatus())) {
                 continue;
             }
 
             boolean isEligible = false;
-            String scope = req.getRequestScope() != null ? req.getRequestScope().toUpperCase() : "STATE";
 
-            if (scope.equals("ALL_INDIA")) {
-                // All India scope is available to all registered sellers
-                isEligible = true;
-            } else if (scope.equals("STATE")) {
-                // Must match the delivery location state
-                String reqState = req.getState() != null ? req.getState().trim() : "";
-                if (matchesState(sellerState, sellerLocation, reqState)) {
+            // Direct Material Request is targeted exclusively to the selected seller
+            if ("DIRECT_MATERIAL".equalsIgnoreCase(req.getRequestType())) {
+                if (req.getTargetSeller() != null && req.getTargetSeller().getId().equals(seller.getId())) {
                     isEligible = true;
                 }
-            } else if (scope.equals("LOCAL")) {
-                int radius = req.getLocalRadius() != null ? req.getLocalRadius() : 25;
+            } else {
+                String scope = req.getRequestScope() != null ? req.getRequestScope().toUpperCase() : "STATE";
 
-                if (sellerLat != null && sellerLon != null && req.getLatitude() != null && req.getLongitude() != null) {
-                    double distKm = geoLocationService.calculateHaversineDistanceKm(
-                            sellerLat, sellerLon, req.getLatitude(), req.getLongitude()
-                    );
-                    if (distKm <= radius) {
+                if (scope.equals("ALL_INDIA")) {
+                    // All India scope is available to all registered sellers
+                    isEligible = true;
+                } else if (scope.equals("STATE")) {
+                    // Must match the delivery location state
+                    String reqState = req.getState() != null ? req.getState().trim() : "";
+                    if (matchesState(sellerState, sellerLocation, reqState)) {
                         isEligible = true;
                     }
-                } else {
-                    // Fallback to district, city or PIN matching
-                    String reqCombined = (req.getCity() + " " + req.getPinCode() + " " + req.getState()).trim();
-                    if (geoLocationService.areLocationsEquivalent(sellerLocation, reqCombined)) {
-                        isEligible = true;
-                    } else if (sellerGeo != null && sellerGeo.pincode() != null && sellerGeo.pincode().equals(req.getPinCode())) {
-                        isEligible = true;
+                } else if (scope.equals("LOCAL")) {
+                    int radius = req.getLocalRadius() != null ? req.getLocalRadius() : 25;
+
+                    if (sellerLat != null && sellerLon != null && req.getLatitude() != null && req.getLongitude() != null) {
+                        double distKm = geoLocationService.calculateHaversineDistanceKm(
+                                sellerLat, sellerLon, req.getLatitude(), req.getLongitude()
+                        );
+                        if (distKm <= radius) {
+                            isEligible = true;
+                        }
+                    } else {
+                        // Fallback to district, city or PIN matching
+                        String reqCombined = (req.getCity() + " " + req.getPinCode() + " " + req.getState()).trim();
+                        if (geoLocationService.areLocationsEquivalent(sellerLocation, reqCombined)) {
+                            isEligible = true;
+                        } else if (sellerGeo != null && sellerGeo.pincode() != null && sellerGeo.pincode().equals(req.getPinCode())) {
+                            isEligible = true;
+                        }
                     }
                 }
             }
@@ -415,6 +423,78 @@ public class MaterialRequestController {
         }
 
         return ResponseEntity.ok(matching);
+    }
+
+    /**
+     * Accept a Direct Material Request.
+     */
+    @PutMapping("/{id}/accept")
+    public ResponseEntity<?> acceptRequest(
+            @PathVariable("id") Long id,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> sellerOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+        if (sellerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller not found"));
+        }
+
+        Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
+        if (reqOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
+        }
+
+        MaterialRequest req = reqOpt.get();
+        if (req.getTargetSeller() != null && !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden"));
+        }
+
+        req.setStatus("ACCEPTED");
+        if (req.getVerificationCode() == null || req.getVerificationCode().isBlank()) {
+            req.setVerificationCode(String.format("BB-DM-%06d", new Random().nextInt(900000) + 100000));
+        }
+
+        MaterialRequest saved = materialRequestRepository.save(req);
+        return ResponseEntity.ok(toMap(saved, true));
+    }
+
+    /**
+     * Decline a Direct Material Request.
+     */
+    @PutMapping("/{id}/decline")
+    public ResponseEntity<?> declineRequest(
+            @PathVariable("id") Long id,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> sellerOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+        if (sellerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller not found"));
+        }
+
+        Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
+        if (reqOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
+        }
+
+        MaterialRequest req = reqOpt.get();
+        if (req.getTargetSeller() != null && !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden"));
+        }
+
+        req.setStatus("DECLINED");
+        MaterialRequest saved = materialRequestRepository.save(req);
+        return ResponseEntity.ok(toMap(saved, true));
     }
 
     /**
@@ -481,6 +561,14 @@ public class MaterialRequestController {
         map.put("requestScope", req.getRequestScope());
         map.put("localRadius", req.getLocalRadius());
         map.put("status", req.getStatus());
+        map.put("requestType", req.getRequestType() != null ? req.getRequestType() : "POSTED_REQUIREMENT");
+        map.put("targetSellerId", req.getTargetSeller() != null ? req.getTargetSeller().getId() : null);
+        map.put("targetSellerName", req.getTargetSeller() != null ? req.getTargetSeller().getName() : null);
+        map.put("materialPrice", req.getMaterialPrice());
+        map.put("transportationCost", req.getTransportationCost());
+        map.put("materialAmount", req.getMaterialAmount());
+        map.put("estimatedTotal", req.getEstimatedTotal());
+        map.put("verificationCode", req.getVerificationCode() != null ? req.getVerificationCode() : "");
         map.put("specialNotes", req.getSpecialNotes() != null ? req.getSpecialNotes() : "");
         map.put("createdAt", req.getCreatedAt() != null ? req.getCreatedAt().toString() : "");
 

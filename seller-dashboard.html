@@ -1613,9 +1613,42 @@
                     <p id="detailModalNotes" class="text-slate-700"></p>
                 </div>
 
+                <!-- Direct Material Request Financial Snapshot Container -->
+                <div id="detailModalDirectSnapshot" class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2.5 hidden">
+                    <div class="flex items-center justify-between text-xs pb-2 border-b border-emerald-200/60">
+                        <span class="font-bold text-emerald-900 uppercase tracking-wide text-[10px]">Direct Inventory Order Snapshot — प्रत्यक्ष इन्वेंटरी ऑर्डर</span>
+                        <span id="detailModalVerCode" class="font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-[11px]"></span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div>
+                            <span class="text-[10px] text-slate-500 block">Unit Price</span>
+                            <span id="detailModalUnitPrice" class="font-bold text-slate-800">₹0</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500 block">Material Amount</span>
+                            <span id="detailModalMatAmount" class="font-bold text-slate-800">₹0</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500 block">Transportation</span>
+                            <span id="detailModalTransport" class="font-bold text-slate-800">₹0</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500 block">Estimated Total</span>
+                            <span id="detailModalEstTotal" class="font-extrabold text-emerald-700 text-sm">₹0</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Footer Actions -->
                 <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200">
                     <button onclick="closeModal('materialRequestDetailModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Close — बंद करें</button>
+                    <button id="detailModalDeclineBtn" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition-all hidden">
+                        Decline — अस्वीकार करें
+                    </button>
+                    <button id="detailModalAcceptBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5 hidden">
+                        <i class="fa-solid fa-check text-xs"></i>
+                        <span>Accept Request — स्वीकार करें</span>
+                    </button>
                     <button id="detailModalQuoteBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5">
                         <i class="fa-solid fa-paper-plane text-xs"></i>
                         <span>Send Quote — कोटेशन भेजें</span>
