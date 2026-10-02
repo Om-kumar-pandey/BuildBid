@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,11 +186,15 @@ public class ProjectController {
             String activeEstimatorType = mapToActiveEstimatorType(type);
 
             if (activeEstimatorType != null && costEstimatorService != null) {
-                // 1. Built-up area
+                // 1. Total Build-up Area (Phase 2 Upgrade)
                 BigDecimal builtUpAreaSqFt = null;
-                if (areaVal != null && areaVal > 0) {
+                if (payload.get("totalBuildUpAreaSqFt") != null) {
+                    Double t = parseDoubleSafe(payload.get("totalBuildUpAreaSqFt"));
+                    if (t != null && t > 0) builtUpAreaSqFt = BigDecimal.valueOf(t);
+                }
+                if (builtUpAreaSqFt == null && areaVal != null && areaVal > 0) {
                     builtUpAreaSqFt = BigDecimal.valueOf(areaVal);
-                } else if (payload.get("builtUpAreaSqFt") != null) {
+                } else if (builtUpAreaSqFt == null && payload.get("builtUpAreaSqFt") != null) {
                     Double b = parseDoubleSafe(payload.get("builtUpAreaSqFt"));
                     if (b != null && b > 0) builtUpAreaSqFt = BigDecimal.valueOf(b);
                 }
@@ -246,7 +252,13 @@ public class ProjectController {
                     if (q.equalsIgnoreCase("STANDARD")) qualityTier = "STANDARD";
                 }
 
-                // 4. Construct server-side authoritative CostEstimationRequestDto
+                // 4. Parse floor requirements if provided
+                List<FloorRequirementDto> parsedFloors = parseFloorRequirements(payload.get("floors"));
+                if (parsedFloors.isEmpty() && payload.get("floorsData") != null) {
+                    parsedFloors = parseFloorRequirements(payload.get("floorsData"));
+                }
+
+                // 5. Construct server-side authoritative CostEstimationRequestDto
                 CostEstimationRequestDto estReq = new CostEstimationRequestDto(
                         activeEstimatorType,
                         locState != null ? locState.trim() : "",
@@ -254,12 +266,14 @@ public class ProjectController {
                         null,
                         locPincode != null ? locPincode.trim() : null,
                         builtUpAreaSqFt,
+                        hasBasement,
                         basementAreaSqFt,
                         floorCount,
-                        qualityTier
+                        qualityTier,
+                        parsedFloors
                 );
 
-                // 5. Execute authoritative CostEstimator calculation
+                // 6. Execute authoritative CostEstimator calculation
                 CostEstimationResponseDto estRes = costEstimatorService.calculate(estReq);
 
                 if (!estRes.isSuccess()) {
@@ -627,6 +641,82 @@ public class ProjectController {
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<FloorRequirementDto> parseFloorRequirements(Object floorsObj) {
+        if (!(floorsObj instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<?> list = (List<?>) floorsObj;
+        List<FloorRequirementDto> result = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            Object item = list.get(i);
+            if (item instanceof Map) {
+                Map<?, ?> map = (Map<?, ?>) item;
+                FloorRequirementDto dto = new FloorRequirementDto();
+                dto.setFloorNumber(map.get("floorNumber") != null ? ((Number) map.get("floorNumber")).intValue() : i);
+                dto.setFloorName(map.get("floorName") != null ? map.get("floorName").toString() : ("Floor " + i));
+                Double area = parseDoubleSafe(map.get("declaredAreaSqFt"));
+                if (area == null) area = parseDoubleSafe(map.get("approxArea"));
+                if (area == null) area = parseDoubleSafe(map.get("area"));
+                if (area != null && area > 0) {
+                    dto.setDeclaredAreaSqFt(BigDecimal.valueOf(area));
+                }
+                if (map.get("copyMode") != null) {
+                    dto.setCopyMode(map.get("copyMode").toString());
+                }
+                if (map.get("sourceFloor") != null) {
+                    dto.setSourceFloor(((Number) map.get("sourceFloor")).intValue());
+                }
+                if (map.get("rooms") instanceof Map) {
+                    Map<?, ?> rMap = (Map<?, ?>) map.get("rooms");
+                    Map<String, Integer> rooms = new HashMap<>();
+                    for (Map.Entry<?, ?> re : rMap.entrySet()) {
+                        if (re.getKey() != null && re.getValue() != null) {
+                            try {
+                                rooms.put(re.getKey().toString(), Integer.parseInt(re.getValue().toString()));
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+                    dto.setRooms(rooms);
+                }
+                if (map.get("customDimensions") instanceof Map) {
+                    Map<?, ?> cdMap = (Map<?, ?>) map.get("customDimensions");
+                    Map<String, CustomRoomDimensionDto> customDims = new HashMap<>();
+                    for (Map.Entry<?, ?> cde : cdMap.entrySet()) {
+                        if (cde.getKey() != null && cde.getValue() instanceof Map) {
+                            Map<?, ?> dimMap = (Map<?, ?>) cde.getValue();
+                            Double len = parseDoubleSafe(dimMap.get("lengthFt"));
+                            Double wid = parseDoubleSafe(dimMap.get("widthFt"));
+                            Double a = parseDoubleSafe(dimMap.get("areaSqFt"));
+                            customDims.put(cde.getKey().toString(), new CustomRoomDimensionDto(
+                                    len != null ? BigDecimal.valueOf(len) : null,
+                                    wid != null ? BigDecimal.valueOf(wid) : null,
+                                    a != null ? BigDecimal.valueOf(a) : null));
+                        }
+                    }
+                    dto.setCustomDimensions(customDims);
+                } else if (map.get("roomAreas") instanceof Map) {
+                    Map<?, ?> raMap = (Map<?, ?>) map.get("roomAreas");
+                    Map<String, CustomRoomDimensionDto> customDims = new HashMap<>();
+                    for (Map.Entry<?, ?> rae : raMap.entrySet()) {
+                        if (rae.getKey() != null) {
+                            Double a = parseDoubleSafe(rae.getValue());
+                            if (a != null && a > 0) {
+                                customDims.put(rae.getKey().toString(), new CustomRoomDimensionDto(null, null, BigDecimal.valueOf(a)));
+                            }
+                        }
+                    }
+                    dto.setCustomDimensions(customDims);
+                }
+                if (map.get("specialRequirements") != null) {
+                    dto.setSpecialRequirements(map.get("specialRequirements").toString());
+                }
+                result.add(dto);
+            }
+        }
+        return result;
     }
 
     private ContractorProjectResponse mapToContractorResponse(Project p) {

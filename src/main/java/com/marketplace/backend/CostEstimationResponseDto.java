@@ -5,12 +5,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * BUILDBID COST ESTIMATOR - RESPONSE DTO (Step 3)
+ * BUILDBID COST ESTIMATOR - RESPONSE DTO (Step 3 & Phase 2)
  *
  * Detailed, transparent cost estimation response containing floor-by-floor breakdown,
- * component costs, category sums, structural benchmark validation, and source provenance.
+ * component costs, category sums, structural benchmark validation, source provenance,
+ * and structured validation errors.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CostEstimationResponseDto {
@@ -35,6 +37,7 @@ public class CostEstimationResponseDto {
 
     private List<SourceProvenanceDto> sources = new ArrayList<>();
     private List<String> warnings = new ArrayList<>();
+    private List<ValidationErrorDto> validationErrors = new ArrayList<>();
 
     public CostEstimationResponseDto() {
     }
@@ -47,9 +50,51 @@ public class CostEstimationResponseDto {
         return res;
     }
 
+    public static CostEstimationResponseDto validationFailure(String message, String errorCode, List<ValidationErrorDto> errors) {
+        CostEstimationResponseDto res = new CostEstimationResponseDto();
+        res.setSuccess(false);
+        res.setMessage(message);
+        res.setErrorCode(errorCode);
+        if (errors != null) {
+            res.setValidationErrors(errors);
+        }
+        return res;
+    }
+
     // ========================================================
     // NESTED DTOS
     // ========================================================
+
+    public static class ValidationErrorDto {
+        private String field;
+        private String code;
+        private String message;
+        private Integer floorNumber;
+
+        public ValidationErrorDto() {}
+
+        public ValidationErrorDto(String field, String code, String message) {
+            this.field = field;
+            this.code = code;
+            this.message = message;
+        }
+
+        public ValidationErrorDto(String field, String code, String message, Integer floorNumber) {
+            this.field = field;
+            this.code = code;
+            this.message = message;
+            this.floorNumber = floorNumber;
+        }
+
+        public String getField() { return field; }
+        public void setField(String field) { this.field = field; }
+        public String getCode() { return code; }
+        public void setCode(String code) { this.code = code; }
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+        public Integer getFloorNumber() { return floorNumber; }
+        public void setFloorNumber(Integer floorNumber) { this.floorNumber = floorNumber; }
+    }
 
     public static class LocationDto {
         private String state;
@@ -86,6 +131,12 @@ public class CostEstimationResponseDto {
         private BigDecimal basementAreaSqFt;
         private BigDecimal totalConstructedAreaSqFt;
 
+        // Upgraded fields (Phase 2 & Phase 32)
+        private BigDecimal declaredTotalBuildUpAreaSqFt;
+        private BigDecimal declaredFloorsAggregateAreaSqFt;
+        private BigDecimal totalRoomProgramAreaSqFt;
+        private BigDecimal totalPlanningAllowanceSqFt;
+
         public AreaBreakdownDto() {}
 
         public AreaBreakdownDto(BigDecimal typicalFloorAreaSqFt, BigDecimal totalAboveGroundAreaSqFt,
@@ -104,6 +155,14 @@ public class CostEstimationResponseDto {
         public void setBasementAreaSqFt(BigDecimal basementAreaSqFt) { this.basementAreaSqFt = basementAreaSqFt; }
         public BigDecimal getTotalConstructedAreaSqFt() { return totalConstructedAreaSqFt; }
         public void setTotalConstructedAreaSqFt(BigDecimal totalConstructedAreaSqFt) { this.totalConstructedAreaSqFt = totalConstructedAreaSqFt; }
+        public BigDecimal getDeclaredTotalBuildUpAreaSqFt() { return declaredTotalBuildUpAreaSqFt; }
+        public void setDeclaredTotalBuildUpAreaSqFt(BigDecimal declaredTotalBuildUpAreaSqFt) { this.declaredTotalBuildUpAreaSqFt = declaredTotalBuildUpAreaSqFt; }
+        public BigDecimal getDeclaredFloorsAggregateAreaSqFt() { return declaredFloorsAggregateAreaSqFt; }
+        public void setDeclaredFloorsAggregateAreaSqFt(BigDecimal declaredFloorsAggregateAreaSqFt) { this.declaredFloorsAggregateAreaSqFt = declaredFloorsAggregateAreaSqFt; }
+        public BigDecimal getTotalRoomProgramAreaSqFt() { return totalRoomProgramAreaSqFt; }
+        public void setTotalRoomProgramAreaSqFt(BigDecimal totalRoomProgramAreaSqFt) { this.totalRoomProgramAreaSqFt = totalRoomProgramAreaSqFt; }
+        public BigDecimal getTotalPlanningAllowanceSqFt() { return totalPlanningAllowanceSqFt; }
+        public void setTotalPlanningAllowanceSqFt(BigDecimal totalPlanningAllowanceSqFt) { this.totalPlanningAllowanceSqFt = totalPlanningAllowanceSqFt; }
     }
 
     public static class CostRangeDto {
@@ -136,6 +195,17 @@ public class CostEstimationResponseDto {
         private BigDecimal high;
         private BigDecimal escalationFactor;
 
+        // Upgraded fields (Phases 7, 8, 15, 31)
+        private BigDecimal declaredAreaSqFt;
+        private BigDecimal roomProgramAreaSqFt;
+        private BigDecimal planningAllowanceSqFt;
+        private BigDecimal requiredProgramAreaSqFt;
+        private BigDecimal remainingCapacitySqFt;
+        private String capacityStatus; // VALID, CAPACITY_EXCEEDED
+        private String copyMode;
+        private Integer sourceFloor;
+        private Map<String, Integer> rooms;
+
         public FloorCostDto() {}
 
         public FloorCostDto(int floorNumber, String floorName, BigDecimal areaSqFt,
@@ -143,6 +213,7 @@ public class CostEstimationResponseDto {
             this.floorNumber = floorNumber;
             this.floorName = floorName;
             this.areaSqFt = areaSqFt;
+            this.declaredAreaSqFt = areaSqFt;
             this.low = low;
             this.average = average;
             this.high = high;
@@ -154,7 +225,10 @@ public class CostEstimationResponseDto {
         public String getFloorName() { return floorName; }
         public void setFloorName(String floorName) { this.floorName = floorName; }
         public BigDecimal getAreaSqFt() { return areaSqFt; }
-        public void setAreaSqFt(BigDecimal areaSqFt) { this.areaSqFt = areaSqFt; }
+        public void setAreaSqFt(BigDecimal areaSqFt) {
+            this.areaSqFt = areaSqFt;
+            if (this.declaredAreaSqFt == null) this.declaredAreaSqFt = areaSqFt;
+        }
         public BigDecimal getLow() { return low; }
         public void setLow(BigDecimal low) { this.low = low; }
         public BigDecimal getAverage() { return average; }
@@ -163,6 +237,24 @@ public class CostEstimationResponseDto {
         public void setHigh(BigDecimal high) { this.high = high; }
         public BigDecimal getEscalationFactor() { return escalationFactor; }
         public void setEscalationFactor(BigDecimal escalationFactor) { this.escalationFactor = escalationFactor; }
+        public BigDecimal getDeclaredAreaSqFt() { return declaredAreaSqFt; }
+        public void setDeclaredAreaSqFt(BigDecimal declaredAreaSqFt) { this.declaredAreaSqFt = declaredAreaSqFt; }
+        public BigDecimal getRoomProgramAreaSqFt() { return roomProgramAreaSqFt; }
+        public void setRoomProgramAreaSqFt(BigDecimal roomProgramAreaSqFt) { this.roomProgramAreaSqFt = roomProgramAreaSqFt; }
+        public BigDecimal getPlanningAllowanceSqFt() { return planningAllowanceSqFt; }
+        public void setPlanningAllowanceSqFt(BigDecimal planningAllowanceSqFt) { this.planningAllowanceSqFt = planningAllowanceSqFt; }
+        public BigDecimal getRequiredProgramAreaSqFt() { return requiredProgramAreaSqFt; }
+        public void setRequiredProgramAreaSqFt(BigDecimal requiredProgramAreaSqFt) { this.requiredProgramAreaSqFt = requiredProgramAreaSqFt; }
+        public BigDecimal getRemainingCapacitySqFt() { return remainingCapacitySqFt; }
+        public void setRemainingCapacitySqFt(BigDecimal remainingCapacitySqFt) { this.remainingCapacitySqFt = remainingCapacitySqFt; }
+        public String getCapacityStatus() { return capacityStatus; }
+        public void setCapacityStatus(String capacityStatus) { this.capacityStatus = capacityStatus; }
+        public String getCopyMode() { return copyMode; }
+        public void setCopyMode(String copyMode) { this.copyMode = copyMode; }
+        public Integer getSourceFloor() { return sourceFloor; }
+        public void setSourceFloor(Integer sourceFloor) { this.sourceFloor = sourceFloor; }
+        public Map<String, Integer> getRooms() { return rooms; }
+        public void setRooms(Map<String, Integer> rooms) { this.rooms = rooms; }
     }
 
     public static class BasementCostDto {
@@ -192,6 +284,44 @@ public class CostEstimationResponseDto {
         public void setStructuralCost(CostRangeDto structuralCost) { this.structuralCost = structuralCost; }
     }
 
+    public static class CostBreakdownDto {
+        private CostRangeDto material;
+        private CostRangeDto labour;
+        private CostRangeDto transportation;
+        private CostRangeDto machinery;
+        private CostRangeDto structural;
+        private CostRangeDto basement;
+        private ContingencyCostDto contingency;
+
+        // Upgraded: room-driven component additions (Phase 14 & 17)
+        private CostRangeDto internalPartitions;
+        private CostRangeDto sanitaryPlumbing;
+        private CostRangeDto electricalPoints;
+
+        public CostBreakdownDto() {}
+
+        public CostRangeDto getMaterial() { return material; }
+        public void setMaterial(CostRangeDto material) { this.material = material; }
+        public CostRangeDto getLabour() { return labour; }
+        public void setLabour(CostRangeDto labour) { this.labour = labour; }
+        public CostRangeDto getTransportation() { return transportation; }
+        public void setTransportation(CostRangeDto transportation) { this.transportation = transportation; }
+        public CostRangeDto getMachinery() { return machinery; }
+        public void setMachinery(CostRangeDto machinery) { this.machinery = machinery; }
+        public CostRangeDto getStructural() { return structural; }
+        public void setStructural(CostRangeDto structural) { this.structural = structural; }
+        public CostRangeDto getBasement() { return basement; }
+        public void setBasement(CostRangeDto basement) { this.basement = basement; }
+        public ContingencyCostDto getContingency() { return contingency; }
+        public void setContingency(ContingencyCostDto contingency) { this.contingency = contingency; }
+        public CostRangeDto getInternalPartitions() { return internalPartitions; }
+        public void setInternalPartitions(CostRangeDto internalPartitions) { this.internalPartitions = internalPartitions; }
+        public CostRangeDto getSanitaryPlumbing() { return sanitaryPlumbing; }
+        public void setSanitaryPlumbing(CostRangeDto sanitaryPlumbing) { this.sanitaryPlumbing = sanitaryPlumbing; }
+        public CostRangeDto getElectricalPoints() { return electricalPoints; }
+        public void setElectricalPoints(CostRangeDto electricalPoints) { this.electricalPoints = electricalPoints; }
+    }
+
     public static class ContingencyCostDto {
         private BigDecimal factor;
         private BigDecimal percentage;
@@ -213,33 +343,6 @@ public class CostEstimationResponseDto {
         public void setHigh(BigDecimal high) { this.high = high; }
     }
 
-    public static class CostBreakdownDto {
-        private CostRangeDto material;
-        private CostRangeDto labour;
-        private CostRangeDto transportation;
-        private CostRangeDto machinery;
-        private CostRangeDto structural;
-        private CostRangeDto basement;
-        private ContingencyCostDto contingency;
-
-        public CostBreakdownDto() {}
-
-        public CostRangeDto getMaterial() { return material; }
-        public void setMaterial(CostRangeDto material) { this.material = material; }
-        public CostRangeDto getLabour() { return labour; }
-        public void setLabour(CostRangeDto labour) { this.labour = labour; }
-        public CostRangeDto getTransportation() { return transportation; }
-        public void setTransportation(CostRangeDto transportation) { this.transportation = transportation; }
-        public CostRangeDto getMachinery() { return machinery; }
-        public void setMachinery(CostRangeDto machinery) { this.machinery = machinery; }
-        public CostRangeDto getStructural() { return structural; }
-        public void setStructural(CostRangeDto structural) { this.structural = structural; }
-        public CostRangeDto getBasement() { return basement; }
-        public void setBasement(CostRangeDto basement) { this.basement = basement; }
-        public ContingencyCostDto getContingency() { return contingency; }
-        public void setContingency(ContingencyCostDto contingency) { this.contingency = contingency; }
-    }
-
     public static class ComponentItemDto {
         private String componentName;
         private String category;
@@ -258,7 +361,6 @@ public class CostEstimationResponseDto {
 
         public ComponentItemDto() {}
 
-        // Getters and Setters
         public String getComponentName() { return componentName; }
         public void setComponentName(String componentName) { this.componentName = componentName; }
         public String getCategory() { return category; }
@@ -290,15 +392,19 @@ public class CostEstimationResponseDto {
     }
 
     public static class BenchmarkCheckDto {
+        private String status; // ALIGNED, DIVERGENT, BENCHMARK_UNAVAILABLE
+        private String message;
         private CostRangeDto benchmarkPerSqFt;
         private CostRangeDto benchmarkTotal;
         private CostRangeDto componentEstimate;
         private BigDecimal divergencePercentage;
-        private String status; // ALIGNED, DIVERGENT
-        private String message;
 
         public BenchmarkCheckDto() {}
 
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
         public CostRangeDto getBenchmarkPerSqFt() { return benchmarkPerSqFt; }
         public void setBenchmarkPerSqFt(CostRangeDto benchmarkPerSqFt) { this.benchmarkPerSqFt = benchmarkPerSqFt; }
         public CostRangeDto getBenchmarkTotal() { return benchmarkTotal; }
@@ -307,10 +413,6 @@ public class CostEstimationResponseDto {
         public void setComponentEstimate(CostRangeDto componentEstimate) { this.componentEstimate = componentEstimate; }
         public BigDecimal getDivergencePercentage() { return divergencePercentage; }
         public void setDivergencePercentage(BigDecimal divergencePercentage) { this.divergencePercentage = divergencePercentage; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
     }
 
     public static class TotalEstimateDto {
@@ -344,8 +446,7 @@ public class CostEstimationResponseDto {
 
         public SourceProvenanceDto() {}
 
-        public SourceProvenanceDto(String componentName, String category, String rateSource,
-                                   String sourceUrl, LocalDate rateDate, String geographicTier) {
+        public SourceProvenanceDto(String componentName, String category, String rateSource, String sourceUrl, LocalDate rateDate, String geographicTier) {
             this.componentName = componentName;
             this.category = category;
             this.rateSource = rateSource;
@@ -402,4 +503,6 @@ public class CostEstimationResponseDto {
     public void setSources(List<SourceProvenanceDto> sources) { this.sources = sources; }
     public List<String> getWarnings() { return warnings; }
     public void setWarnings(List<String> warnings) { this.warnings = warnings; }
+    public List<ValidationErrorDto> getValidationErrors() { return validationErrors; }
+    public void setValidationErrors(List<ValidationErrorDto> validationErrors) { this.validationErrors = validationErrors; }
 }

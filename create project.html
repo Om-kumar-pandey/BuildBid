@@ -107,116 +107,116 @@
       <section class="wizard-main-card">
         <div class="wizard-header">
           <div>
-            <h2>Create New Project</h2>
-            <p>Add your construction project details and receive competitive bids from verified contractors.</p>
+            <h2>Create New Project <span class="hi-sub" style="font-size:14px; font-weight:600; color:#64748b;">नया प्रोजेक्ट बनाएं</span></h2>
+            <p>Add your construction project details and receive competitive bids from verified contractors.<span class="hi-sub">अपने निर्माण प्रोजेक्ट की जानकारी जोड़ें और सत्यापित ठेकेदारों से प्रतिस्पर्धी बोलियाँ प्राप्त करें।</span></p>
           </div>
           <div class="privacy-tag">
-            <i class="fa-solid fa-lock"></i> Your project information is private
+            <i class="fa-solid fa-lock"></i> Your project information is private <span class="hi-inline">/ आपकी जानकारी सुरक्षित है</span>
           </div>
         </div>
 
         <!-- 5-Step Stepper Navigation -->
         <div class="stepper-nav" id="stepperContainer">
-          <div class="step-node active" data-step="1"><span class="step-num">1</span> Project Type</div>
+          <div class="step-node active" data-step="1"><span class="step-num">1</span> <div>Project Type <span class="hi-sub">प्रोजेक्ट का प्रकार</span></div></div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="2"><span class="step-num">2</span> Basic Details</div>
+          <div class="step-node" data-step="2"><span class="step-num">2</span> <div>Basic Details <span class="hi-sub">बुनियादी जानकारी</span></div></div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="3"><span class="step-num">3</span> Requirements</div>
+          <div class="step-node" data-step="3"><span class="step-num">3</span> <div>Requirements <span class="hi-sub">आवश्यकताएं</span></div></div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="4"><span class="step-num">4</span> Budget & Timeline</div>
+          <div class="step-node" data-step="4"><span class="step-num">4</span> <div>Budget & Timeline <span class="hi-sub">बजट और समय</span></div></div>
           <div class="step-divider"></div>
-          <div class="step-node" data-step="5"><span class="step-num">5</span> Review & Post</div>
+          <div class="step-node" data-step="5"><span class="step-num">5</span> <div>Review & Post <span class="hi-sub">समीक्षा और पोस्ट</span></div></div>
         </div>
 
         <!-- ================= STEP 1: 7 PROJECT TYPES ================= -->
         <div class="wizard-step-pane active" id="stepPane1">
-          <h3 class="step-heading">Step 1 of 5: What do you want to build or improve?</h3>
-          <p class="step-subheading">Select the type of project you want to create. This helps us customize the form for you.</p>
+          <h3 class="step-heading">Step 1 of 5: What do you want to build or improve? <span class="hi-sub" style="font-size:13px; font-weight:600; color:#64748b;">स्टेप 1 / 5: आप क्या बनाना या सुधारना चाहते हैं?</span></h3>
+          <p class="step-subheading">Select the type of project you want to create. This helps us customize the form for you.<span class="hi-sub">आप जिस प्रकार का प्रोजेक्ट बनाना चाहते हैं उसे चुनें। इससे हमें आपके अनुसार फ़ॉर्म तैयार करने में मदद मिलती है।</span></p>
 
           <div class="project-card-grid-7">
             <!-- 1. New Construction -->
-            <div class="type-card selected" onclick="selectProjectType('New Construction', this)">
-              <div class="type-badge">Most Popular</div>
+            <div class="type-card selected" data-type="New Construction" onclick="selectProjectType('New Construction', this)">
+              <div class="type-badge">Most Popular <span class="hi-inline">/ लोकप्रिय</span></div>
               <div class="type-icon"><i class="fa-solid fa-trowel-bricks"></i></div>
-              <h4>New Construction</h4>
-              <p>Build a new property from the ground up.</p>
+              <h4>New Construction <span class="hi-sub">नया निर्माण</span></h4>
+              <p>Build a new property from the ground up.<span class="hi-sub">शुरुआत से नया मकान या इमारत बनाएं।</span></p>
             </div>
 
             <!-- 2. Renovation & Remodeling -->
-            <div class="type-card" onclick="selectProjectType('Renovation', this)">
+            <div class="type-card" data-type="Renovation" onclick="selectProjectType('Renovation', this)">
               <div class="type-icon"><i class="fa-solid fa-paint-roller"></i></div>
-              <h4>Renovation & Remodeling</h4>
-              <p>Upgrade or remodel your existing property.</p>
+              <h4>Renovation & Remodeling <span class="hi-sub">मरम्मत और नवीनीकरण</span></h4>
+              <p>Upgrade or remodel your existing property.<span class="hi-sub">अपनी मौजूदा संपत्ति का नवीनीकरण या सुधार करें।</span></p>
             </div>
 
             <!-- 3. Home Extension -->
-            <div class="type-card" onclick="selectProjectType('Home Extension', this)">
+            <div class="type-card" data-type="Home Extension" onclick="selectProjectType('Home Extension', this)">
               <div class="type-icon"><i class="fa-solid fa-house-chimney-crack"></i></div>
-              <h4>Home Extension</h4>
-              <p>Add new space, rooms or floors to your existing property.</p>
+              <h4>Home Extension <span class="hi-sub">मकान विस्तार / एक्सटेंशन</span></h4>
+              <p>Add new space, rooms or floors to your existing property.<span class="hi-sub">अपनी मौजूदा संपत्ति में नए कमरे या मंज़िल जोड़ें।</span></p>
             </div>
 
             <!-- 4. Interior & Finishing -->
-            <div class="type-card" onclick="selectProjectType('Interior', this)">
+            <div class="type-card" data-type="Interior" onclick="selectProjectType('Interior', this)">
               <div class="type-icon"><i class="fa-solid fa-couch"></i></div>
-              <h4>Interior & Finishing</h4>
-              <p>Design or upgrade the interiors and finishes.</p>
+              <h4>Interior & Finishing <span class="hi-sub">इंटीरियर और फिनिशिंग</span></h4>
+              <p>Design or upgrade the interiors and finishes.<span class="hi-sub">कमरों का इंटीरियर डिज़ाइन और फिनिशिंग का काम कराएं।</span></p>
             </div>
 
             <!-- 5. Commercial Construction -->
-            <div class="type-card" onclick="selectProjectType('Commercial', this)">
+            <div class="type-card" data-type="Commercial" onclick="selectProjectType('Commercial', this)">
               <div class="type-icon"><i class="fa-solid fa-city"></i></div>
-              <h4>Commercial Construction</h4>
-              <p>Build or develop commercial spaces like shops, offices, showrooms, etc.</p>
+              <h4>Commercial Construction <span class="hi-sub">व्यावसायिक निर्माण</span></h4>
+              <p>Build or develop commercial spaces like shops, offices, showrooms, etc.<span class="hi-sub">दुकानें, कार्यालय, शोरूम आदि व्यावसायिक स्थल बनाएं।</span></p>
             </div>
 
             <!-- 6. Industrial / Warehouse -->
-            <div class="type-card" onclick="selectProjectType('Industrial', this)">
+            <div class="type-card" data-type="Industrial" onclick="selectProjectType('Industrial', this)">
               <div class="type-icon"><i class="fa-solid fa-warehouse"></i></div>
-              <h4>Industrial / Warehouse</h4>
-              <p>Construction for factories, warehouses, industrial buildings, etc.</p>
+              <h4>Industrial / Warehouse <span class="hi-sub">औद्योगिक / गोदाम निर्माण</span></h4>
+              <p>Construction for factories, warehouses, industrial buildings, etc.<span class="hi-sub">कारखाने, गोदाम, शेड आदि का निर्माण कराएं।</span></p>
             </div>
 
             <!-- 7. Other -->
-            <div class="type-card" onclick="selectProjectType('Other', this)">
+            <div class="type-card" data-type="Other" onclick="selectProjectType('Other', this)">
               <div class="type-icon"><i class="fa-solid fa-ellipsis"></i></div>
-              <h4>Other</h4>
-              <p>Other types of projects not listed above.</p>
+              <h4>Other <span class="hi-sub">अन्य निर्माण कार्य</span></h4>
+              <p>Other types of projects not listed above.<span class="hi-sub">अन्य निर्माण कार्य जो ऊपर सूचीबद्ध नहीं हैं।</span></p>
             </div>
           </div>
 
           <div class="info-tip-box">
             <i class="fa-solid fa-circle-info"></i>
-            <span>Don't worry! You can update these details later. Selecting the right project type helps us connect you with the right professionals.</span>
+            <span>Don't worry! You can update these details later. Selecting the right project type helps us connect you with the right professionals.<span class="hi-sub">चिंता न करें! आप इन जानकारियों को बाद में बदल सकते हैं। सही प्रोजेक्ट प्रकार चुनने से आपको सही ठेकेदारों से जुड़ने में मदद मिलती है।</span></span>
           </div>
 
           <div class="form-nav-row">
-            <a href="customer projects.html" class="btn-back">&lt; Cancel</a>
-            <button type="button" class="btn-submit" onclick="goToStep(2)">Next Step &rarr;</button>
+            <a href="customer projects.html" class="btn-back">&lt; Cancel <span class="hi-sub">रद्द करें</span></a>
+            <button type="button" class="btn-submit" onclick="goToStep(2)">Next Step &rarr; <span class="hi-sub">आगे बढ़ें</span></button>
           </div>
         </div>
 
         <!-- ================= STEP 2: BASIC DETAILS ================= -->
         <div class="wizard-step-pane" id="stepPane2">
-          <h3 class="step-heading">Step 2: Basic Project Details</h3>
-          <p class="step-subheading">Tell us about the property and where the work is located.</p>
+          <h3 class="step-heading">Step 2: Basic Project Details <span class="hi-sub" style="font-size:13px; font-weight:600; color:#64748b;">स्टेप 2: प्रोजेक्ट की बुनियादी जानकारी</span></h3>
+          <p class="step-subheading">Tell us about the property and where the work is located.<span class="hi-sub">हमें बताएं कि आपकी संपत्ति कहाँ स्थित है और काम कहाँ होना है।</span></p>
 
           <div class="form-grid-2">
             <div class="field-group full-width">
-              <label>Project Title *</label>
-              <input type="text" id="projectTitleInput" class="form-input" placeholder="e.g. 4 BHK Residential House Construction">
+              <label>Project Title * <span class="hi-sub">प्रोजेक्ट का नाम *</span></label>
+              <input type="text" id="projectTitleInput" class="form-input" placeholder="e.g. 4 BHK Residential House Construction / जैसे 4 BHK मकान निर्माण">
             </div>
 
             <div class="field-group">
-              <label>City / District *</label>
-              <input type="text" id="cityInput" class="form-input" placeholder="e.g. Greater Noida" oninput="updateLocationInfo()">
+              <label>City / District * <span class="hi-sub">शहर / ज़िला *</span></label>
+              <input type="text" id="cityInput" class="form-input" placeholder="e.g. Greater Noida / जैसे ग्रेटर नोएडा" oninput="updateLocationInfo()">
             </div>
 
             <div class="field-group">
-              <label>State / UT *</label>
+              <label>State / UT * <span class="hi-sub">राज्य / केंद्र शासित प्रदेश *</span></label>
               <select id="stateSelect" class="form-input" onchange="updateLocationInfo()">
-                <option value="">Select State / UT</option>
-                <optgroup label="States">
+                <option value="">Select State / UT (राज्य चुनें)</option>
+                <optgroup label="States / राज्य">
                   <option value="Andhra Pradesh">Andhra Pradesh</option>
                   <option value="Arunachal Pradesh">Arunachal Pradesh</option>
                   <option value="Assam">Assam</option>
@@ -246,7 +246,7 @@
                   <option value="Uttarakhand">Uttarakhand</option>
                   <option value="West Bengal">West Bengal</option>
                 </optgroup>
-                <optgroup label="Union Territories">
+                <optgroup label="Union Territories / केंद्र शासित प्रदेश">
                   <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
                   <option value="Chandigarh">Chandigarh</option>
                   <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
@@ -260,13 +260,13 @@
             </div>
 
             <div class="field-group">
-              <label>PIN Code *</label>
-              <input type="number" id="pincodeInput" class="form-input" placeholder="e.g. 201310">
+              <label>PIN Code * <span class="hi-sub">पिन कोड *</span></label>
+              <input type="number" id="pincodeInput" class="form-input" placeholder="e.g. 201310 / 6 अंकों का पिन कोड">
             </div>
 
             <div class="field-group">
-              <label>Complete Site Address *</label>
-              <input type="text" id="addressInput" class="form-input" placeholder="Plot No., Sector, Locality">
+              <label>Complete Site Address * <span class="hi-sub">निर्माण स्थल का पूरा पता *</span></label>
+              <input type="text" id="addressInput" class="form-input" placeholder="Plot No., Sector, Locality / प्लॉट नंबर, सेक्टर, इलाका">
             </div>
           </div>
 
@@ -274,87 +274,87 @@
           <div id="step2DynamicFields" class="mt-3"></div>
 
           <div class="form-nav-row">
-            <button type="button" class="btn-back" onclick="goToStep(1)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(3)">Next: Requirements &rarr;</button>
+            <button type="button" class="btn-back" onclick="goToStep(1)">&lt; Back <span class="hi-sub">पीछे</span></button>
+            <button type="button" class="btn-submit" onclick="goToStep(3)">Next: Requirements &rarr; <span class="hi-sub">आगे: आवश्यकताएं</span></button>
           </div>
         </div>
 
         <!-- ================= STEP 3: REQUIREMENTS ================= -->
         <div class="wizard-step-pane" id="stepPane3">
-          <h3 class="step-heading">Step 3: Requirements & Specifications</h3>
-          <p class="step-subheading">Provide structured floor-wise and technical details for accurate bidding.</p>
+          <h3 class="step-heading">Step 3: Requirements & Specifications <span class="hi-sub" style="font-size:13px; font-weight:600; color:#64748b;">स्टेप 3: आवश्यकताएं और विनिर्देश</span></h3>
+          <p class="step-subheading">Provide structured floor-wise and technical details for accurate bidding.<span class="hi-sub">सटीक बोलियों के लिए मंज़िल-वार और तकनीकी विवरण प्रदान करें।</span></p>
 
           <div id="step3DynamicContainer"></div>
 
           <div class="form-nav-row">
-            <button type="button" class="btn-back" onclick="goToStep(2)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(4)">Next: Budget & Timeline &rarr;</button>
+            <button type="button" class="btn-back" onclick="goToStep(2)">&lt; Back <span class="hi-sub">पीछे</span></button>
+            <button type="button" class="btn-submit" onclick="goToStep(4)">Next: Budget & Timeline &rarr; <span class="hi-sub">आगे: बजट और समय</span></button>
           </div>
         </div>
 
         <!-- ================= STEP 4: BUDGET & TIMELINE ================= -->
         <div class="wizard-step-pane" id="stepPane4">
-          <h3 class="step-heading">Step 4: Budget, Timeline & Privacy</h3>
-          <p class="step-subheading">Set realistic expectations for your construction bidding.</p>
+          <h3 class="step-heading">Step 4: Budget, Timeline & Privacy <span class="hi-sub" style="font-size:13px; font-weight:600; color:#64748b;">स्टेप 4: बजट, समय-सीमा और गोपनीयता</span></h3>
+          <p class="step-subheading">Set realistic expectations for your construction bidding.<span class="hi-sub">अपने निर्माण कार्य के लिए उचित बजट और समय निर्धारित करें।</span></p>
 
           <div class="form-grid-2">
             <div class="field-group">
-              <label>Expected Budget Range</label>
+              <label>Expected Budget Range <span class="hi-sub">अपेक्षित बजट सीमा (₹)</span></label>
               <div class="input-inline-grid">
-                <input type="number" id="budgetMin" class="form-input" placeholder="Min (₹)">
-                <input type="number" id="budgetMax" class="form-input" placeholder="Max (₹)">
+                <input type="number" id="budgetMin" class="form-input" placeholder="Min (₹) / न्यूनतम">
+                <input type="number" id="budgetMax" class="form-input" placeholder="Max (₹) / अधिकतम">
               </div>
             </div>
             <div class="field-group">
-              <label>Target Start Date</label>
+              <label>Target Start Date <span class="hi-sub">काम शुरू करने की लक्षित तिथि</span></label>
               <select id="targetStartDate" class="form-input">
-                <option value="ASAP">Immediately (ASAP)</option>
-                <option value="Within 1 Month">Within 1 Month</option>
-                <option value="1-3 Months">1 to 3 Months</option>
-                <option value="Flexible">Flexible</option>
+                <option value="ASAP">Immediately (ASAP) / तुरंत</option>
+                <option value="Within 1 Month">Within 1 Month / 1 महीने के भीतर</option>
+                <option value="1-3 Months">1 to 3 Months / 1 से 3 महीने</option>
+                <option value="Flexible">Flexible / लचीला</option>
               </select>
             </div>
             <div class="field-group">
-              <label>Payment Preference</label>
+              <label>Payment Preference <span class="hi-sub">भुगतान प्राथमिकता</span></label>
               <select id="paymentPref" class="form-input">
-                <option>Milestone Based</option>
-                <option>Monthly Progress Billing</option>
-                <option>Turnkey Installments</option>
+                <option value="Milestone Based">Milestone Based / चरणबद्ध (माइलस्टोन)</option>
+                <option value="Monthly Progress Billing">Monthly Progress Billing / मासिक प्रगति आधारित</option>
+                <option value="Turnkey Installments">Turnkey Installments / टर्नकी किस्तें</option>
               </select>
             </div>
             <div class="field-group">
-              <label>Project Visibility / Privacy</label>
+              <label>Project Visibility / Privacy <span class="hi-sub">प्रोजेक्ट दृश्यता / गोपनीयता</span></label>
               <select id="privacyPref" class="form-input">
-                <option>Public to verified contractors</option>
-                <option>Show contact only after accepting bid</option>
+                <option value="Public to verified contractors">Public to verified contractors / सत्यापित ठेकेदारों को दृश्य</option>
+                <option value="Show contact only after accepting bid">Show contact only after accepting bid / बोली स्वीकारने के बाद ही संपर्क दिखाएं</option>
               </select>
             </div>
           </div>
 
           <div class="form-nav-row">
-            <button type="button" class="btn-back" onclick="goToStep(3)">&lt; Back</button>
-            <button type="button" class="btn-submit" onclick="goToStep(5)">Next: Review & Post &rarr;</button>
+            <button type="button" class="btn-back" onclick="goToStep(3)">&lt; Back <span class="hi-sub">पीछे</span></button>
+            <button type="button" class="btn-submit" onclick="goToStep(5)">Next: Review & Post &rarr; <span class="hi-sub">आगे: समीक्षा और पोस्ट</span></button>
           </div>
         </div>
 
         <!-- ================= STEP 5: FINAL REVIEW ================= -->
         <div class="wizard-step-pane" id="stepPane5">
-          <h3 class="step-heading">Step 5: Final Review & Post</h3>
-          <p class="step-subheading">Review your parameters before posting to contractors[cite: 8].</p>
+          <h3 class="step-heading">Step 5: Final Review & Post <span class="hi-sub" style="font-size:13px; font-weight:600; color:#64748b;">स्टेप 5: अंतिम समीक्षा और पोस्ट करें</span></h3>
+          <p class="step-subheading">Review your parameters before posting to contractors.<span class="hi-sub">ठेकेदारों को पोस्ट करने से पहले अपनी सभी जानकारियों की समीक्षा करें।</span></p>
 
           <div class="summary-review-card">
-            <div class="review-item"><strong>Project:</strong> <span id="revType">--</span> (<span id="revTitle">--</span>)</div>
-            <div class="review-item"><strong>Location:</strong> <span id="revLocation">--</span></div>
-            <div class="review-item"><strong>Scale / Area:</strong> <span id="revSize">--</span></div>
-            <div class="review-item"><strong>Quality Tier:</strong> <span id="revQuality">Standard</span></div>
-            <div class="review-item"><strong>Floors / Areas:</strong> <span id="revBreakdown">--</span></div>
+            <div class="review-item"><strong>Project / प्रोजेक्ट:</strong> <span id="revType">--</span> (<span id="revTitle">--</span>)</div>
+            <div class="review-item"><strong>Location / स्थान:</strong> <span id="revLocation">--</span></div>
+            <div class="review-item"><strong>Scale / Area (क्षेत्रफल):</strong> <span id="revSize">--</span></div>
+            <div class="review-item"><strong>Quality Tier / गुणवत्ता:</strong> <span id="revQuality">Standard</span></div>
+            <div class="review-item"><strong>Floors / Areas (मंज़िलें / क्षेत्र):</strong> <span id="revBreakdown">--</span></div>
           </div>
 
           <div class="form-nav-row">
-            <button type="button" class="btn-back" onclick="goToStep(4)">&lt; Back</button>
+            <button type="button" class="btn-back" onclick="goToStep(4)">&lt; Back <span class="hi-sub">पीछे</span></button>
             <div class="btn-actions-right">
-              <button type="button" class="btn-secondary" onclick="saveDraft()">Save Draft</button>
-              <button type="button" class="btn-submit" onclick="submitProject()">Post Project & Request Bids</button>
+              <button type="button" class="btn-secondary" onclick="saveDraft()">Save Draft <span class="hi-sub">ड्राफ्ट सेव करें</span></button>
+              <button type="button" class="btn-submit" onclick="submitProject()">Post Project & Request Bids <span class="hi-sub">प्रोजेक्ट पोस्ट करें और बोलियाँ मंगाएँ</span></button>
             </div>
           </div>
         </div>
@@ -364,20 +364,20 @@
       <!-- Right: Live Cost Estimator Sidebar -->
       <aside class="estimator-sidebar-card">
         <div class="estimator-card-header">
-          <h3>Cost Estimator Result Dashboard</h3>
+          <h3>Cost Estimator Result Dashboard <span class="hi-sub" style="font-size:12px; font-weight:600; color:#64748b;">लागत अनुमान परिणाम डैशबोर्ड</span></h3>
         </div>
 
         <div class="estimate-highlight-box">
-          <span class="est-label">Estimated Construction Cost</span>
+          <span class="est-label">Estimated Construction Cost <span class="hi-sub" style="font-size:11px; font-weight:600; color:#64748b;">अनुमानित निर्माण लागत</span></span>
           <h2 id="costRangeDisplay">Enter Area Details</h2>
           <small id="estDisclaimer">*Provide building size to calculate indicative estimate.</small>
         </div>
 
         <div class="range-scale-section">
           <div class="scale-labels">
-            <span>LOWER ESTIMATE<br><b id="lowerEstLabel">₹--</b></span>
-            <span>EXPECTED RANGE<br><b id="expectedEstLabel">₹--</b></span>
-            <span>HIGHER ESTIMATE<br><b id="higherEstLabel">₹--</b></span>
+            <span>LOWER ESTIMATE<br><small style="font-size:10px; font-weight:500; color:#64748b;">न्यूनतम</small><br><b id="lowerEstLabel">₹--</b></span>
+            <span>EXPECTED RANGE<br><small style="font-size:10px; font-weight:500; color:#64748b;">संभावित</small><br><b id="expectedEstLabel">₹--</b></span>
+            <span>HIGHER ESTIMATE<br><small style="font-size:10px; font-weight:500; color:#64748b;">अधिकतम</small><br><b id="higherEstLabel">₹--</b></span>
           </div>
           <div class="range-track">
             <div class="range-fill" id="rangeFillBar" style="width: 0%; left: 0%;"></div>
@@ -385,39 +385,39 @@
         </div>
 
         <div class="cost-breakdown-card">
-          <h4>Cost Breakdown</h4>
+          <h4>Cost Breakdown <span class="hi-sub" style="font-size:11.5px; font-weight:600; color:#64748b;">लागत विवरण</span></h4>
           <div class="breakdown-grid" id="costBreakdownList">
-            <div>Material Cost: <b>--</b></div>
-            <div>Finishing: <b>--</b></div>
-            <div>Labour Cost: <b>--</b></div>
-            <div>Doors & Windows: <b>--</b></div>
-            <div>Electrical: <b>--</b></div>
-            <div>Painting: <b>--</b></div>
-            <div>Plumbing: <b>--</b></div>
-            <div>Contingency: <b>--</b></div>
+            <div>Material Cost / सामग्री: <b>--</b></div>
+            <div>Finishing / फिनिशिंग: <b>--</b></div>
+            <div>Labour Cost / श्रम: <b>--</b></div>
+            <div>Doors & Windows / दरवाजे-खिड़कियां: <b>--</b></div>
+            <div>Electrical / बिजली: <b>--</b></div>
+            <div>Painting / पेंटिंग: <b>--</b></div>
+            <div>Plumbing / नल-फिटिंग: <b>--</b></div>
+            <div>Contingency / आकस्मिक: <b>--</b></div>
           </div>
         </div>
 
         <div class="rate-info-box">
-          <h4>Rate Information</h4>
-          <p><strong>Location:</strong> <span id="locInfo">Enter location in Step 2</span></p>
-          <p><strong>Rate dataset updated:</strong> <span id="rateUpdateDate">--/--/----</span></p>
-          <p><strong>Rate type:</strong> Indicative local construction rates</p>
-          <p><strong>Data status:</strong> <span class="badge-available" id="rateDataStatus">Verified Benchmark</span></p>
+          <h4>Rate Information <span class="hi-sub" style="font-size:11.5px; font-weight:600; color:#64748b;">दर संबंधी जानकारी</span></h4>
+          <p><strong>Location / स्थान:</strong> <span id="locInfo">Enter location in Step 2 / स्टेप 2 में स्थान भरें</span></p>
+          <p><strong>Rate dataset updated / दर सूची अद्यतन:</strong> <span id="rateUpdateDate">--/--/----</span></p>
+          <p><strong>Rate type / दर का प्रकार:</strong> Indicative local construction rates <span class="hi-inline">/ स्थानीय सांकेतिक दरें</span></p>
+          <p><strong>Data status / स्थिति:</strong> <span class="badge-available" id="rateDataStatus">Verified Benchmark</span></p>
         </div>
 
         <div class="sidebar-action-buttons">
           <button type="button" class="btn-ghost" id="viewDetailedEstimateBtn" onclick="openDetailedEstimateModal()" style="display: none; border-color: #0284c7; color: #0284c7;">
-            <i class="fa-solid fa-list-check"></i> View Detailed Cost Estimate
+            <i class="fa-solid fa-list-check"></i> View Detailed Cost Estimate <span class="hi-sub">विस्तृत लागत अनुमान देखें</span>
           </button>
-          <button class="btn-primary-block" onclick="submitProject()"><i class="fa-solid fa-paper-plane"></i> Request Contractor Bids</button>
+          <button class="btn-primary-block" onclick="submitProject()"><i class="fa-solid fa-paper-plane"></i> Request Contractor Bids <span class="hi-sub">ठेकेदारों से बोलियाँ मंगाएँ</span></button>
           <div class="dual-btn-row">
-            <button class="btn-ghost" onclick="resetForm()"><i class="fa-solid fa-rotate-left"></i> Reset Form</button>
-            <button class="btn-ghost" onclick="saveDraft()"><i class="fa-regular fa-bookmark"></i> Save Estimate</button>
+            <button class="btn-ghost" onclick="resetForm()"><i class="fa-solid fa-rotate-left"></i> Reset Form <span class="hi-sub">रीसेट करें</span></button>
+            <button class="btn-ghost" onclick="saveDraft()"><i class="fa-regular fa-bookmark"></i> Save Estimate <span class="hi-sub">अनुमान सहेजें</span></button>
           </div>
           <div class="dual-btn-row">
-            <button class="btn-ghost" onclick="window.print()"><i class="fa-regular fa-file-pdf"></i> Download PDF</button>
-            <button class="btn-ghost" onclick="shareProject()"><i class="fa-solid fa-share-nodes"></i> Share Estimate</button>
+            <button class="btn-ghost" onclick="window.print()"><i class="fa-regular fa-file-pdf"></i> Download PDF <span class="hi-sub">पीडीएफ डाउनलोड</span></button>
+            <button class="btn-ghost" onclick="shareProject()"><i class="fa-solid fa-share-nodes"></i> Share Estimate <span class="hi-sub">शेयर करें</span></button>
           </div>
         </div>
       </main>
@@ -478,7 +478,7 @@
   <div id="detailedEstimateModal" class="detailed-estimate-overlay" onclick="handleModalOverlayClick(event)">
     <div class="detailed-estimate-modal">
       <div class="modal-head">
-        <h3><i class="fa-solid fa-calculator" style="color: #0284c7;"></i> Detailed Construction Cost Estimate</h3>
+        <h3><i class="fa-solid fa-calculator" style="color: #0284c7;"></i> Detailed Construction Cost Estimate <span class="hi-sub" style="font-size:13px; font-weight:600; color:#64748b;">विस्तृत निर्माण लागत अनुमान</span></h3>
         <button type="button" class="modal-close-btn" onclick="closeDetailedEstimateModal()">&times;</button>
       </div>
       <div class="modal-scroll-body" id="detailedModalContent">

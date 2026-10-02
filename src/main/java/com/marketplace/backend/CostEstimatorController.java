@@ -7,15 +7,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
- * REST Controller for the BuildBid Cost Estimator (Step 3).
+ * REST Controller for the BuildBid Cost Estimator (Step 3 & Phase 5).
  *
- * Exposes the server-side authoritative calculation endpoint:
- * POST /api/cost-estimator/calculate
- * (Also accessible via /api/public/cost-estimator/calculate for unauthenticated estimation)
- *
- * Read-only with respect to rate and project databases:
- * Never alters cost_estimator_rates or projects tables.
+ * Exposes:
+ * 1. POST /api/cost-estimator/calculate & POST /api/public/cost-estimator/calculate:
+ *    Authoritative construction cost calculation endpoint.
+ * 2. GET /api/cost-estimator/room-standards & GET /api/public/cost-estimator/room-standards:
+ *    Authoritative room planning benchmarks and allowance factors.
  */
 @RestController
 @RequestMapping({"/api/cost-estimator", "/api/public/cost-estimator"})
@@ -37,9 +38,9 @@ public class CostEstimatorController {
     public ResponseEntity<CostEstimationResponseDto> calculateEstimate(
             @Valid @RequestBody CostEstimationRequestDto request) {
 
-        log.info("Received cost estimation request: projectType={}, state={}, city={}, floors={}, builtUpAreaSqFt={}",
+        log.info("Received cost estimation request: projectType={}, state={}, city={}, floors={}, totalArea={}",
                 request.getProjectType(), request.getState(), request.getCity(),
-                request.getNumberOfFloors(), request.getBuiltUpAreaSqFt());
+                request.getNumberOfFloors(), request.getTotalBuildUpAreaSqFt());
 
         CostEstimationResponseDto response = costEstimatorService.calculate(request);
 
@@ -51,5 +52,18 @@ public class CostEstimatorController {
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Exposes authoritative standard room planning dimensions and benchmarks (Phase 5).
+     */
+    @GetMapping("/room-standards")
+    public ResponseEntity<Map<String, Object>> getRoomStandards() {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "standards", StandardRoomPlanningConfig.getAllBenchmarks(),
+                "defaultPlanningAllowanceRatio", StandardRoomPlanningConfig.DEFAULT_PLANNING_ALLOWANCE_RATIO,
+                "description", "BuildBid standard room planning benchmarks and circulation allowances"
+        ));
     }
 }
