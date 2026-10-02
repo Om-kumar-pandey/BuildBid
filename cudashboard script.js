@@ -268,6 +268,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   });
+
+  // 5. Initialize Explore BuildBid Carousel & Did You Know Rotator
+  initExploreCarousel();
+  initDidYouKnowCarousel();
 });
 
 // Toast Notification Functions
@@ -453,4 +457,276 @@ if (myProjectsBtn) {
     if (profileSec) profileSec.style.display = "none";
     if (projSec) projSec.style.display = "block";
   });
+}
+
+// ============================================================
+// EXPLORE BUILDBID CAROUSEL CONTROLLER (Infinite Auto-Rotate)
+// ============================================================
+function initExploreCarousel() {
+  const viewport = document.getElementById("exploreViewport");
+  const track = document.getElementById("exploreTrack");
+  const prevBtn = document.getElementById("explorePrevBtn");
+  const nextBtn = document.getElementById("exploreNextBtn");
+  const pauseBtn = document.getElementById("explorePauseBtn");
+  const pauseIcon = document.getElementById("explorePauseIcon");
+  const dotsContainer = document.getElementById("exploreDotsContainer");
+  const autoRotateBadge = document.querySelector(".explore-auto-badge .rotating-icon");
+
+  if (!viewport || !track) return;
+
+  const cards = track.querySelectorAll(".explore-feature-card");
+  const totalCards = cards.length;
+  if (totalCards === 0) return;
+
+  let currentIndex = 0;
+  let isPaused = false;
+  let isHovered = false;
+  let autoTimer = null;
+  const ROTATE_INTERVAL = 1400; // Smooth ~1.4s infinite auto-rotation
+
+  function getVisibleCardsCount() {
+    const width = window.innerWidth;
+    if (width <= 650) return 1;
+    if (width <= 1000) return 2;
+    return 3;
+  }
+
+  function getMaxIndex() {
+    const visible = getVisibleCardsCount();
+    return Math.max(0, totalCards - visible);
+  }
+
+  function renderDots() {
+    if (!dotsContainer) return;
+    const maxIdx = getMaxIndex();
+    const dotsCount = maxIdx + 1;
+    dotsContainer.innerHTML = "";
+
+    for (let i = 0; i < dotsCount; i++) {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `explore-dot ${i === currentIndex ? "active" : ""}`;
+      dot.setAttribute("aria-label", `Slide ${i + 1}`);
+      dot.addEventListener("click", () => {
+        currentIndex = i;
+        updateCarousel();
+        resetTimer();
+      });
+      dotsContainer.appendChild(dot);
+    }
+  }
+
+  function updateCarousel() {
+    const maxIdx = getMaxIndex();
+    if (currentIndex > maxIdx) currentIndex = maxIdx;
+    if (currentIndex < 0) currentIndex = 0;
+
+    const firstCard = cards[0];
+    if (firstCard) {
+      const cardWidth = firstCard.getBoundingClientRect().width;
+      const gap = 20;
+      const offset = currentIndex * (cardWidth + gap);
+      track.style.transform = `translateX(-${offset}px)`;
+    }
+
+    if (dotsContainer) {
+      const dots = dotsContainer.querySelectorAll(".explore-dot");
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle("active", idx === currentIndex);
+      });
+    }
+  }
+
+  function advanceNext() {
+    const maxIdx = getMaxIndex();
+    if (currentIndex >= maxIdx) {
+      currentIndex = 0;
+    } else {
+      currentIndex++;
+    }
+    updateCarousel();
+  }
+
+  function advancePrev() {
+    const maxIdx = getMaxIndex();
+    if (currentIndex <= 0) {
+      currentIndex = maxIdx;
+    } else {
+      currentIndex--;
+    }
+    updateCarousel();
+  }
+
+  function startTimer() {
+    stopTimer();
+    autoTimer = setInterval(() => {
+      if (!isPaused && !isHovered) {
+        advanceNext();
+      }
+    }, ROTATE_INTERVAL);
+  }
+
+  function stopTimer() {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+  }
+
+  function resetTimer() {
+    stopTimer();
+    startTimer();
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      advanceNext();
+      resetTimer();
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      advancePrev();
+      resetTimer();
+    });
+  }
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener("click", () => {
+      isPaused = !isPaused;
+      if (isPaused) {
+        if (pauseIcon) {
+          pauseIcon.classList.remove("fa-pause");
+          pauseIcon.classList.add("fa-play");
+        }
+        if (autoRotateBadge) {
+          autoRotateBadge.style.animationPlayState = "paused";
+        }
+        pauseBtn.title = "Resume Auto-Rotate";
+      } else {
+        if (pauseIcon) {
+          pauseIcon.classList.remove("fa-play");
+          pauseIcon.classList.add("fa-pause");
+        }
+        if (autoRotateBadge) {
+          autoRotateBadge.style.animationPlayState = "running";
+        }
+        pauseBtn.title = "Pause Auto-Rotate";
+        resetTimer();
+      }
+    });
+  }
+
+  viewport.addEventListener("mouseenter", () => {
+    isHovered = true;
+  });
+
+  viewport.addEventListener("mouseleave", () => {
+    isHovered = false;
+  });
+
+  window.addEventListener("resize", () => {
+    renderDots();
+    updateCarousel();
+  });
+
+  // Initial layout and timer start
+  renderDots();
+  updateCarousel();
+  startTimer();
+}
+
+// ============================================================
+// DID YOU KNOW? ROTATING TIPS CONTROLLER
+// ============================================================
+function initDidYouKnowCarousel() {
+  const tipElem = document.getElementById("dykLiveTip");
+  const prevBtn = document.getElementById("dykPrevBtn");
+  const nextBtn = document.getElementById("dykNextBtn");
+  const dotsContainer = document.getElementById("dykDotsContainer");
+
+  if (!tipElem) return;
+
+  const tips = [
+    "You can compare multiple contractor bids for the same project on BuildBid.",
+    "You can directly hire verified architects, civil engineers, and contractors on BuildBid.",
+    "You can order certified quality materials with instant quotation comparison on BuildBid."
+  ];
+
+  let currentTipIndex = 0;
+  let tipTimer = null;
+  const TIP_INTERVAL = 4000;
+
+  function renderDots() {
+    if (!dotsContainer) return;
+    dotsContainer.innerHTML = "";
+    tips.forEach((_, idx) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `dyk-dot ${idx === currentTipIndex ? "active" : ""}`;
+      dot.setAttribute("aria-label", `Tip ${idx + 1}`);
+      dot.addEventListener("click", () => {
+        setTip(idx);
+        resetTimer();
+      });
+      dotsContainer.appendChild(dot);
+    });
+  }
+
+  function setTip(index) {
+    if (index < 0) index = tips.length - 1;
+    if (index >= tips.length) index = 0;
+    currentTipIndex = index;
+
+    tipElem.style.opacity = "0";
+    setTimeout(() => {
+      tipElem.textContent = tips[currentTipIndex];
+      tipElem.style.opacity = "1";
+    }, 200);
+
+    if (dotsContainer) {
+      const dots = dotsContainer.querySelectorAll(".dyk-dot");
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle("active", idx === currentTipIndex);
+      });
+    }
+  }
+
+  function startTimer() {
+    stopTimer();
+    tipTimer = setInterval(() => {
+      setTip(currentTipIndex + 1);
+    }, TIP_INTERVAL);
+  }
+
+  function stopTimer() {
+    if (tipTimer) {
+      clearInterval(tipTimer);
+      tipTimer = null;
+    }
+  }
+
+  function resetTimer() {
+    stopTimer();
+    startTimer();
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      setTip(currentTipIndex + 1);
+      resetTimer();
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      setTip(currentTipIndex - 1);
+      resetTimer();
+    });
+  }
+
+  renderDots();
+  setTip(0);
+  startTimer();
 }

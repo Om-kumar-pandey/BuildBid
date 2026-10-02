@@ -180,21 +180,6 @@
             </div>
           </div>
 
-          <!-- Recent Activity Card -->
-          <div class="dash-card">
-            <div class="card-title-head flex-between">
-              <div class="title-with-icon">
-                <i class="fa-regular fa-clock title-icon"></i>
-                <h3>Recent Activity</h3>
-              </div>
-              <a href="#" class="link-view-all">View All</a>
-            </div>
-
-            <div class="activity-timeline" id="activityContainer">
-              <p style="color: #94a3b8; font-size: 13px; padding: 10px 0;">Loading recent activities...</p>
-            </div>
-          </div>
-
         </div>
 
         <!-- Right Side Column -->
@@ -229,44 +214,400 @@
             </div>
           </div>
 
-          <!-- Verification Status Card -->
-          <div class="dash-card">
-            <div class="card-title-head">
-              <i class="fa-solid fa-shield-halved title-icon"></i>
-              <h3>Verification Status</h3>
-            </div>
-            <div class="verify-checklist" id="verificationContainer">
-            </div>
-          </div>
-
-          <!-- Quick Links Card -->
-          <div class="dash-card">
-            <div class="card-title-head">
-              <i class="fa-solid fa-link title-icon"></i>
-              <h3>Quick Links</h3>
-            </div>
-            <div class="quick-links-group">
-              <a href="create project.html" class="quick-link-row">
-                <span>Post a New Project</span>
-                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
-              </a>
-              <a href="customer projects.html" class="quick-link-row">
-                <span>View My Projects</span>
-                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
-              </a>
-              <a href="my-bids.html" class="quick-link-row">
-                <span>Check My Bids</span>
-                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
-              </a>
-              <a href="create project.html" class="quick-link-row">
-                <span>Hire Professionals</span>
-                <i class="fa-solid fa-chevron-right arrow-indicator"></i>
-              </a>
-            </div>
-          </div>
-
         </div>
 
+      </div>
+
+      <!-- Quick Links Section (Exact Reference Match) -->
+      <div class="dash-card ql-card-wrapper">
+        <div class="card-title-head">
+          <div class="ql-title-icon-box">
+            <i class="fa-solid fa-link"></i>
+          </div>
+          <h3>Quick Links</h3>
+        </div>
+        <div class="quick-links-horizontal-grid">
+          <a href="create project.html" class="ql-action-tile">
+            <div class="ql-tile-icon-box ql-icon-blue">
+              <i class="fa-solid fa-house-chimney"></i>
+            </div>
+            <div class="ql-tile-text">
+              <h4 class="ql-tile-title">Post New Project</h4>
+              <span class="ql-tile-subtitle">नया प्रोजेक्ट पोस्ट करें</span>
+            </div>
+            <div class="ql-tile-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="buy-material-select.html" class="ql-action-tile">
+            <div class="ql-tile-icon-box ql-icon-orange">
+              <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <div class="ql-tile-text">
+              <h4 class="ql-tile-title">Buy Materials</h4>
+              <span class="ql-tile-subtitle">खरीदें सामग्री</span>
+            </div>
+            <div class="ql-tile-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="post-requirements.html" class="ql-action-tile">
+            <div class="ql-tile-icon-box ql-icon-sky">
+              <i class="fa-solid fa-file-circle-plus"></i>
+            </div>
+            <div class="ql-tile-text">
+              <h4 class="ql-tile-title">Post Requirement</h4>
+              <span class="ql-tile-subtitle">अपनी आवश्यकता पोस्ट करें</span>
+            </div>
+            <div class="ql-tile-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <a href="my-requests.html" class="ql-action-tile">
+            <div class="ql-tile-icon-box ql-icon-indigo">
+              <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div class="ql-tile-text">
+              <h4 class="ql-tile-title">My Requests</h4>
+              <span class="ql-tile-subtitle">मेरी अनुरोध</span>
+            </div>
+            <div class="ql-tile-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Explore BuildBid Section (Infinite Auto-Rotate Carousel) -->
+      <div class="explore-buildbid-card">
+        <div class="explore-hdr-row">
+          <div class="explore-hdr-left">
+            <div class="explore-hdr-icon">
+              <i class="fa-regular fa-lightbulb"></i>
+            </div>
+            <div class="explore-hdr-text">
+              <h3 class="explore-main-title">Explore BuildBid</h3>
+              <p class="explore-sub-desc">Everything you need to plan, build, buy and manage your construction project — all in one place.</p>
+            </div>
+          </div>
+          <div class="explore-hdr-controls">
+            <div class="explore-auto-badge" id="exploreAutoBadge">
+              <i class="fa-solid fa-arrows-rotate rotating-icon"></i>
+              <span>Auto Rotate</span>
+            </div>
+            <button type="button" class="explore-nav-btn" id="explorePauseBtn" title="Pause / Resume" aria-label="Pause Auto-Rotate">
+              <i class="fa-solid fa-pause" id="explorePauseIcon"></i>
+            </button>
+            <span class="explore-ctrl-divider">|</span>
+            <button type="button" class="explore-nav-btn" id="explorePrevBtn" title="Previous" aria-label="Previous Feature">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button type="button" class="explore-nav-btn" id="exploreNextBtn" title="Next" aria-label="Next Feature">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="explore-carousel-viewport" id="exploreViewport">
+          <div class="explore-carousel-track" id="exploreTrack">
+            <!-- Card 1: My Projects -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-blue">
+                  <i class="fa-regular fa-folder-open"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">My Projects</h4>
+                  <span class="exp-title-hi">मेरे प्रोजेक्ट</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">अपने सभी projects, bids और progress एक जगह देखें।</p>
+              <a href="customer projects.html" class="exp-action-btn">
+                <span>View Projects</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 2: Post New Project -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-sky">
+                  <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">Post New Project</h4>
+                  <span class="exp-title-hi">नया प्रोजेक्ट पोस्ट करें</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">अपने प्रोजेक्ट की डिटेल्स देकर प्रोजेक्ट पोस्ट करें और contractors से bids प्राप्त करें।</p>
+              <a href="create project.html" class="exp-action-btn">
+                <span>Post Project</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 3: My Bids -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-indigo">
+                  <i class="fa-regular fa-newspaper"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">My Bids</h4>
+                  <span class="exp-title-hi">मेरी बोलियाँ</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">अपने projects पर मिले bids देखें, compare करें और आगे बढ़ें।</p>
+              <a href="my-bids.html" class="exp-action-btn">
+                <span>View Bids</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 4: Buy Materials -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-orange">
+                  <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">Buy Materials</h4>
+                  <span class="exp-title-hi">निर्माण सामग्री खरीदें</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">सीधे verified सप्लायर्स से बेस्ट रेट पर सीमेंट, सरिया, ईंट आदि खरीदें।</p>
+              <a href="buy-material-select.html" class="exp-action-btn">
+                <span>Buy Materials</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 5: Post Requirements -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-teal">
+                  <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">Post Requirements</h4>
+                  <span class="exp-title-hi">अपनी आवश्यकता पोस्ट करें</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">अपनी खास निर्माण या सामग्री आवश्यकता पोस्ट करें और त्वरित कोट्स पाएं।</p>
+              <a href="post-requirements.html" class="exp-action-btn">
+                <span>Post Requirement</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 6: My Requests -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-green">
+                  <i class="fa-solid fa-file-circle-check"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">My Requests</h4>
+                  <span class="exp-title-hi">मेरी Requests</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">अपने सभी सबमिट किए गए अनुरोधों और प्राप्त प्रतिक्रियाओं को ट्रैक करें।</p>
+              <a href="my-requests.html" class="exp-action-btn">
+                <span>My Requests</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 7: Hire Professionals -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-amber">
+                  <i class="fa-solid fa-helmet-safety"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">Hire Professionals</h4>
+                  <span class="exp-title-hi">Professionals को Hire करें</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">आर्किटेक्ट, सिविल इंजीनियर और इंटीरियर डिजाइनर आसानी से खोजें और हायर करें।</p>
+              <a href="direct-hire.html" class="exp-action-btn">
+                <span>Hire Professionals</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+
+            <!-- Card 8: Direct Hire -->
+            <div class="explore-feature-card">
+              <div class="exp-card-header">
+                <div class="exp-icon-box exp-purple">
+                  <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div class="exp-card-titles">
+                  <h4 class="exp-title-en">Direct Hire</h4>
+                  <span class="exp-title-hi">सीधे Hire करें</span>
+                </div>
+              </div>
+              <p class="exp-card-desc">सत्यापित पेशेवरों को सीधे संपर्क करें और बिना बिचौलियों के काम शुरू कराएं।</p>
+              <a href="direct-hire.html" class="exp-action-btn">
+                <span>Direct Hire</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination Dots -->
+        <div class="explore-dots-row" id="exploreDotsContainer"></div>
+      </div>
+
+      <!-- How BuildBid Helps You Section (Exact Reference Match) -->
+      <div class="dash-card helps-card-wrapper">
+        <div class="card-title-head">
+          <div class="helps-title-icon-box">
+            <i class="fa-solid fa-diagram-project"></i>
+          </div>
+          <div class="helps-title-text">
+            <h3>How BuildBid Helps You</h3>
+            <p class="helps-sub-desc">Build smarter. Build easier. Build with confidence.</p>
+          </div>
+        </div>
+
+        <div class="helps-steps-flow">
+          <div class="help-step-item">
+            <div class="help-step-icon step-blue">
+              <i class="fa-solid fa-compass-drafting"></i>
+            </div>
+            <div class="help-step-content">
+              <h4 class="help-step-title"><span class="step-num">01</span> Plan</h4>
+              <span class="help-step-hi">अपनी योजना बनाएं</span>
+            </div>
+            <div class="help-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <div class="help-step-item">
+            <div class="help-step-icon step-green">
+              <i class="fa-solid fa-calculator"></i>
+            </div>
+            <div class="help-step-content">
+              <h4 class="help-step-title"><span class="step-num">02</span> Estimate</h4>
+              <span class="help-step-hi">अनुमानित लागत जानें</span>
+            </div>
+            <div class="help-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <div class="help-step-item">
+            <div class="help-step-icon step-purple">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <div class="help-step-content">
+              <h4 class="help-step-title"><span class="step-num">03</span> Compare</h4>
+              <span class="help-step-hi">बोलियों और विकल्पों की तुलना करें</span>
+            </div>
+            <div class="help-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <div class="help-step-item">
+            <div class="help-step-icon step-orange">
+              <i class="fa-solid fa-hammer"></i>
+            </div>
+            <div class="help-step-content">
+              <h4 class="help-step-title"><span class="step-num">04</span> Build</h4>
+              <span class="help-step-hi">अपने प्रोजेक्ट को पूरा करें</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Not Sure Where to Start? Section (Exact Reference Match) -->
+      <div class="dash-card start-card-wrapper">
+        <div class="card-title-head">
+          <div class="start-title-icon-box">
+            <i class="fa-regular fa-compass"></i>
+          </div>
+          <div class="start-title-text">
+            <h3>Not Sure Where to Start?</h3>
+            <p class="start-sub-desc">Don't worry. BuildBid can help you at every step of your construction journey.</p>
+          </div>
+        </div>
+
+        <div class="start-options-grid">
+          <div class="start-option-box">
+            <div class="start-opt-icon start-blue">
+              <i class="fa-solid fa-house-chimney"></i>
+            </div>
+            <div class="start-opt-info">
+              <h4 class="start-opt-title">I Want to Build a House</h4>
+              <span class="start-opt-subtitle">घर बनाना है</span>
+            </div>
+            <a href="create project.html" class="btn-start-action">
+              <span>Start My Project</span> <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="start-option-box">
+            <div class="start-opt-icon start-orange">
+              <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <div class="start-opt-info">
+              <h4 class="start-opt-title">I Need Construction Materials</h4>
+              <span class="start-opt-subtitle">निर्माण सामग्री चाहिए</span>
+            </div>
+            <a href="buy-material-select.html" class="btn-start-action">
+              <span>Buy Materials</span> <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="start-option-box">
+            <div class="start-opt-icon start-amber">
+              <i class="fa-solid fa-helmet-safety"></i>
+            </div>
+            <div class="start-opt-info">
+              <h4 class="start-opt-title">I Need a Professional</h4>
+              <span class="start-opt-subtitle">प्रोफेशनल चाहिए</span>
+            </div>
+            <a href="direct-hire.html" class="btn-start-action">
+              <span>Find a Professional</span> <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Did You Know? Section (Exact Reference Match with Auto-Rotating Tips) -->
+      <div class="did-you-know-card">
+        <div class="dyk-header-row">
+          <div class="dyk-hdr-left">
+            <div class="dyk-lightbulb-box">
+              <i class="fa-solid fa-lightbulb"></i>
+            </div>
+            <div class="dyk-hdr-text">
+              <h3 class="dyk-title">Did You Know?</h3>
+              <p class="dyk-live-tip" id="dykLiveTip">You can compare multiple contractor bids for the same project on BuildBid.</p>
+            </div>
+          </div>
+          <div class="dyk-hdr-controls">
+            <button type="button" class="dyk-ctrl-btn" id="dykPrevBtn" title="Previous tip" aria-label="Previous Tip"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="dyk-dots-group" id="dykDotsContainer"></div>
+            <button type="button" class="dyk-ctrl-btn" id="dykNextBtn" title="Next tip" aria-label="Next Tip"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+
+        <div class="dyk-mini-cards-grid">
+          <div class="dyk-mini-card">
+            <div class="dyk-mini-icon dyk-ic-blue">
+              <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <p class="dyk-mini-text">You can find construction materials without leaving BuildBid.</p>
+          </div>
+
+          <div class="dyk-mini-card">
+            <div class="dyk-mini-icon dyk-ic-amber">
+              <i class="fa-solid fa-helmet-safety"></i>
+            </div>
+            <p class="dyk-mini-text">You can hire construction professionals through BuildBid.</p>
+          </div>
+
+          <div class="dyk-mini-card">
+            <div class="dyk-mini-icon dyk-ic-indigo">
+              <i class="fa-solid fa-file-circle-check"></i>
+            </div>
+            <p class="dyk-mini-text">You can post your requirements and receive relevant responses.</p>
+          </div>
+        </div>
       </div>
 
       <!-- Bottom Promotional CTA Banner -->
