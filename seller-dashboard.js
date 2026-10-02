@@ -221,6 +221,10 @@ function renderIncomingRequirements(projects = [], materialRequests = []) {
         materialRequests.forEach(mr => {
             const key = mr.requestId || ("MR-" + mr.id);
             window.cachedMaterialRequests[key] = mr;
+            if (mr.id) {
+                window.cachedMaterialRequests[mr.id] = mr;
+                window.cachedMaterialRequests[String(mr.id)] = mr;
+            }
         });
     }
 
@@ -318,7 +322,7 @@ function createMaterialRequestCard(mr) {
     } else {
         actionButtons = `
             <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
-            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
         `;
     }
 
@@ -413,7 +417,7 @@ function createMaterialRequestRow(mr) {
     } else {
         actionButtons = `
             <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
-            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
         `;
     }
 
@@ -597,7 +601,8 @@ function openMaterialRequestModal(requestId) {
                     mr.requestId || ('MR-' + mr.id),
                     firstItem.materialName || mr.materialSummary || 'Requested Material',
                     firstItem.quantity || 1,
-                    firstItem.unit || 'Units'
+                    firstItem.unit || 'Units',
+                    mr.id
                 );
             };
         }
@@ -1770,51 +1775,359 @@ function closeModal(modalId) {
 }
 
 /**
- * Populate and launch quotation modal with requirement context
+ * Populate and launch quotation modal with requirement context (Phase 4C Multi-Material)
  * @param {string} reqId 
  * @param {string} material 
  * @param {number} qty 
  * @param {string} unit 
+ * @param {number} [materialReqDbId]
  */
-function openQuotationModal(reqId, material, qty, unit) {
+let currentQuotationTarget = { reqId: null, dbId: null, material: "", qty: 1, unit: "Units", items: [] };
+let _sellerCatalogCache = null;
+
+async function getSellerCatalogMaterials() {
+    if (_sellerCatalogCache && Array.isArray(_sellerCatalogCache) && _sellerCatalogCache.length > 0) {
+        return _sellerCatalogCache;
+    }
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    if (token) {
+        try {
+            const res = await fetch(API_BASE_URL + "/api/seller/materials", {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+            if (res.ok) {
+                const list = await res.json();
+                if (Array.isArray(list)) {
+                    _sellerCatalogCache = list;
+                    return list;
+                }
+            }
+        } catch (e) {
+            console.warn("Could not fetch seller catalog materials:", e);
+        }
+    }
+    // Fallback: check DOM inventory table
+    const rows = document.querySelectorAll('#inventory-table-body tr');
+    const fallbackList = [];
+    rows.forEach(r => {
+        const updateBtn = r.querySelector('button[onclick*="openEditMaterialModal"]');
+        if (updateBtn) {
+            const match = updateBtn.getAttribute('onclick').match(/openEditMaterialModal\('?([^'\)]+)'?\)/);
+            if (match) {
+                const id = parseInt(match[1]) || 1;
+                const name = r.querySelector('td:first-child span.font-bold')?.innerText || 'Material';
+                fallbackList.push({ id: id, materialName: name, unitPrice: 0, unit: 'Units' });
+            }
+        }
+    });
+    return fallbackList;
+}
+
+function onQuotationSkuChanged(selectElem) {
+    const selectedOpt = selectElem.options[selectElem.selectedIndex];
+    const tr = selectElem.closest('tr');
+    if (!tr) return;
+
+    if (selectedOpt && selectedOpt.value) {
+        const price = parseFloat(selectedOpt.dataset.price) || 0;
+        const unit = selectedOpt.dataset.unit || '';
+        const priceInput = tr.querySelector('.q-item-price');
+        const unitInput = tr.querySelector('.q-item-unit');
+        if (priceInput && price > 0) priceInput.value = price;
+        if (unitInput && unit) unitInput.value = unit;
+    }
+    calculateQuote();
+}
+
+async function openQuotationModal(reqId, material, qty, unit, materialReqDbId) {
     const reqIdElem = document.getElementById('quoteModalReqId');
+    const tbody = document.getElementById('qItemsTbody');
+
+    // Resolve material request object if available
+    let mr = null;
+    if (window.cachedMaterialRequests) {
+        mr = window.cachedMaterialRequests[reqId] || 
+             window.cachedMaterialRequests[materialReqDbId] || 
+             window.cachedMaterialRequests[String(materialReqDbId)] || 
+             null;
+    }
+
+    const dbId = materialReqDbId || (mr && mr.id) || (typeof reqId === 'number' ? reqId : (parseInt(String(reqId).replace(/[^0-9]/g, '')) || null));
+
+    currentQuotationTarget = {
+        reqId: reqId,
+        dbId: dbId,
+        material: material,
+        qty: qty,
+        unit: unit,
+        items: (mr && Array.isArray(mr.items) && mr.items.length > 0) ? mr.items : [
+            { id: null, materialName: material, quantity: qty, unit: unit }
+        ]
+    };
+
+    if (reqIdElem) {
+        reqIdElem.innerText = `Responding to ${reqId} — ${currentQuotationTarget.items.length} ${currentQuotationTarget.items.length === 1 ? 'Material' : 'Materials'}`;
+    }
+
+    // Set legacy fallback inputs
     const matElem = document.getElementById('qMaterialName');
     const qtyElem = document.getElementById('qQty');
     const unitElem = document.getElementById('qUnit');
-
-    if (reqIdElem) reqIdElem.innerText = 'Responding to ' + reqId + ' — ' + material;
     if (matElem) matElem.value = material;
     if (qtyElem) qtyElem.value = qty;
     if (unitElem) unitElem.value = unit;
+
+    // Fetch seller catalog materials from /api/seller/materials
+    const catalog = await getSellerCatalogMaterials();
+
+    // Render line items in tbody
+    if (tbody) {
+        tbody.innerHTML = "";
+        currentQuotationTarget.items.forEach((reqItem, idx) => {
+            const reqItemName = reqItem.materialName || 'Requested Material';
+            const reqQty = reqItem.quantity != null ? reqItem.quantity : 1;
+            const reqUnit = reqItem.unit || 'Units';
+            const reqItemId = reqItem.id || '';
+
+            // Find best matching catalog SKU by name similarity if possible
+            let matchingMat = catalog.find(m => m.materialName && reqItemName && (
+                m.materialName.toLowerCase().includes(reqItemName.toLowerCase()) ||
+                reqItemName.toLowerCase().includes(m.materialName.toLowerCase())
+            ));
+
+            const defaultPrice = matchingMat ? (matchingMat.unitPrice || 0) : 0;
+            const defaultUnit = matchingMat ? (matchingMat.unit || reqUnit) : reqUnit;
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-all';
+            tr.dataset.reqItemId = reqItemId;
+            tr.dataset.itemIndex = idx;
+
+            // Generate catalog options
+            let optionsHtml = '<option value="">-- Select Your Catalog SKU --</option>';
+            catalog.forEach(catMat => {
+                const isSelected = matchingMat && matchingMat.id === catMat.id ? 'selected' : '';
+                const brand = catMat.brand ? ` (${catMat.brand})` : '';
+                optionsHtml += `<option value="${catMat.id}" data-price="${catMat.unitPrice || 0}" data-unit="${escapeHtml(catMat.unit || '')}" ${isSelected}>${escapeHtml(catMat.materialName)}${brand} - ₹${catMat.unitPrice || 0}/${catMat.unit || 'unit'}</option>`;
+            });
+
+            tr.innerHTML = `
+                <td class="p-3">
+                    <span class="font-bold text-slate-800 block">${escapeHtml(reqItemName)}</span>
+                    <span class="text-[10px] text-slate-500 font-medium">Req: ${escapeHtml(String(reqQty))} ${escapeHtml(reqUnit)}</span>
+                </td>
+                <td class="p-3">
+                    <select class="q-sku-select w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:bg-white" onchange="onQuotationSkuChanged(this)">
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="p-3">
+                    <input type="number" min="0.01" step="any" class="q-item-qty w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs" value="${reqQty}" oninput="calculateQuote()">
+                </td>
+                <td class="p-3">
+                    <input type="text" class="q-item-unit w-full px-2 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs" value="${escapeHtml(defaultUnit)}">
+                </td>
+                <td class="p-3">
+                    <input type="number" min="0" step="any" class="q-item-price w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs" value="${defaultPrice}" oninput="calculateQuote()">
+                </td>
+                <td class="p-3 text-right">
+                    <span class="q-item-total font-bold text-slate-800">₹0</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
 
     calculateQuote();
     openModal('quotationModal');
 }
 
 /**
+ * Submit persistent structured quotation to backend API (POST /api/quotations)
+ */
+async function submitSellerQuotation() {
+    const submitBtn = document.getElementById('sendQuotationBtn');
+    const transportInput = document.getElementById('qTransport');
+    const timelineInput = document.getElementById('qTimeline');
+    const paymentTermsInput = document.getElementById('qPaymentTerms');
+    const validityInput = document.getElementById('qValidity');
+    const warrantyInput = document.getElementById('qWarranty');
+
+    const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
+    const timeline = timelineInput ? timelineInput.value.trim() : "2-3 Days";
+    const paymentTerms = paymentTermsInput ? paymentTermsInput.value.trim() : "100% on Site Delivery";
+    const validity = validityInput ? validityInput.value.trim() : "7 Days";
+    const warranty = warrantyInput ? warrantyInput.value.trim() : "Standard Manufacturer / BIS Batch Certified";
+
+    const rows = document.querySelectorAll('#qItemsTbody tr');
+    const items = [];
+    const seenReqItemIds = new Set();
+    let subtotal = 0;
+    const itemSummaries = [];
+
+    for (const tr of rows) {
+        const skuSelect = tr.querySelector('.q-sku-select');
+        const materialId = parseInt(skuSelect?.value) || null;
+        const reqItemId = tr.dataset.reqItemId ? parseInt(tr.dataset.reqItemId) : null;
+        const qty = parseFloat(tr.querySelector('.q-item-qty')?.value || 0) || 0;
+        const unit = tr.querySelector('.q-item-unit')?.value?.trim() || 'Units';
+        const unitPrice = parseFloat(tr.querySelector('.q-item-price')?.value || 0) || 0;
+
+        if (!materialId) {
+            showToast('Please select a catalog SKU for all requested items. — कृपया सभी वस्तुओं के लिए सामग्री SKU चुनें।');
+            return;
+        }
+        if (qty <= 0) {
+            showToast('Quoted quantity must be greater than zero. — मात्रा शून्य से अधिक होनी चाहिए।');
+            return;
+        }
+        if (unitPrice < 0) {
+            showToast('Unit price cannot be negative. — दर शून्य से कम नहीं हो सकती।');
+            return;
+        }
+        if (reqItemId) {
+            if (seenReqItemIds.has(reqItemId)) {
+                showToast('Duplicate mapping for requested item rejected. — दोहरा मैपिंग अमान्य है।');
+                return;
+            }
+            seenReqItemIds.add(reqItemId);
+        }
+
+        const lineTotal = Math.round(qty * unitPrice * 100) / 100;
+        subtotal += lineTotal;
+
+        const selectedOpt = skuSelect.options[skuSelect.selectedIndex];
+        const matName = selectedOpt ? selectedOpt.text.split(' - ')[0] : 'Catalog SKU';
+        itemSummaries.push(`${matName} (${qty} ${unit})`);
+
+        items.push({
+            materialRequestItemId: reqItemId,
+            materialId: materialId,
+            quantity: qty,
+            unit: unit,
+            unitPrice: unitPrice
+        });
+    }
+
+    if (items.length === 0) {
+        showToast('At least one quotation item is required. — कम से कम एक सामग्री जोड़ें।');
+        return;
+    }
+
+    const gst = Math.round(subtotal * 0.18);
+    const total = subtotal + gst + transport;
+
+    if (!currentQuotationTarget || (!currentQuotationTarget.dbId && !currentQuotationTarget.reqId)) {
+        showToast('Error: Target material requirement could not be identified.');
+        return;
+    }
+
+    const token = getCleanToken();
+    if (!token) {
+        showToast('Authentication required. Please log in as a Material Seller.');
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Sending...';
+    }
+
+    const payload = {
+        requestType: "MATERIAL_REQUIREMENT",
+        materialRequestId: currentQuotationTarget.dbId || null,
+        requestId: currentQuotationTarget.reqId || null,
+        quotedAmount: total,
+        materialCost: subtotal,
+        labourCost: 0,
+        transportationCost: transport,
+        taxGst: gst,
+        timeline: timeline,
+        validity: validity,
+        warranty: warranty,
+        paymentTerms: paymentTerms,
+        includedItems: itemSummaries.join(', ') + " with direct site delivery",
+        excludedItems: "Unloading to upper floors",
+        message: `Quotation submitted with ${items.length} structured catalog items. Total: ₹${total.toLocaleString('en-IN')}.`,
+        items: items
+    };
+
+    const API_BASE_URL = getApiBaseUrl();
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/quotations`, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 201) {
+            showToast(`Quotation ${data.quotationId || ''} submitted successfully! — कोटेशन सफलतापूर्वक भेज दिया गया!`);
+            closeModal('quotationModal');
+            if (typeof loadRequestsData === 'function') {
+                loadRequestsData();
+            }
+        } else if (res.status === 409) {
+            showToast(data.error || 'An active quotation already exists for this request from your account.');
+        } else if (res.status === 403) {
+            showToast(data.error || 'Unauthorized: You can only quote your own catalog materials.');
+        } else if (res.status === 401) {
+            showToast('Session expired. Please log in again.');
+        } else if (res.status === 400) {
+            showToast(data.error || 'Invalid quotation data.');
+        } else {
+            showToast(data.error || 'Failed to submit quotation. Server error.');
+        }
+    } catch (err) {
+        console.error('Quotation submission network error:', err);
+        showToast('Network error. Unable to reach server. Please check your connection.');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = submitBtn.dataset.originalText || 'Send Quotation Now';
+        }
+    }
+}
+
+/**
  * Recalculate quotation line totals, GST, transport, and final total
  */
 function calculateQuote() {
-    const qtyInput = document.getElementById('qQty');
-    const unitPriceInput = document.getElementById('qUnitPrice');
-    const transportInput = document.getElementById('qTransport');
-    const gstInput = document.getElementById('qGst');
-    const totalElem = document.getElementById('qFinalTotal');
+    let subtotal = 0;
+    const rows = document.querySelectorAll('#qItemsTbody tr');
+    rows.forEach(tr => {
+        const qty = parseFloat(tr.querySelector('.q-item-qty')?.value || 0) || 0;
+        const price = parseFloat(tr.querySelector('.q-item-price')?.value || 0) || 0;
+        const lineTotal = Math.round(qty * price * 100) / 100;
+        const totalSpan = tr.querySelector('.q-item-total');
+        if (totalSpan) totalSpan.innerText = '₹' + lineTotal.toLocaleString('en-IN');
+        subtotal += lineTotal;
+    });
 
-    const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
-    const unitPrice = parseFloat(unitPriceInput ? unitPriceInput.value : 0) || 0;
+    const subtotalElem = document.getElementById('qMaterialSubtotal');
+    if (subtotalElem) subtotalElem.value = '₹' + subtotal.toLocaleString('en-IN');
+
+    const transportInput = document.getElementById('qTransport');
     const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
-    
-    const subtotal = qty * unitPrice;
-    const gst = subtotal * 0.18;
+
+    const gst = Math.round(subtotal * 0.18);
+    const gstInput = document.getElementById('qGst');
+    if (gstInput) gstInput.value = '₹' + gst.toLocaleString('en-IN');
+
     const total = subtotal + gst + transport;
-    
-    if (gstInput) {
-        gstInput.value = '₹' + gst.toLocaleString('en-IN', { maximumFractionDigits: 0 });
-    }
-    if (totalElem) {
-        totalElem.innerText = '₹' + total.toLocaleString('en-IN', { maximumFractionDigits: 0 });
-    }
+    const totalElem = document.getElementById('qFinalTotal');
+    if (totalElem) totalElem.innerText = '₹' + total.toLocaleString('en-IN');
 }
 
 /**

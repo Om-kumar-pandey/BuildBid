@@ -462,7 +462,11 @@ public class MarketplaceBackendApplication {
                                     "/direct-buy-material.html",
                                     "/direct-buy-material.css",
                                     "/direct-buy-material.js",
-                                    "/buy-material-select.html"
+                                    "/buy-material-select.html",
+                                    "/my-requests.html",
+                                    "/my-requests.css",
+                                    "/my-requests.js",
+                                    "/customer-requests.html"
                             ).permitAll()
                             .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -470,6 +474,7 @@ public class MarketplaceBackendApplication {
                             .requestMatchers(HttpMethod.POST, "/api/direct-buy/matching-sellers").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create", "/api/projects/create").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").authenticated()
+                            .requestMatchers("/api/customer/my-requests", "/api/customer/requests").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/projects", "/api/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
                             .requestMatchers("/api/customer/profile", "/api/customer/profile/**").hasRole("CUSTOMER")

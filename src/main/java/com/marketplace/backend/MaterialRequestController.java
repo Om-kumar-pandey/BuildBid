@@ -60,6 +60,9 @@ public class MaterialRequestController {
                 if (r == MarketplaceBackendApplication.Role.CONTRACTOR) {
                     buyerRole = "CONTRACTOR";
                     break;
+                } else if (r == MarketplaceBackendApplication.Role.PROFESSIONAL || r == MarketplaceBackendApplication.Role.SERVICE_PROVIDER) {
+                    buyerRole = "PROFESSIONAL";
+                    break;
                 }
             }
         }

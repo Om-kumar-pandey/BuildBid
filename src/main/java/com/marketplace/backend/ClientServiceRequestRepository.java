@@ -3,6 +3,11 @@ package com.marketplace.backend;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +15,8 @@ import java.util.Optional;
 public interface ClientServiceRequestRepository extends JpaRepository<ClientServiceRequest, Long> {
 
     List<ClientServiceRequest> findByProfessional_IdOrderByCreatedAtDesc(Long professionalId);
+
+    List<ClientServiceRequest> findByClient_IdOrderByCreatedAtDesc(Long clientId);
 
     Optional<ClientServiceRequest> findByRequestId(String requestId);
 
@@ -20,4 +27,8 @@ public interface ClientServiceRequestRepository extends JpaRepository<ClientServ
     long countByProfessional_Id(Long professionalId);
 
     long countByProfessional_IdAndStatusIgnoreCase(Long professionalId, String status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT csr FROM ClientServiceRequest csr WHERE csr.id = :id")
+    Optional<ClientServiceRequest> findByIdForUpdate(@Param("id") Long id);
 }

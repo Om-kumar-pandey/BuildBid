@@ -1415,55 +1415,99 @@
 
     <!-- MODAL 2: QUOTATION BUILDER MODAL -->
     <div id="quotationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
-            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
                 <div>
-                    <h3 class="font-bold text-sm">Create B2B Quotation</h3>
-                    <p id="quoteModalReqId" class="text-[10px] text-blue-400">Responding to REQ-1028 — TMT Steel Rebars</p>
+                    <h3 class="font-bold text-sm">Create B2B Multi-Material Quotation</h3>
+                    <p id="quoteModalReqId" class="text-[11px] text-blue-400">Responding to REQ-1028 — TMT Steel Rebars</p>
                 </div>
                 <button onclick="closeModal('quotationModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
             </div>
-            <div class="p-6 space-y-4 text-xs">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Material Offered</label>
-                        <input id="qMaterialName" type="text" value="TMT Steel Rebars — Fe 500" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+            <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+                <!-- Multi-Material Structured Line Items Section -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block font-bold text-slate-800 text-sm">Requested Materials & Catalog SKU Mapping</label>
+                        <span class="text-[11px] text-slate-500">Map each requested item to your catalog SKU</span>
                     </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Quantity & Unit</label>
-                        <div class="flex space-x-2">
-                            <input id="qQty" type="number" value="10" class="w-2/3 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                            <input id="qUnit" type="text" value="Tons" class="w-1/3 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                        </div>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                        <table id="qItemsTable" class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-[11px] font-semibold border-b border-slate-200">
+                                    <th class="p-3">Customer Requirement</th>
+                                    <th class="p-3">Your Catalog Material (SKU)</th>
+                                    <th class="p-3 w-24">Quoted Qty</th>
+                                    <th class="p-3 w-20">Unit</th>
+                                    <th class="p-3 w-28">Unit Price (₹)</th>
+                                    <th class="p-3 w-28 text-right">Line Total (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qItemsTbody" class="divide-y divide-slate-200 bg-white">
+                                <!-- Populated dynamically by openQuotationModal -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+
+                <!-- Aggregate Breakdown & Commercial Charges -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Unit Price (₹)</label>
-                        <input id="qUnitPrice" type="number" value="50000" oninput="calculateQuote()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">GST (18%)</label>
-                        <input id="qGst" type="text" value="₹90,000" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg font-bold text-slate-600">
+                        <label class="block font-semibold text-slate-700 mb-1">Materials Subtotal (₹)</label>
+                        <input id="qMaterialSubtotal" type="text" value="₹0" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg font-bold text-slate-700">
                     </div>
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Transport & Delivery (₹)</label>
-                        <input id="qTransport" type="number" value="4000" oninput="calculateQuote()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                        <input id="qTransport" type="number" value="4000" min="0" oninput="calculateQuote()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">GST (18%)</label>
+                        <input id="qGst" type="text" value="₹0" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg font-bold text-slate-600">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Delivery Timeline</label>
+                        <input id="qTimeline" type="text" value="2-3 Days" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
                     </div>
                 </div>
+
+                <!-- Terms & Inclusions -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Payment Terms</label>
+                        <input id="qPaymentTerms" type="text" value="100% on Site Delivery" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Quotation Validity</label>
+                        <input id="qValidity" type="text" value="7 Days" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Warranty</label>
+                        <input id="qWarranty" type="text" value="Standard Manufacturer / BIS Batch Certified" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Legacy compatibility hidden fields -->
+                <input id="qMaterialName" type="hidden" value="">
+                <input id="qQty" type="hidden" value="1">
+                <input id="qUnit" type="hidden" value="Units">
+                <input id="qUnitPrice" type="hidden" value="0">
+
                 <!-- Live Calculation Box -->
                 <div class="p-4 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
                     <div>
-                        <p class="text-slate-600 font-medium">Calculated Quotation Total (Incl. GST & Transport)</p>
-                        <p class="text-[10px] text-slate-400">Includes loading, unloading & BuildBid buyer protection escrow</p>
+                        <p class="text-slate-700 font-semibold text-sm">Calculated Quotation Total (Incl. GST & Transport)</p>
+                        <p class="text-[10px] text-slate-500">Includes verified catalog SKU items, loading, transport & BuildBid buyer escrow</p>
                     </div>
                     <div class="text-right">
-                        <span id="qFinalTotal" class="text-xl font-bold text-blue-600">₹5,94,000</span>
+                        <span id="qFinalTotal" class="text-2xl font-extrabold text-blue-600">₹0</span>
                     </div>
                 </div>
-                <div class="pt-4 flex items-center justify-end space-x-3">
-                    <button onclick="closeModal('quotationModal')" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold">Save Draft</button>
-                    <button onclick="closeModal('quotationModal'); showToast('Quotation successfully submitted to customer project!')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm">Send Quotation Now</button>
+
+                <div class="pt-2 flex items-center justify-end space-x-3">
+                    <button type="button" onclick="closeModal('quotationModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Cancel</button>
+                    <button type="button" id="sendQuotationBtn" onclick="submitSellerQuotation()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-paper-plane mr-1.5"></i>
+                        <span>Send Quotation Now</span>
+                    </button>
                 </div>
             </div>
         </div>
