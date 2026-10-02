@@ -152,16 +152,30 @@ document.addEventListener("DOMContentLoaded", () => {
         closeInlineAcceptModal();
         return;
       }
+      const bidsEl = document.getElementById("bidsDashboardModalOverlay");
+      if (bidsEl && bidsEl.style.display !== "none") {
+        closeBidsModal();
+        return;
+      }
       closeProjectDetailsModal();
     }
   });
 
-  // Close modal on background click
+  // Close modals on background click
   const modalOverlay = document.getElementById("projectDetailsModalOverlay");
   if (modalOverlay) {
     modalOverlay.addEventListener("click", (e) => {
       if (e.target === modalOverlay) {
         closeProjectDetailsModal();
+      }
+    });
+  }
+
+  const bidsDashboardOverlay = document.getElementById("bidsDashboardModalOverlay");
+  if (bidsDashboardOverlay) {
+    bidsDashboardOverlay.addEventListener("click", (e) => {
+      if (e.target === bidsDashboardOverlay) {
+        closeBidsModal();
       }
     });
   }
@@ -391,14 +405,14 @@ async function loadCustomerProjects() {
 function renderProjectsView() {
   updateTopStatistics();
   renderProjectCards();
-  renderPagination();
 }
 
 /**
- * 3 Dynamic Statistic Cards at the top:
+ * 4 Dynamic Statistic Cards at the top:
  * - Total Projects (कुल प्रोजेक्ट्स)
- * - Total Bids (कुल बोलियाँ)
- * - Pending Review (समीक्षा की प्रतीक्षा में)
+ * - Total Bids (कुल बोलियां)
+ * - Pending Review (समीक्षा लंबित)
+ * - Completed Projects (पूरे किए गए प्रोजेक्ट्स)
  */
 function updateTopStatistics() {
   const totalProjects = allProjectsList.length;
@@ -411,13 +425,22 @@ function updateTopStatistics() {
     return s.includes("REVIEW") || s.includes("PENDING");
   }).length;
 
+  // Dynamic Completed Projects count based on genuine authoritative status:
+  // Count only projects whose authoritative status is COMPLETED or COMPLETE
+  const completedProjects = allProjectsList.filter(p => {
+    const s = String(p.status || p.projectStatus || "").toUpperCase().trim();
+    return s === "COMPLETED" || s === "COMPLETE";
+  }).length;
+
   const statProjEl = document.getElementById("statTotalProjects");
   const statBidsEl = document.getElementById("statTotalBids");
   const statPendingEl = document.getElementById("statPendingReview");
+  const statCompletedEl = document.getElementById("statCompletedProjects");
 
   if (statProjEl) statProjEl.textContent = totalProjects;
   if (statBidsEl) statBidsEl.textContent = totalBids;
   if (statPendingEl) statPendingEl.textContent = pendingReview;
+  if (statCompletedEl) statCompletedEl.textContent = completedProjects;
 }
 
 /**
@@ -426,32 +449,20 @@ function updateTopStatistics() {
 function renderProjectCards() {
   const container = document.getElementById("projectCardsContainer");
   const emptyBox = document.getElementById("emptyStateBox");
-  const paginationBar = document.getElementById("paginationBar");
 
   if (!container) return;
 
   if (!allProjectsList || allProjectsList.length === 0) {
     container.innerHTML = "";
     if (emptyBox) emptyBox.style.display = "block";
-    if (paginationBar) paginationBar.style.display = "none";
     return;
   }
 
   if (emptyBox) emptyBox.style.display = "none";
-  if (paginationBar) paginationBar.style.display = "flex";
 
-  const totalItems = allProjectsList.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  currentPage = Math.max(1, Math.min(currentPage, totalPages));
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const pageProjects = allProjectsList.slice(startIndex, endIndex);
-
-  container.innerHTML = pageProjects.map((p, pageIndex) => {
-    const globalIndex = startIndex + pageIndex;
-    const projectNumber = globalIndex + 1;
-    const accentColor = ACCENT_COLORS[globalIndex % ACCENT_COLORS.length];
+  container.innerHTML = allProjectsList.map((p, index) => {
+    const projectNumber = index + 1;
+    const accentColor = ACCENT_COLORS[index % ACCENT_COLORS.length];
 
     const title = p.title || p.projectTitle || "Untitled Project";
     const category = p.type || p.projectType || p.category || "New Construction";
@@ -587,16 +598,13 @@ function renderProjectCards() {
                 <button class="btn-ref-details" onclick="openProjectDetailsModal('${projectIdArg}')">
                   View Details <i class="fa-solid fa-arrow-right"></i>
                 </button>
-                <button class="btn-ref-bids" id="btnToggleBids-${p.id}" onclick="toggleProjectBidsInline('${projectIdArg}')">
+                <button class="btn-ref-bids" id="btnViewBids-${p.id}" onclick="openBidsDashboardModal('${projectIdArg}')">
                   <i class="fa-solid fa-user-group"></i> View Bids
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Inline View Bids Drawer -->
-        <div class="ref-card-bids-drawer" id="projectBidsDrawer-${p.id}" style="display: none;"></div>
 
         <!-- Bottom Metadata Strip -->
         <div class="ref-card-footer-strip">
@@ -610,44 +618,14 @@ function renderProjectCards() {
 }
 
 /**
- * Bottom Pagination Bar
+ * Bottom Pagination Bar (Removed per Change 1)
  */
 function renderPagination() {
-  const countEl = document.getElementById("showingResultsCount");
-  const controlsEl = document.getElementById("paginationControls");
-
-  if (!countEl || !controlsEl) return;
-
-  const totalItems = allProjectsList.length;
-  if (totalItems === 0) {
-    countEl.textContent = "Showing 0 of 0 projects";
-    controlsEl.innerHTML = `
-      <button class="btn-page-ctrl" disabled>Previous</button>
-      <button class="btn-page-num active">1</button>
-      <button class="btn-page-ctrl" disabled>Next</button>
-    `;
-    return;
-  }
-
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage + 1;
-  const endIndex = Math.min(startIndex + itemsPerPage - 1, totalItems);
-
-  countEl.textContent = `Showing ${startIndex} to ${endIndex} of ${totalItems} projects`;
-
-  let html = `<button class="btn-page-ctrl" ${currentPage <= 1 ? "disabled" : ""} onclick="changePage(${currentPage - 1})">Previous</button>`;
-  for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="btn-page-num ${i === currentPage ? "active" : ""}" onclick="changePage(${i})">${i}</button>`;
-  }
-  html += `<button class="btn-page-ctrl" ${currentPage >= totalPages ? "disabled" : ""} onclick="changePage(${currentPage + 1})">Next</button>`;
-  controlsEl.innerHTML = html;
+  // Pagination UI removed
 }
 
 function changePage(page) {
-  currentPage = page;
-  renderProjectCards();
-  renderPagination();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  // Pagination UI removed
 }
 
 /* =========================================================
@@ -980,11 +958,7 @@ function openProjectDetailsModal(id) {
     viewBidsBtn.onclick = () => {
       closeProjectDetailsModal();
       const targetId = project.id !== undefined && project.id !== null ? project.id : (project.projectId || "");
-      const cardEl = document.getElementById(`projectCard-${targetId}`);
-      if (cardEl) {
-        cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-      toggleProjectBidsInline(targetId, true);
+      openBidsDashboardModal(targetId);
     };
   }
 
@@ -1003,25 +977,20 @@ function closeProjectDetailsModal() {
 }
 
 /**
- * View Bids action: Scrolls to and expands the inline bids drawer for this project on the same page
+ * View Bids action: Opens the View Bids Dashboard modal for this project
  */
 function viewProjectBids(id) {
   closeProjectDetailsModal();
-  const project = allProjectsList.find(p => String(p.id) === String(id) || String(p.projectId) === String(id));
-  const numericId = project && project.id !== undefined && project.id !== null ? project.id : id;
-  const cardEl = document.getElementById(`projectCard-${numericId}`);
-  if (cardEl) {
-    cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-  toggleProjectBidsInline(numericId, true);
+  openBidsDashboardModal(id);
 }
 
 /* =========================================================
-   6. INLINE VIEW BIDS ENGINE & ACTIONS (PHASE 3 TO 22)
+   6. VIEW BIDS POP-OUT DASHBOARD ENGINE & ACTIONS
    ========================================================= */
 
-// Cache and state management for inline bids
+// Cache and state management for project bids
 const inlineProjectBidsCache = {};
+let currentModalProjectId = null;
 let inlinePendingAccept = { bidId: null, projectId: null };
 let inlinePendingRevoke = { assignmentId: null, projectId: null };
 let inlinePendingReassign = { bidId: null, projectId: null };
@@ -1091,49 +1060,100 @@ function mapBidStatus(rawStatus) {
 }
 
 /**
- * Toggles the inline bids drawer inside the project card on the same page
+ * Opens the View Bids Dashboard pop-out modal for a specific project
  */
-async function toggleProjectBidsInline(projectIdArg, forceOpen = false) {
+async function openBidsDashboardModal(projectIdArg) {
   const project = allProjectsList.find(p => String(p.id) === String(projectIdArg) || String(p.projectId) === String(projectIdArg));
   const numericId = project && project.id !== undefined && project.id !== null ? project.id : projectIdArg;
-  const drawerEl = document.getElementById(`projectBidsDrawer-${numericId}`);
-  const toggleBtn = document.getElementById(`btnToggleBids-${numericId}`);
+  currentModalProjectId = String(numericId);
 
-  if (!drawerEl) return;
+  const overlay = document.getElementById("bidsDashboardModalOverlay");
+  const titleEl = document.getElementById("bidsModalProjectTitle");
+  const idEl = document.getElementById("bidsModalProjectId");
+  const typeEl = document.getElementById("bidsModalProjectType");
+  const locEl = document.getElementById("bidsModalProjectLocation");
+  const statusEl = document.getElementById("bidsModalProjectStatus");
+  const totalBidsEl = document.getElementById("bidsModalTotalBids");
+  const lowestBidEl = document.getElementById("bidsModalLowestBid");
+  const highestBidEl = document.getElementById("bidsModalHighestBid");
+  const successBanner = document.getElementById("bidsModalSuccessBanner");
+  const bodyEl = document.getElementById("bidsModalBody");
+  const footerCountEl = document.getElementById("bidsModalFooterCount");
 
-  const isCurrentlyOpen = drawerEl.style.display !== "none";
+  if (!overlay || !bodyEl) return;
 
-  if (isCurrentlyOpen && !forceOpen) {
-    drawerEl.style.display = "none";
-    if (toggleBtn) {
-      toggleBtn.innerHTML = '<i class="fa-solid fa-user-group"></i> View Bids';
-      toggleBtn.classList.remove("active-bids-open");
-    }
-    return;
+  // Populate Header Metadata
+  const title = project ? (project.title || project.projectTitle || "Untitled Project") : "Project Bids";
+  const displayId = (project && project.projectId && String(project.projectId).trim().length > 0)
+    ? String(project.projectId).trim()
+    : (project && project.id ? "PRJ-" + project.id : "ID: " + numericId);
+  const category = project ? (project.type || project.projectType || project.category || "General Construction") : "Construction";
+  const locationText = project 
+    ? (project.city ? `${project.city}${project.state ? ", " + project.state : ""}` : (project.location || "Location not specified"))
+    : "Location not specified";
+  const statusObj = mapProjectStatus(project ? (project.status || project.projectStatus) : "OPEN");
+
+  if (titleEl) titleEl.textContent = title;
+  if (idEl) idEl.textContent = displayId;
+  if (typeEl) typeEl.textContent = category;
+  if (locEl) locEl.textContent = locationText;
+  if (statusEl) {
+    statusEl.textContent = statusObj.label;
+    statusEl.className = "bids-modal-meta-pill status-pill-tag " + statusObj.class;
   }
 
-  drawerEl.style.display = "block";
-  if (toggleBtn) {
-    toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> Hide Bids — बोलियाँ छुपाएं';
-    toggleBtn.classList.add("active-bids-open");
+  // Reset Modal KPIs & Banner for Project Isolation
+  if (totalBidsEl) totalBidsEl.textContent = "—";
+  if (lowestBidEl) lowestBidEl.textContent = "—";
+  if (highestBidEl) highestBidEl.textContent = "—";
+  if (footerCountEl) footerCountEl.textContent = "Loading project bids...";
+  if (successBanner) {
+    successBanner.innerHTML = "";
+    successBanner.style.display = "none";
   }
 
-  await loadProjectBidsInline(numericId);
+  // Show Loading State
+  bodyEl.innerHTML = `
+    <div class="bids-modal-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span class="loading-main">Loading Bids... — बोलियां लोड हो रही हैं...</span>
+      <span class="loading-sub">Fetching contractor proposals for this project...</span>
+    </div>
+  `;
+
+  overlay.style.display = "flex";
+  document.body.style.overflow = "hidden";
+
+  await loadProjectBidsForModal(numericId);
+}
+
+/**
+ * Closes the View Bids Dashboard modal cleanly
+ */
+function closeBidsModal() {
+  const overlay = document.getElementById("bidsDashboardModalOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
+  }
+  document.body.style.overflow = "";
+  currentModalProjectId = null;
+}
+
+// Backward-compatibility aliases
+function toggleProjectBidsInline(projectIdArg) {
+  openBidsDashboardModal(projectIdArg);
+}
+
+function loadProjectBidsInline(projectId, successMessage = null) {
+  return loadProjectBidsForModal(projectId, successMessage);
 }
 
 /**
  * Loads bids and active assignment for a specific project from existing backend APIs
  */
-async function loadProjectBidsInline(projectId, successMessage = null) {
-  const drawerEl = document.getElementById(`projectBidsDrawer-${projectId}`);
-  if (!drawerEl) return;
-
-  drawerEl.innerHTML = `
-    <div class="inline-bids-loader">
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <span>Loading bids... — बोलियाँ लोड हो रही हैं...</span>
-    </div>
-  `;
+async function loadProjectBidsForModal(projectId, successMessage = null) {
+  const bodyEl = document.getElementById("bidsModalBody");
+  if (!bodyEl) return;
 
   try {
     const token = getCleanToken();
@@ -1150,20 +1170,21 @@ async function loadProjectBidsInline(projectId, successMessage = null) {
       })
     ]);
 
+    // Handle authentication / permission errors gracefully
     if (bidsRes.status === 401) {
-      renderInlineError(projectId, "Session Expired — सत्र समाप्त हो गया\nPlease log in again to view your bids. — बोलियाँ देखने के लिए कृपया फिर से लॉगिन करें।");
+      renderBidsModalError(projectId, "Session Expired — सत्र समाप्त हो गया\nPlease log in again to view your bids. — बोलियाँ देखने के लिए कृपया फिर से लॉगिन करें।");
       return;
     }
     if (bidsRes.status === 403) {
-      renderInlineError(projectId, "Access Denied — अनुमति नहीं है\nYou do not have permission to view bids for this project. — आपको इस प्रोजेक्ट की बोलियाँ देखने की अनुमति नहीं है।");
+      renderBidsModalError(projectId, "Access Denied — अनुमति नहीं है\nYou do not have permission to view bids for this project. — आपको इस प्रोजेक्ट की बोलियाँ देखने की अनुमति नहीं है।");
       return;
     }
     if (bidsRes.status === 404) {
-      renderInlineError(projectId, "Project Not Found — प्रोजेक्ट नहीं मिला\nThe requested project could not be found. — अनुरोधित प्रोजेक्ट नहीं मिला।");
+      renderBidsModalError(projectId, "Project Not Found — प्रोजेक्ट नहीं मिला\nThe requested project could not be found. — अनुरोधित प्रोजेक्ट नहीं मिला।");
       return;
     }
     if (!bidsRes.ok) {
-      renderInlineError(projectId, "Server Error — सर्वर में समस्या\nUnable to load bids at this moment. Please try again. — इस समय बोलियाँ लोड नहीं हो सकीं। कृपया पुन: प्रयास करें।");
+      renderBidsModalError(projectId, "Server Error — सर्वर में समस्या\nUnable to load bids at this moment. Please try again. — इस समय बोलियाँ लोड नहीं हो सकीं। कृपया पुन: प्रयास करें।");
       return;
     }
 
@@ -1184,7 +1205,7 @@ async function loadProjectBidsInline(projectId, successMessage = null) {
 
     inlineProjectBidsCache[projectId] = { bids, assignment: activeAssignment };
 
-    // Dynamically update card bids count and top statistics
+    // Update card bids count and top statistics (maintaining aggregate Top My Projects KPI)
     const cardBidsCountEl = document.getElementById(`cardBidsCount-${projectId}`);
     if (cardBidsCountEl) {
       cardBidsCountEl.textContent = bids.length;
@@ -1195,20 +1216,30 @@ async function loadProjectBidsInline(projectId, successMessage = null) {
       updateTopStatistics();
     }
 
-    renderInlineBids(projectId, bids, activeAssignment, successMessage);
+    // Verify user is still viewing this project modal before rendering (prevents race conditions)
+    if (currentModalProjectId !== String(projectId)) return;
+
+    renderBidsModalContent(projectId, bids, activeAssignment, successMessage);
   } catch (err) {
-    console.error("Error fetching inline bids:", err);
-    renderInlineError(projectId, "Connection Failed — कनेक्शन नहीं हो पाया\nUnable to reach the server. Please check your network connection. — सर्वर से कनेक्ट नहीं हो पाया। कृपया नेटवर्क जांचें।");
+    console.error("Error fetching modal bids:", err);
+    renderBidsModalError(projectId, "Connection Failed — कनेक्शन नहीं हो पाया\nUnable to reach the server. Please check your network connection. — सर्वर से कनेक्ट नहीं हो पाया। कृपया नेटवर्क जांचें।");
   }
 }
 
 /**
- * Renders the inline bids UI: Header, dynamic Lowest/Highest KPI strip, and contractor cards
+ * Renders the pop-out modal content: dynamic Lowest/Highest/Total KPI strip, and all contractor cards
  */
-function renderInlineBids(projectId, bids, activeAssignment, successMessage = null) {
-  const drawerEl = document.getElementById(`projectBidsDrawer-${projectId}`);
-  if (!drawerEl) return;
+function renderBidsModalContent(projectId, bids, activeAssignment, successMessage = null) {
+  const bodyEl = document.getElementById("bidsModalBody");
+  const totalBidsEl = document.getElementById("bidsModalTotalBids");
+  const lowestBidEl = document.getElementById("bidsModalLowestBid");
+  const highestBidEl = document.getElementById("bidsModalHighestBid");
+  const footerCountEl = document.getElementById("bidsModalFooterCount");
+  const bannerEl = document.getElementById("bidsModalSuccessBanner");
 
+  if (!bodyEl) return;
+
+  // Dynamic KPI Calculations for THIS PROJECT ONLY
   const validAmounts = bids
     .map(b => Number(b.bidAmount))
     .filter(a => !isNaN(a) && a > 0);
@@ -1220,56 +1251,44 @@ function renderInlineBids(projectId, bids, activeAssignment, successMessage = nu
   const lowestDisplay = lowestBid !== null ? formatBidCurrency(lowestBid) : "—";
   const highestDisplay = highestBid !== null ? formatBidCurrency(highestBid) : "—";
 
-  let successBannerHtml = "";
-  if (successMessage) {
-    successBannerHtml = `
-      <div class="assignment-success-banner">
-        <i class="fa-solid fa-circle-check"></i>
-        <div>
-          <strong>Success — सफलता</strong>
-          <span>${escapeHtml(successMessage)}</span>
-        </div>
-      </div>
-    `;
+  if (totalBidsEl) totalBidsEl.textContent = totalBids;
+  if (lowestBidEl) lowestBidEl.textContent = lowestDisplay;
+  if (highestBidEl) highestBidEl.textContent = highestDisplay;
+
+  if (footerCountEl) {
+    footerCountEl.textContent = totalBids === 1
+      ? "Showing 1 bid for this project — इस प्रोजेक्ट की 1 बोली"
+      : `Showing all ${totalBids} bids for this project — इस प्रोजेक्ट की कुल ${totalBids} बोलियाँ`;
   }
 
-  const headerHtml = `
-    <div class="inline-bids-header">
-      <div class="inline-bids-title-wrap">
-        <i class="fa-solid fa-gavel"></i>
-        <span class="inline-bids-title">Bids Received — प्राप्त बोलियाँ</span>
-        <span class="inline-bids-count-tag">${totalBids} ${totalBids === 1 ? 'Bid' : 'Bids'}</span>
-      </div>
-      <button type="button" class="btn-inline-close-bids" onclick="toggleProjectBidsInline('${projectId}')" title="Collapse bids">
-        <i class="fa-solid fa-chevron-up"></i> Hide — छुपाएं
-      </button>
-    </div>
+  // Success Banner
+  if (bannerEl) {
+    if (successMessage) {
+      bannerEl.innerHTML = `
+        <div class="bids-modal-success-banner">
+          <i class="fa-solid fa-circle-check"></i>
+          <div>
+            <strong>Success — सफलता</strong>
+            <span>${escapeHtml(successMessage)}</span>
+          </div>
+        </div>
+      `;
+      bannerEl.style.display = "block";
+    } else {
+      bannerEl.innerHTML = "";
+      bannerEl.style.display = "none";
+    }
+  }
 
-    <!-- KPIs Row: Total Bids, Lowest Bid, Highest Bid -->
-    <div class="inline-bids-kpis-bar">
-      <div class="inline-kpi-card">
-        <span class="inline-kpi-sub">Total Bids — कुल बोलियाँ</span>
-        <strong class="inline-kpi-value">${totalBids}</strong>
-      </div>
-      <div class="inline-kpi-card highlight-lowest">
-        <span class="inline-kpi-sub">Lowest Bid — सबसे कम बोली</span>
-        <strong class="inline-kpi-value">${lowestDisplay}</strong>
-      </div>
-      <div class="inline-kpi-card highlight-highest">
-        <span class="inline-kpi-sub">Highest Bid — सबसे अधिक बोली</span>
-        <strong class="inline-kpi-value">${highestDisplay}</strong>
-      </div>
-    </div>
-  `;
-
+  // Handle 0 Bids cleanly
   if (totalBids === 0) {
-    drawerEl.innerHTML = `
-      ${successBannerHtml}
-      ${headerHtml}
-      <div class="inline-bids-empty">
-        <i class="fa-regular fa-folder-open"></i>
-        <h4>No bids received yet — अभी तक कोई बोली प्राप्त नहीं हुई</h4>
-        <p>When contractors submit bids for this project, they will appear here dynamically. — जब ठेकेदार इस प्रोजेक्ट के लिए बोलियाँ जमा करेंगे, वे यहाँ दिखाई देंगी।</p>
+    bodyEl.innerHTML = `
+      <div class="bids-modal-empty">
+        <div class="empty-icon-circle">
+          <i class="fa-regular fa-folder-open"></i>
+        </div>
+        <h3>No bids received yet — अभी तक कोई बोली प्राप्त नहीं हुई</h3>
+        <p>When contractors review your project specifications and submit competitive bids, they will appear here in real-time. — जब ठेकेदार आपके प्रोजेक्ट की समीक्षा करेंगे और बोलियाँ प्रस्तुत करेंगे, वे यहाँ दिखाई देंगी।</p>
       </div>
     `;
     return;
@@ -1288,6 +1307,7 @@ function renderInlineBids(projectId, bids, activeAssignment, successMessage = nu
     Boolean(b.rejectedAt)
   );
 
+  // Render ALL Bids (No artificial pagination or truncation)
   const bidsCardsHtml = bids.map(bid => {
     const statusInfo = mapBidStatus(bid.status);
     const contractorInitial = (bid.contractorName || "C").charAt(0).toUpperCase();
@@ -1512,9 +1532,7 @@ function renderInlineBids(projectId, bids, activeAssignment, successMessage = nu
     `;
   }).join("");
 
-  drawerEl.innerHTML = `
-    ${successBannerHtml}
-    ${headerHtml}
+  bodyEl.innerHTML = `
     <div class="inline-bids-list">
       ${bidsCardsHtml}
     </div>
@@ -1522,17 +1540,27 @@ function renderInlineBids(projectId, bids, activeAssignment, successMessage = nu
 }
 
 /**
- * Renders error message inside inline drawer with retry button
+ * Renders error message inside modal with retry button
  */
-function renderInlineError(projectId, errorMsg) {
-  const drawerEl = document.getElementById(`projectBidsDrawer-${projectId}`);
-  if (!drawerEl) return;
-  drawerEl.innerHTML = `
-    <div class="inline-bids-error">
+function renderBidsModalError(projectId, errorMsg) {
+  const bodyEl = document.getElementById("bidsModalBody");
+  const totalBidsEl = document.getElementById("bidsModalTotalBids");
+  const lowestBidEl = document.getElementById("bidsModalLowestBid");
+  const highestBidEl = document.getElementById("bidsModalHighestBid");
+  const footerCountEl = document.getElementById("bidsModalFooterCount");
+
+  if (totalBidsEl) totalBidsEl.textContent = "—";
+  if (lowestBidEl) lowestBidEl.textContent = "—";
+  if (highestBidEl) highestBidEl.textContent = "—";
+  if (footerCountEl) footerCountEl.textContent = "Error loading bids";
+
+  if (!bodyEl) return;
+  bodyEl.innerHTML = `
+    <div class="bids-modal-error">
       <i class="fa-solid fa-triangle-exclamation"></i>
-      <h4>Unable to Load Bids — बोलियाँ लोड नहीं हो सकीं</h4>
+      <h3>Unable to Load Bids — बोलियाँ लोड नहीं हो सकीं</h3>
       <p>${escapeHtml(errorMsg)}</p>
-      <button type="button" class="btn-inline-retry" onclick="loadProjectBidsInline('${projectId}')">
+      <button type="button" class="btn-bids-retry" onclick="loadProjectBidsForModal('${projectId}')">
         <i class="fa-solid fa-rotate-right"></i> Retry — पुन: प्रयास करें
       </button>
     </div>

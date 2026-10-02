@@ -118,7 +118,7 @@
         </div>
       </div>
 
-      <!-- 3 Dynamic Metric Summary Cards (Exact Reference Match) -->
+      <!-- 4 Dynamic Metric Summary Cards -->
       <div class="myprojects-stats-grid">
         <div class="myprojects-stat-card">
           <div class="stat-icon-box stat-icon-blue">
@@ -137,19 +137,30 @@
           </div>
           <div class="stat-text-info">
             <span class="stat-title-en">Total Bids</span>
-            <span class="stat-title-hi">कुल बोलियाँ</span>
+            <span class="stat-title-hi">कुल बोलियां</span>
             <span class="stat-value-num" id="statTotalBids">0</span>
           </div>
         </div>
 
         <div class="myprojects-stat-card">
-          <div class="stat-icon-box stat-icon-green">
-            <i class="fa-regular fa-circle-check"></i>
+          <div class="stat-icon-box stat-icon-purple">
+            <i class="fa-solid fa-clock-rotate-left"></i>
           </div>
           <div class="stat-text-info">
             <span class="stat-title-en">Pending Review</span>
-            <span class="stat-title-hi">समीक्षा की प्रतीक्षा में</span>
+            <span class="stat-title-hi">समीक्षा लंबित</span>
             <span class="stat-value-num" id="statPendingReview">0</span>
+          </div>
+        </div>
+
+        <div class="myprojects-stat-card">
+          <div class="stat-icon-box stat-icon-emerald">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="stat-text-info">
+            <span class="stat-title-en">Completed Projects</span>
+            <span class="stat-title-hi">पूरे किए गए प्रोजेक्ट्स</span>
+            <span class="stat-value-num" id="statCompletedProjects">0</span>
           </div>
         </div>
       </div>
@@ -167,16 +178,6 @@
         <button class="btn-empty-post" onclick="window.location.href='create project.html'">
           <span class="plus-icon">+</span> Post New Project — नया प्रोजेक्ट पोस्ट करें
         </button>
-      </div>
-
-      <!-- Pagination / Count Footer (Exact Reference Match) -->
-      <div class="myprojects-pagination-bar" id="paginationBar">
-        <span class="pagination-showing-text" id="showingResultsCount">Showing 0 of 0 projects</span>
-        <div class="pagination-controls-group" id="paginationControls">
-          <button class="btn-page-ctrl" disabled>Previous</button>
-          <button class="btn-page-num active">1</button>
-          <button class="btn-page-ctrl" disabled>Next</button>
-        </div>
       </div>
 
       <!-- Project Details Modal (In-Page View Details) -->
@@ -204,6 +205,100 @@
               <i class="fa-solid fa-user-group"></i> View Bids — बोलियाँ देखें
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- View Bids Pop-out Dashboard Modal Overlay -->
+      <div class="bids-modal-overlay" id="bidsDashboardModalOverlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="bidsModalProjectTitle">
+        <div class="bids-modal-container" id="bidsDashboardModalCard">
+          
+          <!-- Modal Header -->
+          <div class="bids-modal-header">
+            <div class="bids-modal-header-left">
+              <div class="bids-modal-headline-row">
+                <div class="bids-modal-badge-icon">
+                  <i class="fa-solid fa-gavel"></i>
+                </div>
+                <div>
+                  <div class="bids-modal-super-title">Bids Received — बोलियां प्राप्त</div>
+                  <h2 class="bids-modal-project-title" id="bidsModalProjectTitle">Project Title</h2>
+                </div>
+              </div>
+              <div class="bids-modal-meta-row">
+                <span class="bids-modal-meta-pill id-pill">
+                  <i class="fa-solid fa-hashtag"></i> <span id="bidsModalProjectId">N/A</span>
+                </span>
+                <span class="bids-modal-meta-pill type-pill">
+                  <i class="fa-solid fa-layer-group"></i> <span id="bidsModalProjectType">Construction</span>
+                </span>
+                <span class="bids-modal-meta-pill loc-pill">
+                  <i class="fa-solid fa-location-dot"></i> <span id="bidsModalProjectLocation">Location</span>
+                </span>
+                <span class="bids-modal-meta-pill status-pill-tag" id="bidsModalProjectStatus">
+                  Active
+                </span>
+              </div>
+            </div>
+            <div class="bids-modal-header-right">
+              <button type="button" class="btn-bids-modal-close" onclick="closeBidsModal()" title="Close / बंद करें" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+                <span>Close / बंद करें</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Project KPIs Bar -->
+          <div class="bids-modal-kpi-bar" id="bidsModalKpiBar">
+            <div class="bids-kpi-card">
+              <div class="bids-kpi-icon-wrap kpi-blue">
+                <i class="fa-solid fa-file-invoice"></i>
+              </div>
+              <div class="bids-kpi-info">
+                <span class="bids-kpi-title">Total Bids — कुल बोलियां</span>
+                <span class="bids-kpi-num" id="bidsModalTotalBids">0</span>
+                <span class="bids-kpi-hint">This project only</span>
+              </div>
+            </div>
+
+            <div class="bids-kpi-card kpi-card-lowest">
+              <div class="bids-kpi-icon-wrap kpi-green">
+                <i class="fa-solid fa-arrow-down-long"></i>
+              </div>
+              <div class="bids-kpi-info">
+                <span class="bids-kpi-title">Lowest Bid — सबसे कम बोली</span>
+                <span class="bids-kpi-num" id="bidsModalLowestBid">—</span>
+                <span class="bids-kpi-hint">Lowest submitted quote</span>
+              </div>
+            </div>
+
+            <div class="bids-kpi-card kpi-card-highest">
+              <div class="bids-kpi-icon-wrap kpi-amber">
+                <i class="fa-solid fa-arrow-up-long"></i>
+              </div>
+              <div class="bids-kpi-info">
+                <span class="bids-kpi-title">Highest Bid — सबसे अधिक बोली</span>
+                <span class="bids-kpi-num" id="bidsModalHighestBid">—</span>
+                <span class="bids-kpi-hint">Highest submitted quote</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Success Banner Container -->
+          <div id="bidsModalSuccessBanner" class="bids-modal-banner-wrap" style="display: none;"></div>
+
+          <!-- Modal Scrollable Body -->
+          <div class="bids-modal-body" id="bidsModalBody">
+            <!-- Dynamic Content: Loading / Empty / Error / Contractor Bid Cards -->
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="bids-modal-footer">
+            <span class="bids-modal-footer-note" id="bidsModalFooterCount">Showing all bids</span>
+            <button type="button" class="btn-bids-footer-close" onclick="closeBidsModal()">
+              <i class="fa-solid fa-xmark"></i> Close — बंद करें
+            </button>
+          </div>
+
         </div>
       </div>
 
