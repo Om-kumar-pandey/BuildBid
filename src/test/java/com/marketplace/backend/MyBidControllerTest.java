@@ -116,6 +116,7 @@ public class MyBidControllerTest {
         projectX.setId(501L);
         projectX.setProjectId("PRJ-501");
         projectX.setProjectTitle("Luxury Penthouse");
+        projectX.setDescription("Luxury Penthouse complete interior and structural design.");
         projectX.setCustomer(customerA);
 
         projectY = new Project();
@@ -156,6 +157,7 @@ public class MyBidControllerTest {
         assertEquals(1, list.size());
         MyBidController.CustomerProjectSummaryDto dto = (MyBidController.CustomerProjectSummaryDto) list.get(0);
         assertEquals(501L, dto.getId());
+        assertEquals("Luxury Penthouse complete interior and structural design.", dto.getDescription());
         assertEquals(4L, dto.getTotalBids());
         assertFalse(dto.isHasActiveAssignment());
     }
@@ -173,7 +175,37 @@ public class MyBidControllerTest {
         assertEquals(1, list.size());
         MyBidController.CustomerProjectSummaryDto dto = (MyBidController.CustomerProjectSummaryDto) list.get(0);
         assertEquals(501L, dto.getId());
+        assertEquals("Luxury Penthouse complete interior and structural design.", dto.getDescription());
         assertEquals(0L, dto.getTotalBids());
+        assertFalse(dto.isHasActiveAssignment());
+    }
+
+    @Test
+    @DisplayName("Test 2c: Customer project with zero bids remains visible, contains complete description, and retains numeric ID")
+    void test2c_customerProjectWithZeroBidsAndDescriptionCompleteness() {
+        Project zeroBidProject = new Project();
+        zeroBidProject.setId(601L);
+        zeroBidProject.setProjectId("PRJ-601");
+        zeroBidProject.setProjectTitle("Modern Eco Villa");
+        zeroBidProject.setCustomer(customerA);
+        zeroBidProject.setDescription("Complete residential interior and exterior construction with Italian marble and solar roofing.");
+
+        when(projectRepository.findByCustomer(customerA)).thenReturn(Collections.singletonList(zeroBidProject));
+        when(myBidRepository.countByProjectId(601L)).thenReturn(0L);
+        when(myBidService.hasActiveAssignment(601L)).thenReturn(false);
+
+        ResponseEntity<?> response = myBidController.getCustomerProjects(authCustomerA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertNotNull(list);
+        assertEquals(1, list.size(), "Project with zero bids must remain visible in customer project list");
+
+        MyBidController.CustomerProjectSummaryDto dto = (MyBidController.CustomerProjectSummaryDto) list.get(0);
+        assertEquals(Long.valueOf(601L), dto.getId(), "Project ID must remain numeric Long");
+        assertEquals("PRJ-601", dto.getProjectId(), "Business ID must be preserved");
+        assertEquals(0L, dto.getTotalBids(), "Bid count must be 0 for zero-bid project");
+        assertEquals("Complete residential interior and exterior construction with Italian marble and solar roofing.",
+                dto.getDescription(), "Complete customer-entered description must be returned in DTO");
         assertFalse(dto.isHasActiveAssignment());
     }
 

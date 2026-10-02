@@ -69,6 +69,7 @@ public class MyBidController {
         private String location;
         private Double totalArea;
         private String projectStatus;
+        private String description;
         private long totalBids;
         private boolean hasActiveAssignment;
 
@@ -88,6 +89,8 @@ public class MyBidController {
         public void setTotalArea(Double totalArea) { this.totalArea = totalArea; }
         public String getProjectStatus() { return projectStatus; }
         public void setProjectStatus(String projectStatus) { this.projectStatus = projectStatus; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
         public long getTotalBids() { return totalBids; }
         public void setTotalBids(long totalBids) { this.totalBids = totalBids; }
         public boolean isHasActiveAssignment() { return hasActiveAssignment; }
@@ -315,6 +318,7 @@ public class MyBidController {
                 dto.setLocation(p.getCity() != null ? p.getCity() : p.getLocation());
                 dto.setTotalArea(p.getTotalArea());
                 dto.setProjectStatus(p.getStatus());
+                dto.setDescription(p.getDescription());
                 dto.setTotalBids(myBidRepository.countByProjectId(p.getId()));
 
                 boolean hasAssignment = myBidService.hasActiveAssignment(p.getId());

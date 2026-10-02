@@ -1,8 +1,5 @@
 function getApiBaseUrl() {
     if (typeof window !== "undefined" && window.location) {
-        if (window.location.origin && window.location.origin.startsWith("http")) {
-            return window.location.origin;
-        }
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
             return "http://localhost:8080";
         }
@@ -427,6 +424,11 @@ async function loadProjectBids(page = 1, limit = 5, forceRefresh = false) {
             const data = await response.json();
             cachedProjects = Array.isArray(data) ? data : [];
 
+            const totalProjectsElement = document.getElementById('statTotalProjects');
+            if (totalProjectsElement) {
+                totalProjectsElement.textContent = cachedProjects.length;
+            }
+
         } catch (err) {
             console.error('Project bids load error:', err);
             renderEmptyState('Connection Failed — कनेक्शन नहीं हो पाया<br><small>Unable to reach the server. Please check your network connection. — सर्वर से कनेक्ट नहीं हो पाया। कृपया अपना इंटरनेट कनेक्शन जांचें।</small>');
@@ -451,7 +453,7 @@ async function loadProjectBids(page = 1, limit = 5, forceRefresh = false) {
             endIndex: endIndex
         });
     } else {
-        renderEmptyState('No Bids Found — कोई बोली नहीं मिली<br><small>You have not submitted any My Bids yet. — आपने अभी तक कोई बोली जमा नहीं की है।</small>');
+        renderEmptyState('No Projects Found — कोई प्रोजेक्ट नहीं मिला<br><small>You have not posted any projects yet. — आपने अभी तक कोई प्रोजेक्ट पोस्ट नहीं किया है।</small>');
     }
 }
 
@@ -473,7 +475,8 @@ function renderBidsList(projects) {
             hasActiveAssignment: Boolean(item.hasActiveAssignment),
             imageUrl: getLocalProjectImage(item.projectType || item.category),
             contractorNote: item.statusNote || (item.hasActiveAssignment ? 'Active Contractor Selected — सक्रिय ठेकेदार चुना गया' : ''),
-            postedDate: item.postedDate || 'Recent'
+            postedDate: item.postedDate || 'Recent',
+            description: item.description || ''
         };
 
         const statusMap = mapBidStatus(project.displayStatus);
@@ -491,6 +494,7 @@ function renderBidsList(projects) {
                         <h4>${project.title}</h4>
                         <div class="location-line"><i class="fa-solid fa-location-dot"></i> ${project.location}</div>
                         <div class="spec-line">${project.projectId ? project.projectId + ' • ' : ''}${project.area ? project.area + ' • ' : ''}${project.category}</div>
+                        ${project.description ? `<p class="project-description-text">${project.description}</p>` : ''}
                         <div class="posted-date">Submitted Date — जमा करने की तारीख: ${project.postedDate}</div>
                     </div>
                 </div>
