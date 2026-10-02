@@ -403,10 +403,13 @@
           <p><strong>Location:</strong> <span id="locInfo">Enter location in Step 2</span></p>
           <p><strong>Rate dataset updated:</strong> <span id="rateUpdateDate">--/--/----</span></p>
           <p><strong>Rate type:</strong> Indicative local construction rates</p>
-          <p><strong>Data status:</strong> <span class="badge-available">Live Active</span></p>
+          <p><strong>Data status:</strong> <span class="badge-available" id="rateDataStatus">Verified Benchmark</span></p>
         </div>
 
         <div class="sidebar-action-buttons">
+          <button type="button" class="btn-ghost" id="viewDetailedEstimateBtn" onclick="openDetailedEstimateModal()" style="display: none; border-color: #0284c7; color: #0284c7;">
+            <i class="fa-solid fa-list-check"></i> View Detailed Cost Estimate
+          </button>
           <button class="btn-primary-block" onclick="submitProject()"><i class="fa-solid fa-paper-plane"></i> Request Contractor Bids</button>
           <div class="dual-btn-row">
             <button class="btn-ghost" onclick="resetForm()"><i class="fa-solid fa-rotate-left"></i> Reset Form</button>
@@ -468,6 +471,19 @@
           &copy; 2026 BuildBid. All rights reserved.
         </div>
       </footer>
+    </div>
+  </div>
+
+  <!-- Detailed Cost Estimate Modal (Step 4) -->
+  <div id="detailedEstimateModal" class="detailed-estimate-overlay" onclick="handleModalOverlayClick(event)">
+    <div class="detailed-estimate-modal">
+      <div class="modal-head">
+        <h3><i class="fa-solid fa-calculator" style="color: #0284c7;"></i> Detailed Construction Cost Estimate</h3>
+        <button type="button" class="modal-close-btn" onclick="closeDetailedEstimateModal()">&times;</button>
+      </div>
+      <div class="modal-scroll-body" id="detailedModalContent">
+        <!-- Rendered dynamically by script -->
+      </div>
     </div>
   </div>
 

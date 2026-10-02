@@ -860,6 +860,7 @@ function handleFloorSelectionChange(val) {
     }
     generateFloorTabs(parseInt(val) || 1);
   }
+  recalculateDynamicEstimates();
 }
 
 function handleCustomFloorInput(val) {
@@ -867,11 +868,13 @@ function handleCustomFloorInput(val) {
   if (isNaN(count) || count < 1) count = 1;
   if (count > 50) count = 50;
   generateFloorTabs(count);
+  recalculateDynamicEstimates();
 }
 
 function toggleBasement(val) {
   projectState.hasBasement = (val === "Yes" || val === true);
   renderTabsAndPanes();
+  recalculateDynamicEstimates();
 }
 
 function generateFloorTabs(num) {
@@ -936,7 +939,7 @@ function renderTabsAndPanes() {
       pane.innerHTML = `
         <div class="field-group mt-2">
           <label>Approx. Basement Area (sq.ft.)</label>
-          <input type="number" class="form-input" placeholder="e.g. 1000" value="${tab.data.approxArea || ''}" oninput="projectState.basementData.approxArea = parseFloat(this.value)||0">
+          <input type="number" class="form-input" placeholder="e.g. 1000" value="${tab.data.approxArea || ''}" oninput="projectState.basementData.approxArea = parseFloat(this.value)||0; recalculateDynamicEstimates();">
         </div>
 
         <label class="mt-2 block" style="font-size:12px; font-weight:700; color:#334155;">Basement Spaces & Facilities:</label>
@@ -1319,70 +1322,737 @@ function updateTier(tier) {
 }
 
 /* =========================================================
-   COST ESTIMATION ENGINE
+   SERVER-AUTHORITATIVE COST ESTIMATION ENGINE (STEP 4)
    ========================================================= */
+
+// Currency formatters (Intl.NumberFormat 'en-IN')
+const inrFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+
+function formatINR(val) {
+  if (val === null || val === undefined || isNaN(Number(val))) return "--";
+  return inrFormatter.format(Math.round(Number(val)));
+}
+
+function formatINRCompact(val) {
+  if (val === null || val === undefined || isNaN(Number(val))) return "--";
+  const num = Number(val);
+  if (num >= 10000000) {
+    return (num / 10000000).toFixed(2) + " Cr";
+  } else if (num >= 100000) {
+    return (num / 100000).toFixed(2) + " L";
+  }
+  return inrFormatter.format(Math.round(num));
+}
+
+let estimateDebounceTimer = null;
+let estimateAbortController = null;
+let currentEstimateResponse = null;
+let isCalculatingEstimate = false;
+
+// Project type normalization for API
+function mapProjectTypeForApi(uiType) {
+  if (!uiType) return "NEW_CONSTRUCTION";
+  const t = uiType.trim();
+  if (t === "New Construction") return "NEW_CONSTRUCTION";
+  if (t === "Commercial" || t === "Commercial Construction") return "COMMERCIAL_CONSTRUCTION";
+  if (t === "Industrial" || t === "Industrial / Warehouse") return "INDUSTRIAL_WAREHOUSE";
+  return null;
+}
+
+const FROZEN_PROJECT_TYPES = [
+  "Renovation",
+  "Renovation & Remodeling",
+  "Home Extension",
+  "Interior",
+  "Interior & Finishing",
+  "Other"
+];
+
 function recalculateDynamicEstimates() {
   const type = projectState.projectType;
-  let totalArea = 0;
 
-  if (type === "Renovation") {
-    Object.values(projectState.renovationAreas).forEach(a => totalArea += (a.squareFootage || 0));
+  const rangeDisplay = document.getElementById("costRangeDisplay");
+  const disclaimer = document.getElementById("estDisclaimer");
+  const lowerEst = document.getElementById("lowerEstLabel");
+  const expectedEst = document.getElementById("expectedEstLabel");
+  const higherEst = document.getElementById("higherEstLabel");
+  const rangeFill = document.getElementById("rangeFillBar");
+  const breakdownList = document.getElementById("costBreakdownList");
+  const viewBtn = document.getElementById("viewDetailedEstimateBtn");
+
+  // 1. Frozen project types -> display clear existing-style unavailable state without calling API
+  if (FROZEN_PROJECT_TYPES.includes(type)) {
+    if (rangeDisplay) rangeDisplay.innerText = "Custom Evaluation";
+    if (disclaimer) disclaimer.innerText = `*Cost estimation for ${type} is evaluated individually by contractors during bidding.`;
+    if (lowerEst) lowerEst.innerText = "Quote";
+    if (expectedEst) expectedEst.innerText = "Custom";
+    if (higherEst) higherEst.innerText = "Quote";
+    if (rangeFill) {
+      rangeFill.style.width = "0%";
+      rangeFill.style.left = "0%";
+    }
+    if (breakdownList) {
+      breakdownList.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 11.5px; color: #64748b; text-align: center;">
+          <i class="fa-solid fa-clipboard-list" style="margin-right: 6px; color: #0284c7;"></i>
+          Estimates for <b>${type}</b> are custom quoted based on specific site requirements.
+        </div>
+      `;
+    }
+    if (viewBtn) viewBtn.style.display = "none";
+    currentEstimateResponse = null;
+    return;
+  }
+
+  // 2. Active project types: Built-up area check (Area of ONE typical floor)
+  let typicalFloorArea = 0;
+  if (type === "Commercial") {
+    const floorPlate = parseFloat(document.getElementById("commFloorPlate")?.value);
+    const builtUp = parseFloat(document.getElementById("builtUpAreaInput")?.value);
+    typicalFloorArea = floorPlate > 0 ? floorPlate : (builtUp || 0);
   } else {
-    totalArea = parseFloat(document.getElementById("builtUpAreaInput")?.value) || 0;
+    typicalFloorArea = parseFloat(document.getElementById("builtUpAreaInput")?.value) || 0;
   }
 
-  projectState.calculatedArea = totalArea;
+  projectState.calculatedArea = typicalFloorArea;
 
-  if (type === "Other") {
-    document.getElementById("costRangeDisplay").innerText = "Custom Evaluation";
-    document.getElementById("estDisclaimer").innerText = "*Contractors will evaluate your requirements and submit bids.";
-    document.getElementById("lowerEstLabel").innerText = "Quote";
-    document.getElementById("expectedEstLabel").innerText = "Pending";
-    document.getElementById("higherEstLabel").innerText = "Quote";
-    document.getElementById("rangeFillBar").style.width = "40%";
+  if (typicalFloorArea <= 0) {
+    if (rangeDisplay) rangeDisplay.innerText = "Enter Area Details";
+    if (disclaimer) disclaimer.innerText = "*Provide building size to calculate indicative estimate.";
+    if (lowerEst) lowerEst.innerText = "₹--";
+    if (expectedEst) expectedEst.innerText = "₹--";
+    if (higherEst) higherEst.innerText = "₹--";
+    if (rangeFill) {
+      rangeFill.style.width = "0%";
+      rangeFill.style.left = "0%";
+    }
+    if (breakdownList) {
+      breakdownList.innerHTML = `
+        <div>Material Cost: <b>--</b></div>
+        <div>Labour Cost: <b>--</b></div>
+        <div>Transportation: <b>--</b></div>
+        <div>Machinery: <b>--</b></div>
+        <div>Structural: <b>--</b></div>
+        <div>Basement: <b>--</b></div>
+        <div>Contingency: <b>--</b></div>
+      `;
+    }
+    if (viewBtn) viewBtn.style.display = "none";
+    currentEstimateResponse = null;
     return;
   }
 
-  if (totalArea <= 0) {
-    document.getElementById("costRangeDisplay").innerText = "Enter Area Details";
-    document.getElementById("lowerEstLabel").innerText = "₹--";
-    document.getElementById("expectedEstLabel").innerText = "₹--";
-    document.getElementById("higherEstLabel").innerText = "₹--";
-    document.getElementById("rangeFillBar").style.width = "0%";
+  // 3. Location parameters
+  const stateVal = document.getElementById("stateSelect")?.value?.trim() || projectState.state || "";
+  const cityVal = document.getElementById("cityInput")?.value?.trim() || projectState.city || "";
+  const pincodeVal = document.getElementById("pincodeInput")?.value?.trim() || projectState.pincode || "";
+
+  if (!stateVal) {
+    if (rangeDisplay) rangeDisplay.innerText = "Select State in Step 2";
+    if (disclaimer) disclaimer.innerText = "*State is required to resolve local construction rates.";
+    if (lowerEst) lowerEst.innerText = "₹--";
+    if (expectedEst) expectedEst.innerText = "₹--";
+    if (higherEst) higherEst.innerText = "₹--";
+    if (rangeFill) {
+      rangeFill.style.width = "0%";
+      rangeFill.style.left = "0%";
+    }
+    if (viewBtn) viewBtn.style.display = "none";
+    currentEstimateResponse = null;
     return;
   }
 
-  let rate = 1600;
-  if (type === "Renovation") rate = 950;
-  if (type === "Home Extension") rate = 1750;
-  if (type === "Interior") rate = 1250;
-  if (type === "Commercial") rate = 2100;
-  if (type === "Industrial") rate = 1450;
+  // 4. Floor count
+  let numFloors = 1;
+  if (type === "New Construction") {
+    const floorSelect = document.getElementById("numFloorsSelect");
+    if (floorSelect && floorSelect.value === "custom") {
+      numFloors = parseInt(document.getElementById("customFloorsInput")?.value) || 1;
+    } else if (floorSelect) {
+      numFloors = parseInt(floorSelect.value) || 1;
+    } else {
+      numFloors = projectState.floorsCount || 1;
+    }
+  } else if (type === "Commercial") {
+    const commFloorsVal = document.getElementById("commFloors")?.value || "";
+    const match = commFloorsVal.match(/\d+/);
+    numFloors = match ? parseInt(match[0]) : 1;
+  } else {
+    numFloors = 1;
+  }
+  if (numFloors < 1) numFloors = 1;
 
-  if (projectState.qualityTier === "Basic") rate *= 0.85;
-  if (projectState.qualityTier === "Premium") rate *= 1.35;
+  // 5. Basement area (separate from above-ground floors)
+  let basementArea = 0;
+  if (projectState.hasBasement && projectState.basementData && projectState.basementData.approxArea > 0) {
+    basementArea = parseFloat(projectState.basementData.approxArea) || 0;
+  }
 
-  const total = totalArea * rate;
-  const lowerLakh = (total * 0.95 / 100000).toFixed(1);
-  const higherLakh = (total * 1.15 / 100000).toFixed(1);
+  // 6. Quality tier
+  const qualityTier = "STANDARD";
 
-  document.getElementById("costRangeDisplay").innerText = `₹${lowerLakh} Lakh – ₹${higherLakh} Lakh`;
-  document.getElementById("lowerEstLabel").innerText = `₹${lowerLakh}L`;
-  document.getElementById("expectedEstLabel").innerText = `₹${lowerLakh}L – ₹${higherLakh}L`;
-  document.getElementById("higherEstLabel").innerText = `₹${higherLakh}L`;
-  document.getElementById("rangeFillBar").style.width = "65%";
-  document.getElementById("rangeFillBar").style.left = "18%";
+  const apiProjectType = mapProjectTypeForApi(type) || "NEW_CONSTRUCTION";
 
-  document.getElementById("costBreakdownList").innerHTML = `
-    <div>Material Cost: <b>₹${(total * 0.48 / 100000).toFixed(1)}L</b></div>
-    <div>Finishing: <b>₹${(total * 0.12 / 100000).toFixed(1)}L</b></div>
-    <div>Labour Cost: <b>₹${(total * 0.22 / 100000).toFixed(1)}L</b></div>
-    <div>Doors & Windows: <b>₹${(total * 0.04 / 100000).toFixed(1)}L</b></div>
-    <div>Electrical: <b>₹${(total * 0.05 / 100000).toFixed(1)}L</b></div>
-    <div>Painting: <b>₹${(total * 0.04 / 100000).toFixed(1)}L</b></div>
-    <div>Plumbing: <b>₹${(total * 0.03 / 100000).toFixed(1)}L</b></div>
-    <div>Contingency: <b>₹${(total * 0.02 / 100000).toFixed(1)}L</b></div>
+  // Build payload
+  const requestPayload = {
+    projectType: apiProjectType,
+    state: stateVal,
+    city: cityVal || null,
+    district: null,
+    pincode: pincodeVal || null,
+    builtUpAreaSqFt: typicalFloorArea,
+    basementAreaSqFt: basementArea,
+    numberOfFloors: numFloors,
+    qualityTier: qualityTier
+  };
+
+  // Show small non-intrusive loading indicator
+  if (rangeDisplay && !isCalculatingEstimate) {
+    rangeDisplay.innerHTML = `<span class="calc-loading-indicator"><i class="fa-solid fa-circle-notch fa-spin"></i> Calculating...</span>`;
+  }
+
+  // Debounce API calls (300ms) to prevent flooding during typing
+  if (estimateDebounceTimer) clearTimeout(estimateDebounceTimer);
+
+  estimateDebounceTimer = setTimeout(async () => {
+    if (estimateAbortController) {
+      estimateAbortController.abort();
+    }
+    estimateAbortController = new AbortController();
+    isCalculatingEstimate = true;
+
+    try {
+      const token = getCleanToken();
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      let res = await fetch(`${BACKEND_URL}/api/cost-estimator/calculate`, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(requestPayload),
+        signal: estimateAbortController.signal
+      });
+
+      // Fallback to public endpoint if protected route returned 401/403 or unauthenticated
+      if ((res.status === 401 || res.status === 403) || (!token && !res.ok)) {
+        res = await fetch(`${BACKEND_URL}/api/public/cost-estimator/calculate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload),
+          signal: estimateAbortController.signal
+        });
+      }
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data && data.success) {
+        applyEstimatorResponse(data);
+      } else {
+        handleEstimatorError(res.status, data);
+      }
+    } catch (err) {
+      if (err.name === "AbortError") {
+        return;
+      }
+      console.error("Cost Estimator network failure:", err);
+      handleEstimatorNetworkError();
+    } finally {
+      isCalculatingEstimate = false;
+    }
+  }, 300);
+}
+
+function applyEstimatorResponse(data) {
+  currentEstimateResponse = data;
+
+  const low = Number(data.total?.low || 0);
+  const avg = Number(data.total?.average || 0);
+  const high = Number(data.total?.high || 0);
+
+  // Update Range Display
+  const rangeDisplay = document.getElementById("costRangeDisplay");
+  if (rangeDisplay) {
+    rangeDisplay.innerText = `₹${formatINR(low)} – ₹${formatINR(high)}`;
+  }
+
+  const disclaimer = document.getElementById("estDisclaimer");
+  if (disclaimer) {
+    disclaimer.innerText = `*Indicative estimate based on verified construction rates for ${data.location?.city || data.location?.state || 'your area'}.`;
+  }
+
+  // Update Labels
+  const lowerEst = document.getElementById("lowerEstLabel");
+  const expectedEst = document.getElementById("expectedEstLabel");
+  const higherEst = document.getElementById("higherEstLabel");
+  if (lowerEst) lowerEst.innerText = `₹${formatINRCompact(low)}`;
+  if (expectedEst) expectedEst.innerText = `₹${formatINRCompact(avg)}`;
+  if (higherEst) higherEst.innerText = `₹${formatINRCompact(high)}`;
+
+  // Update Range Bar safely
+  const rangeFill = document.getElementById("rangeFillBar");
+  if (rangeFill) {
+    let avgPercent = 50;
+    if (high > low) {
+      avgPercent = Math.min(100, Math.max(0, ((avg - low) / (high - low)) * 100));
+    }
+    rangeFill.style.left = "0%";
+    rangeFill.style.width = `${avgPercent.toFixed(1)}%`;
+  }
+
+  // Update Breakdown List
+  const breakdownList = document.getElementById("costBreakdownList");
+  if (breakdownList && data.breakdown) {
+    const b = data.breakdown;
+    const matVal = b.material ? `₹${formatINRCompact(b.material.average)}` : "--";
+    const labVal = b.labour ? `₹${formatINRCompact(b.labour.average)}` : "--";
+    const transVal = b.transportation ? `₹${formatINRCompact(b.transportation.average)}` : "--";
+    const machVal = b.machinery ? `₹${formatINRCompact(b.machinery.average)}` : "--";
+    const structVal = b.structural ? `₹${formatINRCompact(b.structural.average)}` : "--";
+    const baseVal = (b.basement && Number(b.basement.average) > 0) ? `₹${formatINRCompact(b.basement.average)}` : "Not included";
+    const contVal = b.contingency ? `₹${formatINRCompact(b.contingency.average)}` : "--";
+
+    breakdownList.innerHTML = `
+      <div>Material Cost: <b>${matVal}</b></div>
+      <div>Labour Cost: <b>${labVal}</b></div>
+      <div>Transportation: <b>${transVal}</b></div>
+      <div>Machinery: <b>${machVal}</b></div>
+      <div>Structural: <b>${structVal}</b></div>
+      <div>Basement: <b>${baseVal}</b></div>
+      <div>Contingency: <b>${contVal}</b></div>
+    `;
+  }
+
+  // Update Location Info
+  const locElem = document.getElementById("locInfo");
+  if (locElem && data.location) {
+    const locParts = [];
+    if (data.location.city) locParts.push(data.location.city);
+    if (data.location.state) locParts.push(data.location.state);
+    let locStr = locParts.join(", ") || "Location set";
+    if (data.location.resolutionTier) {
+      const tierMap = {
+        "CITY": "City Rates",
+        "DISTRICT": "District Rates",
+        "STATE_DEFAULT": "State Average",
+        "NATIONAL_DEFAULT": "National Benchmark"
+      };
+      locStr += ` (${tierMap[data.location.resolutionTier] || data.location.resolutionTier})`;
+    }
+    locElem.textContent = locStr;
+  }
+
+  // Update Rate Date with truthful wording
+  const rateDateElem = document.getElementById("rateUpdateDate");
+  if (rateDateElem) {
+    let sourceDateStr = "";
+    if (data.sources && data.sources.length > 0) {
+      const dates = data.sources.map(s => s.rateDate).filter(Boolean).sort().reverse();
+      if (dates.length > 0) {
+        const d = new Date(dates[0]);
+        if (!isNaN(d.getTime())) {
+          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          sourceDateStr = `${months[d.getMonth()]} ${d.getFullYear()}`;
+        }
+      }
+    }
+    rateDateElem.textContent = sourceDateStr ? `Source data dated ${sourceDateStr}` : "Reference rate schedule";
+  }
+
+  const dataStatusElem = document.getElementById("rateDataStatus");
+  if (dataStatusElem) {
+    dataStatusElem.textContent = "Verified Benchmark";
+  }
+
+  // Show detailed CTA button
+  const viewBtn = document.getElementById("viewDetailedEstimateBtn");
+  if (viewBtn) {
+    viewBtn.style.display = "block";
+  }
+}
+
+function handleEstimatorError(status, data) {
+  currentEstimateResponse = null;
+
+  const rangeDisplay = document.getElementById("costRangeDisplay");
+  const disclaimer = document.getElementById("estDisclaimer");
+  const lowerEst = document.getElementById("lowerEstLabel");
+  const expectedEst = document.getElementById("expectedEstLabel");
+  const higherEst = document.getElementById("higherEstLabel");
+  const rangeFill = document.getElementById("rangeFillBar");
+  const viewBtn = document.getElementById("viewDetailedEstimateBtn");
+
+  if (lowerEst) lowerEst.innerText = "₹--";
+  if (expectedEst) expectedEst.innerText = "₹--";
+  if (higherEst) higherEst.innerText = "₹--";
+  if (rangeFill) {
+    rangeFill.style.width = "0%";
+    rangeFill.style.left = "0%";
+  }
+  if (viewBtn) viewBtn.style.display = "none";
+
+  if (status === 404 || (data && data.errorCode === "RATES_UNAVAILABLE")) {
+    if (rangeDisplay) rangeDisplay.innerText = "Estimate Unavailable";
+    if (disclaimer) disclaimer.innerText = "Cost estimation data is currently unavailable for the selected location/project type.";
+  } else if (status === 400) {
+    if (rangeDisplay) rangeDisplay.innerText = "Validation Issue";
+    if (disclaimer) disclaimer.innerText = data?.message || "Please check your area and location inputs.";
+  } else {
+    if (rangeDisplay) rangeDisplay.innerText = "Calculation Error";
+    if (disclaimer) disclaimer.innerText = "Unable to calculate cost estimate at this time. Please try again.";
+  }
+}
+
+function handleEstimatorNetworkError() {
+  currentEstimateResponse = null;
+
+  const rangeDisplay = document.getElementById("costRangeDisplay");
+  const disclaimer = document.getElementById("estDisclaimer");
+  const lowerEst = document.getElementById("lowerEstLabel");
+  const expectedEst = document.getElementById("expectedEstLabel");
+  const higherEst = document.getElementById("higherEstLabel");
+  const rangeFill = document.getElementById("rangeFillBar");
+  const viewBtn = document.getElementById("viewDetailedEstimateBtn");
+
+  if (rangeDisplay) rangeDisplay.innerText = "Connection Failed";
+  if (disclaimer) disclaimer.innerText = "Unable to calculate the estimate right now. Please try again.";
+  if (lowerEst) lowerEst.innerText = "₹--";
+  if (expectedEst) expectedEst.innerText = "₹--";
+  if (higherEst) higherEst.innerText = "₹--";
+  if (rangeFill) {
+    rangeFill.style.width = "0%";
+    rangeFill.style.left = "0%";
+  }
+  if (viewBtn) viewBtn.style.display = "none";
+}
+
+/* =========================================================
+   DETAILED COST ESTIMATE MODAL & BOQ DISPLAY
+   ========================================================= */
+function openDetailedEstimateModal() {
+  if (!currentEstimateResponse) return;
+  const modal = document.getElementById("detailedEstimateModal");
+  const content = document.getElementById("detailedModalContent");
+  if (!modal || !content) return;
+
+  renderDetailedEstimateContent(currentEstimateResponse, content);
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeDetailedEstimateModal() {
+  const modal = document.getElementById("detailedEstimateModal");
+  if (modal) modal.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function handleModalOverlayClick(e) {
+  if (e.target && e.target.id === "detailedEstimateModal") {
+    closeDetailedEstimateModal();
+  }
+}
+
+function renderDetailedEstimateContent(data, container) {
+  const totalLow = formatINR(data.total?.low);
+  const totalAvg = formatINR(data.total?.average);
+  const totalHigh = formatINR(data.total?.high);
+
+  const typicalArea = data.area?.typicalFloorAreaSqFt || 0;
+  const aboveGroundArea = data.area?.totalAboveGroundAreaSqFt || 0;
+  const basementArea = data.area?.basementAreaSqFt || 0;
+  const totalArea = data.area?.totalConstructedAreaSqFt || 0;
+
+  // 1. Overall Cost Summary
+  let html = `
+    <!-- Overall Summary -->
+    <div class="modal-section">
+      <div class="modal-section-title"><i class="fa-solid fa-chart-pie" style="color:#0284c7;"></i> Total Estimated Cost Summary</div>
+      <div class="summary-cards-grid">
+        <div class="summary-metric-card">
+          <div class="metric-label">Lower Estimate</div>
+          <div class="metric-val">₹${totalLow}</div>
+        </div>
+        <div class="summary-metric-card highlight">
+          <div class="metric-label">Expected Average</div>
+          <div class="metric-val">₹${totalAvg}</div>
+        </div>
+        <div class="summary-metric-card">
+          <div class="metric-label">Higher Estimate</div>
+          <div class="metric-val">₹${totalHigh}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Area Dimensions -->
+    <div class="modal-section">
+      <div class="modal-section-title"><i class="fa-solid fa-vector-square" style="color:#0284c7;"></i> Construction Area Metrics</div>
+      <div class="summary-cards-grid">
+        <div class="summary-metric-card">
+          <div class="metric-label">Typical Floor Area</div>
+          <div class="metric-val" style="font-size:16px;">${typicalArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
+        </div>
+        <div class="summary-metric-card">
+          <div class="metric-label">Total Above-Ground</div>
+          <div class="metric-val" style="font-size:16px;">${aboveGroundArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
+        </div>
+        <div class="summary-metric-card">
+          <div class="metric-label">Basement Area</div>
+          <div class="metric-val" style="font-size:16px;">${basementArea > 0 ? basementArea + ' sq.ft.' : 'Not included'}</div>
+        </div>
+        <div class="summary-metric-card highlight">
+          <div class="metric-label">Total Constructed Area</div>
+          <div class="metric-val" style="font-size:16px;">${totalArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
+        </div>
+      </div>
+    </div>
   `;
+
+  // 2. Floor-by-Floor Dynamic Breakdown (Iterates dynamic list)
+  if (data.floors && data.floors.length > 0) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-title"><i class="fa-solid fa-stairs" style="color:#0284c7;"></i> Floor-Wise Dynamic Cost Breakdown</div>
+        <div class="modal-table-wrap">
+          <table class="modal-data-table">
+            <thead>
+              <tr>
+                <th>Floor Name</th>
+                <th>Floor Area</th>
+                <th>Lower Est.</th>
+                <th>Expected Average</th>
+                <th>Higher Est.</th>
+                <th>Vertical Factor</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    data.floors.forEach(f => {
+      const factorDisplay = f.escalationFactor ? Number(f.escalationFactor).toFixed(4) : "1.0000";
+      html += `
+        <tr>
+          <td><b>${f.floorName || 'Floor ' + f.floorNumber}</b></td>
+          <td>${f.areaSqFt} sq.ft.</td>
+          <td>₹${formatINR(f.low)}</td>
+          <td><b>₹${formatINR(f.average)}</b></td>
+          <td>₹${formatINR(f.high)}</td>
+          <td><span style="font-size:11px; color:#64748b;">${factorDisplay}x</span></td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. Basement Details
+  html += `
+    <div class="modal-section">
+      <div class="modal-section-title"><i class="fa-solid fa-dungeon" style="color:#0284c7;"></i> Basement Specifications & Cost</div>
+  `;
+  if (data.basement && Number(data.basement.areaSqFt) > 0) {
+    html += `
+      <div class="summary-cards-grid" style="margin-bottom:12px;">
+        <div class="summary-metric-card">
+          <div class="metric-label">Basement Area</div>
+          <div class="metric-val" style="font-size:16px;">${data.basement.areaSqFt} sq.ft.</div>
+        </div>
+        <div class="summary-metric-card highlight">
+          <div class="metric-label">Total Basement Cost</div>
+          <div class="metric-val" style="font-size:16px;">₹${formatINR(data.basement.average)}</div>
+        </div>
+      </div>
+      <div class="modal-table-wrap">
+        <table class="modal-data-table">
+          <thead>
+            <tr>
+              <th>Basement Phase</th>
+              <th>Lower Est.</th>
+              <th>Average Cost</th>
+              <th>Higher Est.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Excavation & Earthwork</td>
+              <td>₹${formatINR(data.basement.excavationCost?.low)}</td>
+              <td><b>₹${formatINR(data.basement.excavationCost?.average)}</b></td>
+              <td>₹${formatINR(data.basement.excavationCost?.high)}</td>
+            </tr>
+            <tr>
+              <td>Box Waterproofing & Damp Treatment</td>
+              <td>₹${formatINR(data.basement.waterproofingCost?.low)}</td>
+              <td><b>₹${formatINR(data.basement.waterproofingCost?.average)}</b></td>
+              <td>₹${formatINR(data.basement.waterproofingCost?.high)}</td>
+            </tr>
+            <tr>
+              <td>RCC Retaining Structure & Slabs</td>
+              <td>₹${formatINR(data.basement.structuralCost?.low)}</td>
+              <td><b>₹${formatINR(data.basement.structuralCost?.average)}</b></td>
+              <td>₹${formatINR(data.basement.structuralCost?.high)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    html += `
+      <p style="font-size:12.5px; color:#64748b; margin:0;">Basement: Not included in this project estimate.</p>
+    `;
+  }
+  html += `</div>`;
+
+  // 4. Category Cost Breakdown
+  if (data.breakdown) {
+    const b = data.breakdown;
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-title"><i class="fa-solid fa-layer-group" style="color:#0284c7;"></i> Category Cost Breakdown</div>
+        <div class="modal-table-wrap">
+          <table class="modal-data-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Lower Est.</th>
+                <th>Expected Average</th>
+                <th>Higher Est.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Material Cost</b></td>
+                <td>₹${formatINR(b.material?.low)}</td>
+                <td><b>₹${formatINR(b.material?.average)}</b></td>
+                <td>₹${formatINR(b.material?.high)}</td>
+              </tr>
+              <tr>
+                <td><b>Labour Cost</b></td>
+                <td>₹${formatINR(b.labour?.low)}</td>
+                <td><b>₹${formatINR(b.labour?.average)}</b></td>
+                <td>₹${formatINR(b.labour?.high)}</td>
+              </tr>
+              <tr>
+                <td><b>Transportation</b></td>
+                <td>₹${formatINR(b.transportation?.low)}</td>
+                <td><b>₹${formatINR(b.transportation?.average)}</b></td>
+                <td>₹${formatINR(b.transportation?.high)}</td>
+              </tr>
+              <tr>
+                <td><b>Machinery & Equipment</b></td>
+                <td>₹${formatINR(b.machinery?.low)}</td>
+                <td><b>₹${formatINR(b.machinery?.average)}</b></td>
+                <td>₹${formatINR(b.machinery?.high)}</td>
+              </tr>
+              <tr>
+                <td><b>Structural / MEP</b></td>
+                <td>₹${formatINR(b.structural?.low)}</td>
+                <td><b>₹${formatINR(b.structural?.average)}</b></td>
+                <td>₹${formatINR(b.structural?.high)}</td>
+              </tr>
+              <tr>
+                <td><b>Basement</b></td>
+                <td>${b.basement && Number(b.basement.average) > 0 ? '₹' + formatINR(b.basement.low) : '--'}</td>
+                <td><b>${b.basement && Number(b.basement.average) > 0 ? '₹' + formatINR(b.basement.average) : 'Not included'}</b></td>
+                <td>${b.basement && Number(b.basement.average) > 0 ? '₹' + formatINR(b.basement.high) : '--'}</td>
+              </tr>
+              <tr>
+                <td><b>Contingency (${b.contingency?.percentage || 3}%)</b></td>
+                <td>₹${formatINR(b.contingency?.low)}</td>
+                <td><b>₹${formatINR(b.contingency?.average)}</b></td>
+                <td>₹${formatINR(b.contingency?.high)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // 5. Component BOQ Items with full Provenance
+  if (data.componentItems && data.componentItems.length > 0) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-title"><i class="fa-solid fa-list-check" style="color:#0284c7;"></i> Component-Level Bill of Quantities (BOQ) & Reference Provenance</div>
+        <div class="modal-table-wrap">
+          <table class="modal-data-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Unit Rate (Avg)</th>
+                <th>Total Cost (Avg)</th>
+                <th>Rate Date</th>
+                <th>Geographic Tier</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    data.componentItems.forEach(item => {
+      html += `
+        <tr>
+          <td><b>${item.componentName}</b></td>
+          <td><span style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${item.category}</span></td>
+          <td>${item.quantity} ${item.unit}</td>
+          <td>₹${formatINR(item.averageRate)}</td>
+          <td><b>₹${formatINR(item.averageCost)}</b></td>
+          <td><span style="color:#64748b;">${item.rateDate || '--'}</span></td>
+          <td><span style="font-size:10.5px; font-weight:600; color:#0284c7;">${item.geographicTier || '--'}</span></td>
+          <td><small style="color:#64748b;">${item.source || '--'}</small></td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // 6. Structural Benchmark Sanity Check
+  if (data.benchmarkCheck) {
+    const bm = data.benchmarkCheck;
+    const isAligned = bm.status === "ALIGNED";
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-title"><i class="fa-solid fa-scale-balanced" style="color:#0284c7;"></i> Structural Plinth Area Benchmark Check</div>
+        <div class="benchmark-box ${isAligned ? 'aligned' : 'divergent'}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <b>Benchmark Status: <span style="text-decoration:underline;">${bm.status}</span></b>
+            <span>Divergence: <b>${bm.divergencePercentage || 0}%</b></span>
+          </div>
+          <p style="margin:0 0 6px 0;">${bm.message || ''}</p>
+          <div style="font-size:11.5px; opacity:0.9;">
+            Structural Plinth Benchmark Total: <b>₹${formatINR(bm.benchmarkTotal?.average)}</b> (₹${formatINR(bm.benchmarkPerSqFt?.average)}/sq.ft.) |
+            Component BOQ Total: <b>₹${formatINR(bm.componentEstimate?.average)}</b>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 7. Warnings
+  if (data.warnings && data.warnings.length > 0) {
+    html += `
+      <div class="modal-section">
+        <div class="modal-section-title"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i> Estimation Notes & Warnings</div>
+        <div class="estimate-warnings-box">
+          <ul style="margin:0; padding-left:18px;">
+            ${data.warnings.map(w => `<li>${w}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
 }
 
 /* =========================================================
@@ -1603,7 +2273,7 @@ async function submitProject() {
     plotArea: parseFloat(document.getElementById("plotAreaInput")?.value) || 0,
     floors: parseInt(document.getElementById("numFloorsSelect")?.value) || projectState.floorsCount || 1,
     qualityTier: projectState.qualityTier || "Standard",
-    estimatedCost: document.getElementById("costRangeDisplay")?.textContent || "",
+    estimatedCost: (currentEstimateResponse && currentEstimateResponse.total) ? (`₹${formatINR(currentEstimateResponse.total.low)} – ₹${formatINR(currentEstimateResponse.total.high)}`) : (document.getElementById("costRangeDisplay")?.textContent || ""),
     description: document.getElementById("ncDescription")?.value || document.getElementById("otherDetailedDesc")?.value || document.getElementById("otherDesc")?.value || "",
     paymentPreference: document.getElementById("paymentPref")?.value || "Milestone Based",
     privacyPreference: document.getElementById("privacyPref")?.value || "Public to verified contractors",
@@ -1666,6 +2336,9 @@ async function submitProject() {
       if (confirmedProjectId) {
         payload.id = confirmedProjectId;
         payload.projectId = confirmedProjectId;
+        if (respData && respData.estimatedCost) {
+          payload.estimatedCost = respData.estimatedCost;
+        }
         saveLocalProject(payload);
         alert("Project posted and saved to Cloud MySQL successfully!\nProject ID: " + confirmedProjectId);
         window.location.href = "customer projects.html";
@@ -1752,13 +2425,12 @@ function updateLocationInfo() {
   const state = document.getElementById("stateSelect")?.value;
   const locElem = document.getElementById("locInfo");
   if (locElem) locElem.textContent = city && state ? `${city}, ${state}` : (city || state || "Enter location in Step 2");
+  recalculateDynamicEstimates();
 }
 
 function setLiveDatasetDate() {
-  const now = new Date();
-  const formatted = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
   const elem = document.getElementById("rateUpdateDate");
-  if (elem) elem.textContent = formatted;
+  if (elem) elem.textContent = "Verified reference rates";
 }
 
 function syncUniversalUserProfile() {
