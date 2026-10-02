@@ -59,6 +59,19 @@ document.addEventListener("DOMContentLoaded", () => {
     navUserRole.textContent = String(user.role).replace("ROLE_", "").toUpperCase();
   }
 
+  // 3. User Pill Navigation to Customer Dashboard
+  const userPills = document.querySelectorAll(".user-pill");
+  userPills.forEach(pill => {
+    pill.style.cursor = "pointer";
+    pill.title = "View Customer Profile";
+    pill.addEventListener("click", () => {
+      if (!window.location.pathname.endsWith("customer dashboard.html") &&
+          !window.location.pathname.endsWith("customer%20dashboard.html")) {
+        window.location.href = "customer dashboard.html";
+      }
+    });
+  });
+
   // Fallback Logout handler for shell continuity
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn && !logoutBtn.dataset.bound) {
