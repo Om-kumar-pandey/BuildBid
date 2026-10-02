@@ -3,14 +3,25 @@
    Professional Construction Project Tracking Dashboard
    ========================================================= */
 
+/* App Layout Container */
+.app-layout {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* Main Content Container */
 .content-container {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   padding: 28px 36px;
   display: flex;
   flex-direction: column;
   gap: 22px;
+  overflow-x: hidden;
 }
 
 /* Dark Navy Header Banner */
@@ -84,8 +95,10 @@
 /* Summary Stat Cards */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stat-card {
@@ -98,6 +111,8 @@
   gap: 14px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -124,6 +139,7 @@
 
 .stat-info {
   min-width: 0;
+  flex: 1;
 }
 
 .stat-info .stat-label {
@@ -154,6 +170,8 @@
   gap: 16px;
   flex-wrap: wrap;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .search-filter-wrap {
@@ -161,7 +179,7 @@
   align-items: center;
   gap: 12px;
   flex: 1;
-  min-width: 280px;
+  min-width: 0;
 }
 
 .construction-search-box {
@@ -174,6 +192,8 @@
   padding: 8px 14px;
   flex: 1;
   max-width: 440px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .construction-search-box i {
@@ -225,8 +245,10 @@
 /* Construction Grid & Cards */
 .construction-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .construction-card {
@@ -238,6 +260,8 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .construction-card:hover {
@@ -922,18 +946,12 @@
 }
 
 /* Responsive Breakpoints */
-@media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 900px) {
   .content-container {
     padding: 20px 16px;
   }
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .construction-grid {
     grid-template-columns: 1fr;
