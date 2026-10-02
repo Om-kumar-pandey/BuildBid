@@ -105,118 +105,106 @@
     <main class="projects-main-container">
 
       <!-- Top Dark Banner Section -->
-<div class="projects-header-banner">
-    <div class="banner-content">
-        <div class="breadcrumb-text"><a href="index.html" style="color: inherit; text-decoration: none;">Home</a> &gt; <span>My Projects</span></div>
-        <h1 class="banner-title">My Projects</h1>
-        <p class="banner-subtitle">Manage and track all your construction projects in one place.</p>
-    </div>
-    <div class="banner-action">
-    <button class="btn-post-project" onclick="window.location.href='create project.html'">
-        <span class="plus-icon">+</span> Post New Project
-    </button>
-</div>
-</div>
+      <div class="projects-header-banner">
+        <div class="banner-content">
+          <div class="breadcrumb-text"><a href="index.html" style="color: inherit; text-decoration: none;">Home</a> &gt; <span>My Projects</span></div>
+          <h1 class="banner-title">My Projects</h1>
+          <p class="banner-subtitle">Manage and track all your construction projects in one place.</p>
+        </div>
+        <div class="banner-action">
+          <button class="btn-post-project" onclick="window.location.href='create project.html'">
+            <span class="plus-icon">+</span> Post New Project
+          </button>
+        </div>
+      </div>
 
-      <!-- 4 Dynamic Metric Summary Cards -->
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-icon blue"><i class="fa-solid fa-briefcase"></i></div>
-          <div class="metric-info">
-            <span class="metric-label">Total Projects</span>
-            <h2 id="totalProjectsCount">0</h2>
-            <small>All your projects</small>
+      <!-- 3 Dynamic Metric Summary Cards (Exact Reference Match) -->
+      <div class="myprojects-stats-grid">
+        <div class="myprojects-stat-card">
+          <div class="stat-icon-box stat-icon-blue">
+            <i class="fa-regular fa-clipboard"></i>
+          </div>
+          <div class="stat-text-info">
+            <span class="stat-title-en">Total Projects</span>
+            <span class="stat-title-hi">कुल प्रोजेक्ट्स</span>
+            <span class="stat-value-num" id="statTotalProjects">0</span>
           </div>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-icon green"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <div class="metric-info">
-            <span class="metric-label">Active Projects</span>
-            <h2 id="activeProjectsCount">0</h2>
-            <small>Currently in progress</small>
+        <div class="myprojects-stat-card">
+          <div class="stat-icon-box stat-icon-amber">
+            <i class="fa-solid fa-file-lines"></i>
+          </div>
+          <div class="stat-text-info">
+            <span class="stat-title-en">Total Bids</span>
+            <span class="stat-title-hi">कुल बोलियाँ</span>
+            <span class="stat-value-num" id="statTotalBids">0</span>
           </div>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-icon yellow"><i class="fa-regular fa-circle-check"></i></div>
-          <div class="metric-info">
-            <span class="metric-label">Completed Projects</span>
-            <h2 id="completedProjectsCount">0</h2>
-            <small>Successfully completed</small>
+        <div class="myprojects-stat-card">
+          <div class="stat-icon-box stat-icon-green">
+            <i class="fa-regular fa-circle-check"></i>
           </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon purple"><i class="fa-solid fa-gavel"></i></div>
-          <div class="metric-info">
-            <span class="metric-label">Total Bids Received</span>
-            <h2 id="totalBidsCount">0</h2>
-            <small>Across all projects</small>
+          <div class="stat-text-info">
+            <span class="stat-title-en">Pending Review</span>
+            <span class="stat-title-hi">समीक्षा की प्रतीक्षा में</span>
+            <span class="stat-value-num" id="statPendingReview">0</span>
           </div>
         </div>
       </div>
 
-      <!-- Search & Filters Control Toolbar -->
-      <div class="filters-toolbar">
-        <div class="search-input-box">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="projectSearchInput" placeholder="Search projects by title, location..." oninput="filterAndRenderProjects()">
-        </div>
+      <!-- Project Cards Stack Container -->
+      <div class="project-cards-stack" id="projectCardsContainer">
+        <!-- Dynamic Project Cards will be rendered here -->
+      </div>
 
-        <div class="filter-dropdowns">
-          <select id="statusFilter" onchange="filterAndRenderProjects()">
-            <option value="ALL">All Status</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Draft">Draft</option>
-          </select>
+      <!-- Empty State Container (shown when no projects exist) -->
+      <div class="myprojects-empty-card" id="emptyStateBox" style="display: none;">
+        <i class="fa-regular fa-folder-open empty-state-icon"></i>
+        <h3 class="empty-state-title">No Projects Found — कोई प्रोजेक्ट नहीं मिला</h3>
+        <p class="empty-state-subtitle">You have not posted any projects yet. Post your project to start receiving bids from top contractors.</p>
+        <button class="btn-empty-post" onclick="window.location.href='create project.html'">
+          <span class="plus-icon">+</span> Post New Project — नया प्रोजेक्ट पोस्ट करें
+        </button>
+      </div>
 
-          <select id="categoryFilter" onchange="filterAndRenderProjects()">
-            <option value="ALL">All Categories</option>
-            <option value="New Construction">New Construction</option>
-            <option value="Renovation">Renovation</option>
-            <option value="Commercial">Commercial</option>
-            <option value="Industrial">Industrial</option>
-          </select>
-
-          <select id="timeFilter" onchange="filterAndRenderProjects()">
-            <option value="ALL">All Time</option>
-            <option value="THIS_MONTH">This Month</option>
-            <option value="THIS_YEAR">This Year</option>
-          </select>
-
-          <button class="btn-filter-reset" onclick="resetFilters()"><i class="fa-solid fa-filter"></i> Filter</button>
+      <!-- Pagination / Count Footer (Exact Reference Match) -->
+      <div class="myprojects-pagination-bar" id="paginationBar">
+        <span class="pagination-showing-text" id="showingResultsCount">Showing 0 of 0 projects</span>
+        <div class="pagination-controls-group" id="paginationControls">
+          <button class="btn-page-ctrl" disabled>Previous</button>
+          <button class="btn-page-num active">1</button>
+          <button class="btn-page-ctrl" disabled>Next</button>
         </div>
       </div>
 
-      <!-- Projects Table List Section -->
-      <div class="projects-table-wrapper">
-        <table class="projects-table">
-          <thead>
-            <tr>
-              <th>PROJECT DETAILS</th>
-              <th>STATUS</th>
-              <th>BIDS</th>
-              <th>LAST UPDATED</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody id="projectsTableBody">
-            <!-- Dynamic rows will be rendered here -->
-          </tbody>
-        </table>
+      <!-- Project Details Modal (In-Page View Details) -->
+      <div class="project-modal-overlay" id="projectDetailsModalOverlay" style="display: none;">
+        <div class="project-modal-card" id="projectDetailsModalCard">
+          <div class="modal-header">
+            <div class="modal-header-info">
+              <h3 class="modal-title" id="modalProjectTitle">Project Details</h3>
+              <div class="modal-sub-meta">
+                <span class="modal-id-badge" id="modalProjectIdBadge">N/A</span>
+                <span class="ref-category-pill" id="modalCategoryPill">New Construction</span>
+                <span class="ref-status-pill" id="modalStatusPill">Active</span>
+              </div>
+            </div>
+            <button class="modal-close-btn" onclick="closeProjectDetailsModal()" title="Close">&times;</button>
+          </div>
+          
+          <div class="modal-body" id="modalProjectBody">
+            <!-- Dynamic Modal Content rendered here -->
+          </div>
 
-        <!-- Dynamic Empty State Message (shown when no projects exist) -->
-        <div class="empty-state-box" id="emptyStateBox" style="display: none;">
-          <i class="fa-regular fa-folder-open empty-icon"></i>
-          <p>No projects found. Click on <strong>"Post New Project"</strong> to create one.</p>
+          <div class="modal-footer">
+            <button class="btn-modal-close" onclick="closeProjectDetailsModal()">Close — बंद करें</button>
+            <button class="btn-modal-view-bids" id="modalViewBidsBtn">
+              <i class="fa-solid fa-user-group"></i> View Bids — बोलियाँ देखें
+            </button>
+          </div>
         </div>
-      </div>
-
-      <!-- Pagination / Count Footer -->
-      <div class="table-footer">
-        <span id="showingResultsCount">Showing 0 of 0 projects</span>
       </div>
 
       <!-- Dashboard Footer -->

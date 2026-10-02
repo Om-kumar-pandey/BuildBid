@@ -452,6 +452,16 @@ async function loadProjectBids(page = 1, limit = 5, forceRefresh = false) {
             startIndex: startIndex + 1,
             endIndex: endIndex
         });
+
+        // Auto-open modal if targeted by URL parameter from My Projects
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetPId = urlParams.get('projectId');
+        if (targetPId && !currentOpenProjectId) {
+            const matchingProject = cachedProjects.find(p => String(p.id) === String(targetPId) || String(p.projectId) === String(targetPId));
+            if (matchingProject) {
+                openProjectBidsModal(matchingProject.id);
+            }
+        }
     } else {
         renderEmptyState('No Projects Found — कोई प्रोजेक्ट नहीं मिला<br><small>You have not posted any projects yet. — आपने अभी तक कोई प्रोजेक्ट पोस्ट नहीं किया है।</small>');
     }

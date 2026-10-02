@@ -1,6 +1,8 @@
 /* =========================================================
-   BUILDBID - CUSTOMER PROJECTS DASHBOARD SCRIPT (Fully Fixed)
+   BUILDBID - MY PROJECTS DASHBOARD SCRIPT
+   EXACT REFERENCE IMAGE MATCH + 100% REAL DYNAMIC DATA
    ========================================================= */
+
 function getApiBaseUrl() {
   if (typeof window !== "undefined" && window.location) {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
@@ -46,12 +48,80 @@ function performSelectiveLogout() {
   sessionStorage.removeItem("userData");
 }
 
+/* =========================================================
+   PROJECT IMAGE RESOLVER (EXISTING PROJECT ASSETS ONLY)
+   ========================================================= */
+const PROJECT_LOCAL_IMAGES = {
+  new_construction: "NEW CONSTRUCTION.png",
+  renovation: "RENOVATION.png",
+  home_extension: "HOME EXTENSION.png",
+  finishing: "INTERIOR DESIGN.png",
+  commercial: "COMMERCIAL CONSTRUCTION.png",
+  industrial_warehouse: "INDUSTRIRAL AND WAREHOUSE.png",
+  home_maintenance: "HOME MAINTENANCE.png",
+  landscaping_gardening: "LANDSCAPING AND GARDENING.png",
+  others: "OTHERS.png",
+  default: "hero-building.jpg"
+};
+
+function getLocalProjectImage(projectType) {
+  const norm = String(projectType || "").trim().toLowerCase();
+  if (!norm) return PROJECT_LOCAL_IMAGES.default;
+
+  if (norm.includes("new") || (norm.includes("construct") && !norm.includes("commercial") && !norm.includes("indust"))) {
+    return PROJECT_LOCAL_IMAGES.new_construction;
+  }
+  if (norm.includes("renov") || norm.includes("remodel")) {
+    return PROJECT_LOCAL_IMAGES.renovation;
+  }
+  if (norm.includes("extens")) {
+    return PROJECT_LOCAL_IMAGES.home_extension;
+  }
+  if (norm.includes("finish") || norm.includes("interior") || norm.includes("design")) {
+    return PROJECT_LOCAL_IMAGES.finishing;
+  }
+  if (norm.includes("commercial") || norm.includes("office") || norm.includes("showroom") || norm.includes("retail") || norm.includes("space")) {
+    return PROJECT_LOCAL_IMAGES.commercial;
+  }
+  if (norm.includes("indust") || norm.includes("warehouse") || norm.includes("factory")) {
+    return PROJECT_LOCAL_IMAGES.industrial_warehouse;
+  }
+  if (norm.includes("maint") || norm.includes("repair")) {
+    return PROJECT_LOCAL_IMAGES.home_maintenance;
+  }
+  if (norm.includes("landscap") || norm.includes("garden")) {
+    return PROJECT_LOCAL_IMAGES.landscaping_gardening;
+  }
+  if (norm.includes("other") || norm.includes("custom")) {
+    return PROJECT_LOCAL_IMAGES.others;
+  }
+  return PROJECT_LOCAL_IMAGES.default;
+}
+
+// In-Memory State
+let allProjectsList = [];
+let currentPage = 1;
+const itemsPerPage = 5;
+
+// Reference Image Card Accent Colors
+const ACCENT_COLORS = [
+  "#3b82f6", // 1 - Blue
+  "#f97316", // 2 - Orange
+  "#10b981", // 3 - Green
+  "#8b5cf6", // 4 - Purple
+  "#06b6d4"  // 5 - Teal
+];
+
+/* =========================================================
+   LIFECYCLE ENTRY POINT
+   ========================================================= */
 document.addEventListener("DOMContentLoaded", () => {
   const token = getCleanToken();
   if (!token) {
     window.location.href = "index.html";
     return;
   }
+
   syncUniversalUserProfile();
   loadCustomerProjects();
 
@@ -63,13 +133,27 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "index.html";
     });
   }
+
+  // Close modal on escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeProjectDetailsModal();
+    }
+  });
+
+  // Close modal on background click
+  const modalOverlay = document.getElementById("projectDetailsModalOverlay");
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) {
+        closeProjectDetailsModal();
+      }
+    });
+  }
 });
 
-// In-Memory Project State
-let allProjectsList = [];
-
 /* =========================================================
-   1. PURE DYNAMIC LOGGED-IN USER SYNC
+   1. USER PROFILE SYNC
    ========================================================= */
 function syncUniversalUserProfile() {
   const storageKeys = [
@@ -109,7 +193,6 @@ function syncUniversalUserProfile() {
     applyUserHeaderData(activeUser);
   }
 
-  // Token Backend Fetch
   const token = getCleanToken();
   if (token) {
     fetch(API_BASE_URL + "/api/me", {
@@ -133,7 +216,7 @@ function syncUniversalUserProfile() {
 
 function applyUserHeaderData(user) {
   const nameElem = document.getElementById("navUserName") || document.getElementById("user-display-name");
-  const avatarElem = document.getElementById("navUserAvatar") || document.getElementById("user-avatar-initials");
+  const avatarElem = document.getElementById("navAvatar");
   const roleElem = document.getElementById("navUserRole") || document.getElementById("user-display-role");
 
   if (!user) return;
@@ -163,194 +246,531 @@ function applyUserHeaderData(user) {
   }
 
   if (avatarElem && cleanName) {
-    const parts = cleanName.split(" ").filter(Boolean);
-    let initials = "C";
-    if (parts.length === 1) {
-      initials = parts[0].substring(0, 2).toUpperCase();
-    } else if (parts.length > 1) {
-      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    avatarElem.textContent = initials;
+    avatarElem.src = `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(cleanName)}`;
   }
 }
 
 /* =========================================================
-   2. LOAD PROJECTS (API + LOCALSTORAGE SYNC)
+   2. 100% REAL DYNAMIC DATA LOADER
    ========================================================= */
 async function loadCustomerProjects() {
   const token = getCleanToken();
+  const authHeaders = token ? { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } : {};
 
-  // 1. Check local storage first
-  const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");
-  allProjectsList = localProjects;
-
-  // 2. Try fetching from Backend API (Render Database Connected)
   if (token) {
     try {
-      let response = await fetch(API_BASE_URL + "/api/customer/projects", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
-      });
+      // Fetch both full project entities and project bid summaries in parallel
+      const [projResponse, bidsResponse] = await Promise.all([
+        fetch(API_BASE_URL + "/api/customer/projects", { method: "GET", headers: authHeaders }).catch(() => null),
+        fetch(API_BASE_URL + "/api/customer/my-bids/projects", { method: "GET", headers: authHeaders }).catch(() => null)
+      ]);
 
-      if (!response.ok && response.status === 404) {
-        response = await fetch(API_BASE_URL + "/api/projects", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
+      let rawProjects = [];
+      if (projResponse && projResponse.ok) {
+        rawProjects = await projResponse.json();
+      } else {
+        // Fallback endpoint if specific customer route is shadowed
+        const fallbackRes = await fetch(API_BASE_URL + "/api/projects", { method: "GET", headers: authHeaders }).catch(() => null);
+        if (fallbackRes && fallbackRes.ok) {
+          rawProjects = await fallbackRes.json();
+        }
+      }
+
+      let bidsProjects = [];
+      if (bidsResponse && bidsResponse.ok) {
+        bidsProjects = await bidsResponse.json();
+      }
+
+      // Build Map of bids count and active assignments by project ID
+      const bidsMap = new Map();
+      if (Array.isArray(bidsProjects)) {
+        bidsProjects.forEach(bp => {
+          if (bp.id !== undefined && bp.id !== null) bidsMap.set(String(bp.id), bp);
+          if (bp.projectId) bidsMap.set(String(bp.projectId), bp);
         });
       }
 
-      if (response.ok) {
-        const apiProjects = await response.json();
-        if (Array.isArray(apiProjects)) {
-          allProjectsList = apiProjects;
-          localStorage.setItem("customerProjects", JSON.stringify(apiProjects));
-        }
+      if (Array.isArray(rawProjects) && rawProjects.length > 0) {
+        allProjectsList = rawProjects.map(p => {
+          const bp = bidsMap.get(String(p.id)) || (p.projectId ? bidsMap.get(String(p.projectId)) : null);
+          return {
+            ...p,
+            bidsCount: bp ? (bp.totalBids ?? 0) : (p.bidsCount ?? 0),
+            hasActiveAssignment: bp ? Boolean(bp.hasActiveAssignment) : false,
+            projectStatus: p.status || (bp ? bp.projectStatus : "OPEN")
+          };
+        });
+        localStorage.setItem("customerProjects", JSON.stringify(allProjectsList));
+        renderProjectsView();
+        return;
+      } else if (Array.isArray(bidsProjects) && bidsProjects.length > 0) {
+        allProjectsList = bidsProjects.map(bp => ({
+          id: bp.id,
+          projectId: bp.projectId,
+          title: bp.projectTitle,
+          projectTitle: bp.projectTitle,
+          type: bp.projectType,
+          projectType: bp.projectType,
+          location: bp.location,
+          totalArea: bp.totalArea,
+          status: bp.projectStatus,
+          projectStatus: bp.projectStatus,
+          description: bp.description,
+          bidsCount: bp.totalBids ?? 0,
+          hasActiveAssignment: bp.hasActiveAssignment
+        }));
+        localStorage.setItem("customerProjects", JSON.stringify(allProjectsList));
+        renderProjectsView();
+        return;
       }
     } catch (err) {
-      console.log("Local/Offline Mode: Showing cached projects.");
+      console.warn("Backend offline or connection failed, using local cache:", err);
     }
   }
 
-  filterAndRenderProjects();
+  // Offline / Cache fallback
+  const localProjects = JSON.parse(localStorage.getItem("customerProjects") || "[]");
+  allProjectsList = Array.isArray(localProjects) ? localProjects : [];
+  renderProjectsView();
 }
 
 /* =========================================================
-   3. DYNAMIC FILTER & RENDER ENGINE
+   3. RENDER ENGINE (EXACT REFERENCE IMAGE MATCH)
    ========================================================= */
-function filterAndRenderProjects() {
-  const searchQuery = (document.getElementById("projectSearchInput")?.value || "").toLowerCase().trim();
-  const statusFilter = document.getElementById("statusFilter")?.value || "ALL";
-  const categoryFilter = document.getElementById("categoryFilter")?.value || "ALL";
-
-  const filtered = allProjectsList.filter(proj => {
-    // बैकएंड से आने वाले डेटा की प्रॉपर्टीज (title, city, type) के साथ सुरक्षित मिलान
-    const projTitle = proj.title || proj.projectTitle || "";
-    const projLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "");
-    const projCategory = proj.type || proj.projectType || proj.category || "";
-
-    const matchesSearch = 
-      projTitle.toLowerCase().includes(searchQuery) ||
-      projLocation.toLowerCase().includes(searchQuery) ||
-      projCategory.toLowerCase().includes(searchQuery);
-
-    const projStatus = proj.status || "OPEN";
-    const statusLower = projStatus.toLowerCase();
-    const filterLower = statusFilter.toLowerCase();
-    const matchesStatus = statusFilter === "ALL" || 
-                          statusLower === filterLower ||
-                          (filterLower === "in progress" && (statusLower === "open" || statusLower === "open for bids"));
-    const matchesCategory = categoryFilter === "ALL" || projCategory.toLowerCase() === categoryFilter.toLowerCase();
-
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
-  renderTableRows(filtered);
-  updateMetricsCounters(allProjectsList);
+function renderProjectsView() {
+  updateTopStatistics();
+  renderProjectCards();
+  renderPagination();
 }
 
-function renderTableRows(projects) {
-  const tbody = document.getElementById("projectsTableBody");
+/**
+ * 3 Dynamic Statistic Cards at the top:
+ * - Total Projects (कुल प्रोजेक्ट्स)
+ * - Total Bids (कुल बोलियाँ)
+ * - Pending Review (समीक्षा की प्रतीक्षा में)
+ */
+function updateTopStatistics() {
+  const totalProjects = allProjectsList.length;
+  const totalBids = allProjectsList.reduce((acc, curr) => acc + (parseInt(curr.bidsCount) || 0), 0);
+
+  // Dynamic Pending Review count based on genuine existing status logic:
+  // Projects whose authoritative status is UNDER_REVIEW, PENDING, or PENDING_REVIEW
+  const pendingReview = allProjectsList.filter(p => {
+    const s = String(p.status || p.projectStatus || "").toUpperCase().trim();
+    return s.includes("REVIEW") || s.includes("PENDING");
+  }).length;
+
+  const statProjEl = document.getElementById("statTotalProjects");
+  const statBidsEl = document.getElementById("statTotalBids");
+  const statPendingEl = document.getElementById("statPendingReview");
+
+  if (statProjEl) statProjEl.textContent = totalProjects;
+  if (statBidsEl) statBidsEl.textContent = totalBids;
+  if (statPendingEl) statPendingEl.textContent = pendingReview;
+}
+
+/**
+ * Renders the project cards stack
+ */
+function renderProjectCards() {
+  const container = document.getElementById("projectCardsContainer");
   const emptyBox = document.getElementById("emptyStateBox");
-  const countDisplay = document.getElementById("showingResultsCount");
+  const paginationBar = document.getElementById("paginationBar");
 
-  if (!tbody) return;
+  if (!container) return;
 
-  if (!projects || projects.length === 0) {
-    tbody.innerHTML = "";
+  if (!allProjectsList || allProjectsList.length === 0) {
+    container.innerHTML = "";
     if (emptyBox) emptyBox.style.display = "block";
-    if (countDisplay) countDisplay.textContent = `Showing 0 of ${allProjectsList.length} projects`;
+    if (paginationBar) paginationBar.style.display = "none";
     return;
   }
 
   if (emptyBox) emptyBox.style.display = "none";
-  if (countDisplay) countDisplay.textContent = `Showing ${projects.length} of ${allProjectsList.length} projects`;
+  if (paginationBar) paginationBar.style.display = "flex";
 
-  tbody.innerHTML = projects.map(proj => {
-    const statusVal = proj.status || "OPEN";
-    const statusClass = statusVal.toLowerCase().replace(" ", "-");
-    const displayLocation = proj.city ? `${proj.city}, ${proj.state || ""}` : (proj.location || "N/A");
-    const displayArea = proj.builtUpArea ? `${proj.builtUpArea} sq ft` : (proj.area || "--");
-    const displayCategory = proj.type || proj.projectType || proj.category || "General";
-    const displayDate = proj.updatedAt ? new Date(proj.updatedAt).toLocaleDateString() : (proj.updatedDate || "Today");
-    const displayProjectId = proj.projectId || (proj.id ? `PRJ-${proj.id}` : "");
+  const totalItems = allProjectsList.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const pageProjects = allProjectsList.slice(startIndex, endIndex);
+
+  container.innerHTML = pageProjects.map((p, pageIndex) => {
+    const globalIndex = startIndex + pageIndex;
+    const projectNumber = globalIndex + 1;
+    const accentColor = ACCENT_COLORS[globalIndex % ACCENT_COLORS.length];
+
+    const title = p.title || p.projectTitle || "Untitled Project";
+    const category = p.type || p.projectType || p.category || "New Construction";
+    const categoryClass = getCategoryBadgeClass(category);
+
+    const locationText = p.city 
+      ? `${p.city}${p.state ? ", " + p.state : ""}`
+      : (p.location || "Location not specified");
+
+    const description = p.description || p.scopeOfWork || "No detailed description provided.";
+
+    // Area formatting
+    let areaLabel = "Plot Area";
+    let areaValue = "N/A";
+    if (p.plotArea) {
+      areaLabel = "Plot Area";
+      areaValue = `${p.plotArea} sq ft`;
+    } else if (p.builtUpArea) {
+      areaLabel = "Built-up Area";
+      areaValue = `${p.builtUpArea} sq ft`;
+    } else if (p.totalArea) {
+      areaLabel = "Plot Area";
+      areaValue = `${p.totalArea} sq ft`;
+    } else if (p.area) {
+      const aStr = String(p.area).trim();
+      areaValue = aStr.toLowerCase().includes("sq") ? aStr : `${aStr} sq ft`;
+    }
+
+    // Floors
+    const floorsValue = p.floors || p.floorsCount || "G+1";
+
+    // Quality Tier
+    const qualityValue = p.qualityTier || "Standard";
+
+    // Status mapping
+    const statusObj = mapProjectStatus(p.status || p.projectStatus);
+
+    // Bids count
+    const bidsCount = parseInt(p.bidsCount) || 0;
+
+    // Project image from existing assets
+    const imageUrl = getLocalProjectImage(category);
+
+    // Formatted Posted Date
+    const postedDate = formatProjectDate(p.createdAt || p.targetStartDate);
+
+    // Genuine Project ID from existing BuildBid backend (or safe "N/A" fallback if unavailable)
+    const displayProjectId = (p.projectId && String(p.projectId).trim().length > 0)
+      ? String(p.projectId).trim()
+      : "N/A";
+
+    const projectIdArg = String(p.id !== undefined && p.id !== null ? p.id : (p.projectId || ""));
 
     return `
-      <tr>
-        <td>
-          <div class="project-title-text" style="font-weight: 700; color: #1e293b; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-            <span>${proj.title || proj.projectTitle || "Untitled Project"}</span>
-            ${displayProjectId ? `<span class="project-id-badge" style="background: #e2e8f0; color: #334155; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${displayProjectId}</span>` : ''}
+      <div class="ref-project-card" style="--card-accent: ${accentColor};">
+        <!-- Number Badge Top-Left -->
+        <div class="ref-card-number-badge">${projectNumber}</div>
+
+        <!-- Main Card Content Row -->
+        <div class="ref-card-main-row">
+          <!-- Thumbnail Image -->
+          <div class="ref-card-thumb-wrap">
+            <img src="${imageUrl}" 
+                 alt="${escapeHtml(title)}"
+                 onerror="this.src='hero-building.jpg'">
           </div>
-          <div class="project-sub-text" style="font-size: 13px; color: #64748b; margin-top: 3px;">📍 ${displayLocation} • 🏗️ ${displayArea} • ${displayCategory}</div>
-        </td>
-        <td>
-          <span class="status-badge ${statusClass}" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${statusVal}</span>
-        </td>
-        <td>
-          <strong>${proj.bidsCount || 0}</strong> bids
-        </td>
-        <td>
-          <div>${displayDate}</div>
-          <small class="project-sub-text">Just now</small>
-        </td>
-        <td>
-          <div class="action-btn-group" style="display: flex; gap: 8px;">
-            <button class="btn-table-action" onclick="viewProjectDetails('${proj.id}')" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #334155; font-size: 13px;"><i class="fa-regular fa-eye"></i> View</button>
-            <button class="btn-table-action" onclick="deleteProject('${proj.id}')" style="background: #fee2e2; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #dc2626;"><i class="fa-regular fa-trash-can"></i></button>
+
+          <!-- Center Details Column -->
+          <div class="ref-card-mid-col">
+            <h3 class="ref-project-title">${escapeHtml(title)}</h3>
+            <div class="ref-project-location">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>${escapeHtml(locationText)}</span>
+            </div>
+
+            <div class="ref-category-pill ${categoryClass}">
+              ${escapeHtml(category)}
+            </div>
+
+            <p class="ref-project-desc">${escapeHtml(description)}</p>
+
+            <!-- 3 Specs Row -->
+            <div class="ref-specs-row">
+              <div class="ref-spec-item">
+                <i class="fa-regular fa-building ref-spec-icon"></i>
+                <div class="ref-spec-labels">
+                  <span class="ref-spec-label">${areaLabel}</span>
+                  <strong class="ref-spec-val">${escapeHtml(areaValue)}</strong>
+                </div>
+              </div>
+
+              <div class="ref-spec-item">
+                <i class="fa-solid fa-layer-group ref-spec-icon"></i>
+                <div class="ref-spec-labels">
+                  <span class="ref-spec-label">Floors</span>
+                  <strong class="ref-spec-val">${escapeHtml(floorsValue)}</strong>
+                </div>
+              </div>
+
+              <div class="ref-spec-item">
+                <i class="fa-solid fa-award ref-spec-icon"></i>
+                <div class="ref-spec-labels">
+                  <span class="ref-spec-label">Quality Tier</span>
+                  <strong class="ref-spec-val">${escapeHtml(qualityValue)}</strong>
+                </div>
+              </div>
+            </div>
           </div>
-        </td>
-      </tr>
+
+          <!-- Right Column: Status, Bids, Action Buttons -->
+          <div class="ref-card-right-col">
+            <div class="ref-status-pill ${statusObj.class}">
+              ${escapeHtml(statusObj.label)}
+            </div>
+
+            <div class="ref-right-actions-group">
+              <!-- Bids info block -->
+              <div class="ref-bids-box">
+                <i class="fa-solid fa-gavel ref-bids-gavel"></i>
+                <div class="ref-bids-meta">
+                  <span class="ref-bids-title-top">Total Bids</span>
+                  <span class="ref-bids-big-num">${bidsCount}</span>
+                  <span class="ref-bids-title-bot">Bids Received</span>
+                </div>
+              </div>
+
+              <!-- Vertical Divider -->
+              <div class="ref-vertical-divider"></div>
+
+              <!-- Buttons Column -->
+              <div class="ref-buttons-col">
+                <button class="btn-ref-details" onclick="openProjectDetailsModal('${projectIdArg}')">
+                  View Details <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <button class="btn-ref-bids" onclick="viewProjectBids('${projectIdArg}')">
+                  <i class="fa-solid fa-user-group"></i> View Bids
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Metadata Strip -->
+        <div class="ref-card-footer-strip">
+          <span>Posted on ${postedDate}</span>
+          <span class="ref-strip-dot">•</span>
+          <span>Project ID: ${escapeHtml(displayProjectId)}</span>
+        </div>
+      </div>
     `;
   }).join("");
 }
 
-/* =========================================================
-   4. METRICS CARDS COUNTER
-   ========================================================= */
-function updateMetricsCounters(list) {
-  const total = list.length;
-  const active = list.filter(p => {
-    const s = (p.status || "OPEN").toLowerCase();
-    return s === "in progress" || s === "active" || s === "open" || s === "open for bids";
-  }).length;
-  const completed = list.filter(p => (p.status || "").toLowerCase() === "completed").length;
-  const totalBids = list.reduce((acc, curr) => acc + (parseInt(curr.bidsCount) || 0), 0);
+/**
+ * Bottom Pagination Bar
+ */
+function renderPagination() {
+  const countEl = document.getElementById("showingResultsCount");
+  const controlsEl = document.getElementById("paginationControls");
 
-  if (document.getElementById("totalProjectsCount")) document.getElementById("totalProjectsCount").textContent = total;
-  if (document.getElementById("activeProjectsCount")) document.getElementById("activeProjectsCount").textContent = active;
-  if (document.getElementById("completedProjectsCount")) document.getElementById("completedProjectsCount").textContent = completed;
-  if (document.getElementById("totalBidsCount")) document.getElementById("totalBidsCount").textContent = totalBids;
+  if (!countEl || !controlsEl) return;
+
+  const totalItems = allProjectsList.length;
+  if (totalItems === 0) {
+    countEl.textContent = "Showing 0 of 0 projects";
+    controlsEl.innerHTML = `
+      <button class="btn-page-ctrl" disabled>Previous</button>
+      <button class="btn-page-num active">1</button>
+      <button class="btn-page-ctrl" disabled>Next</button>
+    `;
+    return;
+  }
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(startIndex + itemsPerPage - 1, totalItems);
+
+  countEl.textContent = `Showing ${startIndex} to ${endIndex} of ${totalItems} projects`;
+
+  let html = `<button class="btn-page-ctrl" ${currentPage <= 1 ? "disabled" : ""} onclick="changePage(${currentPage - 1})">Previous</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="btn-page-num ${i === currentPage ? "active" : ""}" onclick="changePage(${i})">${i}</button>`;
+  }
+  html += `<button class="btn-page-ctrl" ${currentPage >= totalPages ? "disabled" : ""} onclick="changePage(${currentPage + 1})">Next</button>`;
+  controlsEl.innerHTML = html;
+}
+
+function changePage(page) {
+  currentPage = page;
+  renderProjectCards();
+  renderPagination();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 /* =========================================================
-   5. ACTIONS & HELPERS
+   4. HELPER FORMATTERS & MAPPINGS
    ========================================================= */
-function deleteProject(id) {
-  if (confirm("Are you sure you want to delete this project?")) {
-    allProjectsList = allProjectsList.filter(p => String(p.id) !== String(id) && String(p.projectId) !== String(id));
-    localStorage.setItem("customerProjects", JSON.stringify(allProjectsList));
-    filterAndRenderProjects();
+function mapProjectStatus(raw) {
+  const s = String(raw || "OPEN").toUpperCase().trim();
+
+  if (s === "OPEN" || s === "ACTIVE" || s === "OPEN FOR BIDS") {
+    return { label: "Active", class: "ref-status-active" };
+  }
+  if (s.includes("REVIEW") || s.includes("PENDING")) {
+    return { label: "Under Review", class: "ref-status-under-review" };
+  }
+  if (s.includes("CLOSE") || s.includes("COMPLET") || s.includes("CANCEL")) {
+    return { label: "Closed", class: "ref-status-closed" };
+  }
+  if (s.includes("PROGRESS")) {
+    return { label: "Active", class: "ref-status-active" };
+  }
+  return { label: capitalize(s), class: "ref-status-default" };
+}
+
+function getCategoryBadgeClass(category) {
+  const norm = String(category || "").toLowerCase();
+  if (norm.includes("new") || norm.includes("construct")) return "ref-cat-new-construction";
+  if (norm.includes("renov") || norm.includes("remodel")) return "ref-cat-renovation";
+  if (norm.includes("commercial")) return "ref-cat-commercial";
+  if (norm.includes("extens")) return "ref-cat-extension";
+  return "ref-cat-default";
+}
+
+function formatProjectDate(dateInput) {
+  if (!dateInput) return "Recently";
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = String(d.getDate()).padStart(2, "0");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch (e) {
+    return String(dateInput);
   }
 }
 
-function viewProjectDetails(id) {
+function capitalize(str) {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/* =========================================================
+   5. ACTIONS: VIEW DETAILS MODAL & VIEW BIDS NAVIGATION
+   ========================================================= */
+function openProjectDetailsModal(id) {
   const project = allProjectsList.find(p => String(p.id) === String(id) || String(p.projectId) === String(id));
-  if (project) {
-    const pId = project.projectId || (project.id ? `PRJ-${project.id}` : 'N/A');
-    alert(`Project Details:\nProject ID: ${pId}\nTitle: ${project.title || project.projectTitle}\nCategory: ${project.type || project.category || project.projectType}\nStatus: ${project.status || 'In Progress'}`);
+  if (!project) return;
+
+  const overlay = document.getElementById("projectDetailsModalOverlay");
+  const titleEl = document.getElementById("modalProjectTitle");
+  const idBadge = document.getElementById("modalProjectIdBadge");
+  const catPill = document.getElementById("modalCategoryPill");
+  const statusPill = document.getElementById("modalStatusPill");
+  const bodyEl = document.getElementById("modalProjectBody");
+  const viewBidsBtn = document.getElementById("modalViewBidsBtn");
+
+  const title = project.title || project.projectTitle || "Project Details";
+  const category = project.type || project.projectType || project.category || "New Construction";
+  const displayId = (project.projectId && String(project.projectId).trim().length > 0)
+    ? String(project.projectId).trim()
+    : "N/A";
+  const statusObj = mapProjectStatus(project.status || project.projectStatus);
+
+  if (titleEl) titleEl.textContent = title;
+  if (idBadge) idBadge.textContent = displayId;
+  if (catPill) {
+    catPill.textContent = category;
+    catPill.className = `ref-category-pill ${getCategoryBadgeClass(category)}`;
+  }
+  if (statusPill) {
+    statusPill.textContent = statusObj.label;
+    statusPill.className = `ref-status-pill ${statusObj.class}`;
+  }
+
+  const locationText = project.city 
+    ? `${project.city}${project.state ? ", " + project.state : ""}`
+    : (project.location || "Not specified");
+
+  const area = project.plotArea 
+    ? `${project.plotArea} sq ft`
+    : (project.builtUpArea ? `${project.builtUpArea} sq ft` : (project.totalArea ? `${project.totalArea} sq ft` : "N/A"));
+
+  const floors = project.floors || project.floorsCount || "G+1";
+  const quality = project.qualityTier || "Standard";
+  const budget = project.budget || project.estimatedCost || "Not specified";
+  const timeline = project.timeline || project.targetStartDate || "Immediate / Not specified";
+  const bidsCount = project.bidsCount || 0;
+  const description = project.description || project.scopeOfWork || "No detailed description provided.";
+
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div class="modal-specs-grid">
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Location — स्थान</span>
+          <span class="modal-cell-value">📍 ${escapeHtml(locationText)}</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Plot / Built-up Area — क्षेत्रफल</span>
+          <span class="modal-cell-value">🏗️ ${escapeHtml(area)}</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Floors — मंजिलें</span>
+          <span class="modal-cell-value">🏢 ${escapeHtml(floors)}</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Quality Tier — गुणवत्ता स्तर</span>
+          <span class="modal-cell-value">⭐ ${escapeHtml(quality)}</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Estimated Budget — अनुमानित बजट</span>
+          <span class="modal-cell-value">💰 ${escapeHtml(budget)}</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Target Timeline — समयावधि</span>
+          <span class="modal-cell-value">⏱️ ${escapeHtml(timeline)}</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Bids Received — प्राप्त बोलियाँ</span>
+          <span class="modal-cell-value">🔨 ${bidsCount} bids</span>
+        </div>
+        <div class="modal-spec-cell">
+          <span class="modal-cell-label">Project ID — प्रोजेक्ट आईडी</span>
+          <span class="modal-cell-value">🆔 ${escapeHtml(displayId)}</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="modal-section-title">Project Scope & Description — विवरण</div>
+        <p class="modal-desc-text">${escapeHtml(description)}</p>
+      </div>
+    `;
+  }
+
+  if (viewBidsBtn) {
+    viewBidsBtn.onclick = () => {
+      closeProjectDetailsModal();
+      viewProjectBids(project.id !== undefined && project.id !== null ? project.id : (project.projectId || ""));
+    };
+  }
+
+  if (overlay) {
+    overlay.style.display = "flex";
+    document.body.style.overflow = "hidden";
   }
 }
 
-function resetFilters() {
-  document.getElementById("projectSearchInput").value = "";
-  document.getElementById("statusFilter").value = "ALL";
-  document.getElementById("categoryFilter").value = "ALL";
-  document.getElementById("timeFilter").value = "ALL";
-  filterAndRenderProjects();
+function closeProjectDetailsModal() {
+  const overlay = document.getElementById("projectDetailsModalOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
+    document.body.style.overflow = "";
+  }
+}
+
+/**
+ * View Bids button: Navigates to existing My Bids subsystem for this specific project
+ */
+function viewProjectBids(id) {
+  window.location.href = `my-bids.html?projectId=${encodeURIComponent(id)}`;
 }
