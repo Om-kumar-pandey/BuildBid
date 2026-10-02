@@ -207,6 +207,152 @@
         </div>
       </div>
 
+      <!-- Accept Bid Confirmation Modal -->
+      <div id="acceptConfirmModalOverlay" class="accept-confirm-overlay" style="display: none;">
+        <div class="accept-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="acceptConfirmTitle">
+          <div class="accept-confirm-header">
+            <div class="confirm-icon-wrap">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+              <h3 id="acceptConfirmTitle" class="confirm-title">Accept Contractor Bid? — ठेकेदार की बोली स्वीकार करें?</h3>
+              <p class="confirm-subtitle">Confirm your contractor selection for this project — इस प्रोजेक्ट के लिए अपने ठेकेदार चयन की पुष्टि करें</p>
+            </div>
+          </div>
+
+          <div class="accept-confirm-body">
+            <div class="confirm-details-box">
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Contractor — ठेकेदार:</span>
+                <strong id="confirmContractorName" class="confirm-value">—</strong>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Bid Amount — बोली राशि:</span>
+                <strong id="confirmBidAmount" class="confirm-value highlight-price">—</strong>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Estimated Timeline — अनुमानित समय-सीमा:</span>
+                <span id="confirmTimeline" class="confirm-value">—</span>
+              </div>
+            </div>
+
+            <div class="confirm-warning-note">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>Once accepted, this contractor will be chosen for the project and competing bids will no longer remain active for selection. — एक बार स्वीकार किए जाने पर, इस ठेकेदार को चुना जाएगा और अन्य बोलियाँ चयन के लिए सक्रिय नहीं रहेंगी।</span>
+            </div>
+
+            <div id="acceptConfirmError" class="confirm-error-msg" style="display: none;"></div>
+          </div>
+
+          <div class="accept-confirm-actions">
+            <button type="button" class="btn-cancel-confirm" id="btnCancelAccept">Cancel — रद्द करें</button>
+            <button type="button" class="btn-submit-accept" id="btnConfirmAccept">
+              <span id="btnConfirmAcceptText"><i class="fa-solid fa-check"></i> Confirm &amp; Accept — पुष्टि करें और स्वीकार करें</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Take Back Acceptance Confirmation Modal (Revoke Acceptance) -->
+      <div id="revokeConfirmModalOverlay" class="accept-confirm-overlay" style="display: none;">
+        <div class="accept-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="revokeConfirmTitle">
+          <div class="accept-confirm-header revoke-header">
+            <div class="confirm-icon-wrap revoke-icon-wrap">
+              <i class="fa-solid fa-arrow-rotate-left"></i>
+            </div>
+            <div>
+              <h3 id="revokeConfirmTitle" class="confirm-title">Take Back Acceptance? — स्वीकृति वापस लें?</h3>
+              <p class="confirm-subtitle">Withdraw acceptance and reopen project for selection — स्वीकृति वापस लें और प्रोजेक्ट को चयन के लिए फिर से खोलें</p>
+            </div>
+          </div>
+
+          <div class="accept-confirm-body">
+            <p class="confirm-prompt-text">You are about to withdraw your acceptance of this contractor. — आप इस ठेकेदार की स्वीकृति वापस लेने जा रहे हैं।</p>
+            
+            <div class="confirm-details-box">
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Contractor — ठेकेदार:</span>
+                <strong id="revokeContractorName" class="confirm-value">—</strong>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Accepted Amount — स्वीकृत राशि:</span>
+                <strong id="revokeBidAmount" class="confirm-value highlight-price">—</strong>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Assignment ID — आवंटन आईडी:</span>
+                <span id="revokeAssignmentId" class="confirm-value">—</span>
+              </div>
+            </div>
+
+            <div class="confirm-warning-note revoke-warning">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>The project will reopen for My Bid selection. The existing bids will remain available in history according to their current eligibility. — प्रोजेक्ट My Bid चयन के लिए फिर से खुल जाएगा। मौजूदा बोलियाँ अपनी पात्रता के अनुसार इतिहास में उपलब्ध रहेंगी।</span>
+            </div>
+
+            <div id="revokeConfirmError" class="confirm-error-msg" style="display: none;"></div>
+          </div>
+
+          <div class="accept-confirm-actions">
+            <button type="button" class="btn-cancel-confirm" id="btnCancelRevoke">Cancel — रद्द करें</button>
+            <button type="button" class="btn-submit-revoke" id="btnConfirmRevoke">
+              <span id="btnConfirmRevokeText"><i class="fa-solid fa-arrow-rotate-left"></i> Confirm &amp; Withdraw — पुष्टि करें और वापस लें</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reassign Contractor Confirmation Modal -->
+      <div id="reassignConfirmModalOverlay" class="accept-confirm-overlay" style="display: none;">
+        <div class="accept-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reassignConfirmTitle">
+          <div class="accept-confirm-header reassign-header">
+            <div class="confirm-icon-wrap reassign-icon-wrap">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </div>
+            <div>
+              <h3 id="reassignConfirmTitle" class="confirm-title">Reassign Contractor? — दूसरे ठेकेदार को आवंटित करें?</h3>
+              <p class="confirm-subtitle">Select an eligible existing bid for this project — इस प्रोजेक्ट के लिए एक पात्र मौजूदा बोली का चयन करें</p>
+            </div>
+          </div>
+
+          <div class="accept-confirm-body">
+            <p class="confirm-prompt-text">You are about to assign this project to: — आप इस प्रोजेक्ट को निम्नलिखित ठेकेदार को आवंटित करने जा रहे हैं:</p>
+
+            <div class="confirm-details-box">
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Contractor — ठेकेदार:</span>
+                <strong id="reassignContractorName" class="confirm-value">—</strong>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Bid Amount — बोली राशि:</span>
+                <strong id="reassignBidAmount" class="confirm-value highlight-price">—</strong>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Estimated Duration — अनुमानित अवधि:</span>
+                <span id="reassignDuration" class="confirm-value">—</span>
+              </div>
+              <div class="confirm-detail-row">
+                <span class="confirm-label">Proposed Timeline — प्रस्तावित समय-सीमा:</span>
+                <span id="reassignTimeline" class="confirm-value">—</span>
+              </div>
+            </div>
+
+            <div class="confirm-warning-note reassign-notice">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>This will create a new active assignment using this existing bid. No new bid is being created. — यह इस मौजूदा बोली का उपयोग करके एक नया सक्रिय आवंटन बनाएगा। कोई नई बोली नहीं बनाई जा रही है।</span>
+            </div>
+
+            <div id="reassignConfirmError" class="confirm-error-msg" style="display: none;"></div>
+          </div>
+
+          <div class="accept-confirm-actions">
+            <button type="button" class="btn-cancel-confirm" id="btnCancelReassign">Cancel — रद्द करें</button>
+            <button type="button" class="btn-submit-reassign" id="btnConfirmReassign">
+              <span id="btnConfirmReassignText"><i class="fa-solid fa-arrows-rotate"></i> Confirm Reassignment — पुन: आवंटन की पुष्टि करें</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Dashboard Footer -->
       <footer class="app-footer" style="margin-top: 40px;">
         <div class="footer-columns">
