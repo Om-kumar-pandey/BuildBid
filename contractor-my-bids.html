@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BuildBid - My Bids — मेरी बोलियाँ</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="contractor-dashboard.css" />
+  <link rel="stylesheet" href="contractor-my-bids.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Contractor Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <img src="logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel — ठेकेदार पैनल
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard — डैशबोर्ड</a>
+        <a href="contractor-projects.html" class="nav-item"><i class="fa-solid fa-briefcase"></i> Projects — प्रोजेक्ट्स</a>
+        <a href="contractor-my-bids.html" class="nav-item active"><i class="fa-solid fa-gavel"></i> My Bids — मेरी बोलियाँ</a>
+        <a href="javascript:void(0)" onclick="switchTab('contracts')" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts — मेरे अनुबंध</a>
+        <a href="buy material.html" class="nav-item"><i class="fa-solid fa-cart-shopping"></i> Buy Material — सामग्री खरीदें</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders — सामग्री ऑर्डर</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-users-gear"></i> Hire Professionals — पेशेवर नियुक्त करें</a>
+        <a href="direct-hire.html" class="nav-item"><i class="fa-solid fa-user-plus"></i> Direct Hire — सीधी भर्ती</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team — मेरी टीम</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews &amp; Ratings — समीक्षा और रेटिंग</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings — कमाई</a>
+        <a href="contractor-verification.html" class="nav-item"><i class="fa-solid fa-circle-check"></i> Get Verified — सत्यापन कराएं</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages — संदेश</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications — सूचनाएं</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings — सेटिंग्स</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help &amp; Support — सहायता</a>
+        <a href="javascript:void(0)" class="nav-item nav-logout" onclick="logoutUser()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout — लॉगआउट
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+      <!-- Top Navbar -->
+      <header class="top-nav">
+        <div class="nav-actions">
+          <button class="icon-btn" id="btn-notification-bell" aria-label="Notifications — सूचनाएं">
+            <i class="fa-regular fa-bell"></i>
+            <span class="dot" id="notif-indicator"></span>
+          </button>
+          <div class="user-profile">
+            <div class="avatar" id="top-nav-avatar">
+              <span id="top-nav-avatar-text"><i class="fa-solid fa-user-tie"></i></span>
+            </div>
+            <div class="user-meta">
+              <h4 id="top-nav-name">Contractor</h4>
+              <span id="top-nav-badge">Contractor — ठेकेदार</span>
+            </div>
+            <i class="fa-solid fa-chevron-down drop-icon"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Content -->
+      <div class="dashboard-content contractor-my-bids-container">
+        <!-- Page Title & Header -->
+        <div class="page-intro-header">
+          <div>
+            <h1 class="page-heading">My Bids — मेरी बोलियाँ</h1>
+            <p class="page-subtitle">Track the projects you have bid on and their current status. — Track the projects you have bid on and their current status. — अपने द्वारा लगाई गई बोलियों और उनकी स्थिति को ट्रैक करें।</p>
+          </div>
+          <div class="header-action-search">
+            <div class="search-input-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="bidsSearchInput" placeholder="Search by project title or location... — प्रोजेक्ट शीर्षक या स्थान से खोजें..." />
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric KPI Strip -->
+        <section class="contractor-kpi-strip">
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-icon icon-blue"><i class="fa-solid fa-gavel"></i></div>
+            <div class="kpi-mini-info">
+              <span class="kpi-mini-label">Active Bids — सक्रिय बोलियाँ</span>
+              <strong class="kpi-mini-val" id="statActiveBids">--</strong>
+            </div>
+          </div>
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-icon icon-amber"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="kpi-mini-info">
+              <span class="kpi-mini-label">Under Review — समीक्षा में</span>
+              <strong class="kpi-mini-val" id="statUnderReview">--</strong>
+            </div>
+          </div>
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-icon icon-green"><i class="fa-regular fa-file-lines"></i></div>
+            <div class="kpi-mini-info">
+              <span class="kpi-mini-label">My Contracts — मेरे अनुबंध</span>
+              <strong class="kpi-mini-val" id="statContracts">--</strong>
+            </div>
+          </div>
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-icon icon-purple"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="kpi-mini-info">
+              <span class="kpi-mini-label">Total Submissions — कुल प्रस्तुतियाँ</span>
+              <strong class="kpi-mini-val" id="statTotalSubmissions">--</strong>
+            </div>
+          </div>
+        </section>
+
+        <!-- View Switcher Tabs -->
+        <div class="bids-tabs-row">
+          <div class="tabs-group">
+            <button type="button" class="tab-btn active" id="tabBtnActive" onclick="switchTab('active')">
+              <i class="fa-solid fa-gavel"></i> Submitted Bids — प्रस्तुत बोलियाँ
+              <span class="tab-badge" id="badgeActiveBids">0</span>
+            </button>
+            <button type="button" class="tab-btn" id="tabBtnContracts" onclick="switchTab('contracts')">
+              <i class="fa-regular fa-file-lines"></i> My Contracts — मेरे अनुबंध
+              <span class="tab-badge" id="badgeContracts">0</span>
+            </button>
+            <button type="button" class="tab-btn" id="tabBtnHistory" onclick="switchTab('history')">
+              <i class="fa-solid fa-clock-rotate-left"></i> Bid History — बोली इतिहास
+              <span class="tab-badge" id="badgeHistory">0</span>
+            </button>
+          </div>
+          <button type="button" class="btn-refresh-data" id="btnRefreshData" onclick="refreshCurrentTab()" title="Refresh — रिफ्रेश करें">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh — रिफ्रेश करें
+          </button>
+        </div>
+
+        <!-- Main Card Container -->
+        <div class="bids-content-card">
+          <!-- Active Bids View -->
+          <section id="viewActiveBids" class="tab-content-panel active">
+            <div id="activeBidsContainer" class="items-list-container">
+              <!-- Dynamically populated -->
+            </div>
+          </section>
+
+          <!-- My Contracts View -->
+          <section id="viewContracts" class="tab-content-panel" style="display: none;">
+            <div id="contractsContainer" class="items-list-container">
+              <!-- Dynamically populated -->
+            </div>
+          </section>
+
+          <!-- Bid History View -->
+          <section id="viewHistory" class="tab-content-panel" style="display: none;">
+            <div id="historyContainer" class="items-list-container">
+              <!-- Dynamically populated -->
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Assignment Details Modal (READ-ONLY) -->
+  <div id="assignmentDetailsModalOverlay" class="contractor-modal-overlay" style="display: none;">
+    <div class="contractor-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+      <!-- Modal Header -->
+      <div class="contractor-modal-header">
+        <div class="modal-header-meta">
+          <span class="modal-badge-tag"><i class="fa-regular fa-file-lines"></i> Active Contract Details — सक्रिय अनुबंध विवरण</span>
+          <h2 id="assignmentModalTitle" class="modal-project-title">Project Title</h2>
+          <div class="modal-meta-row">
+            <span>Assignment — कार्य आवंटन <strong id="modalAssignmentId">#--</strong></span>
+            <span>•</span>
+            <span>Bid — बोली <strong id="modalBidId">#--</strong></span>
+            <span>•</span>
+            <span id="modalAssignmentStatusPill" class="status-pill status-accepted">Active Contract — सक्रिय अनुबंध</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseAssignmentModal" onclick="closeAssignmentModal()" aria-label="Close — बंद करें">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="contractor-modal-body" id="assignmentModalBody">
+        <!-- Dynamically populated -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="contractor-modal-footer" id="assignmentModalFooter">
+        <button type="button" class="btn-modal-close" onclick="closeAssignmentModal()">Close — बंद करें</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decline Assignment Confirmation Modal (Phase 4.6B) -->
+  <div id="declineConfirmModalOverlay" class="contractor-modal-overlay" style="display: none;">
+    <div class="contractor-modal-dialog decline-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="declineConfirmTitle">
+      <div class="contractor-modal-header decline-header">
+        <div class="decline-icon-wrap">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="modal-header-meta">
+          <h3 id="declineConfirmTitle" class="modal-project-title">Decline Assignment — काम करने से मना करें</h3>
+          <p class="decline-subtitle">Are you sure you want to decline this assignment? — क्या आप इस काम को करने से मना करना चाहते हैं?</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCancelDeclineX" onclick="closeDeclineModal()" aria-label="Close — बंद करें">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="contractor-modal-body">
+        <div class="decline-details-box">
+          <div class="detail-row">
+            <span class="detail-label">Project — प्रोजेक्ट:</span>
+            <strong id="declineProjectTitle" class="detail-val">—</strong>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Bid Amount — बोली राशि:</span>
+            <strong id="declineBidAmount" class="detail-val highlight-price">—</strong>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Assignment ID — कार्य आवंटन आईडी:</span>
+            <span id="declineAssignmentId" class="detail-val">—</span>
+          </div>
+        </div>
+
+        <div class="decline-warning-note">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>This action will release the current assignment and allow the customer to consider another existing bid. — इस कार्रवाई के बाद यह कार्य आवंटन समाप्त हो जाएगा और ग्राहक किसी अन्य मौजूदा बोली को चुन सकता है।</span>
+        </div>
+
+        <div id="declineModalError" class="modal-error-banner" style="display: none;"></div>
+      </div>
+
+      <div class="contractor-modal-footer decline-actions">
+        <button type="button" class="btn-modal-cancel" id="btnCancelDecline" onclick="closeDeclineModal()">
+          Cancel — रद्द करें
+        </button>
+        <button type="button" class="btn-confirm-decline" id="btnConfirmDecline" onclick="submitDeclineAssignment()">
+          <span id="btnConfirmDeclineText"><i class="fa-solid fa-ban"></i> Confirm Decline — मना करने की पुष्टि करें</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decline Success Notification Banner -->
+  <div id="declineSuccessBanner" class="decline-success-notification" style="display: none;">
+    <div class="success-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="success-text-content">
+      <strong>Assignment Declined — काम करने से मना कर दिया गया</strong>
+      <p>You have declined this assignment. — आपने इस काम को करने से मना कर दिया है।</p>
+      <small>The project is available for the customer to assign again. — यह प्रोजेक्ट ग्राहक द्वारा दोबारा किसी मौजूदा बोली को देने के लिए उपलब्ध है।</small>
+    </div>
+    <button type="button" class="close-toast-btn" onclick="hideDeclineSuccessBanner()" aria-label="Close — बंद करें"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <script src="contractor-my-bids.js"></script>
+</body>
+</html>
