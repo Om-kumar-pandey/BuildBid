@@ -883,6 +883,17 @@ public class MyBidService {
         return myBidAssignmentRepository.findByProjectIdAndIsCurrentTrue(projectId);
     }
 
+    /**
+     * Lightweight active assignment existence check by project ID.
+     * Does NOT dereference lazy associations, reload Project entity, or alter any state.
+     */
+    public boolean hasActiveAssignment(Long projectId) {
+        if (projectId == null) {
+            return false;
+        }
+        return myBidAssignmentRepository.existsByProjectIdAndIsCurrentTrue(projectId);
+    }
+
     // =========================================================================
     // 9. AUDIT HISTORY & GENERAL LOOKUPS
     // =========================================================================

@@ -1249,4 +1249,18 @@ public class MyBidServiceTest {
         myBidService.reassignContractor(customerA, 101L);
         verify(myBidProjectLockRepository, atLeast(4)).findByProjectIdForUpdate(5001L);
     }
+
+    // =========================================================================
+    // TEST 27 — LIGHTWEIGHT ACTIVE ASSIGNMENT CHECK
+    // =========================================================================
+    @Test
+    @DisplayName("Test 27: Lightweight active assignment check without entity loading or proxy dereferencing")
+    void test27_hasActiveAssignment() {
+        when(myBidAssignmentRepository.existsByProjectIdAndIsCurrentTrue(5001L)).thenReturn(true);
+        when(myBidAssignmentRepository.existsByProjectIdAndIsCurrentTrue(5002L)).thenReturn(false);
+
+        assertTrue(myBidService.hasActiveAssignment(5001L));
+        assertFalse(myBidService.hasActiveAssignment(5002L));
+        assertFalse(myBidService.hasActiveAssignment(null));
+    }
 }

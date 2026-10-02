@@ -304,24 +304,29 @@ public class MyBidController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Customer access only."));
         }
 
-        List<Project> projects = projectRepository.findByCustomer(customer);
-        List<CustomerProjectSummaryDto> dtoList = projects.stream().map(p -> {
-            CustomerProjectSummaryDto dto = new CustomerProjectSummaryDto();
-            dto.setId(p.getId());
-            dto.setProjectId(p.getProjectId());
-            dto.setProjectTitle(p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle());
-            dto.setProjectType(p.getProjectType() != null ? p.getProjectType() : p.getType());
-            dto.setLocation(p.getCity() != null ? p.getCity() : p.getLocation());
-            dto.setTotalArea(p.getTotalArea());
-            dto.setProjectStatus(p.getStatus());
-            dto.setTotalBids(myBidRepository.countByProjectId(p.getId()));
+        try {
+            List<Project> projects = projectRepository.findByCustomer(customer);
+            List<CustomerProjectSummaryDto> dtoList = projects.stream().map(p -> {
+                CustomerProjectSummaryDto dto = new CustomerProjectSummaryDto();
+                dto.setId(p.getId());
+                dto.setProjectId(p.getProjectId());
+                dto.setProjectTitle(p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle());
+                dto.setProjectType(p.getProjectType() != null ? p.getProjectType() : p.getType());
+                dto.setLocation(p.getCity() != null ? p.getCity() : p.getLocation());
+                dto.setTotalArea(p.getTotalArea());
+                dto.setProjectStatus(p.getStatus());
+                dto.setTotalBids(myBidRepository.countByProjectId(p.getId()));
 
-            Optional<MyBidAssignment> activeAssignment = myBidService.getCustomerProjectAssignment(customer, p.getId());
-            dto.setHasActiveAssignment(activeAssignment.isPresent());
-            return dto;
-        }).collect(Collectors.toList());
+                boolean hasAssignment = myBidService.hasActiveAssignment(p.getId());
+                dto.setHasActiveAssignment(hasAssignment);
+                return dto;
+            }).collect(Collectors.toList());
 
-        return ResponseEntity.ok(dtoList);
+            return ResponseEntity.ok(dtoList);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve projects: " + e.getMessage()));
+        }
     }
 
     /**

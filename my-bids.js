@@ -490,7 +490,7 @@ function renderBidsList(projects) {
                     <div class="project-details">
                         <h4>${project.title}</h4>
                         <div class="location-line"><i class="fa-solid fa-location-dot"></i> ${project.location}</div>
-                        <div class="spec-line">${project.area ? project.area + ' • ' : ''}${project.category}</div>
+                        <div class="spec-line">${project.projectId ? project.projectId + ' • ' : ''}${project.area ? project.area + ' • ' : ''}${project.category}</div>
                         <div class="posted-date">Submitted Date — जमा करने की तारीख: ${project.postedDate}</div>
                     </div>
                 </div>
@@ -593,7 +593,7 @@ async function openProjectBidsModal(projectId) {
     if (locEl) locEl.textContent = project ? (project.location || 'Location N/A') : '-';
     if (areaEl) areaEl.textContent = project ? formatArea(project.totalArea || project.area) : '-';
     if (catEl) catEl.textContent = project ? (project.projectType || project.category || 'General') : '-';
-    if (footerInfo) footerInfo.textContent = '';
+    if (footerInfo) footerInfo.textContent = project && project.projectId ? `Project ID: ${project.projectId}` : '';
 
     // Show modal overlay and loading state
     if (overlay) {

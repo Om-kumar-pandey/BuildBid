@@ -148,7 +148,7 @@ public class MyBidControllerTest {
     void test2_customerProjects() {
         when(projectRepository.findByCustomer(customerA)).thenReturn(Collections.singletonList(projectX));
         when(myBidRepository.countByProjectId(501L)).thenReturn(4L);
-        when(myBidService.getCustomerProjectAssignment(customerA, 501L)).thenReturn(Optional.empty());
+        when(myBidService.hasActiveAssignment(501L)).thenReturn(false);
 
         ResponseEntity<?> response = myBidController.getCustomerProjects(authCustomerA);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -158,6 +158,40 @@ public class MyBidControllerTest {
         assertEquals(501L, dto.getId());
         assertEquals(4L, dto.getTotalBids());
         assertFalse(dto.isHasActiveAssignment());
+    }
+
+    @Test
+    @DisplayName("Test 2a: Customer with an existing Project and zero bids returns HTTP 200 with totalBids=0")
+    void test2a_customerProjectWithZeroBids() {
+        when(projectRepository.findByCustomer(customerA)).thenReturn(Collections.singletonList(projectX));
+        when(myBidRepository.countByProjectId(501L)).thenReturn(0L);
+        when(myBidService.hasActiveAssignment(501L)).thenReturn(false);
+
+        ResponseEntity<?> response = myBidController.getCustomerProjects(authCustomerA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertEquals(1, list.size());
+        MyBidController.CustomerProjectSummaryDto dto = (MyBidController.CustomerProjectSummaryDto) list.get(0);
+        assertEquals(501L, dto.getId());
+        assertEquals(0L, dto.getTotalBids());
+        assertFalse(dto.isHasActiveAssignment());
+    }
+
+    @Test
+    @DisplayName("Test 2b: Customer with an existing Project and active assignment returns hasActiveAssignment=true")
+    void test2b_customerProjectWithActiveAssignment() {
+        when(projectRepository.findByCustomer(customerA)).thenReturn(Collections.singletonList(projectX));
+        when(myBidRepository.countByProjectId(501L)).thenReturn(3L);
+        when(myBidService.hasActiveAssignment(501L)).thenReturn(true);
+
+        ResponseEntity<?> response = myBidController.getCustomerProjects(authCustomerA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertEquals(1, list.size());
+        MyBidController.CustomerProjectSummaryDto dto = (MyBidController.CustomerProjectSummaryDto) list.get(0);
+        assertEquals(501L, dto.getId());
+        assertEquals(3L, dto.getTotalBids());
+        assertTrue(dto.isHasActiveAssignment());
     }
 
     @Test
