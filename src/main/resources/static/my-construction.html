@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildBid - Construction Project Tracking — निर्माण परियोजना ट्रैकिंग</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="my-construction.css">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="customer dashboard.html" class="brand-logo">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Projects</option>
+            <option>Materials</option>
+            <option>Professionals</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+        <div class="pill-avatar" id="navUserAvatar" style="display:grid; place-items:center; background:#0284c7; color:white; font-weight:700;">
+          --
+        </div>
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Loading...</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Body Layout -->
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <ul class="side-menu">
+        <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li>
+          <a href="customer projects.html" class="sidebar-item">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>My Projects</span>
+          </a>
+        </li>
+        <li class="active">
+          <a href="my-construction.html">
+            <i class="fa-solid fa-person-digging"></i> My Construction — मेरी निर्माण परियोजनाएँ
+          </a>
+        </li>
+        <li><a href="buy-material-select.html"><i class="fa-solid fa-cart-shopping"></i> Buy Materials</a></li>
+        <li><a href="my-requests.html"><i class="fa-solid fa-file-circle-check"></i> My Requests</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-user-group"></i> Common Requirements</a></li>
+        <li><a href="direct-hire.html"><i class="fa-solid fa-user-tie"></i> Direct Hire</a></li>
+        <li><a href="post-requirements.html"><i class="fa-solid fa-user-plus"></i>Post Requirements</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="#" id="logoutBtn" class="logout-action">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Page Content -->
+    <main class="content-container">
+
+      <!-- Dark Navy Header Banner -->
+      <div class="construction-header-banner">
+        <div class="breadcrumb-text">
+          <a href="customer dashboard.html">Home — होम</a> &gt; <span>My Construction — मेरी निर्माण परियोजनाएँ</span> &gt; <span>Construction Project Tracking — निर्माण परियोजना ट्रैकिंग</span>
+        </div>
+        <h1 class="banner-title">Construction Project Tracking — निर्माण परियोजना ट्रैकिंग</h1>
+        <p class="banner-subtitle">
+          Track your allotted construction projects, monitor progress, view contractor details, receive project updates and manage construction-related documents and invoices — all in one place.
+        </p>
+        <p class="banner-subtitle-hi">
+          यहाँ आप अपने आवंटित निर्माण प्रोजेक्ट की प्रगति देख सकते हैं, कॉन्ट्रैक्टर की जानकारी देख सकते हैं, प्रोजेक्ट अपडेट प्राप्त कर सकते हैं और निर्माण से जुड़े दस्तावेज़ व इनवॉइस एक ही जगह पर देख सकते हैं।
+        </p>
+      </div>
+
+      <!-- Dynamic Summary Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-blue"><i class="fa-solid fa-person-digging"></i></div>
+          <div class="stat-info">
+            <span class="stat-label">Allotted Projects — कुल आवंटित</span>
+            <h3 class="stat-value" id="statAllottedProjects">0</h3>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-green"><i class="fa-solid fa-trowel-bricks"></i></div>
+          <div class="stat-info">
+            <span class="stat-label">In Progress — प्रगति पर</span>
+            <h3 class="stat-value" id="statInProgress">0</h3>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-amber"><i class="fa-solid fa-helmet-safety"></i></div>
+          <div class="stat-info">
+            <span class="stat-label">Active Contractors — सक्रिय ठेकेदार</span>
+            <h3 class="stat-value" id="statActiveContractors">0</h3>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-yellow"><i class="fa-solid fa-list-check"></i></div>
+          <div class="stat-info">
+            <span class="stat-label">Milestones Tracked — ट्रैक किए चरण</span>
+            <h3 class="stat-value" id="statMilestones">0</h3>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper icon-slate"><i class="fa-solid fa-award"></i></div>
+          <div class="stat-info">
+            <span class="stat-label">Completed — पूर्ण निर्माण</span>
+            <h3 class="stat-value" id="statCompleted">0</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Controls Card -->
+      <div class="construction-controls-card">
+        <div class="search-filter-wrap">
+          <div class="construction-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="constructionSearchInput" placeholder="Search by project title, ID, or contractor name...">
+          </div>
+          <select id="constructionStageFilter" class="filter-select">
+            <option value="ALL">All Stages — सभी चरण</option>
+            <option value="ALLOTTED">Allotted — आवंटित</option>
+            <option value="IN_PROGRESS">In Progress — प्रगति पर</option>
+            <option value="COMPLETED">Completed — पूर्ण</option>
+          </select>
+        </div>
+        <button type="button" id="btnRefreshConstruction" class="btn-refresh">
+          <i class="fa-solid fa-rotate"></i> Refresh — ताज़ा करें
+        </button>
+      </div>
+
+      <!-- Construction Projects Grid Container -->
+      <div class="construction-grid" id="constructionGrid">
+        <div class="loading-box">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span>Loading Construction Projects... — निर्माण परियोजनाएं लोड हो रही हैं...</span>
+        </div>
+      </div>
+
+      <!-- Dashboard Footer -->
+      <footer class="app-footer" style="margin-top: 40px;">
+        <div class="footer-columns">
+          <div class="footer-brand-side">
+            <div class="brand-logo">
+              <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+              <div class="brand-text">
+                <span class="brand-title">BuildBid</span>
+                <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Platform</h4>
+            <a href="customer projects.html">Projects</a>
+            <a href="buy-material-select.html">Materials</a>
+            <a href="direct-hire.html">Professionals</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Company</h4>
+            <a href="index.html">About Us</a>
+            <a href="index.html">How It Works</a>
+            <a href="index.html">Contact Us</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Support</h4>
+            <a href="#">Help Center</a>
+            <a href="#">Terms & Conditions</a>
+            <a href="#">Privacy Policy</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Follow Us</h4>
+            <div class="social-links-row">
+              <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+              <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+              <a href="#"><i class="fa-brands fa-instagram"></i></a>
+              <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-copyright-note">
+          &copy; 2026 BuildBid. All rights reserved.
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Construction Details & Tracking Modal Pop-Out -->
+  <div id="constructionTrackingModal" class="tracking-modal-overlay" style="display: none;">
+    <div class="tracking-modal-container" role="dialog" aria-modal="true" aria-labelledby="modalProjectTitle">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h2 id="modalProjectTitle">Construction Project</h2>
+          <div class="modal-meta-line">
+            <span id="modalProjectId">PRJ-00</span>
+            <span>•</span>
+            <span id="modalProjectType">Residential</span>
+            <span>•</span>
+            <span id="modalProjectLocation">Location</span>
+            <span>•</span>
+            <span id="modalStatusBadge" class="status-badge status-allotted">Allotted</span>
+          </div>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnCloseModal" aria-label="Close modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Tabs -->
+      <div class="modal-tabs">
+        <button type="button" class="modal-tab-btn active" data-tab="tab-milestones">
+          <i class="fa-solid fa-bars-progress"></i> Milestones & Progress
+        </button>
+        <button type="button" class="modal-tab-btn" data-tab="tab-contractor">
+          <i class="fa-solid fa-helmet-safety"></i> Contractor Details
+        </button>
+        <button type="button" class="modal-tab-btn" data-tab="tab-invoices">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Invoices & Billing
+        </button>
+        <button type="button" class="modal-tab-btn" data-tab="tab-scope">
+          <i class="fa-solid fa-circle-info"></i> Scope & Specs
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Tab 1: Milestones -->
+        <div id="tab-milestones" class="tab-pane active">
+          <div class="milestones-timeline" id="modalMilestonesContainer">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Contractor -->
+        <div id="tab-contractor" class="tab-pane">
+          <div class="contractor-profile-card">
+            <div class="contractor-large-avatar" id="modalContractorAvatar">C</div>
+            <div class="contractor-details-col">
+              <h3 id="modalContractorName">Contractor Name <i class="fa-solid fa-circle-check verified-tag"></i></h3>
+              <p class="contractor-role-label" id="modalContractorRole">Verified BuildBid Contractor Partner</p>
+              <div class="contractor-details-grid">
+                <div class="contact-item">
+                  <i class="fa-solid fa-phone"></i>
+                  <span id="modalContractorPhone">Not available</span>
+                </div>
+                <div class="contact-item">
+                  <i class="fa-solid fa-envelope"></i>
+                  <span id="modalContractorEmail">Not available</span>
+                </div>
+                <div class="contact-item">
+                  <i class="fa-solid fa-location-dot"></i>
+                  <span id="modalContractorLoc">Not specified</span>
+                </div>
+                <div class="contact-item">
+                  <i class="fa-solid fa-calendar-check"></i>
+                  <span id="modalAllottedDate">Allotted recently</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Invoices & Financials -->
+        <div id="tab-invoices" class="tab-pane">
+          <div class="invoices-table-card">
+            <div class="no-invoices-notice" id="modalInvoicesContainer">
+              <i class="fa-solid fa-file-invoice"></i>
+              <p style="font-weight: 600; color: #334155; margin: 0 0 4px 0;">No Invoices Submitted Yet — अभी कोई बिल जमा नहीं किया गया है</p>
+              <span style="font-size: 12.5px; color: #64748b;">Contractor-submitted progress billing invoices will appear here for verification and payment approval.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Scope & Specs -->
+        <div id="tab-scope" class="tab-pane">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+            <h4 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">Project Scope & Summary</h4>
+            <p id="modalProjectDescription" style="font-size: 13.5px; color: #475569; line-height: 1.6; margin: 0 0 16px 0;">Description not provided.</p>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
+              <div><strong>Total Area:</strong> <span id="modalProjectArea">—</span></div>
+              <div><strong>Agreed Contract Value:</strong> <span id="modalContractValue" style="color: #16a34a; font-weight: 700;">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-secondary" id="btnSecondaryClose">Close — बंद करें</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="layout.js"></script>
+  <script src="my-construction.js"></script>
+</body>
+</html>
