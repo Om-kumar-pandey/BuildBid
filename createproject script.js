@@ -260,9 +260,9 @@ async function selectProjectType(type, elem) {
   document.querySelectorAll(".type-card").forEach(c => c.classList.remove("selected"));
   if (elem) elem.classList.add("selected");
 
-  await fetchProjectConfiguration(type);
   renderProjectSpecificSections(type);
   recalculateDynamicEstimates();
+  fetchProjectConfiguration(type).catch(() => {});
 }
 
 /* =========================================================
@@ -1088,7 +1088,6 @@ function syncCommercialState() {
 /* =========================================================
    SUB-MODULES & DYNAMIC INDIVIDUAL ROOM AREAS
    ========================================================= */
-let activeFloorTabIdx = 0;
 
 function handleFloorSelectionChange(val) {
   const customInp = document.getElementById("customFloorsInput");
