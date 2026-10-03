@@ -726,9 +726,11 @@ function parseFloorsData(rawFloors) {
   if (list.length > 0) {
     const normalizedFloors = list.map((f, idx) => {
       const name = typeof f === "string" ? f : (f.floorName || f.name || `Floor ${idx + 1}`);
-      const area = (f && f.approxArea !== undefined && f.approxArea !== null && f.approxArea !== "") 
-        ? Number(f.approxArea) 
-        : ((f && f.area) ? Number(f.area) : null);
+      const area = (f && f.declaredAreaSqFt !== undefined && f.declaredAreaSqFt !== null && f.declaredAreaSqFt !== "")
+        ? Number(f.declaredAreaSqFt)
+        : ((f && f.approxArea !== undefined && f.approxArea !== null && f.approxArea !== "") 
+            ? Number(f.approxArea) 
+            : ((f && f.area) ? Number(f.area) : null));
       const rooms = (f && f.rooms && typeof f.rooms === "object") ? f.rooms : null;
       const specialReqs = (f && f.specialRequirements && typeof f.specialRequirements === "string") 
         ? f.specialRequirements.trim() 
@@ -865,13 +867,28 @@ function openProjectDetailsModal(id) {
     ? `${project.plotArea} sq ft`
     : (project.builtUpArea ? `${project.builtUpArea} sq ft` : (project.totalArea ? `${project.totalArea} sq ft` : "N/A"));
 
-  const floorsInfo = parseFloorsData(project.floors || project.floorsCount);
+  let completeData = {};
+  if (project.completeDataJson) {
+    try {
+      completeData = typeof project.completeDataJson === "string" ? JSON.parse(project.completeDataJson) : project.completeDataJson;
+    } catch(e) {}
+  }
+
+  const floorsInfo = parseFloorsData(project.floors || completeData.floors || project.floorsCount);
   const floorsSummary = floorsInfo.summary || "Ground Floor";
   const quality = project.qualityTier || "Standard";
   const budget = project.budget || project.estimatedCost || "Not specified";
   const timeline = project.timeline || project.targetStartDate || "Immediate / Not specified";
   const bidsCount = project.bidsCount || 0;
   const description = project.description || project.scopeOfWork || "No detailed description provided.";
+
+  const hasBasement = Boolean(project.hasBasement || completeData.hasBasement || project.basementDetails || completeData.basementDetails);
+  const basementDetails = project.basementDetails || completeData.basementDetails || {};
+  const isFullBasementParking = Boolean(
+    project.fullBasementParking === true || 
+    completeData.fullBasementParking === true || 
+    basementDetails.fullBasementParking === true
+  );
 
   let floorsBreakdownHtml = "";
   if (floorsInfo.list && floorsInfo.list.length > 0) {
@@ -903,6 +920,47 @@ function openProjectDetailsModal(id) {
               </div>
             `;
           }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  let basementBreakdownHtml = "";
+  if (hasBasement) {
+    const bArea = basementDetails.approxArea || project.basementAreaSqFt || completeData.basementAreaSqFt;
+    const bAreaDisplay = bArea ? `${Number(bArea).toLocaleString("en-IN")} sq ft` : "";
+    let bRoomsDisplay = "";
+    if (basementDetails.rooms && typeof basementDetails.rooms === "object") {
+      const active = Object.entries(basementDetails.rooms)
+        .filter(([_, count]) => count !== null && count !== undefined && Number(count) > 0)
+        .map(([rName, count]) => `${rName}: ${count}`);
+      if (active.length > 0) bRoomsDisplay = active.join(" • ");
+    }
+    const bFeatures = Array.isArray(basementDetails.features) && basementDetails.features.length > 0
+      ? basementDetails.features.join(" • ")
+      : "";
+
+    basementBreakdownHtml = `
+      <div style="margin-top: 14px;">
+        <div class="modal-section-title">Basement Details — बेसमेंट का विवरण</div>
+        <div class="modal-floors-list">
+          <div class="modal-floor-item">
+            <div class="modal-floor-item-header">
+              <span class="modal-floor-name"><i class="fa-solid fa-dungeon"></i> Basement <span class="modal-floor-hindi">(बेसमेंट)</span></span>
+              ${bAreaDisplay ? `<span class="modal-floor-area">Area: <strong>${escapeHtml(bAreaDisplay)}</strong></span>` : ""}
+            </div>
+            ${isFullBasementParking ? `
+              <div class="modal-floor-special" style="margin-top: 6px;">
+                <span class="modal-floor-rooms-label" style="color: #0284c7; font-weight: 600;">
+                  <i class="fa-solid fa-square-parking"></i> Full Basement Parking / पूरा बेसमेंट पार्किंग:
+                </span>
+                <strong>Yes / हाँ</strong>
+              </div>
+            ` : ""}
+            ${bRoomsDisplay ? `<div class="modal-floor-rooms"><span class="modal-floor-rooms-label">Spaces:</span> ${escapeHtml(bRoomsDisplay)}</div>` : ""}
+            ${bFeatures ? `<div class="modal-floor-special"><span class="modal-floor-rooms-label">Provisions:</span> ${escapeHtml(bFeatures)}</div>` : ""}
+            ${basementDetails.specialRequirements ? `<div class="modal-floor-special"><span class="modal-floor-rooms-label">Special Reqs:</span> ${escapeHtml(basementDetails.specialRequirements)}</div>` : ""}
+          </div>
         </div>
       </div>
     `;
@@ -946,6 +1004,7 @@ function openProjectDetailsModal(id) {
       </div>
 
       ${floorsBreakdownHtml}
+      ${basementBreakdownHtml}
 
       <div>
         <div class="modal-section-title">Project Scope & Description — विवरण</div>

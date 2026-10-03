@@ -727,7 +727,7 @@ public class ProjectController {
             try {
                 Map<?, ?> raw = objectMapper.readValue(p.getCompleteDataJson(), Map.class);
                 String[] safeKeys = {
-                    "hasBasement", "basementDetails", "floors", "purpose", "plotFacing",
+                    "hasBasement", "basementDetails", "fullBasementParking", "floors", "purpose", "plotFacing",
                     "cornerPlot", "propertyType", "propertyAge", "existingType", "rooms",
                     "scope", "interiorPreferences", "commercial", "industrial", "custom",
                     "renovationAreas", "renovScope", "extensionDetails", "scopeOfWork"
@@ -735,6 +735,11 @@ public class ProjectController {
                 for (String k : safeKeys) {
                     if (raw.containsKey(k) && raw.get(k) != null) {
                         technicalDetails.put(k, raw.get(k));
+                    }
+                }
+                if (!technicalDetails.containsKey("fullBasementParking") && technicalDetails.get("basementDetails") instanceof Map<?, ?> bMap) {
+                    if (bMap.containsKey("fullBasementParking")) {
+                        technicalDetails.put("fullBasementParking", bMap.get("fullBasementParking"));
                     }
                 }
             } catch (Exception ignored) {}

@@ -412,7 +412,12 @@ function renderFloorRequirements(p, details) {
 
   floorsList.forEach((floor, idx) => {
     const floorName = floor.floorName || getFloorOrdinalName(idx);
-    const approxArea = floor.approxArea ? `${Number(floor.approxArea).toLocaleString("en-IN")} sq.ft.` : "Area per layout";
+    const floorAreaVal = (floor.declaredAreaSqFt !== undefined && floor.declaredAreaSqFt !== null && floor.declaredAreaSqFt !== "")
+      ? floor.declaredAreaSqFt
+      : (floor.approxArea !== undefined && floor.approxArea !== null && floor.approxArea !== "")
+        ? floor.approxArea
+        : floor.area;
+    const approxArea = floorAreaVal ? `${Number(floorAreaVal).toLocaleString("en-IN")} sq.ft.` : "Area per layout";
     const rooms = safeJsonObject(floor.rooms);
     const roomAreas = safeJsonRoomAreas(floor.roomAreas);
     const specialReqs = typeof floor.specialRequirements === "string" ? floor.specialRequirements : "";
@@ -532,12 +537,28 @@ function renderBasementEngineering(p, details) {
 
   card.style.display = "block";
 
+  const isFullBasementParking = Boolean(
+    details.fullBasementParking === true ||
+    p.fullBasementParking === true ||
+    bData.fullBasementParking === true ||
+    (details.basementDetails && details.basementDetails.fullBasementParking === true)
+  );
+
   let html = `
     <div class="basement-overview-row">
       <span><i class="fa-solid fa-water-ladder" style="color:#059669; margin-right:8px;"></i> Basement Civil Specification</span>
       <strong>Approx. Basement Scale: ${escapeHTML(approxArea)}</strong>
     </div>
   `;
+
+  if (isFullBasementParking) {
+    html += `
+      <div class="basement-overview-row" style="margin-top:8px;">
+        <span><i class="fa-solid fa-square-parking" style="color:#0284c7; margin-right:8px;"></i> Full Basement Parking / पूरा बेसमेंट पार्किंग</span>
+        <strong style="color:#0284c7;">Yes / हाँ</strong>
+      </div>
+    `;
+  }
 
   // Basement rooms / spaces
   const activeSpaces = Object.entries(rooms).filter(([_, count]) => Number(count) > 0);

@@ -488,11 +488,11 @@ public class CostEstimatorService {
                     }
 
                     BigDecimal groundArea = inputF.getDeclaredAreaSqFt();
-                    // Ground Floor Area <= Total Build-up Area (Phase 2 & 4)
+                    // Ground Floor Area <= Proposed Ground Built-up Area (Phase 2)
                     if (groundArea.compareTo(bundle.declaredTotalBuildUpArea) > 0) {
                         errors.add(new CostEstimationResponseDto.ValidationErrorDto(
-                                "groundFloorArea", "GROUND_AREA_EXCEEDS_TOTAL", "Ground Floor Area cannot exceed Total Build-up Area.", 0));
-                        return CostEstimationResponseDto.validationFailure("Ground Floor Area cannot exceed Total Build-up Area.", "GROUND_AREA_EXCEEDS_TOTAL", errors);
+                                "groundFloorArea", "GROUND_AREA_EXCEEDS_TOTAL", "Ground Floor Area cannot exceed Proposed Ground Built-up Area.", 0));
+                        return CostEstimationResponseDto.validationFailure("Ground Floor Area cannot exceed Proposed Ground Built-up Area.", "GROUND_AREA_EXCEEDS_TOTAL", errors);
                     }
 
                     resolvedF = inputF.deepCopy(0, floorName, FloorRequirementDto.COPY_MODE_MANUAL, null);
@@ -506,6 +506,14 @@ public class CostEstimatorService {
                     }
                     FloorRequirementDto firstFloor = resolvedList.get(1);
                     resolvedF = firstFloor.deepCopy(i, floorName, FloorRequirementDto.COPY_MODE_SAME_AS_FIRST, 1);
+                    if (inputF != null) {
+                        if (inputF.getDeclaredAreaSqFt() != null && inputF.getDeclaredAreaSqFt().compareTo(BigDecimal.ZERO) > 0) {
+                            resolvedF.setDeclaredAreaSqFt(inputF.getDeclaredAreaSqFt());
+                        }
+                        if (inputF.getSpecialRequirements() != null && !inputF.getSpecialRequirements().isBlank()) {
+                            resolvedF.setSpecialRequirements(inputF.getSpecialRequirements());
+                        }
+                    }
 
                 } else if (FloorRequirementDto.COPY_MODE_SAME_AS_PREVIOUS.equalsIgnoreCase(copyMode)) {
                     // Same as Previous Floor
@@ -527,6 +535,15 @@ public class CostEstimatorService {
                     resolvedF = inputF.deepCopy(i, floorName, FloorRequirementDto.COPY_MODE_MANUAL, null);
                 }
 
+                // Parking Rule: Upper floors (all floors above ground) MUST NEVER have Parking
+                if (i > 0 && resolvedF.getRooms() != null) {
+                    resolvedF.getRooms().remove("Parking");
+                    resolvedF.getRooms().remove("Parking Space");
+                    if (resolvedF.getCustomDimensions() != null) {
+                        resolvedF.getCustomDimensions().keySet().removeIf(k -> k.toLowerCase().startsWith("parking"));
+                    }
+                }
+
                 if (resolvedF.getDeclaredAreaSqFt() != null) {
                     resolvedF.setDeclaredAreaSqFt(resolvedF.getDeclaredAreaSqFt().setScale(2, RoundingMode.HALF_UP));
                 }
@@ -534,19 +551,10 @@ public class CostEstimatorService {
                 resolvedList.add(resolvedF);
             }
 
-            // Aggregate floor area validation: sum(floor areas) <= totalBuildUpArea (Phase 2 & 9)
+            // Aggregate floor area sum for construction cost calculation across all floors
             BigDecimal aggregateFloorArea = BigDecimal.ZERO;
             for (FloorRequirementDto f : resolvedList) {
                 aggregateFloorArea = aggregateFloorArea.add(f.getDeclaredAreaSqFt());
-            }
-
-            if (aggregateFloorArea.compareTo(bundle.declaredTotalBuildUpArea) > 0) {
-                errors.add(new CostEstimationResponseDto.ValidationErrorDto(
-                        "aggregateFloorArea", "AGGREGATE_AREA_EXCEEDS_TOTAL",
-                        "Total above-ground floor area (" + aggregateFloorArea.setScale(0, RoundingMode.HALF_UP) +
-                                " sq ft) exceeds the declared Total Build-up Area (" + bundle.declaredTotalBuildUpArea.setScale(0, RoundingMode.HALF_UP) + " sq ft). Please adjust floor distribution."));
-                return CostEstimationResponseDto.validationFailure(
-                        "Total above-ground floor area exceeds the declared Total Build-up Area.", "AGGREGATE_AREA_EXCEEDS_TOTAL", errors);
             }
 
             // Room Program & Floor Capacity Verification (Phases 13-16)

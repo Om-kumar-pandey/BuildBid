@@ -65,7 +65,7 @@ const projectState = {
   calculatedArea: 0,
   qualityTier: "Standard",
   hasBasement: false,
-  basementData: { approxArea: 0, rooms: {}, roomAreas: {}, features: [], specialRequirements: "" },
+  basementData: { approxArea: 0, fullBasementParking: false, rooms: {}, roomAreas: {}, features: [], specialRequirements: "" },
   floorsCount: 1,
   floorsData: [],
   scopeOfWork: [],
@@ -218,6 +218,12 @@ async function fetchExistingProjectData(projectId) {
 
       if (project.hasBasement !== undefined) {
         projectState.hasBasement = project.hasBasement;
+        if (project.basementDetails) {
+          projectState.basementData = Object.assign({}, projectState.basementData, project.basementDetails);
+        }
+        if (project.fullBasementParking !== undefined) {
+          projectState.basementData.fullBasementParking = Boolean(project.fullBasementParking);
+        }
         const bSelect = document.getElementById("basementSelect");
         if (bSelect) {
           bSelect.value = projectState.hasBasement ? "Yes" : "No";
@@ -338,8 +344,9 @@ function renderProjectSpecificSections(type) {
         <div class="room-header"><i class="fa-solid fa-layer-group"></i> Construction Scale </div>
         <div class="form-grid-2">
           <div class="field-group">
-            <label>Total Built-up Area (sq.ft.) * </label>
-            <input type="number" id="builtUpAreaInput" class="form-input" placeholder="e.g. 2400" oninput="handleTotalAreaChange(this.value)">
+            <label>Proposed Ground Built-up Area (sq.ft.) * <span class="hi-sub">प्रस्तावित ग्राउंड बिल्ट-अप एरिया (sq.ft.) *</span></label>
+            <input type="number" id="builtUpAreaInput" class="form-input" placeholder="e.g. 1400" oninput="handleTotalAreaChange(this.value)">
+            <small style="display:block; font-size:11.5px; color:#64748b; margin-top:4px; line-height:1.4;">यह जमीन पर घर के बेस/फुटप्रिंट का क्षेत्रफल है। यह सभी floors का कुल जोड़ नहीं है। (This is the ground/base footprint area of the house. It is NOT the sum of all floors.)</small>
           </div>
 
           <div class="field-group">
@@ -1138,14 +1145,20 @@ function generateFloorTabs(num) {
   for (let i = 0; i < num; i++) {
     const fName = i < floorNames.length ? floorNames[i] : `${i}th Floor`;
     const existing = oldData[i] || {};
+    const existingRooms = existing.rooms ? JSON.parse(JSON.stringify(existing.rooms)) : {};
+    if (i > 0) {
+      delete existingRooms["Parking"];
+      delete existingRooms["Parking Space"];
+    }
     projectState.floorsData.push({
       floorIndex: i,
+      floorNumber: i,
       floorName: fName,
       approxArea: existing.approxArea || 0,
       declaredAreaSqFt: existing.declaredAreaSqFt || existing.approxArea || 0,
       copyMode: existing.copyMode || "MANUAL",
       sourceFloor: existing.sourceFloor || null,
-      rooms: existing.rooms ? JSON.parse(JSON.stringify(existing.rooms)) : {},
+      rooms: existingRooms,
       roomAreas: existing.roomAreas ? JSON.parse(JSON.stringify(existing.roomAreas)) : {},
       customDimensions: existing.customDimensions ? JSON.parse(JSON.stringify(existing.customDimensions)) : {},
       specialRequirements: existing.specialRequirements || ""
@@ -1217,6 +1230,12 @@ function renderTabsAndPanes() {
           <div class="floor-area-input-wrapper">
             <input type="number" class="form-input floor-sqft-input" placeholder="e.g. 1000" value="${tab.data.approxArea || ''}" oninput="handleBasementAreaChange(this.value)">
             <span class="input-unit-badge">sq.ft.</span>
+          </div>
+          <div class="full-basement-parking-wrap mt-3" style="display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <input type="checkbox" id="fullBasementParkingCheckbox" style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer;" ${tab.data.fullBasementParking ? 'checked' : ''} onchange="handleFullBasementParkingChange(this.checked)">
+            <label for="fullBasementParkingCheckbox" style="margin: 0; cursor: pointer; font-size: 13.5px; font-weight: 600; color: #1e293b;">
+              Full Basement Parking <span class="hi-sub" style="color: #64748b; font-weight: 500;">/ पूरा बेसमेंट पार्किंग</span>
+            </label>
           </div>
         </div>
 
@@ -1312,7 +1331,7 @@ function renderTabsAndPanes() {
             <button type="button" class="btn-template-choice ${tab.data.copyMode === 'MANUAL' || !tab.data.copyMode ? 'active' : ''}" onclick="setFloorManual(${idx})">
               <i class="fa-solid fa-pen-to-square"></i>
               <div class="btn-text-group">
-                <span class="choice-title">Manual Entry</span>
+                <span class="choice-title">Enter Manually</span>
                 
               </div>
             </button>
@@ -1372,7 +1391,7 @@ function renderTabsAndPanes() {
             </div>
           </div>
           <div class="room-cards-grid-pro">
-            ${ROOM_TYPES.map(room => {
+            ${ROOM_TYPES.filter(room => idx === 0 || room !== "Parking").map(room => {
               const bench = STANDARD_ROOM_BENCHMARKS[room] || { label: "Standard size", areaSqFt: 120 };
               const hiRoom = BILINGUAL_STRINGS[room] || "";
               const count = tab.data.rooms[room] || 0;
@@ -1461,6 +1480,14 @@ function handleBasementAreaChange(val) {
   recalculateDynamicEstimates();
 }
 
+function handleFullBasementParkingChange(checked) {
+  if (!projectState.basementData) {
+    projectState.basementData = { approxArea: 0, fullBasementParking: false, rooms: {}, roomAreas: {}, features: [], specialRequirements: "" };
+  }
+  projectState.basementData.fullBasementParking = Boolean(checked);
+  recalculateDynamicEstimates();
+}
+
 function handleTotalAreaChange(val) {
   projectState.calculatedArea = parseFloat(val) || 0;
   updateProjectAreaEnvelopeSummary();
@@ -1493,6 +1520,26 @@ function applyFloorCopy(targetIdx, mode) {
   target.roomAreas = JSON.parse(JSON.stringify(src.roomAreas || {}));
   target.customDimensions = JSON.parse(JSON.stringify(src.customDimensions || {}));
   target.specialRequirements = src.specialRequirements || "";
+
+  // PARKING RULE: Parking MUST NEVER be copied into Second Floor or any upper floor
+  if (target.rooms) {
+    delete target.rooms["Parking"];
+    delete target.rooms["Parking Space"];
+  }
+  if (target.roomAreas) {
+    Object.keys(target.roomAreas).forEach(k => {
+      if (k.toLowerCase().startsWith("parking")) {
+        delete target.roomAreas[k];
+      }
+    });
+  }
+  if (target.customDimensions) {
+    Object.keys(target.customDimensions).forEach(k => {
+      if (k.toLowerCase().startsWith("parking")) {
+        delete target.customDimensions[k];
+      }
+    });
+  }
 
   renderTabsAndPanes();
   const allTabs = (projectState.hasBasement ? 1 : 0) + targetIdx;
@@ -1839,10 +1886,8 @@ function updateProjectAreaEnvelopeSummary() {
   const basementArea = hasBasement ? (projectState.basementData?.approxArea || 0) : 0;
 
   let suggestions = [];
-  if (totalArea > 0 && aggregateFloorArea > totalArea) {
-    suggestions.push(`Suggestion: The declared floor area exceeds the total built-up area. Please review the entered values.`);
-  } else if (groundArea > 0 && totalArea > 0 && groundArea > totalArea) {
-    suggestions.push(`Suggestion: Ground Floor Area (${groundArea} sq.ft.) exceeds Total Built-up Area (${totalArea} sq.ft.).`);
+  if (groundArea > 0 && totalArea > 0 && groundArea > totalArea) {
+    suggestions.push(`Suggestion: Ground Floor Area (${groundArea} sq.ft.) exceeds Proposed Ground Built-up Area (${totalArea} sq.ft.).`);
   }
 
   const hasSuggestions = suggestions.length > 0;
@@ -1859,7 +1904,7 @@ function updateProjectAreaEnvelopeSummary() {
     </div>
     <div class="envelope-metrics-grid-pro">
       <div class="metric-box-pro">
-        <span class="metric-lbl-pro">Total Built-up Envelope</span>
+        <span class="metric-lbl-pro">Proposed Ground Built-up</span>
         <span class="metric-val-pro">${totalArea > 0 ? totalArea + ' sq.ft.' : '—'}</span>
       </div>
       <div class="metric-box-pro">
@@ -1868,7 +1913,7 @@ function updateProjectAreaEnvelopeSummary() {
       </div>
       <div class="metric-box-pro highlight">
         <span class="metric-lbl-pro">Floor Coverage</span>
-        <span class="metric-val-pro">${aggregateFloorArea} / ${totalArea > 0 ? totalArea : '—'} sq.ft.</span>
+        <span class="metric-val-pro">${groundArea} / ${totalArea > 0 ? totalArea : '—'} sq.ft.</span>
       </div>
       ${hasBasement ? `
       <div class="metric-box-pro">
@@ -2363,14 +2408,14 @@ function recalculateDynamicEstimates() {
   const qualityTier = "STANDARD";
   const apiProjectType = mapProjectTypeForApi(type) || "NEW_CONSTRUCTION";
 
-  // Build floors payload if all floors have declaredArea > 0 and aggregate <= typicalFloorArea
+  // Build floors payload if all floors have declaredArea > 0 and ground <= typicalFloorArea
   let floorsPayload = null;
   let allFloorsValid = false;
   if (type === "New Construction" && projectState.floorsData && projectState.floorsData.length > 0) {
-    const totalDeclared = projectState.floorsData.reduce((sum, f) => sum + (f.approxArea || 0), 0);
+    const groundDeclared = projectState.floorsData[0]?.approxArea || 0;
     const hasAnyZero = projectState.floorsData.some(f => !f.approxArea || f.approxArea <= 0);
 
-    if (!hasAnyZero && totalDeclared <= typicalFloorArea) {
+    if (!hasAnyZero && groundDeclared <= typicalFloorArea) {
       allFloorsValid = true;
       floorsPayload = projectState.floorsData.map((f, i) => {
         const customDims = [];
@@ -2640,26 +2685,30 @@ function renderDetailedEstimateContent(data, container) {
       </div>
     </div>
 
-    <!-- Area Dimensions -->
+    <!-- Individual Floor Areas -->
     <div class="modal-section">
-      <div class="modal-section-title"><i class="fa-solid fa-vector-square" style="color:#0284c7;"></i> Construction Area Metrics</div>
+      <div class="modal-section-title"><i class="fa-solid fa-vector-square" style="color:#0284c7;"></i> Individual Floor Areas</div>
       <div class="summary-cards-grid">
-        <div class="summary-metric-card">
-          <div class="metric-label">Typical Floor Area</div>
-          <div class="metric-val" style="font-size:16px;">${typicalArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
-        </div>
-        <div class="summary-metric-card">
-          <div class="metric-label">Total Above-Ground</div>
-          <div class="metric-val" style="font-size:16px;">${aboveGroundArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
-        </div>
-        <div class="summary-metric-card">
-          <div class="metric-label">Basement Area</div>
-          <div class="metric-val" style="font-size:16px;">${basementArea > 0 ? basementArea + ' sq.ft.' : 'Not included'}</div>
-        </div>
-        <div class="summary-metric-card highlight">
-          <div class="metric-label">Total Constructed Area</div>
-          <div class="metric-val" style="font-size:16px;">${totalArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
-        </div>
+        ${(data.floors && data.floors.length > 0) ? data.floors.map(f => {
+          const rawName = f.floorName || 'Floor ' + f.floorNumber;
+          return `
+            <div class="summary-metric-card">
+              <div class="metric-label">${rawName}</div>
+              <div class="metric-val" style="font-size:16px;">${f.areaSqFt} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
+            </div>
+          `;
+        }).join('') : `
+          <div class="summary-metric-card">
+            <div class="metric-label">Ground Floor Area</div>
+            <div class="metric-val" style="font-size:16px;">${typicalArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
+          </div>
+        `}
+        ${basementArea > 0 ? `
+          <div class="summary-metric-card">
+            <div class="metric-label">Basement Area</div>
+            <div class="metric-val" style="font-size:16px;">${basementArea} <small style="font-size:11px; font-weight:normal;">sq.ft.</small></div>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -3033,10 +3082,9 @@ function validateCurrentStep(step) {
       }
 
       const totalArea = parseFloat(area?.value) || 0;
-      const aggregateFloors = Math.round(projectState.floorsData.reduce((acc, f) => acc + (f.approxArea || 0), 0) * 100) / 100;
-      if (totalArea > 0 && aggregateFloors > totalArea) {
-        // Non-blocking informational suggestion
-        showToast("Suggestion: The declared floor area exceeds the total built-up area. Please review the entered values.", "info");
+      const groundArea = projectState.floorsData[0]?.approxArea || 0;
+      if (totalArea > 0 && groundArea > totalArea) {
+        showToast(`Suggestion: Ground Floor Area (${groundArea} sq.ft.) exceeds Proposed Ground Built-up Area (${totalArea} sq.ft.).`, "warning");
       }
     }
 
@@ -3152,6 +3200,7 @@ async function submitProject() {
   if (projectState.projectType === "New Construction") {
     payload.hasBasement = projectState.hasBasement;
     payload.basementDetails = projectState.hasBasement ? projectState.basementData : null;
+    payload.fullBasementParking = projectState.hasBasement ? Boolean(projectState.basementData?.fullBasementParking) : false;
     payload.basementAreaSqFt = projectState.hasBasement ? (parseFloat(projectState.basementData?.approxArea) || 0) : 0;
     payload.totalBuildUpAreaSqFt = parseFloat(document.getElementById("builtUpAreaInput")?.value) || projectState.calculatedArea || 0;
     payload.floors = projectState.floorsData.map((f, i) => {
@@ -3171,11 +3220,14 @@ async function submitProject() {
       }
       return {
         floorIndex: i,
+        floorNumber: i,
         floorName: f.floorName,
         declaredAreaSqFt: f.approxArea || 0,
+        approxArea: f.approxArea || 0,
         copyMode: f.copyMode || "MANUAL",
         sourceFloor: f.sourceFloor || null,
         rooms: f.rooms || {},
+        roomAreas: f.roomAreas || {},
         customDimensions: customDims,
         specialRequirements: f.specialRequirements || ""
       };
@@ -3269,6 +3321,7 @@ function saveLocalProject(p) {
     postedDate: "Just now",
     hasBasement: p.hasBasement || false,
     basementDetails: p.basementDetails || null,
+    fullBasementParking: p.fullBasementParking || (p.basementDetails ? Boolean(p.basementDetails.fullBasementParking) : false),
     floors: p.floors || [],
     scopeOfWork: p.scopeOfWork || [],
     renovationAreas: p.renovationAreas || [],
