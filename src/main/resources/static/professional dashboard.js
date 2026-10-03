@@ -453,9 +453,15 @@ function executeLogout() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("customerUser");
   localStorage.removeItem("buildbid_user");
+  localStorage.removeItem("buildbid_current_user");
   sessionStorage.removeItem("pendingRedirect");
   sessionStorage.removeItem("userData");
-  window.location.href = "index.html";
+  sessionStorage.removeItem("currentUser");
+  sessionStorage.removeItem("token");
+  sessionStorage.clear();
+  showLogoutToast(() => {
+    window.location.href = "index.html";
+  });
 }
 
 function getInitialPersonaKey() {
@@ -520,8 +526,176 @@ function closeModal(id) {
 
 function toggleNotificationDropdown() {
   const el = document.getElementById('notif-dropdown');
+  const isOpening = el.classList.contains('hidden');
   el.classList.toggle('hidden');
   document.getElementById('user-menu').classList.add('hidden');
+  if (isOpening) {
+    fetchAndUpdateNotifications();
+  }
+}
+
+function escapeProHTML(str) {
+  if (!str) return "";
+  return String(str).replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag] || tag));
+}
+
+function formatProNotifTime(dateStr) {
+  if (!dateStr) return "Just now";
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    if (isNaN(diffMs) || diffMs < 0) return "Just now";
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "Yesterday";
+    return `${days}d ago`;
+  } catch (e) {
+    return "Recently";
+  }
+}
+
+async function fetchAndUpdateNotifications() {
+  const token = getCleanToken();
+  const notifList = document.getElementById('notif-list');
+  const notifDot = document.getElementById('pro-notif-dot');
+  const notifTitle = document.getElementById('pro-notif-title');
+
+  if (!token) {
+    if (notifList) notifList.innerHTML = '<div class="p-4 text-center text-slate-400">Please log in to view notifications</div>';
+    if (notifDot) notifDot.classList.add('hidden');
+    return;
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/notifications`, {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      if (notifList) notifList.innerHTML = '<div class="p-4 text-center text-slate-400">Unable to load notifications</div>';
+      return;
+    }
+
+    const data = await res.json();
+    const notifs = data.notifications || [];
+    const unreadCount = data.unreadCount || 0;
+
+    // Update unread indicator dot
+    if (notifDot) {
+      if (unreadCount > 0) notifDot.classList.remove('hidden');
+      else notifDot.classList.add('hidden');
+    }
+
+    // Update header
+    if (notifTitle) {
+      notifTitle.textContent = `Notifications / सूचनाएं ${unreadCount > 0 ? '(' + unreadCount + ' New)' : ''}`;
+    }
+
+    if (!notifList) return;
+
+    if (notifs.length === 0) {
+      notifList.innerHTML = `
+        <div class="p-6 text-center text-slate-400">
+          <i class="fa-regular fa-bell-slash text-2xl mb-1 text-slate-300 block"></i>
+          No notifications yet / अभी कोई सूचना नहीं है
+        </div>
+      `;
+      return;
+    }
+
+    notifList.innerHTML = notifs.map(n => {
+      const isUnread = !n.isRead;
+      const type = (n.type || "").toUpperCase();
+      let iconColor = "bg-orange-500";
+      if (type.includes("ORDER") || type.includes("PAYMENT")) iconColor = "bg-emerald-500";
+      else if (type.includes("REQUEST") || type.includes("LEAD")) iconColor = "bg-blue-500";
+
+      return `
+        <div class="p-3 hover:bg-slate-50 flex items-start space-x-2.5 cursor-pointer transition ${isUnread ? 'bg-orange-50/30' : ''}"
+             onclick="handleProNotificationClick(${n.id}, '${escapeProHTML(n.type || '')}', '${escapeProHTML(n.referenceId || '')}', ${isUnread})">
+          <span class="w-2 h-2 rounded-full ${iconColor} mt-1.5 flex-shrink-0"></span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold text-slate-800 truncate">${escapeProHTML(n.title || '')}</p>
+              ${isUnread ? '<span class="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0 ml-1"></span>' : ''}
+            </div>
+            ${n.titleHi ? `<p class="text-[11px] font-medium text-slate-600 truncate">${escapeProHTML(n.titleHi)}</p>` : ''}
+            <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-2">${escapeProHTML(n.message || '')}</p>
+            ${n.messageHi ? `<p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${escapeProHTML(n.messageHi)}</p>` : ''}
+            <span class="text-[10px] text-slate-400 mt-1 block">${formatProNotifTime(n.createdAt)}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error("Pro notifications error:", err);
+    if (notifList) notifList.innerHTML = '<div class="p-4 text-center text-slate-400">Error loading notifications</div>';
+  }
+}
+
+async function handleProNotificationClick(notifId, type, refId, isUnread) {
+  const el = document.getElementById('notif-dropdown');
+  if (el) el.classList.add('hidden');
+
+  if (isUnread && notifId) {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const token = getCleanToken();
+      await fetch(`${baseUrl}/api/notifications/${notifId}/read`, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        }
+      });
+      fetchAndUpdateNotifications();
+    } catch (e) {
+      console.warn("Could not mark notif read:", e);
+    }
+  }
+
+  const t = (type || "").toUpperCase();
+  if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
+    window.location.href = "my-orders.html";
+  } else if (t.includes("REQUEST") || t.includes("LEAD") || t.includes("QUOTATION")) {
+    navigate('requests');
+  } else if (t.includes("PROJECT")) {
+    navigate('projects');
+  } else {
+    navigate('dashboard');
+  }
+}
+
+async function markAllProNotificationsRead() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    await fetch(`${baseUrl}/api/notifications/mark-all-read`, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+    showToast("All notifications marked as read / सभी सूचनाएं पढ़ी गईं", "success");
+    fetchAndUpdateNotifications();
+  } catch (err) {
+    console.error("Pro mark all read error:", err);
+    showToast("Error marking notifications as read", "error");
+  }
 }
 
 function toggleUserDropdown() {
@@ -2165,28 +2339,8 @@ window.addEventListener('DOMContentLoaded', () => {
   // Asynchronously fetch fresh client requests from backend
   fetchAndUpdateRequests();
 
-  // Populate notification dropdown initial content
-  const notifList = document.getElementById('notif-list');
-  if (notifList) {
-    notifList.innerHTML = `
-      <div class="p-3 hover:bg-slate-50 flex items-start space-x-2.5">
-        <span class="w-2 h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
-        <div>
-          <p class="font-semibold text-slate-800">New Direct Lead Received</p>
-          <p class="text-[11px] text-slate-500">Amit Kumar requested on-site inspection for Sector 44.</p>
-          <span class="text-[10px] text-slate-400 mt-0.5 block">10 mins ago</span>
-        </div>
-      </div>
-      <div class="p-3 hover:bg-slate-50 flex items-start space-x-2.5">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span>
-        <div>
-          <p class="font-semibold text-slate-800">Escrow Milestone Released</p>
-          <p class="text-[11px] text-slate-500">₹25,000 transferred for Greenfield Villa Phase 1 sign-off.</p>
-          <span class="text-[10px] text-slate-400 mt-0.5 block">Yesterday, 5:20 PM</span>
-        </div>
-      </div>
-    `;
-  }
+  // Asynchronously fetch fresh notifications from backend
+  fetchAndUpdateNotifications();
 
   const hash = (window.location.hash || '').replace('#', '').trim();
   const validRoutes = ['dashboard', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages'];
@@ -2196,3 +2350,69 @@ window.addEventListener('DOMContentLoaded', () => {
     navigate('dashboard');
   }
 });
+
+
+
+function showLogoutToast(callback, customTitle, customMessage) {
+  let toast = document.getElementById("custom-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "custom-toast";
+    toast.className = "toast-card";
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+      </div>
+      <div class="toast-body">
+        <h4 id="toast-title" class="toast-title">Logout Successful</h4>
+        <p id="toast-message" class="toast-message">You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।</p>
+      </div>
+      <button class="toast-close" type="button" aria-label="Close notification">&times;</button>
+    `;
+    toast.style.cssText = "position:fixed;top:25px;right:25px;z-index:999999;min-width:280px;max-width:380px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:13px;box-shadow:0 18px 40px rgba(15,23,42,0.13),0 3px 9px rgba(15,23,42,0.05);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateY(-20px);pointer-events:none;font-family:'Inter',system-ui,sans-serif;";
+    const iconEl = toast.querySelector(".toast-icon");
+    if (iconEl) iconEl.style.cssText = "width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#10b981;border-radius:8px;";
+    const titleEl = toast.querySelector(".toast-title");
+    if (titleEl) titleEl.style.cssText = "margin:0;color:#1e293b;font-size:14px;font-weight:700;";
+    const msgEl = toast.querySelector(".toast-message");
+    if (msgEl) msgEl.style.cssText = "margin:2px 0 0 0;color:#64748b;font-size:12px;";
+    const closeEl = toast.querySelector(".toast-close");
+    if (closeEl) closeEl.style.cssText = "background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;";
+    document.body.appendChild(toast);
+  }
+
+  const titleEl = document.getElementById("toast-title");
+  if (titleEl) titleEl.innerText = customTitle || "Logout Successful";
+  const msgEl = document.getElementById("toast-message");
+  if (msgEl) msgEl.innerText = customMessage || "You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।";
+
+  void toast.offsetHeight;
+  toast.classList.add("show");
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  toast.style.pointerEvents = "auto";
+
+  let navigated = false;
+  const navigateOnce = () => {
+    if (navigated) return;
+    navigated = true;
+    toast.classList.remove("show");
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-20px)";
+    toast.style.pointerEvents = "none";
+    if (typeof callback === "function") callback();
+    else window.location.href = "index.html";
+  };
+
+  const closeBtn = toast.querySelector(".toast-close");
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      navigateOnce();
+    };
+  }
+
+  setTimeout(navigateOnce, 1200);
+}

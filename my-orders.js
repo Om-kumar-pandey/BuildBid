@@ -126,11 +126,25 @@ function setupNavbarAndUser() {
   // Logout button
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
+    logoutBtn.dataset.bound = "true";
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.removeItem("token");
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("customerUser");
+      localStorage.removeItem("marketplaceToken");
+      localStorage.removeItem("marketplaceUser");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("buildbid_user");
+      localStorage.removeItem("buildbid_current_user");
+      sessionStorage.removeItem("pendingRedirect");
+      sessionStorage.removeItem("userData");
       sessionStorage.removeItem("token");
-      window.location.href = "index.html";
+      sessionStorage.removeItem("currentUser");
+      sessionStorage.clear();
+      showLogoutToast(() => {
+        window.location.href = "index.html";
+      });
     });
   }
 }
@@ -163,13 +177,16 @@ async function loadBuyerOrders() {
               materialTitle: o.items && o.items.length > 0 ? o.items.map(it => it.materialName).join(", ") : "Material Order",
               sellerId: o.sellerId,
               sellerName: o.sellerName || "Verified Supplier",
+              sellerBusinessName: o.sellerBusinessName || o.sellerName,
               sellerPhone: o.sellerPhone,
+              sellerEmail: o.sellerEmail,
               sellerLocation: o.sellerLocation || "Regional Supplier Depot",
+              sellerAddress: o.sellerAddress || o.sellerLocation,
               deliverySite: o.deliveryAddress || "Site Location",
               status: (o.orderStatus || "PROCESSING").toUpperCase(),
               statusEn: getStatusLabelEn(o.orderStatus),
               statusHi: getStatusLabelHi(o.orderStatus),
-              orderedDate: o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Recently",
+              orderedDate: o.submittedDate || (o.submittedTimestamp ? formatTimestampIST(o.submittedTimestamp) : (o.createdAt ? formatTimestampIST(o.createdAt) : "Recently")),
               expectedDeliveryDate: o.expectedDeliveryDate || "Not specified",
               items: o.items || [],
               subtotal: o.subtotal || 0,
@@ -203,13 +220,16 @@ async function loadBuyerOrders() {
               materialTitle: db.material || db.title,
               sellerId: db.sellerId,
               sellerName: db.sellerName || db.targetProvider || "Verified Seller",
+              sellerBusinessName: db.sellerBusinessName || db.sellerName || db.targetProvider,
               sellerPhone: db.sellerPhone,
-              sellerLocation: db.sellerLocation || "Noida / Regional Depot",
+              sellerEmail: db.sellerEmail,
+              sellerLocation: db.sellerLocation || "Regional Depot",
+              sellerAddress: db.sellerAddress || db.sellerLocation,
               deliverySite: db.deliverySite || db.location || "Site Address",
               status: (db.rawStatus || db.status || "WAITING_FOR_ACCEPTANCE").toUpperCase(),
               statusEn: db.statusEn || getStatusLabelEn(db.status),
               statusHi: db.statusHi || getStatusLabelHi(db.status),
-              orderedDate: db.submittedDate || "Recently",
+              orderedDate: db.submittedDate || (db.submittedTimestamp ? formatTimestampIST(db.submittedTimestamp) : "Recently"),
               expectedDeliveryDate: db.expectedDeliveryDate || "Pending confirmation",
               items: [
                 { materialName: db.material || db.title, quantity: parseFloat(db.quantity) || 1, unit: "Lot", unitPrice: db.materialPrice || db.materialAmount || 0, totalPrice: db.materialAmount || db.estimatedTotal || 0 }
@@ -232,6 +252,28 @@ async function loadBuyerOrders() {
 
   renderMetrics();
   renderOrders();
+}
+
+function formatTimestampIST(val) {
+  if (!val) return "Recently";
+  if (typeof val === 'string' && /^[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}/.test(val)) {
+    return val;
+  }
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+  } catch (e) {
+    return String(val);
+  }
 }
 
 function getStatusLabelEn(s) {
@@ -494,12 +536,14 @@ function openOrderDetailsModal(orderId) {
     content.innerHTML = `
       <div style="padding: 10px 0;">
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-          <h5 style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">Supplier Information:</h5>
-          <p style="font-size: 13px; color: #475569; margin: 0;">
-            <strong>${order.sellerName}</strong><br>
-            Location: ${order.sellerLocation}<br>
-            ${order.sellerPhone ? `Authorized Phone: ${order.sellerPhone}<br>` : 'Phone: Available upon acceptance<br>'}
-            Delivery Site: ${order.deliverySite}
+          <h5 style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">Supplier & Delivery Information:</h5>
+          <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.6;">
+            <strong>${order.sellerBusinessName || order.sellerName}</strong>${order.sellerId ? ` <span style="color: #64748b; font-size: 11px;">(#${order.sellerId})</span>` : ''}<br>
+            <span><i class="fa-solid fa-location-dot" style="color: #ef4444; width: 14px;"></i> Location: ${order.sellerAddress || order.sellerLocation}</span><br>
+            <span><i class="fa-solid fa-phone" style="color: #10b981; width: 14px;"></i> ${order.sellerPhone ? `Authorized Contact: ${order.sellerPhone}` : 'Phone: Available upon acceptance'}</span><br>
+            ${order.sellerEmail ? `<span><i class="fa-solid fa-envelope" style="color: #0284c7; width: 14px;"></i> Email: ${order.sellerEmail}</span><br>` : ''}
+            <span><i class="fa-solid fa-truck" style="color: #0284c7; width: 14px;"></i> Delivery Site: ${order.deliverySite}</span><br>
+            <span><i class="fa-regular fa-clock" style="color: #6366f1; width: 14px;"></i> Expected Delivery: <strong style="color: #0284c7;">${order.expectedDeliveryDate || 'Pending confirmation'}</strong></span>
           </p>
         </div>
 
@@ -574,4 +618,70 @@ function setupToolbarListeners() {
       renderOrders();
     });
   }
+}
+
+
+
+function showLogoutToast(callback, customTitle, customMessage) {
+  let toast = document.getElementById("custom-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "custom-toast";
+    toast.className = "toast-card";
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+      </div>
+      <div class="toast-body">
+        <h4 id="toast-title" class="toast-title">Logout Successful</h4>
+        <p id="toast-message" class="toast-message">You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।</p>
+      </div>
+      <button class="toast-close" type="button" aria-label="Close notification">&times;</button>
+    `;
+    toast.style.cssText = "position:fixed;top:25px;right:25px;z-index:999999;min-width:280px;max-width:380px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:13px;box-shadow:0 18px 40px rgba(15,23,42,0.13),0 3px 9px rgba(15,23,42,0.05);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateY(-20px);pointer-events:none;font-family:'Inter',system-ui,sans-serif;";
+    const iconEl = toast.querySelector(".toast-icon");
+    if (iconEl) iconEl.style.cssText = "width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#10b981;border-radius:8px;";
+    const titleEl = toast.querySelector(".toast-title");
+    if (titleEl) titleEl.style.cssText = "margin:0;color:#1e293b;font-size:14px;font-weight:700;";
+    const msgEl = toast.querySelector(".toast-message");
+    if (msgEl) msgEl.style.cssText = "margin:2px 0 0 0;color:#64748b;font-size:12px;";
+    const closeEl = toast.querySelector(".toast-close");
+    if (closeEl) closeEl.style.cssText = "background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;";
+    document.body.appendChild(toast);
+  }
+
+  const titleEl = document.getElementById("toast-title");
+  if (titleEl) titleEl.innerText = customTitle || "Logout Successful";
+  const msgEl = document.getElementById("toast-message");
+  if (msgEl) msgEl.innerText = customMessage || "You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।";
+
+  void toast.offsetHeight;
+  toast.classList.add("show");
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  toast.style.pointerEvents = "auto";
+
+  let navigated = false;
+  const navigateOnce = () => {
+    if (navigated) return;
+    navigated = true;
+    toast.classList.remove("show");
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-20px)";
+    toast.style.pointerEvents = "none";
+    if (typeof callback === "function") callback();
+    else window.location.href = "index.html";
+  };
+
+  const closeBtn = toast.querySelector(".toast-close");
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      navigateOnce();
+    };
+  }
+
+  setTimeout(navigateOnce, 1200);
 }

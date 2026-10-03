@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders | BuildBid Marketplace</title>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="my-requests.css">
+  <style>
+    .order-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: all 0.2s ease;
+    }
+    .order-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-color: #cbd5e1;
+    }
+    .order-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .order-body {
+      padding: 20px;
+    }
+    .order-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .order-items-table th {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 700;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .order-items-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+    }
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: #fafafa;
+      border-top: 1px solid #f1f5f9;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .master-requirement-group {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .master-req-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body class="requests-page-body">
+
+  <!-- Main App Top Navigation Bar -->
+  <header class="app-top-navbar">
+    <div class="nav-left-section">
+      <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Navigation">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <a href="index.html" class="brand-logo-link">
+        <span class="logo-mark"><i class="fa-solid fa-layer-group"></i></span>
+        <span class="logo-text">Build<span class="logo-highlight">Bid</span></span>
+      </a>
+      <span class="portal-badge customer-badge">
+        <i class="fa-solid fa-user-check"></i> Buyer Portal
+      </span>
+    </div>
+
+    <div class="nav-right-section">
+      <div class="nav-search-bar">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="globalNavSearch" placeholder="Search orders, materials, sellers...">
+      </div>
+
+      <div class="nav-actions-group">
+        <button class="nav-icon-btn" id="langToggleBtn" title="Switch Language (English / Hindi)">
+          <i class="fa-solid fa-language"></i>
+          <span class="lang-text" id="langBadge">EN</span>
+        </button>
+
+        <a href="my-requests.html" class="nav-icon-btn" title="My Requests">
+          <i class="fa-solid fa-file-circle-check"></i>
+        </a>
+
+        <div class="nav-user-dropdown" id="userMenuDropdown">
+          <button class="user-profile-btn" id="userMenuTrigger">
+            <div class="user-avatar-circle">
+              <span id="navUserInitials">BB</span>
+            </div>
+            <div class="user-name-role">
+              <span class="nav-user-name" id="navUserName">Customer</span>
+              <span class="nav-user-role" id="navUserRole">Buyer</span>
+            </div>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Layout Wrap -->
+  <div class="requests-layout-wrap">
+
+    <!-- Sidebar Navigation -->
+    <aside class="requests-sidebar" id="requestsSidebar">
+      <div class="sidebar-user-card">
+        <div class="sidebar-avatar">
+          <i class="fa-solid fa-circle-user"></i>
+        </div>
+        <div class="sidebar-user-meta">
+          <h4 id="sidebarUserName">Customer Account</h4>
+          <span class="status-indicator-online">
+            <span class="dot"></span> Active Session
+          </span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav-list">
+        <li>
+          <a href="customer dashboard.html">
+            <i class="fa-solid fa-gauge-high"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="customer projects.html">
+            <i class="fa-solid fa-briefcase"></i> My Projects
+          </a>
+        </li>
+        <li>
+          <a href="buy-material-select.html">
+            <i class="fa-solid fa-cart-shopping"></i> Buy Materials
+          </a>
+        </li>
+        <li>
+          <a href="my-requests.html">
+            <i class="fa-solid fa-file-circle-check"></i> My Requests
+          </a>
+        </li>
+        <li class="active">
+          <a href="my-orders.html">
+            <i class="fa-solid fa-boxes-packing"></i> My Orders
+          </a>
+        </li>
+        <li>
+          <a href="direct-hire.html">
+            <i class="fa-solid fa-user-tie"></i> Direct Hire
+          </a>
+        </li>
+        <li>
+          <a href="post-requirements.html">
+            <i class="fa-solid fa-user-plus"></i> Post Requirements
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="#" id="logoutBtn" class="logout-action">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="requests-main-container">
+
+      <!-- Header Banner -->
+      <section class="requests-header-banner">
+        <div class="banner-content">
+          <div class="breadcrumb-text">
+            <a href="index.html">Home</a> &gt; <a href="customer dashboard.html">Dashboard</a> &gt; <span>My Orders</span>
+          </div>
+          <h1 class="banner-title">My Orders / मेरे ऑर्डर्स</h1>
+          <p class="banner-subtitle">Track real-time fulfillment, dispatch milestones, and delivery timelines for your direct purchases and multi-seller procurement orders.</p>
+        </div>
+
+        <div class="banner-action-buttons">
+          <a href="buy-material-select.html" class="btn-banner-action secondary">
+            <i class="fa-solid fa-cart-shopping"></i> Buy Materials
+          </a>
+          <a href="my-requests.html" class="btn-banner-action secondary">
+            <i class="fa-solid fa-file-circle-check"></i> View Requests
+          </a>
+          <a href="post-requirements.html" class="btn-banner-action primary">
+            <i class="fa-solid fa-plus"></i> Post Requirement
+          </a>
+        </div>
+      </section>
+
+      <!-- 4 Dynamic Metric Cards -->
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon-box blue">
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Total Orders</span>
+            <div class="metric-value" id="statTotalOrders">0</div>
+            <span class="metric-subtext">Direct & multi-seller orders</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box amber">
+            <i class="fa-regular fa-clock"></i>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Waiting for Acceptance</span>
+            <div class="metric-value" id="statWaitingAcceptance">0</div>
+            <span class="metric-subtext">Awaiting seller acceptance</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box purple">
+            <i class="fa-solid fa-truck-fast"></i>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">In Fulfillment</span>
+            <div class="metric-value" id="statInFulfillment">0</div>
+            <span class="metric-subtext">Processing & dispatched</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box green">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Delivered</span>
+            <div class="metric-value" id="statDelivered">0</div>
+            <span class="metric-subtext">Successfully received on site</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Search, Filter Toolbar -->
+      <section class="requests-toolbar">
+        <div class="toolbar-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="orderSearchInput" placeholder="Search orders by ID, seller, material...">
+        </div>
+
+        <div class="toolbar-filters">
+          <!-- Flow Type Filter -->
+          <div class="filter-select-wrapper">
+            <select id="orderTypeFilter">
+              <option value="ALL">All Order Types / सभी प्रकार</option>
+              <option value="DIRECT_BUY">Direct Buy Orders / सीधा खरीद</option>
+              <option value="MULTI_SELLER">Multi-Seller Allocation Orders / मल्टी-विक्रेता</option>
+            </select>
+            <i class="fa-solid fa-chevron-down select-caret"></i>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="filter-select-wrapper">
+            <select id="orderStatusFilter">
+              <option value="ALL">All Statuses / सभी स्थितियां</option>
+              <option value="WAITING_FOR_ACCEPTANCE">Waiting for Acceptance / स्वीकृति की प्रतीक्षा</option>
+              <option value="ACCEPTED">Order Accepted / स्वीकार किया गया</option>
+              <option value="PROCESSING">Processing / प्रक्रिया में</option>
+              <option value="READY_FOR_DISPATCH">Ready for Dispatch / भेजने के लिए तैयार</option>
+              <option value="OUT_FOR_DELIVERY">Out for Delivery / डिलीवरी के लिए रवाना</option>
+              <option value="DELIVERED">Delivered / डिलीवर हो गया</option>
+            </select>
+            <i class="fa-solid fa-chevron-down select-caret"></i>
+          </div>
+
+          <button class="btn-toolbar-reset" id="btnResetFilters" title="Reset all filters">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </button>
+        </div>
+      </section>
+
+      <!-- Orders Feed Container -->
+      <section class="requests-cards-feed" id="ordersContainer">
+        <!-- Rendered dynamically by my-orders.js -->
+      </section>
+
+      <!-- Footer -->
+      <footer class="requests-page-footer">
+        <div class="footer-copyright-note">
+          © 2026 BuildBid Marketplace Technologies Pvt. Ltd. All rights reserved.
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Order Details Modal -->
+  <div class="modal-backdrop-overlay" id="orderDetailsModal">
+    <div class="modal-dialog-box modal-medium">
+      <div class="modal-header-row">
+        <div class="modal-header-titles">
+          <span class="modal-header-badge" id="modalOrderTypeBadge">
+            <i class="fa-solid fa-box"></i> Order Details
+          </span>
+          <h3 class="modal-header-title" id="modalOrderIdTitle">Order #BB-ORD-001</h3>
+          <p class="modal-header-subtitle" id="modalOrderSubtitle">
+            Seller: ABC Building Materials
+          </p>
+        </div>
+        <button class="modal-close-btn" onclick="closeOrderDetailsModal()" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-scroll-body" id="modalOrderContent">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Script -->
+  <script src="my-orders.js"></script>
+</body>
+</html>

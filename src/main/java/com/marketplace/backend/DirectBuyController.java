@@ -4,31 +4,50 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/direct-buy")
 public class DirectBuyController {
 
+    private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
+    private static final DateTimeFormatter DISPLAY_DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+
     private final MaterialRepository materialRepository;
     private final MaterialRequestRepository materialRequestRepository;
     private final MarketplaceBackendApplication.UserRepository userRepository;
     private final GeoLocationService geoLocationService;
+    private final NotificationService notificationService;
 
     @Autowired
     public DirectBuyController(
             MaterialRepository materialRepository,
             MaterialRequestRepository materialRequestRepository,
             MarketplaceBackendApplication.UserRepository userRepository,
-            GeoLocationService geoLocationService
+            GeoLocationService geoLocationService,
+            @Autowired(required = false) NotificationService notificationService
     ) {
         this.materialRepository = materialRepository;
         this.materialRequestRepository = materialRequestRepository;
         this.userRepository = userRepository;
         this.geoLocationService = geoLocationService;
+        this.notificationService = notificationService;
+    }
+
+    public DirectBuyController(
+            MaterialRepository materialRepository,
+            MaterialRequestRepository materialRequestRepository,
+            MarketplaceBackendApplication.UserRepository userRepository,
+            GeoLocationService geoLocationService
+    ) {
+        this(materialRepository, materialRequestRepository, userRepository, geoLocationService, null);
     }
 
     /**
@@ -304,13 +323,17 @@ public class DirectBuyController {
 
         MarketplaceBackendApplication.MarketplaceUser buyer = buyerOpt.get();
 
-        // Validate Buyer Role: MUST BE CUSTOMER OR CONTRACTOR ONLY
+        // Validate Buyer Role: MUST BE CUSTOMER, CONTRACTOR, OR PROFESSIONAL
         String buyerRole = "CUSTOMER";
         boolean hasEligibleRole = false;
         if (buyer.getRoles() != null) {
             for (MarketplaceBackendApplication.Role r : buyer.getRoles()) {
                 if (r == MarketplaceBackendApplication.Role.CONTRACTOR) {
                     buyerRole = "CONTRACTOR";
+                    hasEligibleRole = true;
+                    break;
+                } else if (r == MarketplaceBackendApplication.Role.PROFESSIONAL) {
+                    buyerRole = "PROFESSIONAL";
                     hasEligibleRole = true;
                     break;
                 } else if (r == MarketplaceBackendApplication.Role.CUSTOMER) {
@@ -322,7 +345,7 @@ public class DirectBuyController {
 
         if (!hasEligibleRole) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Only Customers and Contractors can place Direct Buy requests."));
+                    .body(Map.of("error", "Only Customers, Contractors, and Professionals can place Direct Buy requests."));
         }
 
         // Validate Target Seller
@@ -462,7 +485,7 @@ public class DirectBuyController {
         req.setMaterialAmount(materialAmount);
         req.setEstimatedTotal(estimatedTotal);
         req.setVerificationCode(verificationCode);
-        req.setStatus("NEW");
+        req.setStatus("WAITING_FOR_ACCEPTANCE"); // Flow A initial status
 
         req.setDeliveryAddress(deliveryAddress);
         req.setCity(city);
@@ -489,6 +512,23 @@ public class DirectBuyController {
 
         MaterialRequest saved = materialRequestRepository.save(req);
 
+        // Send notification to seller
+        if (notificationService != null) {
+            try {
+                notificationService.createNotification(
+                        seller,
+                        "New Material Order",
+                        "नया सामग्री ऑर्डर",
+                        "Buyer " + buyer.getName() + " has sent a Direct Buy material request for " + materialName + " (" + quantity + " " + unit + ").",
+                        buyer.getName() + " ने " + materialName + " (" + quantity + " " + unit + ") के लिए सीधा सामग्री खरीद अनुरोध भेजा है।",
+                        "NEW_DIRECT_BUY_ORDER",
+                        saved.getRequestId()
+                );
+            } catch (Exception ignored) {}
+        }
+
+        LocalDateTime createdAt = saved.getCreatedAt() != null ? saved.getCreatedAt() : LocalDateTime.now(IST_ZONE);
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", true);
         resp.put("requestId", saved.getRequestId());
@@ -505,7 +545,12 @@ public class DirectBuyController {
         resp.put("materialAmount", materialAmount);
         resp.put("transportationCost", transportationCost);
         resp.put("estimatedTotal", estimatedTotal);
-        resp.put("status", "NEW");
+        resp.put("createdAt", createdAt.toString());
+        resp.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
+        resp.put("submittedTimestamp", createdAt.atZone(IST_ZONE).toInstant().toEpochMilli());
+        resp.put("status", "WAITING_FOR_ACCEPTANCE");
+        resp.put("statusEn", "Waiting for Acceptance");
+        resp.put("statusHi", "विक्रेता की स्वीकृति की प्रतीक्षा");
         resp.put("message", "Direct Buy request sent to seller successfully — सामग्री खरीद अनुरोध सफलतापूर्वक भेजा गया");
 
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
@@ -514,10 +559,97 @@ public class DirectBuyController {
     /**
      * 4. PUT /api/direct-buy/requests/{id}/accept
      * Seller accepts Direct Buy request.
-     * Sets status = ACCEPTED and returns verification code.
+     * Sets status = ACCEPTED and notifies buyer.
+     * Enforces atomic single allocation to prevent duplicate acceptance.
      */
     @PutMapping("/requests/{id}/accept")
+    @Transactional
     public ResponseEntity<?> acceptDirectBuyRequest(@PathVariable("id") Long id, Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> sellerOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+        if (sellerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller account not found"));
+        }
+
+        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
+                .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        if (req == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
+        }
+
+        // Validate seller ownership
+        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Forbidden: You are not authorized to accept this direct request."));
+        }
+
+        // Section 9 & 10: Single allocation guard & prevent duplicate allocation
+        String currentStatus = req.getStatus() != null ? req.getStatus().toUpperCase() : "NEW";
+        if ("ALLOCATED".equals(currentStatus) || "ACCEPTED".equals(currentStatus) || "ORDER_ACCEPTED".equals(currentStatus)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "success", false,
+                    "error", "This material requirement has already been allocated.",
+                    "message", "This material requirement has already been allocated."
+            ));
+        }
+        if ("CLOSED".equals(currentStatus) || "DECLINED".equals(currentStatus) || "CANCELLED".equals(currentStatus)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "error", "This material requirement is " + currentStatus + " and cannot be accepted.",
+                    "message", "This material requirement is " + currentStatus + " and cannot be accepted."
+            ));
+        }
+
+        req.setStatus("ACCEPTED");
+        if (req.getVerificationCode() == null || req.getVerificationCode().isBlank()) {
+            req.setVerificationCode(String.format("BB-DM-%06d", new Random().nextInt(900000) + 100000));
+        }
+
+        MaterialRequest saved = materialRequestRepository.save(req);
+
+        // Notify buyer
+        if (notificationService != null && saved.getBuyer() != null) {
+            try {
+                notificationService.createNotification(
+                        saved.getBuyer(),
+                        "Order Accepted",
+                        "ऑर्डर स्वीकार किया गया",
+                        "Seller " + sellerOpt.get().getName() + " has accepted your material order.",
+                        "विक्रेता " + sellerOpt.get().getName() + " ने आपका सामग्री ऑर्डर स्वीकार कर लिया है।",
+                        "DIRECT_BUY_ACCEPTED",
+                        saved.getRequestId()
+                );
+            } catch (Exception ignored) {}
+        }
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", true);
+        resp.put("requestId", saved.getRequestId());
+        resp.put("status", "ACCEPTED");
+        resp.put("statusEn", "Order Accepted");
+        resp.put("statusHi", "ऑर्डर स्वीकार किया गया");
+        resp.put("verificationCode", saved.getVerificationCode());
+        resp.put("message", "Direct Buy request accepted — ऑर्डर स्वीकार कर लिया गया");
+
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * PUT /api/direct-buy/requests/{id}/status
+     * Allows seller to transition direct buy order status:
+     * PROCESSING -> READY_FOR_DISPATCH -> OUT_FOR_DELIVERY -> DELIVERED
+     */
+    @PutMapping("/requests/{id}/status")
+    public ResponseEntity<?> updateDirectBuyStatus(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, Object> body,
+            Authentication authentication
+    ) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
@@ -535,28 +667,138 @@ public class DirectBuyController {
         }
 
         MaterialRequest req = reqOpt.get();
-
-        // Validate seller ownership
         if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Forbidden: You are not authorized to accept this direct request."));
+                    .body(Map.of("error", "Forbidden: Not your direct buy order."));
         }
 
-        req.setStatus("ACCEPTED");
-        if (req.getVerificationCode() == null || req.getVerificationCode().isBlank()) {
-            req.setVerificationCode(String.format("BB-DM-%06d", new Random().nextInt(900000) + 100000));
+        String targetStatus = body != null && body.get("status") != null ? body.get("status").toString().trim().toUpperCase() : null;
+        if (targetStatus == null || targetStatus.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Status is required"));
         }
 
+        // Normalize
+        if ("ACCEPTED".equalsIgnoreCase(targetStatus)) targetStatus = "ORDER_ACCEPTED";
+        if ("DISPATCHED".equalsIgnoreCase(targetStatus)) targetStatus = "READY_FOR_DISPATCH";
+
+        req.setStatus(targetStatus);
         MaterialRequest saved = materialRequestRepository.save(req);
+
+        // Bilingual notifications to buyer
+        if (notificationService != null && saved.getBuyer() != null) {
+            String titleEn = "Order Update";
+            String titleHi = "ऑर्डर अपडेट";
+            String msgEn = "Order " + saved.getRequestId() + " status updated to " + targetStatus;
+            String msgHi = "ऑर्डर " + saved.getRequestId() + " की स्थिति अपडेट की गई: " + targetStatus;
+
+            if ("PROCESSING".equals(targetStatus)) {
+                titleEn = "Processing";
+                titleHi = "प्रक्रिया में";
+                msgEn = "Seller " + sellerOpt.get().getName() + " is now processing your material order.";
+                msgHi = "विक्रेता " + sellerOpt.get().getName() + " आपके सामग्री ऑर्डर को तैयार कर रहे हैं।";
+            } else if ("READY_FOR_DISPATCH".equals(targetStatus)) {
+                titleEn = "Ready for Dispatch";
+                titleHi = "भेजने के लिए तैयार";
+                msgEn = "Your material order " + saved.getRequestId() + " is packed and ready for dispatch.";
+                msgHi = "आपका सामग्री ऑर्डर " + saved.getRequestId() + " भेजने के लिए तैयार है।";
+            } else if ("OUT_FOR_DELIVERY".equals(targetStatus)) {
+                titleEn = "Out for Delivery";
+                titleHi = "डिलीवरी के लिए रवाना";
+                msgEn = "Your material order " + saved.getRequestId() + " is out for delivery.";
+                msgHi = "आपका सामग्री ऑर्डर " + saved.getRequestId() + " डिलीवरी के लिए निकल चुका है।";
+            } else if ("DELIVERED".equals(targetStatus)) {
+                titleEn = "Delivered";
+                titleHi = "डिलीवर हो गया";
+                msgEn = "Your material order " + saved.getRequestId() + " has been marked as delivered.";
+                msgHi = "आपका सामग्री ऑर्डर " + saved.getRequestId() + " डिलीवर हो चुका है।";
+            }
+
+            try {
+                notificationService.createNotification(
+                        saved.getBuyer(),
+                        titleEn,
+                        titleHi,
+                        msgEn,
+                        msgHi,
+                        "DIRECT_BUY_STATUS_UPDATE",
+                        saved.getRequestId()
+                );
+            } catch (Exception ignored) {}
+        }
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", true);
         resp.put("requestId", saved.getRequestId());
-        resp.put("status", "ACCEPTED");
-        resp.put("verificationCode", saved.getVerificationCode());
-        resp.put("message", "Direct Buy request accepted — अनुरोध स्वीकार कर लिया गया");
-
+        resp.put("status", saved.getStatus());
+        resp.put("message", "Order status updated successfully — स्थिति सफलतापूर्वक अपडेट की गई");
         return ResponseEntity.ok(resp);
+    }
+
+    @PutMapping("/requests/{id}/process")
+    public ResponseEntity<?> processDirectBuyOrder(@PathVariable("id") Long id, Authentication authentication) {
+        return updateDirectBuyStatus(id, Map.of("status", "PROCESSING"), authentication);
+    }
+
+    @PutMapping("/requests/{id}/dispatch")
+    public ResponseEntity<?> dispatchDirectBuyOrder(@PathVariable("id") Long id, Authentication authentication) {
+        return updateDirectBuyStatus(id, Map.of("status", "READY_FOR_DISPATCH"), authentication);
+    }
+
+    @PutMapping("/requests/{id}/out-for-delivery")
+    public ResponseEntity<?> outForDeliveryDirectBuyOrder(@PathVariable("id") Long id, Authentication authentication) {
+        return updateDirectBuyStatus(id, Map.of("status", "OUT_FOR_DELIVERY"), authentication);
+    }
+
+    @PutMapping("/requests/{id}/delivered")
+    public ResponseEntity<?> deliverDirectBuyOrder(@PathVariable("id") Long id, Authentication authentication) {
+        return updateDirectBuyStatus(id, Map.of("status", "DELIVERED"), authentication);
+    }
+
+    @PutMapping("/requests/{id}/expected-delivery")
+    public ResponseEntity<?> updateExpectedDelivery(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, Object> body,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+
+        String dateStr = body != null && body.get("expectedDeliveryDate") != null
+                ? body.get("expectedDeliveryDate").toString().trim() : "";
+        if (dateStr.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "expectedDeliveryDate is required"));
+        }
+
+        Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
+        if (reqOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
+        }
+
+        MaterialRequest req = reqOpt.get();
+        req.setExpectedDeliveryDate(dateStr);
+        MaterialRequest saved = materialRequestRepository.save(req);
+
+        if (notificationService != null && saved.getBuyer() != null) {
+            try {
+                notificationService.createNotification(
+                        saved.getBuyer(),
+                        "Delivery Date Updated",
+                        "डिलीवरी की तारीख अपडेट की गई",
+                        "Expected delivery date for order " + saved.getRequestId() + " is now " + dateStr + ".",
+                        "ऑर्डर " + saved.getRequestId() + " की अनुमानित डिलीवरी तिथि अब " + dateStr + " है।",
+                        "DELIVERY_DATE_UPDATED",
+                        saved.getRequestId()
+                );
+            } catch (Exception ignored) {}
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "requestId", saved.getRequestId(),
+                "expectedDeliveryDate", saved.getExpectedDeliveryDate(),
+                "message", "Expected delivery date updated — डिलीवरी की तारीख अपडेट की गई"
+        ));
     }
 
     /**

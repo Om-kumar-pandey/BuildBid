@@ -51,10 +51,21 @@
       <!-- Top Navbar -->
       <header class="top-nav">
         <div class="nav-actions">
-          <button class="icon-btn" id="btn-notification-bell">
-            <i class="fa-regular fa-bell"></i>
-            <span class="dot" id="notif-indicator"></span>
-          </button>
+          <div class="notif-dropdown-wrapper" style="position: relative;">
+            <button class="icon-btn" id="btn-notification-bell" onclick="toggleContractorNotifications()" title="Notifications">
+              <i class="fa-regular fa-bell"></i>
+              <span class="dot" id="notif-indicator" style="display: none;"></span>
+            </button>
+            <div id="contractor-notif-dropdown" class="notif-dropdown-panel" style="display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 330px; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; z-index: 1000; overflow: hidden; text-align: left;">
+              <div style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                <span id="contractor-notif-title" style="font-size: 13px; font-weight: 700; color: #1e293b;">Notifications / सूचनाएं</span>
+                <span onclick="markAllContractorNotificationsRead()" style="font-size: 11px; color: #2563eb; font-weight: 600; cursor: pointer;">Mark all read / सभी पढ़े</span>
+              </div>
+              <div id="contractor-notifications-list" style="max-height: 320px; overflow-y: auto;">
+                <div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Loading notifications...</div>
+              </div>
+            </div>
+          </div>
           <div class="user-profile">
             <div class="avatar" id="top-nav-avatar">
               <span id="top-nav-avatar-text"><i class="fa-solid fa-user-tie"></i></span>

@@ -209,20 +209,20 @@
         <div class="relative">
           <button onclick="toggleNotificationDropdown()" class="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition">
             <i class="fa-regular fa-bell text-base"></i>
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-600 rounded-full ring-2 ring-white"></span>
+            <span id="pro-notif-dot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-orange-600 rounded-full ring-2 ring-white"></span>
           </button>
 
           <!-- Dropdown Panel -->
           <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-float border border-slate-200 py-3 z-50">
             <div class="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-900">Notifications (3 New)</span>
-              <button onclick="showToast('All notifications marked as read', 'success')" class="text-[11px] text-orange-600 hover:underline">Mark all read</button>
+              <span class="text-xs font-bold text-slate-900" id="pro-notif-title">Notifications / सूचनाएं</span>
+              <button onclick="markAllProNotificationsRead()" class="text-[11px] text-orange-600 hover:underline">Mark all read / सभी पढ़े</button>
             </div>
             <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto text-xs" id="notif-list">
-              <!-- Dynamically populated -->
+              <div class="p-4 text-center text-slate-400">Loading notifications...</div>
             </div>
             <div class="pt-2 px-4 text-center border-t border-slate-100">
-              <button onclick="navigate('requests'); toggleNotificationDropdown();" class="text-xs text-slate-600 font-semibold hover:text-orange-600">View All Requests</button>
+              <button onclick="navigate('requests'); toggleNotificationDropdown();" class="text-xs text-slate-600 font-semibold hover:text-orange-600">View All Requests — सभी अनुरोध देखें</button>
             </div>
           </div>
         </div>

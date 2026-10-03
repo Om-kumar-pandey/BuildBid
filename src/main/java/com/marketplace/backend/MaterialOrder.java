@@ -35,7 +35,7 @@ public class MaterialOrder {
     private String orderCode; // e.g. ORD-2026-00001
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quotation_id", unique = true, nullable = false)
+    @JoinColumn(name = "quotation_id", unique = true, nullable = true)
     @JsonIgnore
     private Quotation quotation;
 
@@ -81,6 +81,9 @@ public class MaterialOrder {
 
     @Column(name = "contact_number", length = 30)
     private String contactNumber;
+
+    @Column(name = "expected_delivery_date", length = 100)
+    private String expectedDeliveryDate;
 
     // Commercial Terms Snapshot
     @Column(name = "payment_terms", length = 200)
@@ -269,6 +272,14 @@ public class MaterialOrder {
 
     public void setContactNumber(String contactNumber) {
         this.contactNumber = contactNumber;
+    }
+
+    public String getExpectedDeliveryDate() {
+        return expectedDeliveryDate;
+    }
+
+    public void setExpectedDeliveryDate(String expectedDeliveryDate) {
+        this.expectedDeliveryDate = expectedDeliveryDate;
     }
 
     public String getPaymentTerms() {

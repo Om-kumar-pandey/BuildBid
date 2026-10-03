@@ -98,10 +98,15 @@ function logoutSeller() {
     localStorage.removeItem("currentUser");
     localStorage.removeItem("customerUser");
     localStorage.removeItem("buildbid_user");
+    localStorage.removeItem("buildbid_current_user");
     sessionStorage.removeItem("token");
+    sessionStorage.removeItem("currentUser");
     sessionStorage.removeItem("pendingRedirect");
     sessionStorage.removeItem("userData");
-    window.location.href = "index.html";
+    sessionStorage.clear();
+    showLogoutToast(() => {
+        window.location.href = "index.html";
+    });
 }
 
 function escapeHtml(str) {
@@ -473,7 +478,8 @@ function openMaterialRequestModal(requestId) {
             : 'POSTED MATERIAL REQUIREMENT — मटेरियल आवश्यकता';
     }
 
-    const buyerNameStr = mr.buyerName ? `${mr.buyerName} (${mr.buyerRole || 'BUYER'})` : (mr.buyerRole || 'CUSTOMER');
+    const buyerContactStr = (mr.contactPhone || mr.buyerPhone) ? ` • Phone: ${mr.contactPhone || mr.buyerPhone}` : '';
+    const buyerNameStr = mr.buyerName ? `${mr.buyerName} (${mr.buyerRole || 'BUYER'})${buyerContactStr}` : (mr.buyerRole || 'CUSTOMER');
     if (roleEl) roleEl.innerText = buyerNameStr;
 
     if (scopeEl) {
@@ -574,7 +580,8 @@ function openMaterialRequestModal(requestId) {
 
         if (quoteBtn) quoteBtn.classList.add('hidden');
 
-        if (mr.status === 'PENDING' || mr.status === 'NEW' || mr.status === 'Open') {
+        const rawStatus = (mr.status || 'NEW').toUpperCase();
+        if (rawStatus === 'WAITING_FOR_ACCEPTANCE' || rawStatus === 'PENDING' || rawStatus === 'NEW' || rawStatus === 'OPEN') {
             if (acceptBtn) {
                 acceptBtn.classList.remove('hidden');
                 acceptBtn.onclick = () => acceptDirectBuyRequest(mr.id, rId);
@@ -628,6 +635,7 @@ async function acceptDirectBuyRequest(id, rId) {
             showToast('Direct Material Request accepted! Verification code: ' + (data.verificationCode || ''));
             closeModal('materialRequestDetailModal');
             if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+            if (typeof loadSellerOrders === 'function') loadSellerOrders();
         } else {
             showToast(data.message || 'Failed to accept request');
         }
@@ -832,6 +840,9 @@ async function initSellerDashboard() {
 
     // 5. Fetch dynamic seller inventory
     await loadSellerInventory();
+
+    // 5b. Fetch dynamic seller orders
+    await loadSellerOrders();
 
     // 6. Check URL hash or query params (e.g. #invoices, ?from=invoice)
     const urlParams = new URLSearchParams(window.location.search);
@@ -1689,6 +1700,9 @@ function switchTab(tabId) {
     if (tabId === 'requests' && typeof refreshSellerRequests === 'function') {
         refreshSellerRequests();
     }
+    if (tabId === 'orders' && typeof loadSellerOrders === 'function') {
+        loadSellerOrders();
+    }
 }
 
 /**
@@ -1738,12 +1752,205 @@ async function refreshSellerRequests() {
 }
 
 /**
+ * Helper to escape HTML characters in notification templates
+ */
+function escapeSellerHTML(str) {
+    if (!str) return "";
+    return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
+}
+
+function formatSellerNotifTime(dateStr) {
+    if (!dateStr) return "Just now";
+    try {
+        const diffMs = Date.now() - new Date(dateStr).getTime();
+        if (isNaN(diffMs) || diffMs < 0) return "Just now";
+        const mins = Math.floor(diffMs / 60000);
+        if (mins < 1) return "Just now";
+        if (mins < 60) return `${mins}m ago`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        if (days === 1) return "Yesterday";
+        return `${days}d ago`;
+    } catch (e) {
+        return "Recently";
+    }
+}
+
+/**
  * Toggle visibility of top header notifications dropdown
  */
 function toggleNotifications() {
     const dropdown = document.getElementById('notifications-dropdown');
     if (dropdown) {
+        const isOpening = dropdown.classList.contains('hidden');
         dropdown.classList.toggle('hidden');
+        if (isOpening) {
+            loadSellerNotifications();
+        }
+    }
+}
+
+/**
+ * Fetch and render live seller notifications from backend
+ */
+async function loadSellerNotifications() {
+    const token = getCleanToken();
+    const notifsContainer = document.getElementById('sellerNotificationsList');
+    const badge = document.getElementById('sellerNotifBadge');
+    const headerTitle = document.getElementById('sellerNotifHeaderTitle');
+
+    if (!token) {
+        if (notifsContainer) {
+            notifsContainer.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs">Please login to view notifications</div>';
+        }
+        if (badge) badge.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const baseUrl = getApiBaseUrl();
+        const res = await fetch(`${baseUrl}/api/notifications`, {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (!res.ok) {
+            if (notifsContainer) {
+                notifsContainer.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs">Unable to load notifications</div>';
+            }
+            return;
+        }
+
+        const data = await res.json();
+        const notifs = data.notifications || [];
+        const unreadCount = data.unreadCount || 0;
+
+        // Update badge
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Update header
+        if (headerTitle) {
+            headerTitle.textContent = `Notifications / सूचनाएं ${unreadCount > 0 ? '(' + unreadCount + ' New)' : ''}`;
+        }
+
+        // Render notifications list
+        if (!notifsContainer) return;
+
+        if (notifs.length === 0) {
+            notifsContainer.innerHTML = `
+                <div class="p-6 text-center text-slate-400 text-xs">
+                    <i class="fa-regular fa-bell-slash text-2xl mb-2 text-slate-300 block"></i>
+                    No notifications yet / अभी कोई सूचना नहीं है
+                </div>
+            `;
+            return;
+        }
+
+        notifsContainer.innerHTML = notifs.map(n => {
+            const isUnread = !n.isRead;
+            const type = (n.type || "").toUpperCase();
+            let iconClass = "fa-solid fa-bell text-blue-500";
+            if (type.includes("ORDER") || type.includes("DIRECT_BUY")) iconClass = "fa-solid fa-boxes-stacked text-emerald-500";
+            else if (type.includes("QUOTATION") || type.includes("REQUIREMENT")) iconClass = "fa-solid fa-file-invoice-dollar text-blue-500";
+            else if (type.includes("DELIVERY") || type.includes("DISPATCH")) iconClass = "fa-solid fa-truck-fast text-purple-500";
+
+            return `
+                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all ${isUnread ? 'bg-blue-50/40' : ''}" 
+                     onclick="handleSellerNotificationClick(${n.id}, '${escapeSellerHTML(n.type || '')}', '${escapeSellerHTML(n.referenceId || '')}', ${isUnread})">
+                    <div class="flex items-start space-x-2.5">
+                        <div class="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 flex-shrink-0">
+                            <i class="${iconClass} text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <p class="font-semibold text-slate-800 truncate">${escapeSellerHTML(n.title || '')}</p>
+                                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 ml-1"></span>' : ''}
+                            </div>
+                            ${n.titleHi ? `<p class="text-[11px] font-medium text-slate-600 truncate">${escapeSellerHTML(n.titleHi)}</p>` : ''}
+                            <p class="text-slate-500 text-[11px] mt-0.5 line-clamp-2">${escapeSellerHTML(n.message || '')}</p>
+                            ${n.messageHi ? `<p class="text-slate-400 text-[10px] mt-0.5 line-clamp-2">${escapeSellerHTML(n.messageHi)}</p>` : ''}
+                            <span class="text-[10px] text-slate-400 mt-1 block">${formatSellerNotifTime(n.createdAt)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Seller notifications load error:", err);
+        if (notifsContainer) {
+            notifsContainer.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs">Error loading notifications</div>';
+        }
+    }
+}
+
+/**
+ * Handle notification click: mark as read and route seller appropriately
+ */
+async function handleSellerNotificationClick(notifId, type, refId, isUnread) {
+    const dropdown = document.getElementById('notifications-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+
+    if (isUnread && notifId) {
+        try {
+            const baseUrl = getApiBaseUrl();
+            const token = getCleanToken();
+            await fetch(`${baseUrl}/api/notifications/${notifId}/read`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+            loadSellerNotifications();
+        } catch (e) {
+            console.warn("Could not mark notif read:", e);
+        }
+    }
+
+    const t = (type || "").toUpperCase();
+    if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
+        switchTab('orders');
+    } else if (t.includes("QUOTATION") || t.includes("REQUIREMENT") || t.includes("LEAD")) {
+        switchTab('requests');
+    } else {
+        switchTab('dashboard');
+    }
+}
+
+/**
+ * Mark all seller notifications as read
+ */
+async function markAllSellerNotificationsRead() {
+    const token = getCleanToken();
+    if (!token) return;
+
+    try {
+        const baseUrl = getApiBaseUrl();
+        await fetch(`${baseUrl}/api/notifications/mark-all-read`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        showToast("All notifications marked as read / सभी सूचनाएं पढ़ी गईं");
+        loadSellerNotifications();
+    } catch (e) {
+        console.error("Mark all read failed:", e);
+        showToast("Error marking notifications as read");
     }
 }
 
@@ -1918,8 +2125,11 @@ async function openQuotationModal(reqId, material, qty, unit, materialReqDbId) {
 
             tr.innerHTML = `
                 <td class="p-3">
-                    <span class="font-bold text-slate-800 block">${escapeHtml(reqItemName)}</span>
-                    <span class="text-[10px] text-slate-500 font-medium">Req: ${escapeHtml(String(reqQty))} ${escapeHtml(reqUnit)}</span>
+                    <label class="flex items-center space-x-2 cursor-pointer mb-1">
+                        <input type="checkbox" class="q-item-include w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked onchange="toggleQuoteRow(this)">
+                        <span class="font-bold text-slate-800 text-xs">${escapeHtml(reqItemName)}</span>
+                    </label>
+                    <span class="text-[10px] text-slate-500 font-medium ml-6 block">Req: ${escapeHtml(String(reqQty))} ${escapeHtml(reqUnit)}</span>
                 </td>
                 <td class="p-3">
                     <select class="q-sku-select w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:bg-white" onchange="onQuotationSkuChanged(this)">
@@ -1947,6 +2157,22 @@ async function openQuotationModal(reqId, material, qty, unit, materialReqDbId) {
     openModal('quotationModal');
 }
 
+function toggleQuoteRow(chk) {
+    const tr = chk.closest('tr');
+    if (!tr) return;
+    const isChecked = chk.checked;
+    const inputs = tr.querySelectorAll('.q-sku-select, .q-item-qty, .q-item-unit, .q-item-price');
+    inputs.forEach(inp => inp.disabled = !isChecked);
+    if (!isChecked) {
+        tr.classList.add('opacity-40');
+        const totalSpan = tr.querySelector('.q-item-total');
+        if (totalSpan) totalSpan.innerText = '—';
+    } else {
+        tr.classList.remove('opacity-40');
+    }
+    calculateQuote();
+}
+
 /**
  * Submit persistent structured quotation to backend API (POST /api/quotations)
  */
@@ -1971,6 +2197,9 @@ async function submitSellerQuotation() {
     const itemSummaries = [];
 
     for (const tr of rows) {
+        const isIncluded = tr.querySelector('.q-item-include')?.checked;
+        if (!isIncluded) continue; // Partial quote: seller skips unavailable items
+
         const skuSelect = tr.querySelector('.q-sku-select');
         const materialId = parseInt(skuSelect?.value) || null;
         const reqItemId = tr.dataset.reqItemId ? parseInt(tr.dataset.reqItemId) : null;
@@ -1979,7 +2208,7 @@ async function submitSellerQuotation() {
         const unitPrice = parseFloat(tr.querySelector('.q-item-price')?.value || 0) || 0;
 
         if (!materialId) {
-            showToast('Please select a catalog SKU for all requested items. — कृपया सभी वस्तुओं के लिए सामग्री SKU चुनें।');
+            showToast('Please select a catalog SKU for all included items. — कृपया सभी शामिल वस्तुओं के लिए सामग्री SKU चुनें।');
             return;
         }
         if (qty <= 0) {
@@ -2015,7 +2244,7 @@ async function submitSellerQuotation() {
     }
 
     if (items.length === 0) {
-        showToast('At least one quotation item is required. — कम से कम एक सामग्री जोड़ें।');
+        showToast('Please include at least one material to quote. — कम से कम एक सामग्री का चयन करें।');
         return;
     }
 
@@ -2107,6 +2336,12 @@ function calculateQuote() {
     let subtotal = 0;
     const rows = document.querySelectorAll('#qItemsTbody tr');
     rows.forEach(tr => {
+        const isIncluded = tr.querySelector('.q-item-include')?.checked;
+        if (!isIncluded) {
+            const totalSpan = tr.querySelector('.q-item-total');
+            if (totalSpan) totalSpan.innerText = '—';
+            return;
+        }
         const qty = parseFloat(tr.querySelector('.q-item-qty')?.value || 0) || 0;
         const price = parseFloat(tr.querySelector('.q-item-price')?.value || 0) || 0;
         const lineTotal = Math.round(qty * price * 100) / 100;
@@ -2128,6 +2363,213 @@ function calculateQuote() {
     const total = subtotal + gst + transport;
     const totalElem = document.getElementById('qFinalTotal');
     if (totalElem) totalElem.innerText = '₹' + total.toLocaleString('en-IN');
+}
+
+/**
+ * Live Seller Orders Management (Flow B & Order Fulfillment)
+ */
+let sellerOrdersCache = [];
+
+async function loadSellerOrders() {
+    const tbody = document.getElementById('sellerOrdersTbody');
+    if (!tbody) return;
+
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    if (!token) return;
+
+    try {
+        const res = await fetch(API_BASE_URL + "/api/material-orders/seller", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (res.ok) {
+            const orders = await res.json();
+            if (Array.isArray(orders) && orders.length > 0) {
+                sellerOrdersCache = orders;
+                renderSellerOrders(orders);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not fetch seller orders:", e);
+    }
+}
+
+function renderSellerOrders(orders) {
+    const tbody = document.getElementById('sellerOrdersTbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    orders.forEach(order => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-all";
+
+        const orderCode = order.orderCode || order.orderId || ('ORD-' + order.id);
+        const buyerName = order.buyerName || "Authorized Buyer";
+        const buyerRole = order.buyerRole || "CUSTOMER";
+        const totalAmount = Number(order.totalAmount || 0).toLocaleString('en-IN');
+        const expectedDelivery = order.expectedDeliveryDate || "Not Set";
+        const rawStatus = (order.orderStatus || order.status || "WAITING_FOR_ACCEPTANCE").toUpperCase();
+
+        // Items display with explicit quantity to deliver
+        const items = order.items || [];
+        let itemsHtml = items.map(it => `
+            <div class="mb-1">
+                <span class="font-bold text-slate-800 text-xs">✓ ${escapeHtml(it.materialName)}</span>
+                <span class="block text-emerald-700 font-bold text-[11px]">Deliver: ${it.allocatedQuantity || it.quantity || 1} ${escapeHtml(it.unit || '')} @ ₹${it.agreedRate || it.unitPrice || 0}</span>
+            </div>
+        `).join('');
+
+        if (order.unselectedItems && order.unselectedItems.length > 0) {
+            itemsHtml += `
+                <div class="mt-1 pt-1 border-t border-slate-100 text-[10px] text-slate-400">
+                    <span class="font-semibold block">Not Selected from quote:</span>
+                    <span class="italic">${escapeHtml(order.unselectedItems.join(', '))}</span>
+                </div>
+            `;
+        }
+
+        // Status badge & styling
+        let statusBadge = "";
+        let actionButtons = "";
+
+        if (rawStatus === "WAITING_FOR_ACCEPTANCE") {
+            statusBadge = `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Waiting for Acceptance<br><span class="text-[9px] font-medium">स्वीकृति की प्रतीक्षा</span></span>`;
+            actionButtons = `<button onclick="acceptSellerOrder(${order.id})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-check"></i> Accept Order</button>`;
+        } else if (rawStatus === "ORDER_ACCEPTED" || rawStatus === "ACCEPTED") {
+            statusBadge = `<span class="bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Order Accepted<br><span class="text-[9px] font-medium">ऑर्डर स्वीकार किया गया</span></span>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'PROCESSING')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-gears"></i> Start Processing</button>`;
+        } else if (rawStatus === "PROCESSING") {
+            statusBadge = `<span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Processing<br><span class="text-[9px] font-medium">प्रक्रिया में</span></span>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'READY_FOR_DISPATCH')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-box"></i> Ready for Dispatch</button>`;
+        } else if (rawStatus === "READY_FOR_DISPATCH" || rawStatus === "DISPATCHED") {
+            statusBadge = `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Ready for Dispatch<br><span class="text-[9px] font-medium">भेजने के लिए तैयार</span></span>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'OUT_FOR_DELIVERY')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-truck"></i> Out for Delivery</button>`;
+        } else if (rawStatus === "OUT_FOR_DELIVERY") {
+            statusBadge = `<span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Out for Delivery<br><span class="text-[9px] font-medium">डिलीवरी के लिए रवाना</span></span>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'DELIVERED')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Mark Delivered</button>`;
+        } else if (rawStatus === "DELIVERED" || rawStatus === "COMPLETED") {
+            statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Delivered<br><span class="text-[9px] font-medium">डिलीवर हो गया</span></span>`;
+            actionButtons = `<span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Fulfilled</span>`;
+        } else {
+            statusBadge = `<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">${escapeHtml(rawStatus)}</span>`;
+        }
+
+        // Authorized Buyer info
+        const buyerInfoHtml = `
+            <div>
+                <span class="text-blue-600 font-bold block text-xs">${escapeHtml(orderCode)}</span>
+                <span class="font-bold text-slate-800 text-xs block">${escapeHtml(buyerName)} <span class="text-[10px] text-slate-500 font-normal">(${escapeHtml(buyerRole)})</span></span>
+                ${order.contactNumber ? `<span class="text-[11px] text-slate-600 block"><i class="fa-solid fa-phone mr-1 text-slate-400"></i>${escapeHtml(order.contactNumber)}</span>` : ''}
+                ${order.deliveryAddress ? `<span class="text-[11px] text-slate-500 block truncate max-w-xs" title="${escapeHtml(order.deliveryAddress)}"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i>${escapeHtml(order.deliveryAddress)}</span>` : ''}
+            </div>
+        `;
+
+        tr.innerHTML = `
+            <td class="p-4 font-medium">${buyerInfoHtml}</td>
+            <td class="p-4">${itemsHtml}</td>
+            <td class="p-4 font-bold text-slate-900 text-xs">₹${totalAmount}</td>
+            <td class="p-4">
+                <span class="text-blue-600 font-semibold block text-xs">${escapeHtml(expectedDelivery)}</span>
+                <button onclick="promptUpdateDeliveryDate(${order.id})" class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block">Update Date</button>
+            </td>
+            <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">Authorized</span></td>
+            <td class="p-4">${statusBadge}</td>
+            <td class="p-4 text-right space-y-1">
+                ${actionButtons}
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+async function acceptSellerOrder(orderId) {
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    if (!token) return;
+
+    try {
+        const res = await fetch(API_BASE_URL + `/api/material-orders/${orderId}/accept`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (res.ok) {
+            showToast("Order accepted successfully! — ऑर्डर स्वीकार कर लिया गया!");
+            await loadSellerOrders();
+        } else {
+            const err = await res.json();
+            showToast(err.error || "Failed to accept order");
+        }
+    } catch (e) {
+        showToast("Error accepting order");
+    }
+}
+
+async function updateSellerOrderStatus(orderId, status) {
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    if (!token) return;
+
+    try {
+        const res = await fetch(API_BASE_URL + `/api/material-orders/${orderId}/status`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ status: status })
+        });
+
+        if (res.ok) {
+            showToast(`Order status updated to ${status} — स्थिति अपडेट की गई`);
+            await loadSellerOrders();
+        } else {
+            const err = await res.json();
+            showToast(err.error || "Failed to update order status");
+        }
+    } catch (e) {
+        showToast("Error updating order status");
+    }
+}
+
+async function promptUpdateDeliveryDate(orderId) {
+    const newDate = prompt("Enter expected delivery date (e.g., 10 Oct 2026): — डिलीवरी की अनुमानित तिथि दर्ज करें:");
+    if (!newDate || !newDate.trim()) return;
+
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    if (!token) return;
+
+    try {
+        const res = await fetch(API_BASE_URL + `/api/material-orders/${orderId}/expected-delivery`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ expectedDeliveryDate: newDate.trim() })
+        });
+
+        if (res.ok) {
+            showToast("Expected delivery date updated! — डिलीवरी की तारीख अपडेट की गई!");
+            await loadSellerOrders();
+        } else {
+            const err = await res.json();
+            showToast(err.error || "Failed to update delivery date");
+        }
+    } catch (e) {
+        showToast("Error updating delivery date");
+    }
 }
 
 /**
@@ -2173,3 +2615,75 @@ window.onclick = function(event) {
         }
     }
 };
+
+// Initialize seller notifications on startup
+document.addEventListener('DOMContentLoaded', () => {
+    loadSellerNotifications();
+});
+
+
+
+
+function showLogoutToast(callback, customTitle, customMessage) {
+  let toast = document.getElementById("custom-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "custom-toast";
+    toast.className = "toast-card";
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+      </div>
+      <div class="toast-body">
+        <h4 id="toast-title" class="toast-title">Logout Successful</h4>
+        <p id="toast-message" class="toast-message">You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।</p>
+      </div>
+      <button class="toast-close" type="button" aria-label="Close notification">&times;</button>
+    `;
+    toast.style.cssText = "position:fixed;top:25px;right:25px;z-index:999999;min-width:280px;max-width:380px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:13px;box-shadow:0 18px 40px rgba(15,23,42,0.13),0 3px 9px rgba(15,23,42,0.05);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateY(-20px);pointer-events:none;font-family:'Inter',system-ui,sans-serif;";
+    const iconEl = toast.querySelector(".toast-icon");
+    if (iconEl) iconEl.style.cssText = "width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#10b981;border-radius:8px;";
+    const titleEl = toast.querySelector(".toast-title");
+    if (titleEl) titleEl.style.cssText = "margin:0;color:#1e293b;font-size:14px;font-weight:700;";
+    const msgEl = toast.querySelector(".toast-message");
+    if (msgEl) msgEl.style.cssText = "margin:2px 0 0 0;color:#64748b;font-size:12px;";
+    const closeEl = toast.querySelector(".toast-close");
+    if (closeEl) closeEl.style.cssText = "background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;";
+    document.body.appendChild(toast);
+  }
+
+  const titleEl = document.getElementById("toast-title");
+  if (titleEl) titleEl.innerText = customTitle || "Logout Successful";
+  const msgEl = document.getElementById("toast-message");
+  if (msgEl) msgEl.innerText = customMessage || "You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।";
+
+  void toast.offsetHeight;
+  toast.classList.add("show");
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  toast.style.pointerEvents = "auto";
+
+  let navigated = false;
+  const navigateOnce = () => {
+    if (navigated) return;
+    navigated = true;
+    toast.classList.remove("show");
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-20px)";
+    toast.style.pointerEvents = "none";
+    if (typeof callback === "function") callback();
+    else window.location.href = "index.html";
+  };
+
+  const closeBtn = toast.querySelector(".toast-close");
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      navigateOnce();
+    };
+  }
+
+  setTimeout(navigateOnce, 1200);
+}

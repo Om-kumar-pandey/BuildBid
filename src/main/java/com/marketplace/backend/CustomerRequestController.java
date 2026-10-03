@@ -30,7 +30,10 @@ public class CustomerRequestController {
     private final MaterialRequestRepository materialRequestRepository;
     private final ClientServiceRequestRepository clientServiceRequestRepository;
     private final MarketplaceBackendApplication.UserRepository userRepository;
+    private final QuotationRepository quotationRepository;
+    private final MaterialOrderRepository materialOrderRepository;
 
+    private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
     private static final DateTimeFormatter DISPLAY_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
 
@@ -38,11 +41,23 @@ public class CustomerRequestController {
     public CustomerRequestController(
             MaterialRequestRepository materialRequestRepository,
             ClientServiceRequestRepository clientServiceRequestRepository,
-            MarketplaceBackendApplication.UserRepository userRepository
+            MarketplaceBackendApplication.UserRepository userRepository,
+            @Autowired(required = false) QuotationRepository quotationRepository,
+            @Autowired(required = false) MaterialOrderRepository materialOrderRepository
     ) {
         this.materialRequestRepository = materialRequestRepository;
         this.clientServiceRequestRepository = clientServiceRequestRepository;
         this.userRepository = userRepository;
+        this.quotationRepository = quotationRepository;
+        this.materialOrderRepository = materialOrderRepository;
+    }
+
+    public CustomerRequestController(
+            MaterialRequestRepository materialRequestRepository,
+            ClientServiceRequestRepository clientServiceRequestRepository,
+            MarketplaceBackendApplication.UserRepository userRepository
+    ) {
+        this(materialRequestRepository, clientServiceRequestRepository, userRepository, null, null);
     }
 
     /**
@@ -110,8 +125,8 @@ public class CustomerRequestController {
         card.put("id", reqId);
         card.put("backendId", mr.getId());
 
-        LocalDateTime createdAt = mr.getCreatedAt() != null ? mr.getCreatedAt() : LocalDateTime.now();
-        long timestampMs = createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        LocalDateTime createdAt = mr.getCreatedAt() != null ? mr.getCreatedAt() : LocalDateTime.now(IST_ZONE);
+        long timestampMs = createdAt.atZone(IST_ZONE).toInstant().toEpochMilli();
         card.put("submittedTimestamp", timestampMs);
         card.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
 
@@ -127,22 +142,73 @@ public class CustomerRequestController {
         card.put("deliverySite", mr.getDeliveryAddress() != null && !mr.getDeliveryAddress().isBlank() ? mr.getDeliveryAddress() : card.get("location"));
 
         // Status normalization
-        String rawStatus = mr.getStatus() != null ? mr.getStatus().trim() : "NEW";
+        String rawStatus = mr.getStatus() != null ? mr.getStatus().trim().toUpperCase() : "NEW";
         String displayStatus = "Active";
-        if ("NEW".equalsIgnoreCase(rawStatus)) {
-            displayStatus = isDirectBuy ? "Pending" : "Active";
-        } else if ("ACCEPTED".equalsIgnoreCase(rawStatus)) {
-            displayStatus = "Accepted";
-        } else if ("DECLINED".equalsIgnoreCase(rawStatus)) {
-            displayStatus = "Rejected";
-        } else if ("CLOSED".equalsIgnoreCase(rawStatus)) {
-            displayStatus = "Completed";
-        } else if ("CANCELLED".equalsIgnoreCase(rawStatus)) {
-            displayStatus = "Cancelled";
+        String statusEn = "Active";
+        String statusHi = "सक्रिय";
+
+        if (isDirectBuy) {
+            if ("WAITING_FOR_ACCEPTANCE".equals(rawStatus) || "NEW".equals(rawStatus)) {
+                displayStatus = "Waiting for Acceptance";
+                statusEn = "Waiting for Acceptance";
+                statusHi = "विक्रेता की स्वीकृति की प्रतीक्षा";
+            } else if ("ORDER_ACCEPTED".equals(rawStatus) || "ACCEPTED".equals(rawStatus)) {
+                displayStatus = "Order Accepted";
+                statusEn = "Order Accepted";
+                statusHi = "ऑर्डर स्वीकार किया गया";
+            } else if ("PROCESSING".equals(rawStatus)) {
+                displayStatus = "Processing";
+                statusEn = "Processing";
+                statusHi = "प्रक्रिया में";
+            } else if ("READY_FOR_DISPATCH".equals(rawStatus) || "DISPATCHED".equals(rawStatus)) {
+                displayStatus = "Ready for Dispatch";
+                statusEn = "Ready for Dispatch";
+                statusHi = "भेजने के लिए तैयार";
+            } else if ("OUT_FOR_DELIVERY".equals(rawStatus)) {
+                displayStatus = "Out for Delivery";
+                statusEn = "Out for Delivery";
+                statusHi = "डिलीवरी के लिए रवाना";
+            } else if ("DELIVERED".equals(rawStatus) || "COMPLETED".equals(rawStatus)) {
+                displayStatus = "Delivered";
+                statusEn = "Delivered";
+                statusHi = "डिलीवर हो गया";
+            } else if ("DECLINED".equals(rawStatus) || "REJECTED".equals(rawStatus)) {
+                displayStatus = "Declined";
+                statusEn = "Declined";
+                statusHi = "अस्वीकृत";
+            } else if ("CANCELLED".equals(rawStatus)) {
+                displayStatus = "Cancelled";
+                statusEn = "Cancelled";
+                statusHi = "रद्द";
+            } else {
+                displayStatus = rawStatus;
+                statusEn = rawStatus;
+                statusHi = rawStatus;
+            }
         } else {
-            displayStatus = rawStatus.substring(0, 1).toUpperCase() + rawStatus.substring(1).toLowerCase();
+            if ("ALLOCATED".equals(rawStatus)) {
+                displayStatus = "Purchase Plan Confirmed";
+                statusEn = "Purchase Plan Confirmed";
+                statusHi = "खरीद योजना की पुष्टि";
+            } else if ("CLOSED".equals(rawStatus)) {
+                displayStatus = "Completed";
+                statusEn = "Completed";
+                statusHi = "पूर्ण";
+            } else if ("CANCELLED".equals(rawStatus)) {
+                displayStatus = "Cancelled";
+                statusEn = "Cancelled";
+                statusHi = "रद्द";
+            } else {
+                displayStatus = "Active";
+                statusEn = "Active";
+                statusHi = "सक्रिय";
+            }
         }
+
         card.put("status", displayStatus);
+        card.put("statusEn", statusEn);
+        card.put("statusHi", statusHi);
+        card.put("rawStatus", rawStatus);
 
         // Child Items summary
         List<MaterialRequestItem> items = mr.getItems();
@@ -151,6 +217,8 @@ public class CustomerRequestController {
         if (isDirectBuy) {
             card.put("type", "DIRECT_BUY");
             card.put("typeLabel", "Direct Material Purchase");
+            card.put("isDirectBuy", true);
+            card.put("noQuotationsAllowed", true);
 
             String matName = firstItem != null && firstItem.getMaterialName() != null ? firstItem.getMaterialName() : "Material Direct Purchase";
             card.put("title", matName);
@@ -168,6 +236,22 @@ public class CustomerRequestController {
 
             String sellerName = mr.getTargetSeller() != null ? mr.getTargetSeller().getName() : "Verified Material Seller";
             card.put("targetProvider", sellerName);
+            if (mr.getTargetSeller() != null) {
+                card.put("sellerId", mr.getTargetSeller().getId());
+                card.put("sellerName", mr.getTargetSeller().getName());
+                // Scoped contact security: reveal full seller contact details only after seller acceptance
+                boolean isAccepted = "ORDER_ACCEPTED".equals(rawStatus) || "ACCEPTED".equals(rawStatus)
+                        || "PROCESSING".equals(rawStatus) || "READY_FOR_DISPATCH".equals(rawStatus)
+                        || "DISPATCHED".equals(rawStatus) || "OUT_FOR_DELIVERY".equals(rawStatus)
+                        || "DELIVERED".equals(rawStatus) || "COMPLETED".equals(rawStatus);
+                if (isAccepted) {
+                    card.put("sellerBusinessName", mr.getTargetSeller().getName());
+                    card.put("sellerPhone", mr.getTargetSeller().getPhone());
+                    card.put("sellerEmail", mr.getTargetSeller().getEmail());
+                    card.put("sellerLocation", mr.getTargetSeller().getLocation());
+                    card.put("sellerAddress", mr.getTargetSeller().getLocation());
+                }
+            }
 
             String notes = mr.getSpecialNotes() != null && !mr.getSpecialNotes().isBlank()
                     ? mr.getSpecialNotes()
@@ -180,14 +264,18 @@ public class CustomerRequestController {
             card.put("materialAmount", mr.getMaterialAmount());
             card.put("estimatedTotal", mr.getEstimatedTotal());
             card.put("verificationCode", mr.getVerificationCode());
+            card.put("expectedDeliveryDate", mr.getExpectedDeliveryDate());
+            card.put("quotations", Collections.emptyList());
         } else {
             card.put("type", "MATERIAL_REQUIREMENT");
             card.put("typeLabel", "Material Requirement");
+            card.put("isDirectBuy", false);
 
             StringBuilder itemsSummary = new StringBuilder();
             double totalQty = 0;
             String primaryUnit = "Units";
             String cat = "Building Material";
+            List<Map<String, Object>> requirementItemsList = new ArrayList<>();
 
             if (items != null && !items.isEmpty()) {
                 cat = firstItem != null && firstItem.getCategory() != null ? firstItem.getCategory() : "Building Material";
@@ -196,7 +284,18 @@ public class CustomerRequestController {
                 for (MaterialRequestItem it : items) {
                     if (itemsSummary.length() > 0) itemsSummary.append(", ");
                     itemsSummary.append(it.getMaterialName());
-                    if (it.getQuantity() != null) totalQty += it.getQuantity();
+                    double itemQty = it.getQuantity() != null ? it.getQuantity() : 0.0;
+                    totalQty += itemQty;
+
+                    Map<String, Object> reqItemMap = new LinkedHashMap<>();
+                    reqItemMap.put("id", it.getId());
+                    reqItemMap.put("materialName", it.getMaterialName());
+                    reqItemMap.put("category", it.getCategory());
+                    reqItemMap.put("quantity", itemQty);
+                    reqItemMap.put("unit", it.getUnit());
+                    reqItemMap.put("brand", it.getBrand());
+                    reqItemMap.put("specification", it.getSpecification());
+                    requirementItemsList.add(reqItemMap);
                 }
             }
 
@@ -206,6 +305,7 @@ public class CustomerRequestController {
             card.put("material", summaryStr);
             card.put("quantity", formatQuantity(totalQty) + " " + primaryUnit);
             card.put("targetProvider", "Broadcast to Verified Sellers");
+            card.put("items", requirementItemsList);
 
             String notes = mr.getSpecialNotes() != null && !mr.getSpecialNotes().isBlank()
                     ? mr.getSpecialNotes()
@@ -214,10 +314,87 @@ public class CustomerRequestController {
 
             card.put("requestScope", mr.getRequestScope() != null ? mr.getRequestScope() : "STATE");
             card.put("localRadius", mr.getLocalRadius());
-        }
 
-        // Live requests have zero quotations currently
-        card.put("quotations", new ArrayList<>());
+            // Fetch live quotations for Post Material Requirement
+            List<Map<String, Object>> quotationCards = new ArrayList<>();
+            if (quotationRepository != null) {
+                List<Quotation> quotes = quotationRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
+                if (quotes != null) {
+                    for (Quotation q : quotes) {
+                        Map<String, Object> qMap = new LinkedHashMap<>();
+                        qMap.put("id", q.getQuotationId() != null ? q.getQuotationId() : ("QT-" + q.getId()));
+                        qMap.put("backendId", q.getId());
+                        qMap.put("providerId", q.getProvider() != null ? q.getProvider().getId() : null);
+                        qMap.put("providerName", q.getProvider() != null ? q.getProvider().getName() : "Verified Seller");
+                        qMap.put("providerRole", q.getProviderRole());
+                        qMap.put("status", q.getStatus());
+                        qMap.put("quotedAmount", q.getQuotedAmount());
+                        qMap.put("materialCost", q.getMaterialCost());
+                        qMap.put("transportationCost", q.getTransportationCost());
+                        qMap.put("taxGst", q.getTaxGst());
+                        qMap.put("timeline", q.getTimeline() != null ? q.getTimeline() : "2-3 Days");
+                        qMap.put("validity", q.getValidity() != null ? q.getValidity() : "7 Days");
+                        qMap.put("warranty", q.getWarranty());
+                        qMap.put("paymentTerms", q.getPaymentTerms());
+
+                        List<Map<String, Object>> quotedItems = new ArrayList<>();
+                        if (q.getItems() != null) {
+                            for (QuotationItem qi : q.getItems()) {
+                                Map<String, Object> qiMap = new LinkedHashMap<>();
+                                qiMap.put("id", qi.getId());
+                                qiMap.put("materialRequestItemId", qi.getMaterialRequestItem() != null ? qi.getMaterialRequestItem().getId() : null);
+                                qiMap.put("materialId", qi.getMaterial() != null ? qi.getMaterial().getId() : null);
+                                qiMap.put("materialName", qi.getMaterialName());
+                                qiMap.put("quotedQuantity", qi.getQuotedQuantity());
+                                qiMap.put("unit", qi.getQuotedUnit());
+                                qiMap.put("unitPrice", qi.getUnitPrice());
+                                qiMap.put("lineTotal", qi.getLineTotal());
+                                quotedItems.add(qiMap);
+                            }
+                        }
+                        qMap.put("items", quotedItems);
+                        quotationCards.add(qMap);
+                    }
+                }
+            }
+            card.put("quotations", quotationCards);
+
+            // If ALLOCATED, fetch generated seller orders
+            if ("ALLOCATED".equals(rawStatus) && materialOrderRepository != null) {
+                List<MaterialOrder> orders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
+                List<Map<String, Object>> orderSummaries = new ArrayList<>();
+                if (orders != null) {
+                    for (MaterialOrder mo : orders) {
+                        Map<String, Object> moMap = new LinkedHashMap<>();
+                        moMap.put("id", mo.getId());
+                        moMap.put("orderId", mo.getOrderCode());
+                        moMap.put("orderCode", mo.getOrderCode());
+                        moMap.put("sellerName", mo.getSeller() != null ? mo.getSeller().getName() : "Seller");
+                        moMap.put("sellerPhone", mo.getSeller() != null ? mo.getSeller().getPhone() : "");
+                        moMap.put("sellerLocation", mo.getSeller() != null ? mo.getSeller().getLocation() : "");
+                        moMap.put("totalAmount", mo.getTotalAmount());
+                        moMap.put("status", mo.getOrderStatus());
+                        moMap.put("expectedDeliveryDate", mo.getExpectedDeliveryDate());
+
+                        List<Map<String, Object>> orderItems = new ArrayList<>();
+                        if (mo.getItems() != null) {
+                            for (MaterialOrderItem oi : mo.getItems()) {
+                                Map<String, Object> oiMap = new LinkedHashMap<>();
+                                oiMap.put("materialName", oi.getMaterialName());
+                                oiMap.put("allocatedQuantity", oi.getQuantity());
+                                oiMap.put("unit", oi.getUnit());
+                                oiMap.put("agreedRate", oi.getUnitPrice());
+                                oiMap.put("lineTotal", oi.getSubtotal());
+                                orderItems.add(oiMap);
+                            }
+                        }
+                        moMap.put("items", orderItems);
+                        orderSummaries.add(moMap);
+                    }
+                }
+                card.put("sellerOrders", orderSummaries);
+            }
+        }
 
         return card;
     }
@@ -259,8 +436,8 @@ public class CustomerRequestController {
         card.put("location", loc);
         card.put("deliverySite", loc);
 
-        LocalDateTime createdAt = csr.getCreatedAt() != null ? csr.getCreatedAt() : LocalDateTime.now();
-        long timestampMs = createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        LocalDateTime createdAt = csr.getCreatedAt() != null ? csr.getCreatedAt() : LocalDateTime.now(IST_ZONE);
+        long timestampMs = createdAt.atZone(IST_ZONE).toInstant().toEpochMilli();
         card.put("submittedTimestamp", timestampMs);
         card.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
 

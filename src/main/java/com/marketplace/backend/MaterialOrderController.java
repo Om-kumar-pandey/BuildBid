@@ -126,6 +126,81 @@ public class MaterialOrderController {
         return handleStatusTransition(id, targetStatus, authentication);
     }
 
+    @PostMapping("/allocate")
+    public ResponseEntity<?> allocatePurchase(
+            @RequestBody Map<String, Object> payload,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized."));
+        }
+        MarketplaceBackendApplication.MarketplaceUser user = resolveUser(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "User not found."));
+        }
+
+        Long mrId = null;
+        if (payload.get("materialRequestId") != null) {
+            try {
+                mrId = Long.parseLong(payload.get("materialRequestId").toString().trim());
+            } catch (Exception ignored) {}
+        }
+        if (mrId == null && payload.get("requestId") != null) {
+            try {
+                mrId = Long.parseLong(payload.get("requestId").toString().trim());
+            } catch (Exception ignored) {}
+        }
+        if (mrId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "materialRequestId is required."));
+        }
+
+        try {
+            Map<String, Object> result = materialOrderService.allocatePurchase(mrId, payload, user);
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to allocate purchase: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/accept")
+    public ResponseEntity<?> acceptOrder(@PathVariable("id") Long id, Authentication authentication) {
+        return handleStatusTransition(id, "ORDER_ACCEPTED", authentication);
+    }
+
+    @PutMapping("/{id}/expected-delivery")
+    public ResponseEntity<?> updateExpectedDelivery(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, Object> body,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized."));
+        }
+        MarketplaceBackendApplication.MarketplaceUser user = resolveUser(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "User not found."));
+        }
+        String date = body != null && body.get("expectedDeliveryDate") != null ? body.get("expectedDeliveryDate").toString().trim() : "";
+        if (date.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "expectedDeliveryDate is required."));
+        }
+        try {
+            MaterialOrder updated = materialOrderService.updateExpectedDelivery(id, date, user);
+            return ResponseEntity.ok(materialOrderService.toResponseMap(updated));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}/process")
     public ResponseEntity<?> processOrder(@PathVariable("id") Long id, Authentication authentication) {
         return handleStatusTransition(id, "PROCESSING", authentication);

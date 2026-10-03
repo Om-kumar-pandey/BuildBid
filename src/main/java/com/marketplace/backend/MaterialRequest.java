@@ -112,7 +112,7 @@ public class MaterialRequest {
     @PrePersist
     public void onCreate() {
         if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
+            this.createdAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"));
         }
         if (this.status == null || this.status.isBlank()) {
             this.status = "NEW";
@@ -127,7 +127,7 @@ public class MaterialRequest {
 
     @PreUpdate
     public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"));
     }
 
     public void addItem(MaterialRequestItem item) {

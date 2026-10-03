@@ -415,8 +415,81 @@ function logoutUser() {
   localStorage.removeItem("marketplaceToken");
   localStorage.removeItem("marketplaceUser");
   localStorage.removeItem("token");
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("customerUser");
+  localStorage.removeItem("buildbid_user");
   localStorage.removeItem("buildbid_current_user");
   sessionStorage.removeItem("currentUser");
   sessionStorage.removeItem("token");
-  window.location.href = "index.html";
+  sessionStorage.removeItem("pendingRedirect");
+  sessionStorage.removeItem("userData");
+  sessionStorage.clear();
+  showLogoutToast(() => {
+    window.location.href = "index.html";
+  });
+}
+
+
+function showLogoutToast(callback, customTitle, customMessage) {
+  let toast = document.getElementById("custom-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "custom-toast";
+    toast.className = "toast-card";
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+      </div>
+      <div class="toast-body">
+        <h4 id="toast-title" class="toast-title">Logout Successful</h4>
+        <p id="toast-message" class="toast-message">You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।</p>
+      </div>
+      <button class="toast-close" type="button" aria-label="Close notification">&times;</button>
+    `;
+    toast.style.cssText = "position:fixed;top:25px;right:25px;z-index:999999;min-width:280px;max-width:380px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:13px;box-shadow:0 18px 40px rgba(15,23,42,0.13),0 3px 9px rgba(15,23,42,0.05);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateY(-20px);pointer-events:none;font-family:'Inter',system-ui,sans-serif;";
+    const iconEl = toast.querySelector(".toast-icon");
+    if (iconEl) iconEl.style.cssText = "width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#10b981;border-radius:8px;";
+    const titleEl = toast.querySelector(".toast-title");
+    if (titleEl) titleEl.style.cssText = "margin:0;color:#1e293b;font-size:14px;font-weight:700;";
+    const msgEl = toast.querySelector(".toast-message");
+    if (msgEl) msgEl.style.cssText = "margin:2px 0 0 0;color:#64748b;font-size:12px;";
+    const closeEl = toast.querySelector(".toast-close");
+    if (closeEl) closeEl.style.cssText = "background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;";
+    document.body.appendChild(toast);
+  }
+
+  const titleEl = document.getElementById("toast-title");
+  if (titleEl) titleEl.innerText = customTitle || "Logout Successful";
+  const msgEl = document.getElementById("toast-message");
+  if (msgEl) msgEl.innerText = customMessage || "You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।";
+
+  void toast.offsetHeight;
+  toast.classList.add("show");
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  toast.style.pointerEvents = "auto";
+
+  let navigated = false;
+  const navigateOnce = () => {
+    if (navigated) return;
+    navigated = true;
+    toast.classList.remove("show");
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-20px)";
+    toast.style.pointerEvents = "none";
+    if (typeof callback === "function") callback();
+    else window.location.href = "index.html";
+  };
+
+  const closeBtn = toast.querySelector(".toast-close");
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      navigateOnce();
+    };
+  }
+
+  setTimeout(navigateOnce, 1200);
 }

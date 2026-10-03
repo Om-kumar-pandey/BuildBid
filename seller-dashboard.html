@@ -186,45 +186,16 @@
                     <div class="relative">
                         <button onclick="toggleNotifications()" class="w-9 h-9 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all relative" title="Notifications">
                             <i class="fa-regular fa-bell text-lg"></i>
-                            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                            <span id="sellerNotifBadge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                         </button>
                         <!-- Notifications Dropdown -->
                         <div id="notifications-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50">
                             <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-                                <span class="font-semibold text-xs text-slate-800 uppercase tracking-wider">Notifications</span>
-                                <span class="text-[10px] text-blue-600 font-semibold cursor-pointer hover:underline" onclick="showToast('All marked as read')">Mark all read</span>
+                                <span class="font-semibold text-xs text-slate-800 uppercase tracking-wider" id="sellerNotifHeaderTitle">Notifications / सूचनाएं</span>
+                                <span class="text-[10px] text-blue-600 font-semibold cursor-pointer hover:underline" onclick="markAllSellerNotificationsRead()">Mark all read / सभी पढ़े</span>
                             </div>
-                            <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
-                                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all">
-                                    <div class="flex items-start space-x-2">
-                                        <div class="w-2 h-2 mt-1 rounded-full bg-blue-500 flex-shrink-0"></div>
-                                        <div>
-                                            <p class="font-medium text-slate-800">New material requirement posted</p>
-                                            <p class="text-slate-500 text-[11px] mt-0.5">REQ-1028: TMT Steel Fe 500 in Noida (10 Tons)</p>
-                                            <span class="text-[10px] text-slate-400 mt-1 block">10 mins ago</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all">
-                                    <div class="flex items-start space-x-2">
-                                        <div class="w-2 h-2 mt-1 rounded-full bg-emerald-500 flex-shrink-0"></div>
-                                        <div>
-                                            <p class="font-medium text-slate-800">Quotation Accepted!</p>
-                                            <p class="text-slate-500 text-[11px] mt-0.5">Order #ORD-1025 confirmed for OPC Cement (500 Bags)</p>
-                                            <span class="text-[10px] text-slate-400 mt-1 block">1 hour ago</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-3 hover:bg-slate-50 cursor-pointer transition-all">
-                                    <div class="flex items-start space-x-2">
-                                        <div class="w-2 h-2 mt-1 rounded-full bg-amber-500 flex-shrink-0"></div>
-                                        <div>
-                                            <p class="font-medium text-slate-800">Low Stock Alert</p>
-                                            <p class="text-slate-500 text-[11px] mt-0.5">OPC Cement 53 Grade is below minimum threshold (45 bags left)</p>
-                                            <span class="text-[10px] text-slate-400 mt-1 block">3 hours ago</span>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div id="sellerNotificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
+                                <div class="p-4 text-center text-slate-400 text-xs">Loading notifications...</div>
                             </div>
                         </div>
                     </div>
@@ -706,7 +677,7 @@
                                         <th class="p-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                <tbody id="sellerOrdersTbody" class="divide-y divide-slate-100 text-slate-700">
                                     <tr class="hover:bg-slate-50 transition-all">
                                         <td class="p-4 font-medium">
                                             <span class="text-blue-600 font-bold block">ORD-1025</span>

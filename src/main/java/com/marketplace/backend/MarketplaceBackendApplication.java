@@ -79,6 +79,11 @@ public class MarketplaceBackendApplication {
         );
     }
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Kolkata"));
+    }
+
 
     // ========================================================
     // USER ROLES
@@ -466,6 +471,8 @@ public class MarketplaceBackendApplication {
                                     "/my-requests.html",
                                     "/my-requests.css",
                                     "/my-requests.js",
+                                    "/my-orders.html",
+                                    "/my-orders.js",
                                     "/customer-requests.html"
                             ).permitAll()
                             .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()

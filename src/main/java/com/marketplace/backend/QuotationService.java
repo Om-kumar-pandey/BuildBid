@@ -37,6 +37,13 @@ public class QuotationService {
     private final MaterialRequestItemRepository materialRequestItemRepository;
     private final QuotationItemRepository quotationItemRepository;
 
+    @Autowired(required = false)
+    private NotificationService notificationService;
+
+    public void setNotificationService(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
     @Autowired
     public QuotationService(
             QuotationRepository quotationRepository,
@@ -389,6 +396,44 @@ public class QuotationService {
         if (quotationItemRepository != null && saved.getItems() != null && !saved.getItems().isEmpty()) {
             for (QuotationItem qi : saved.getItems()) {
                 quotationItemRepository.save(qi);
+            }
+        }
+
+        if (notificationService != null) {
+            try {
+                if (saved.getMaterialRequest() != null && saved.getMaterialRequest().getBuyer() != null) {
+                    String provName = provider.getName() != null ? provider.getName() : "Verified Supplier";
+                    String titleEn = "Quotation Received";
+                    String titleHi = "कोटेशन प्राप्त हुआ";
+                    String msgEn = provName + " submitted a quotation of ₹" + Math.round(saved.getQuotedAmount()) + " for your material requirement.";
+                    String msgHi = provName + " ने आपकी सामग्री आवश्यकता के लिए ₹" + Math.round(saved.getQuotedAmount()) + " का कोटेशन भेजा है।";
+                    notificationService.createNotification(
+                            saved.getMaterialRequest().getBuyer(),
+                            titleEn,
+                            titleHi,
+                            msgEn,
+                            msgHi,
+                            "QUOTATION_RECEIVED",
+                            "MR-" + saved.getMaterialRequest().getId()
+                    );
+                } else if (saved.getServiceRequest() != null && saved.getServiceRequest().getClient() != null) {
+                    String provName = provider.getName() != null ? provider.getName() : "Professional";
+                    String titleEn = "Quotation Received";
+                    String titleHi = "कोटेशन प्राप्त हुआ";
+                    String msgEn = provName + " submitted a quotation for your direct hire service request.";
+                    String msgHi = provName + " ने आपके डायरेक्ट हायर अनुरोध के लिए कोटेशन प्रस्तुत किया है।";
+                    notificationService.createNotification(
+                            saved.getServiceRequest().getClient(),
+                            titleEn,
+                            titleHi,
+                            msgEn,
+                            msgHi,
+                            "QUOTATION_RECEIVED",
+                            "CSR-" + saved.getServiceRequest().getId()
+                    );
+                }
+            } catch (Exception notifEx) {
+                // Non-blocking notification dispatch
             }
         }
         return saved;
