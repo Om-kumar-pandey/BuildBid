@@ -61,6 +61,7 @@ const projectState = {
   city: "",
   state: "",
   pincode: "",
+  pincodeVerified: false,
   address: "",
   calculatedArea: 0,
   qualityTier: "Standard",
@@ -198,7 +199,11 @@ async function fetchExistingProjectData(projectId) {
         if (document.getElementById("stateSelect")) document.getElementById("stateSelect").value = projectState.state;
         if (document.getElementById("pincodeInput")) document.getElementById("pincodeInput").value = projectState.pincode;
         if (document.getElementById("addressInput")) document.getElementById("addressInput").value = projectState.address;
-        updateLocationInfo();
+        if (projectState.pincode && projectState.pincode.length === 6) {
+          handlePincodeInput(projectState.pincode);
+        } else {
+          updateLocationInfo();
+        }
       }
 
       if (document.getElementById("projectTitleInput")) {
@@ -3009,8 +3014,8 @@ function validateCurrentStep(step) {
     }
 
     const pin = document.getElementById("pincodeInput");
-    if (!pin || !pin.value.trim() || pin.value.trim().length < 6) {
-      markInvalidField(pin, "Please enter a valid 6-digit PIN Code *");
+    if (!pin || !pin.value.trim() || pin.value.trim().length !== 6 || !projectState.pincodeVerified) {
+      markInvalidField(pin, "Please enter a valid, verified 6-digit PIN Code *");
       return false;
     }
 
@@ -3313,6 +3318,7 @@ function saveLocalProject(p) {
     location: `${p.location.city || 'Greater Noida'}, ${p.location.state || 'UP'}`,
     address: p.location.address || "Complete site address provided",
     pincode: p.location.pincode,
+    description: p.description || "",
     totalArea: p.totalArea,
     qualityTier: p.qualityTier,
     budgetRange: `₹${(p.budget.min/100000).toFixed(1)}L - ₹${(p.budget.max/100000).toFixed(1)}L`,
@@ -3363,6 +3369,226 @@ function showToast(message, type = "info") {
   }, 3500);
 }
 
+/* =========================================================
+   EXACT INDIAN POSTAL PINCODE VERIFICATION ENGINE
+   ========================================================= */
+
+let pincodeLookupRequestId = 0;
+let pincodeAbortController = null;
+
+function matchStateOption(stateName) {
+  if (!stateName) return "";
+  const s = stateName.trim().toLowerCase();
+  const stateSelect = document.getElementById("stateSelect");
+  if (!stateSelect) return "";
+  for (let i = 0; i < stateSelect.options.length; i++) {
+    const val = stateSelect.options[i].value;
+    const v = val.toLowerCase();
+    if (v === s) return val;
+    if (s === "delhi" && v.includes("delhi")) return val;
+    if ((s.includes("jammu") || s.includes("kashmir")) && v.includes("jammu")) return val;
+    if (s.includes("andaman") && v.includes("andaman")) return val;
+    if (s.includes("dadra") && v.includes("dadra")) return val;
+    if (s.includes("puducherry") || s.includes("pondicherry")) {
+      if (v.includes("puducherry")) return val;
+    }
+    if (s === "orissa" && v.includes("odisha")) return val;
+    if (s === "uttaranchal" && v.includes("uttarakhand")) return val;
+  }
+  return "";
+}
+
+function extractCityDistrict(postOffices, enteredPin) {
+  if (!Array.isArray(postOffices) || postOffices.length === 0) return "";
+
+  // 1. Check for specific city/locality naming in post offices
+  for (const po of postOffices) {
+    const name = String(po.Name || "").trim();
+    if (/greater\s*noida/i.test(name)) return "Greater Noida";
+    if (/noida/i.test(name) && !/greater/i.test(name)) return "Noida";
+    if (/gurugram|gurgaon/i.test(name)) return "Gurugram";
+    if (/bengaluru|bangalore/i.test(name)) return "Bengaluru";
+    if (/kolkata|calcutta/i.test(name)) return "Kolkata";
+    if (/mumbai|bombay/i.test(name)) return "Mumbai";
+    if (/chennai|madras/i.test(name)) return "Chennai";
+  }
+
+  const firstPo = postOffices[0];
+  const state = String(firstPo.State || "").trim();
+  const district = String(firstPo.District || "").trim();
+
+  // 2. Specific metropolitan mappings
+  if (/delhi/i.test(state)) {
+    return "Delhi";
+  }
+  if (/bangalore/i.test(district)) {
+    return "Bengaluru";
+  }
+  if (/gautam\s*buddha\s*nagar/i.test(district)) {
+    const hasGrNoida = postOffices.some(po => /greater\s*noida/i.test(po.Name || ""));
+    if (hasGrNoida || enteredPin.startsWith("201306") || enteredPin.startsWith("201308") || enteredPin.startsWith("201310")) {
+      return "Greater Noida";
+    }
+    return "Noida";
+  }
+
+  return district || firstPo.Block || firstPo.Division || firstPo.Name || "";
+}
+
+async function handlePincodeInput(pinVal) {
+  const pinInput = document.getElementById("pincodeInput");
+  const cityInput = document.getElementById("cityInput");
+  const stateSelect = document.getElementById("stateSelect");
+  if (!pinInput || !cityInput || !stateSelect) return;
+
+  pincodeLookupRequestId++;
+  const currentRequestId = pincodeLookupRequestId;
+
+  if (pincodeAbortController) {
+    try {
+      pincodeAbortController.abort();
+    } catch (e) {}
+    pincodeAbortController = null;
+  }
+
+  const raw = String(pinVal !== undefined && pinVal !== null ? pinVal : pinInput.value || "").trim();
+  const digitsOnly = raw.replace(/\D/g, "").slice(0, 6);
+  if (pinInput.value !== digitsOnly) {
+    pinInput.value = digitsOnly;
+  }
+
+  // Clear previous PIN-derived state and location on every change
+  projectState.pincodeVerified = false;
+  projectState.pincode = digitsOnly;
+  cityInput.value = "";
+  cityInput.readOnly = false;
+  cityInput.style.backgroundColor = "";
+  stateSelect.value = "";
+  stateSelect.disabled = false;
+  stateSelect.style.backgroundColor = "";
+  stateSelect.style.cursor = "";
+
+  // Partial PIN (< 6 digits) is not verified
+  if (digitsOnly.length < 6) {
+    pinInput.classList.remove("invalid-field");
+    const existingMsg = pinInput.parentNode?.querySelector(".field-error-msg");
+    if (existingMsg) existingMsg.remove();
+    updateLocationInfo();
+    return;
+  }
+
+  // Indian postal PIN codes must be 6 numeric digits starting with 1 to 8
+  if (!/^[1-8][0-9]{5}$/.test(digitsOnly)) {
+    handleInvalidPincode(pinInput, cityInput, stateSelect, digitsOnly);
+    return;
+  }
+
+  updateLocationInfo();
+
+  // Validate the exact 6-digit PIN against India Post official postal API
+  pincodeAbortController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    if (pincodeAbortController) {
+      try { pincodeAbortController.abort(); } catch (e) {}
+    }
+  }, 5000);
+
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${digitsOnly}`, {
+      signal: pincodeAbortController.signal
+    });
+    clearTimeout(timeoutId);
+
+    // Race-condition guard: check if user changed PIN or a newer request started
+    if (currentRequestId !== pincodeLookupRequestId || pinInput.value !== digitsOnly) {
+      return;
+    }
+
+    if (!res.ok) {
+      handleInvalidPincode(pinInput, cityInput, stateSelect, digitsOnly);
+      return;
+    }
+
+    const data = await res.json();
+
+    // Check again after asynchronous JSON parse
+    if (currentRequestId !== pincodeLookupRequestId || pinInput.value !== digitsOnly) {
+      return;
+    }
+
+    if (Array.isArray(data) && data[0] && data[0].Status === "Success" && Array.isArray(data[0].PostOffice) && data[0].PostOffice.length > 0) {
+      // Must verify the exact 6-digit PIN matches the returned post office data
+      const exactMatch = data[0].PostOffice.some(po => String(po.Pincode || "").trim() === digitsOnly);
+      if (exactMatch) {
+        const resolvedCity = extractCityDistrict(data[0].PostOffice, digitsOnly);
+        const resolvedState = data[0].PostOffice[0].State || "";
+        applyVerifiedLocation({ city: resolvedCity, state: resolvedState }, digitsOnly);
+        return;
+      }
+    }
+
+    // PIN not found or no exact match
+    handleInvalidPincode(pinInput, cityInput, stateSelect, digitsOnly);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (currentRequestId !== pincodeLookupRequestId || pinInput.value !== digitsOnly) {
+      return;
+    }
+    // Network failure / timeout: PIN remains unverified! NO prefix fallback.
+    handleInvalidPincode(pinInput, cityInput, stateSelect, digitsOnly);
+  }
+}
+
+function applyVerifiedLocation(loc, pin) {
+  const pinInput = document.getElementById("pincodeInput");
+  const cityInput = document.getElementById("cityInput");
+  const stateSelect = document.getElementById("stateSelect");
+  if (!cityInput || !stateSelect) return;
+
+  cityInput.value = loc.city || "";
+  cityInput.readOnly = true;
+  cityInput.style.backgroundColor = "#f8fafc";
+
+  const matchedState = matchStateOption(loc.state);
+  if (matchedState) {
+    stateSelect.value = matchedState;
+  } else {
+    stateSelect.value = loc.state || "";
+  }
+  stateSelect.disabled = true;
+  stateSelect.style.backgroundColor = "#f1f5f9";
+  stateSelect.style.cursor = "not-allowed";
+
+  projectState.pincodeVerified = true;
+  projectState.pincode = pin;
+  projectState.city = cityInput.value;
+  projectState.state = stateSelect.value;
+
+  if (pinInput) {
+    pinInput.classList.remove("invalid-field");
+    const existingMsg = pinInput.parentNode?.querySelector(".field-error-msg");
+    if (existingMsg) existingMsg.remove();
+  }
+  cityInput.classList.remove("invalid-field");
+  stateSelect.classList.remove("invalid-field");
+
+  updateLocationInfo();
+}
+
+function handleInvalidPincode(pinInput, cityInput, stateSelect, pin) {
+  projectState.pincodeVerified = false;
+  projectState.pincode = pin;
+  cityInput.value = "";
+  cityInput.readOnly = false;
+  cityInput.style.backgroundColor = "";
+  stateSelect.value = "";
+  stateSelect.disabled = false;
+  stateSelect.style.backgroundColor = "";
+  stateSelect.style.cursor = "";
+  markInvalidField(pinInput, "Invalid PIN Code. Please enter a valid 6-digit Indian postal PIN Code.");
+  updateLocationInfo();
+}
+
 function updateLocationInfo() {
   const city = document.getElementById("cityInput")?.value.trim();
   const state = document.getElementById("stateSelect")?.value;
@@ -3386,7 +3612,13 @@ function syncUniversalUserProfile() {
   }
 }
 
-function initEventListeners() {}
+function initEventListeners() {
+  const pinInput = document.getElementById("pincodeInput");
+  if (pinInput) {
+    pinInput.addEventListener("input", (e) => handlePincodeInput(e.target.value));
+    pinInput.addEventListener("change", (e) => handlePincodeInput(e.target.value));
+  }
+}
 function saveDraft() { localStorage.setItem("projectDraft", JSON.stringify(projectState)); alert("Draft Saved!"); }
 function resetForm() { window.location.reload(); }
 function shareProject() { navigator.clipboard?.writeText(window.location.href); alert("Estimate link copied!"); }

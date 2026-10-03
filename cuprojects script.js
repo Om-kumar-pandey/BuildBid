@@ -472,7 +472,12 @@ function renderProjectCards() {
       ? `${p.city}${p.state ? ", " + p.state : ""}`
       : (p.location || "Location not specified");
 
-    const description = p.description || p.scopeOfWork || "No detailed description provided.";
+    const rawDesc = (p.description !== undefined && p.description !== null && String(p.description).trim().length > 0)
+      ? String(p.description).trim()
+      : ((p.projectDescription !== undefined && p.projectDescription !== null && String(p.projectDescription).trim().length > 0)
+          ? String(p.projectDescription).trim()
+          : "");
+    const description = rawDesc.length > 0 ? rawDesc : "....";
 
     // Area formatting
     let areaLabel = "Plot Area";
@@ -880,7 +885,12 @@ function openProjectDetailsModal(id) {
   const budget = project.budget || project.estimatedCost || "Not specified";
   const timeline = project.timeline || project.targetStartDate || "Immediate / Not specified";
   const bidsCount = project.bidsCount || 0;
-  const description = project.description || project.scopeOfWork || "No detailed description provided.";
+  const rawModalDesc = (project.description !== undefined && project.description !== null && String(project.description).trim().length > 0)
+    ? String(project.description).trim()
+    : ((project.projectDescription !== undefined && project.projectDescription !== null && String(project.projectDescription).trim().length > 0)
+        ? String(project.projectDescription).trim()
+        : "");
+  const description = rawModalDesc.length > 0 ? rawModalDesc : "....";
 
   const hasBasement = Boolean(project.hasBasement || completeData.hasBasement || project.basementDetails || completeData.basementDetails);
   const basementDetails = project.basementDetails || completeData.basementDetails || {};
