@@ -734,7 +734,41 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  .floor-wise-requirements-container {
+    padding: 14px;
+  }
+  .envelope-metrics-grid-pro {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .room-cards-grid-pro {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  .floor-tab-card {
+    min-width: 120px;
+    padding: 8px 14px;
+  }
 }
+
+@media (max-width: 480px) {
+  .envelope-metrics-grid-pro {
+    grid-template-columns: 1fr;
+  }
+  .room-cards-grid-pro {
+    grid-template-columns: 1fr;
+  }
+  .floor-area-input-wrapper {
+    max-width: 100%;
+  }
+  .selected-floor-hero-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .template-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* =========================================================
    BASEMENT TOGGLE SWITCH & CUSTOM FLOORS
    ========================================================= */
@@ -1122,192 +1156,641 @@
 }
 
 /* =========================================================
+/* =========================================================
    PHASES 5-16: ADVANCED FLOOR & ROOM REQUIREMENT STYLES
    ========================================================= */
 
-/* Project Area Envelope Summary Banner */
-.project-area-envelope-card {
+/* Section Hero Header */
+.floor-wise-requirements-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+}
+
+.section-hero-header {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.section-title-wrap .title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title-wrap .title-with-icon i {
+  color: #0284c7;
+  font-size: 18px;
+}
+
+.section-title-wrap h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.section-hi-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 3px;
+  margin-left: 28px;
+}
+
+.section-helper-p {
+  font-size: 12.5px;
+  color: #475569;
+  margin: 8px 0 0 28px;
+  line-height: 1.45;
+}
+
+/* Area & Envelope Summary Card (Redesigned) */
+.envelope-summary-card-pro {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  transition: all 0.2s ease;
+}
+
+.envelope-summary-card-pro.is-valid {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.envelope-summary-card-pro.has-error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.envelope-header-pro {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 12px;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 12px;
-  color: #334155;
 }
 
-.project-area-envelope-card.warning {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
-}
-
-.project-area-envelope-card.success {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-  color: #166534;
-}
-
-/* Floor Copy Action Bar */
-.floor-copy-action-bar {
+.env-title-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 8px 12px;
-  background: #f1f5f9;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  border: 1px solid #e2e8f0;
+  gap: 10px;
 }
 
-.copy-bar-label {
-  font-size: 12px;
+.env-title-group i {
+  color: #0284c7;
+  font-size: 15px;
+}
+
+.env-main-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.env-status-badge-pro {
+  font-size: 11px;
   font-weight: 700;
-  color: #334155;
-  margin-right: 4px;
-}
-
-.btn-copy-option {
+  padding: 4px 10px;
+  border-radius: 20px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
 
-.btn-copy-option:hover {
-  background: #f8fafc;
-  border-color: #0284c7;
+.env-status-badge-pro.badge-ok {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.env-status-badge-pro.badge-warn {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.envelope-metrics-grid-pro {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.metric-box-pro {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.metric-box-pro.highlight {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+}
+
+.metric-lbl-pro {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.metric-val-pro {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.metric-box-pro.highlight .metric-val-pro {
   color: #0284c7;
 }
 
-.btn-copy-option.active {
+.envelope-error-alert-pro {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #fecdd3;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #be123c;
+  font-weight: 600;
+}
+
+/* Floor Navigation Cards (Redesigned Tabs) */
+.floor-nav-cards-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.floor-nav-cards-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.floor-nav-cards-bar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.floor-tab-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 18px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 140px;
+  text-align: left;
+}
+
+.floor-tab-card:hover {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.floor-tab-card.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+  transform: translateY(-1px);
+}
+
+.floor-tab-card .tab-card-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.floor-tab-card .tab-card-hi {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.floor-tab-card.active .tab-card-name {
+  color: #ffffff;
+}
+
+.floor-tab-card.active .tab-card-hi {
+  color: #e0f2fe;
+}
+
+/* Selected Floor Hero Card */
+.selected-floor-hero-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.floor-hero-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0284c7;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);
+  flex-shrink: 0;
+}
+
+.floor-hero-text h4 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0369a1;
+  margin: 0;
+}
+
+.floor-hero-text p {
+  font-size: 12px;
+  color: #334155;
+  margin: 2px 0 0 0;
+}
+
+/* Dedicated Floor Area Card */
+.floor-area-card-pro {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.card-inner-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.card-inner-head i {
+  color: #0284c7;
+  font-size: 15px;
+}
+
+.card-head-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.floor-area-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 320px;
+}
+
+.floor-area-input-wrapper .floor-sqft-input {
+  padding-right: 55px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.input-unit-badge {
+  position: absolute;
+  right: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* Floor Capacity Metrics */
+.floor-capacity-pro-card {
+  margin-top: 12px;
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.floor-capacity-pro-card.capacity-ok {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.floor-capacity-pro-card.capacity-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.floor-capacity-pro-card.capacity-warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.capacity-metrics-grid-pro {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cap-metric-item {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 8px 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cap-metric-item.total-highlight {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.cap-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.cap-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.capacity-status-banner-pro {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.capacity-ok .capacity-status-banner-pro {
+  color: #166534;
+}
+
+.capacity-danger .capacity-status-banner-pro {
+  color: #991b1b;
+}
+
+.capacity-warn .capacity-status-banner-pro {
+  color: #92400e;
+}
+
+/* Floor Template Selector Card (Starting from Second Floor) */
+.floor-template-selector-card {
+  background: #ffffff;
+  border: 1.5px solid #e0f2fe;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.04);
+}
+
+.template-card-header {
+  margin-bottom: 12px;
+}
+
+.template-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-title-wrap i {
+  color: #0284c7;
+  font-size: 15px;
+}
+
+.template-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.template-desc {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-left: 24px;
+  display: block;
+}
+
+.template-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn-template-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.btn-template-choice i {
+  font-size: 16px;
+  color: #64748b;
+}
+
+.btn-template-choice .choice-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.btn-template-choice:hover {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+}
+
+.btn-template-choice.active {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 1px #0284c7;
+}
+
+.btn-template-choice.active i {
+  color: #0284c7;
+}
+
+.btn-template-choice.active .choice-title {
+  color: #0369a1;
+}
+
+.template-linked-banner {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Room Requirements Section Card & Grid */
+.room-requirements-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.room-cards-grid-pro {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.room-card-pro {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.room-card-pro:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.06);
+}
+
+.room-card-pro.has-rooms {
+  background: #f8fafc;
+  border-color: #38bdf8;
+}
+
+.room-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.room-card-header-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.room-card-header-line i {
+  color: #0284c7;
+  font-size: 13px;
+}
+
+.room-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.room-std-pill {
+  font-size: 10.5px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.room-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.qty-stepper-pro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.stepper-btn-pro {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.stepper-btn-pro:hover {
   background: #0284c7;
   border-color: #0284c7;
   color: #ffffff;
 }
 
-.copy-status-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 12px;
-  margin-left: auto;
+.stepper-btn-pro:active {
+  transform: scale(0.95);
 }
 
-.copy-status-badge.copied {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
+.stepper-val-pro {
+  min-width: 22px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
 }
 
-.copy-status-badge.manual {
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-}
-
-/* Room Standard Size Annotation */
-.room-std-info {
-  display: block;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: #64748b;
-  margin-top: 2px;
-}
-
-.room-counter-item {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.room-counter-main-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.room-prog-calc-pill {
-  font-size: 10px;
-  color: #0369a1;
-  background: #f0f9ff;
-  border-radius: 4px;
-  padding: 2px 6px;
-  margin-top: 2px;
-  display: inline-block;
-}
-
-/* Floor Capacity Summary Card */
-.floor-capacity-summary-card {
-  margin-top: 12px;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.floor-capacity-summary-card.valid {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
-}
-
-.floor-capacity-summary-card.exceeded {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-}
-
-.floor-capacity-summary-card.neutral {
-  background: #f8fafc;
+/* Dedicated Special Requirements Card */
+.special-requirements-card {
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  color: #475569;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-top: 16px;
 }
 
-/* Dimension Input 3-Column Grid */
-.room-dim-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.room-dim-grid input {
-  padding: 5px 8px;
-  font-size: 11.5px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  outline: none;
+.special-req-textarea {
+  margin-top: 8px;
   width: 100%;
-}
-
-.room-dim-grid input:focus {
-  border-color: #0284c7;
-}
-
-.room-dim-sublabel {
-  font-size: 10px;
-  color: #64748b;
-  margin-bottom: 2px;
 }
 
 /* =========================================================
@@ -1384,6 +1867,36 @@
   font-size: 10px;
   font-weight: 500;
   color: #64748b;
+}
+
+/* English-only UI enforcement */
+.hi-sub,
+.hi-inline {
+  display: none !important;
+}
+
+/* Non-blocking suggestion styling for Area Envelope */
+.envelope-summary-card-pro.envelope-suggestion {
+  background: #f8fafc;
+  border-color: #93c5fd;
+}
+
+.env-status-badge-pro.badge-suggestion {
+  background: #eff6ff;
+  color: #0284c7;
+  border: 1px solid #bfdbfe;
+}
+
+.envelope-suggestion-list-pro {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #bfdbfe;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #0369a1;
+  font-weight: 600;
 }
 
 
