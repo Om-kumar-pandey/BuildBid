@@ -34,52 +34,204 @@ tailwind.config = {
   }
 };
 
-/* DYNAMIC PERSONA CONFIGURATION SYSTEM (Javascript Object) */
+/* =========================================================
+   UTILITIES: GREETING, DATE, ESCAPING & FALLBACK AVATAR
+   ========================================================= */
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getDynamicGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
+function getDynamicDateString() {
+  const now = new Date();
+  return now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function updateLiveDate() {
+  const el = document.getElementById('live-datetime');
+  if (el) el.textContent = getDynamicDateString();
+}
+
+function getProfessionalFallbackAvatar(roleTitle) {
+  return "data:image/svg+xml;utf8," + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+      <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#1e3a8a"/>
+        </linearGradient>
+        <linearGradient id="helmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f97316"/>
+          <stop offset="100%" stop-color="#ea580c"/>
+        </linearGradient>
+      </defs>
+      <rect width="120" height="120" rx="28" fill="url(#bgGrad)"/>
+      <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+      <g transform="translate(60, 52)">
+        <path d="M -26 0 C -26 -18 26 -18 26 0 Z" fill="url(#helmGrad)"/>
+        <path d="M -30 0 C -30 3 30 3 30 0 L -30 0 Z" fill="#c2410c"/>
+        <path d="M -4 -16 L 4 -16 L 3 0 L -3 0 Z" fill="#ffedd5"/>
+        <path d="M -24 16 L -10 32 L 0 20 L 10 32 L 24 16 C 18 36 -18 36 -24 16 Z" fill="#ffffff" opacity="0.9"/>
+        <path d="M 0 20 L -4 34 L 0 38 L 4 34 Z" fill="#f97316"/>
+      </g>
+      <circle cx="92" cy="92" r="14" fill="#10b981" stroke="#0f172a" stroke-width="3"/>
+      <path d="M 87 92 L 91 96 L 98 88" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `);
+}
+
+function normalizeProfessionalType(raw) {
+  if (!raw || typeof raw !== 'string') return 'Professional';
+  const val = raw.trim();
+  if (!val) return 'Professional';
+  const lower = val.toLowerCase().replace(/_/g, ' ');
+  if (lower.includes('civil') || lower === 'engineer') return 'Civil Engineer';
+  if (lower.includes('architect')) return 'Architect';
+  if (lower.includes('interior')) return 'Interior Designer';
+  if (lower.includes('electric')) return 'Electrician';
+  if (lower.includes('plumb')) return 'Plumber';
+  if (lower.includes('mason') || lower.includes('mistri')) return 'Mason / Mistri';
+  if (lower.includes('carpent')) return 'Carpenter';
+  if (lower.includes('contractor')) return 'Contractor';
+  if (lower.includes('consult')) return 'Consultant';
+  return val.charAt(0).toUpperCase() + val.slice(1);
+}
+
+/* DYNAMIC PROFESSIONAL DATA SCHEMA & DEFAULT TEMPLATES */
+function createDefaultProfessional(name, type, location) {
+  const resolvedType = normalizeProfessionalType(type);
+  const resolvedName = (name && name.trim()) ? name.trim() : "Professional";
+  const resolvedLocation = (location && location.trim()) ? location.trim() : "";
+
+  return {
+    id: "",
+    name: resolvedName,
+    type: resolvedType,
+    category: resolvedType,
+    location: resolvedLocation,
+    pincode: "",
+    serviceRadius: 25,
+    rating: "—",
+    reviewsCount: 0,
+    experienceYears: 0,
+    completedProjects: 0,
+    avatar: getProfessionalFallbackAvatar(resolvedType),
+    about: "",
+    skills: [],
+    isVerified: false,
+    verificationStatus: "NOT_REQUIRED",
+    stats: {
+      newRequests: 0,
+      activeProjects: 0,
+      completedProjects: 0,
+      upcomingWork: 0,
+      totalEarnings: 0,
+      pendingPayments: 0,
+      profileViews: 0,
+      responseRate: "—",
+      completionRate: "—"
+    },
+    services: [],
+    requests: [],
+    projects: [],
+    documents: []
+  };
+}
+
+function initializeCurrentProfessional() {
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch (e) {}
+
+  if (cachedUser) {
+    const name = cachedUser.name || cachedUser.fullName || cachedUser.username || "Professional";
+    const location = cachedUser.location || "";
+    const rawType = cachedUser.category || cachedUser.profession || cachedUser.professionalType || cachedUser.type || "";
+    const type = normalizeProfessionalType(rawType);
+    const photoUrl = cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.profilePhotoUrl || cachedUser.photoUrl || "";
+    const pro = createDefaultProfessional(name, type, location);
+
+    if (cachedUser.id) pro.id = 'BBD-PRO-' + cachedUser.id;
+    if (cachedUser.isVerified || cachedUser.verified || cachedUser.verificationStatus === 'VERIFIED') {
+      pro.isVerified = true;
+      pro.verificationStatus = 'VERIFIED';
+    } else if (cachedUser.verificationStatus) {
+      pro.verificationStatus = cachedUser.verificationStatus;
+    }
+
+    if (Array.isArray(cachedUser.documents)) pro.documents = cachedUser.documents;
+    if (Array.isArray(cachedUser.requests)) pro.requests = cachedUser.requests;
+    if (Array.isArray(cachedUser.projects)) pro.projects = cachedUser.projects;
+
+    if (cachedUser.stats && typeof cachedUser.stats === 'object') {
+      Object.assign(pro.stats, cachedUser.stats);
+    } else {
+      if (typeof cachedUser.totalEarnings === 'number') pro.stats.totalEarnings = cachedUser.totalEarnings;
+      if (typeof cachedUser.pendingPayments === 'number') pro.stats.pendingPayments = cachedUser.pendingPayments;
+      if (typeof cachedUser.activeProjects === 'number') pro.stats.activeProjects = cachedUser.activeProjects;
+      if (typeof cachedUser.completedProjects === 'number') pro.stats.completedProjects = cachedUser.completedProjects;
+    }
+
+    if (cachedUser.rating !== undefined && cachedUser.rating !== null) pro.rating = cachedUser.rating;
+    if (cachedUser.reviewsCount !== undefined && cachedUser.reviewsCount !== null) pro.reviewsCount = cachedUser.reviewsCount;
+
+    return pro;
+  }
+
+  return createDefaultProfessional("Professional", "Professional", "");
+}
+
 const PERSONAS = {
   civil_engineer: {
     id: "BBD-CE-84920",
     name: "Professional",
     type: "Civil Engineer",
     category: "Structural Consultation & BOQ",
-    location: "Noida, Uttar Pradesh",
-    pincode: "201301",
+    location: "",
+    pincode: "",
     serviceRadius: 25,
-    rating: 4.8,
-    reviewsCount: 37,
-    experienceYears: 8,
-    completedProjects: 37,
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-    about: "Licensed Civil & Structural Engineer specialized in RCC building audits, beam & column reinforcement detailing, BOQ estimation, and municipal building bylaws approvals across Delhi NCR.",
+    rating: "—",
+    reviewsCount: 0,
+    experienceYears: 0,
+    completedProjects: 0,
+    avatar: getProfessionalFallbackAvatar("Civil Engineer"),
+    about: "Licensed Civil & Structural Engineer specialized in RCC building audits, beam & column reinforcement detailing, BOQ estimation, and municipal building approvals.",
     skills: ["Structural Audit", "BOQ Estimation", "RCC Detailing", "AutoCAD", "Slump Testing", "Seismic Compliance"],
+    isVerified: false,
+    verificationStatus: "NOT_REQUIRED",
     stats: {
       newRequests: 0,
-      activeProjects: 4,
-      completedProjects: 37,
-      upcomingWork: 6,
-      totalEarnings: 184500,
-      pendingPayments: 28500,
-      profileViews: 1245,
-      responseRate: "94%",
-      completionRate: "98%"
+      activeProjects: 0,
+      completedProjects: 0,
+      upcomingWork: 0,
+      totalEarnings: 0,
+      pendingPayments: 0,
+      profileViews: 0,
+      responseRate: "—",
+      completionRate: "—"
     },
     services: [
-      { id: 1, name: "Site Structural Inspection & Audit", price: "₹3,500", type: "Per Visit", duration: "1 Day", desc: "Comprehensive on-site load and RCC structural soundness evaluation with stamped report.", active: true },
-      { id: 2, name: "BOQ & Material Quantity Estimation", price: "₹8,000", type: "Per Project", duration: "3 Days", desc: "Exhaustive Bill of Quantities itemized by cement bags, TMT rebars, aggregate, and labor milestones.", active: true },
-      { id: 3, name: "Residential Construction Supervision", price: "₹25,000", type: "Per Month", duration: "Project Life", desc: "Regular weekly 3-day quality checks, slab casting supervision, and contractor compliance audits.", active: true },
-      { id: 4, name: "Foundation & Soil Soil-Bearing Consultation", price: "₹6,000", type: "Per Site", duration: "2 Days", desc: "Recommendation of raft or isolated footings based on soil investigation metrics.", active: false }
+      { id: 1, name: "Site Structural Inspection & Audit", price: "₹3,500", type: "Per Visit", duration: "1 Day", desc: "Comprehensive on-site load and RCC structural soundness evaluation with report.", active: true },
+      { id: 2, name: "BOQ & Material Quantity Estimation", price: "₹8,000", type: "Per Project", duration: "3 Days", desc: "Exhaustive Bill of Quantities itemized by cement bags, TMT rebars, aggregate, and labor milestones.", active: true }
     ],
     requests: [],
-    projects: [
-      { id: "PRJ-901", name: "Greenfield Villa Structural Works", customer: "Vikram Singhania", service: "Civil Supervision", start: "02 Sep 2026", deadline: "28 Oct 2026", budget: "₹75,000", progress: 68, status: "Active", nextMilestone: "Roof Slab Casting" },
-      { id: "PRJ-902", name: "Apex Heights Foundation Audit", customer: "Apex Infra Tech", service: "Structural Consultation", start: "20 Sep 2026", deadline: "15 Oct 2026", budget: "₹42,000", progress: 85, status: "Active", nextMilestone: "Final Safety Stamped Report" },
-      { id: "PRJ-903", name: "Modern Townhome BOQ", customer: "Neha Kapoor", service: "Quantity Estimation", start: "12 Aug 2026", deadline: "01 Sep 2026", budget: "₹22,000", progress: 100, status: "Completed", nextMilestone: "All milestones released" }
-    ],
-    documents: [
-      { title: "B.Tech Civil Engineering Degree", issuer: "AKTU Lucknow", idNumber: "AKTU-••••-9812", status: "Verified", date: "Jul 2018" },
-      { title: "Chartered Engineer Certification", issuer: "Institution of Engineers (India)", idNumber: "IEI-AM••••-410", status: "Verified", date: "Jan 2021" },
-      { title: "Aadhaar Identity Authentication (Masked)", issuer: "Govt of India (UIDAI)", idNumber: "•••• •••• 8912", status: "Verified", date: "Authenticated" },
-      { title: "Empanelled Structural Consultant", issuer: "NOIDA Urban Dev Authority", idNumber: "NOD-EMP-••••-24", status: "Verified", date: "Valid till 2028" }
-    ]
+    projects: [],
+    documents: []
   },
 
   interior_designer: {
@@ -87,162 +239,143 @@ const PERSONAS = {
     name: "Professional",
     type: "Interior Designer",
     category: "Interior Architecture & Spatial Design",
-    location: "Gurugram, Haryana",
-    pincode: "122002",
-    serviceRadius: 35,
-    rating: 4.9,
-    reviewsCount: 52,
-    experienceYears: 6,
-    completedProjects: 48,
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80",
-    about: "Award-winning interior stylist focusing on modern biophilic residential spaces, ergonomic modular kitchens, false ceiling lighting design, and photorealistic 3D visualization.",
+    location: "",
+    pincode: "",
+    serviceRadius: 25,
+    rating: "—",
+    reviewsCount: 0,
+    experienceYears: 0,
+    completedProjects: 0,
+    avatar: getProfessionalFallbackAvatar("Interior Designer"),
+    about: "Spatial planning and interior architectural concepts for modern residences and boutique retail spaces.",
     skills: ["3D Rendering", "Modular Kitchens", "False Ceiling", "Lighting Design", "Material Curation", "Space Planning"],
+    isVerified: false,
+    verificationStatus: "NOT_REQUIRED",
     stats: {
       newRequests: 0,
-      activeProjects: 5,
-      completedProjects: 48,
-      upcomingWork: 8,
-      totalEarnings: 342000,
-      pendingPayments: 54000,
-      profileViews: 2180,
-      responseRate: "98%",
-      completionRate: "97%"
+      activeProjects: 0,
+      completedProjects: 0,
+      upcomingWork: 0,
+      totalEarnings: 0,
+      pendingPayments: 0,
+      profileViews: 0,
+      responseRate: "—",
+      completionRate: "—"
     },
     services: [
-      { id: 11, name: "Complete 3D Walkthrough & Moodboard", price: "₹28,000", type: "Per Apartment", duration: "7 Days", desc: "High-definition 4K renders of living, master bedroom, and kitchen with finishes specified.", active: true },
-      { id: 12, name: "Turnkey Modular Kitchen Design", price: "₹18,000", type: "Fixed Quote", duration: "4 Days", desc: "Cabinet spatial layout, quartz countertop selection, and Hafele/Blum hardware BOQ.", active: true },
-      { id: 13, name: "False Ceiling & Ambient Lighting Plan", price: "₹12,000", type: "Per Floor", duration: "3 Days", desc: "Detailed CAD electrical co-ordination drawings for POP cove lighting and magnetic tracks.", active: true }
+      { id: 11, name: "Complete 3D Walkthrough & Moodboard", price: "₹28,000", type: "Per Apartment", duration: "7 Days", desc: "High-definition 4K renders of living, master bedroom, and kitchen with finishes specified.", active: true }
     ],
     requests: [],
-    projects: [
-      { id: "PRJ-911", name: "DLF Magnolias 3BHK Renovation", customer: "Rajiv Singhal", service: "Interior Architecture", start: "10 Aug 2026", deadline: "30 Oct 2026", budget: "₹1,85,000", progress: 74, status: "Active", nextMilestone: "Custom Wardrobes Installation" }
-    ],
-    documents: [
-      { title: "B.Des Interior Architecture", issuer: "NID Ahmedabad", idNumber: "NID-••••-674", status: "Verified", date: "Jun 2020" },
-      { title: "IIID Professional Certification", issuer: "Institute of Indian Interior Designers", idNumber: "IIID-••••-104", status: "Verified", date: "Aug 2021" },
-      { title: "Aadhaar Identity Verification (Masked)", issuer: "Govt of India (UIDAI)", idNumber: "•••• •••• 3419", status: "Verified", date: "Authenticated" }
-    ]
+    projects: [],
+    documents: []
   },
 
   electrician: {
-    id: "BBD-EL-40291",
+    id: "BBD-EL-19402",
     name: "Professional",
     type: "Electrician",
-    category: "Electrical Contracting & Maintenance",
-    location: "Delhi (South)",
-    pincode: "110017",
+    category: "Electrical Contracting & Load Management",
+    location: "",
+    pincode: "",
     serviceRadius: 20,
-    rating: 4.7,
-    reviewsCount: 89,
-    experienceYears: 10,
-    completedProjects: 112,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-    about: "Govt. Licensed Class-A Wireman specializing in complete conduit wiring for new builds, DB box distribution, short circuit detection, smart home automation, and solar inverter setup.",
-    skills: ["Conduit Wiring", "MCB/DB Dressing", "Smart Automation", "Earthing & Surge", "Load Calculation"],
+    rating: "—",
+    reviewsCount: 0,
+    experienceYears: 0,
+    completedProjects: 0,
+    avatar: getProfessionalFallbackAvatar("Electrician"),
+    about: "Licensed electrical contractor for residential wiring, DB dressing, earthing, and industrial load sanctioning.",
+    skills: ["Concealed Wiring", "DB Dressing", "Earthing & Surge", "DG Synchronization", "LED Lighting", "Load Testing"],
+    isVerified: false,
+    verificationStatus: "NOT_REQUIRED",
     stats: {
       newRequests: 0,
-      activeProjects: 3,
-      completedProjects: 112,
-      upcomingWork: 11,
-      totalEarnings: 98000,
-      pendingPayments: 12400,
-      profileViews: 1890,
-      responseRate: "96%",
-      completionRate: "99%"
+      activeProjects: 0,
+      completedProjects: 0,
+      upcomingWork: 0,
+      totalEarnings: 0,
+      pendingPayments: 0,
+      profileViews: 0,
+      responseRate: "—",
+      completionRate: "—"
     },
     services: [
-      { id: 21, name: "Complete Residential Conduit Wiring", price: "₹24", type: "Per Sq. Ft", duration: "5-7 Days", desc: "Laying ISI conduits, copper pull wiring, switchboard fixing, and loop testing.", active: true },
-      { id: 22, name: "Main Distribution Board (DB) Dressing", price: "₹2,200", type: "Per Panel", duration: "4 Hours", desc: "RCCB/MCB distribution balance, phase segregations, and neutral link testing.", active: true }
+      { id: 21, name: "Complete Residential Conduit Wiring", price: "₹24", type: "Per Sq. Ft", duration: "5-7 Days", desc: "Laying ISI conduits, copper pull wiring, switchboard fixing, and loop testing.", active: true }
     ],
     requests: [],
-    projects: [
-      { id: "PRJ-921", name: "Green Park Commercial Showroom Wiring", customer: "Komal Sethi", service: "Electrical Installation", start: "28 Sep 2026", deadline: "14 Oct 2026", budget: "₹34,000", progress: 60, status: "Active", nextMilestone: "DB Box Wiring & Phase Balancing" }
-    ],
-    documents: [
-      { title: "Govt. Wireman Grade-A License", issuer: "Delhi Electrical Inspectorate", idNumber: "DEL-W-••••-890", status: "Verified", date: "Valid till 2029" },
-      { title: "ITI Certificate in Electrical Works", issuer: "NCVT", idNumber: "ITI-••••-551", status: "Verified", date: "May 2015" },
-      { title: "Aadhaar Card (Masked)", issuer: "Govt of India", idNumber: "•••• •••• 9012", status: "Verified", date: "Authenticated" }
-    ]
+    projects: [],
+    documents: []
   },
 
   plumber: {
-    id: "BBD-PL-55102",
+    id: "BBD-PL-67104",
     name: "Professional",
     type: "Plumber",
-    category: "Sanitary & Plumbing Specialist",
-    location: "Ghaziabad, Uttar Pradesh",
-    pincode: "201012",
-    serviceRadius: 18,
-    rating: 4.8,
-    reviewsCount: 64,
-    experienceYears: 7,
-    completedProjects: 78,
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
-    about: "Certified piping & sanitation technician expert in CPVC/UPVC concealed pipe layouts, grohe/kohler diverter installations, water tank booster pumps, and underground drainage slope alignments.",
-    skills: ["CPVC/UPVC Piping", "Concealed Diverters", "Booster Pumps", "Drainage Outflow", "Leak Inspection"],
+    category: "Sanitary, Drainage & Water Supply",
+    location: "",
+    pincode: "",
+    serviceRadius: 15,
+    rating: "—",
+    reviewsCount: 0,
+    experienceYears: 0,
+    completedProjects: 0,
+    avatar: getProfessionalFallbackAvatar("Plumber"),
+    about: "Master plumbing technician specializing in CPVC/UPVC concealed pipefitting, pressure booster pumps, and water management.",
+    skills: ["CPVC Concealed Piping", "Overhead Tank Boosters", "Sump Pump Systems", "Water Softeners", "Pressure Testing", "Drainage Grids"],
+    isVerified: false,
+    verificationStatus: "NOT_REQUIRED",
     stats: {
       newRequests: 0,
-      activeProjects: 2,
-      completedProjects: 78,
-      upcomingWork: 4,
-      totalEarnings: 82500,
-      pendingPayments: 9500,
-      profileViews: 940,
-      responseRate: "93%",
-      completionRate: "98%"
+      activeProjects: 0,
+      completedProjects: 0,
+      upcomingWork: 0,
+      totalEarnings: 0,
+      pendingPayments: 0,
+      profileViews: 0,
+      responseRate: "—",
+      completionRate: "—"
     },
     services: [
-      { id: 31, name: "Concealed Bathroom Pipe Fitting", price: "₹6,500", type: "Per Bathroom", duration: "2 Days", desc: "Pressure-tested hot/cold lines with wall-hung commode chair bracket mounting.", active: true },
-      { id: 32, name: "Overhead Tank & Pressure Booster Setup", price: "₹2,800", type: "Per Setup", duration: "Half Day", desc: "Multi-point distribution lines with anti-vibration mountings.", active: true }
+      { id: 31, name: "Concealed Bathroom Pipe Fitting", price: "₹6,500", type: "Per Bathroom", duration: "2 Days", desc: "Pressure-tested hot/cold lines with wall-hung commode chair bracket mounting.", active: true }
     ],
     requests: [],
-    projects: [
-      { id: "PRJ-931", name: "Duplex Sanitary Pipeline Setup", customer: "Pooja Chawla", service: "Plumbing Contract", start: "22 Sep 2026", deadline: "12 Oct 2026", budget: "₹26,000", progress: 80, status: "Active", nextMilestone: "Sanitary Ware Fixing" }
-    ],
-    documents: [
-      { title: "National Skills Qualification (NSQF - Plumbing)", issuer: "Skill India", idNumber: "SKL-PL-••••-332", status: "Verified", date: "Nov 2019" },
-      { title: "Aadhaar Card (Masked)", issuer: "Govt of India", idNumber: "•••• •••• 7120", status: "Verified", date: "Authenticated" }
-    ]
+    projects: [],
+    documents: []
   },
 
   mason: {
-    id: "BBD-MS-30988",
+    id: "BBD-MS-48201",
     name: "Professional",
     type: "Mason / Mistri",
-    category: "Civil Masonry & Plastering Specialist",
-    location: "Greater Noida, Uttar Pradesh",
-    pincode: "201310",
+    category: "Brick Masonry, Plaster & Structural Labour",
+    location: "",
+    pincode: "",
     serviceRadius: 30,
-    rating: 4.6,
-    reviewsCount: 41,
-    experienceYears: 14,
-    completedProjects: 93,
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80",
-    about: "Head Mistri leading skilled labor crews for first-class red brickwork, 1:4 plastering, PCC levelling, AAC lightweight block laying, and precision tile leveling systems.",
-    skills: ["AAC Blockwork", "Red Brick Masonry", "Sponge Plastering", "Tile Cladding", "Foundation PCC"],
+    rating: "—",
+    reviewsCount: 0,
+    experienceYears: 0,
+    completedProjects: 0,
+    avatar: getProfessionalFallbackAvatar("Mason / Mistri"),
+    about: "Experienced head mistri leading skilled masonry teams for red-brick masonry, AAC block laying, sand-face plastering, and RCC foundation casting.",
+    skills: ["Red Brick Laying", "AAC Block Work", "External Sand Plaster", "Coping & Lintel Casting", "Waterproofing Plaster", "Plumb Line Precision"],
+    isVerified: false,
+    verificationStatus: "NOT_REQUIRED",
     stats: {
       newRequests: 0,
-      activeProjects: 3,
-      completedProjects: 93,
-      upcomingWork: 5,
-      totalEarnings: 142000,
-      pendingPayments: 21000,
-      profileViews: 1100,
-      responseRate: "90%",
-      completionRate: "96%"
+      activeProjects: 0,
+      completedProjects: 0,
+      upcomingWork: 0,
+      totalEarnings: 0,
+      pendingPayments: 0,
+      profileViews: 0,
+      responseRate: "—",
+      completionRate: "—"
     },
     services: [
-      { id: 41, name: "9-inch Red Brick / AAC Block Masonry", price: "₹18", type: "Per Sq. Ft", duration: "Team Work", desc: "Plumb line verified mortar bonding with expansion joint treatment.", active: true },
-      { id: 42, name: "Double Coat Sand Face External Plaster", price: "₹14", type: "Per Sq. Ft", duration: "Team Work", desc: "Water-resistant cement mortar with smooth sponge finish.", active: true }
+      { id: 41, name: "9-inch Red Brick / AAC Block Masonry", price: "₹18", type: "Per Sq. Ft", duration: "Team Work", desc: "Plumb line verified mortar bonding with expansion joint treatment.", active: true }
     ],
     requests: [],
-    projects: [
-      { id: "PRJ-941", name: "Farmhouse AAC Block Outer Boundary", customer: "Alok Goel", service: "Masonry Contract", start: "25 Sep 2026", deadline: "20 Oct 2026", budget: "₹58,000", progress: 45, status: "Active", nextMilestone: "Coping & Internal Plastering" }
-    ],
-    documents: [
-      { title: "Building & Construction Workers (BOCW) ID", issuer: "UP Labour Welfare Board", idNumber: "UP-BOCW-••••-881", status: "Verified", date: "Valid till 2027" },
-      { title: "Aadhaar Card (Masked)", issuer: "Govt of India", idNumber: "•••• •••• 5590", status: "Verified", date: "Authenticated" }
-    ]
+    projects: [],
+    documents: []
   }
 };
 
@@ -277,33 +410,58 @@ function getCleanToken() {
   return token;
 }
 
-function normalizeProfessionalType(raw) {
-  if (!raw || typeof raw !== 'string') return 'Professional';
-  const val = raw.trim();
-  const lower = val.toLowerCase().replace(/_/g, ' ');
-  if (lower.includes('civil') || lower === 'engineer') return 'Civil Engineer';
-  if (lower.includes('architect')) return 'Architect';
-  if (lower.includes('interior')) return 'Interior Designer';
-  if (lower.includes('electric')) return 'Electrician';
-  if (lower.includes('plumb')) return 'Plumber';
-  if (lower.includes('mason') || lower.includes('mistri')) return 'Mason / Mistri';
-  if (lower.includes('carpent')) return 'Carpenter';
-  return val.charAt(0).toUpperCase() + val.slice(1);
-}
-
-function applyProfessionalIdentity(name, location, type) {
+function applyProfessionalIdentity(name, location, type, photoUrl) {
   if (name && name.trim()) {
     currentPro.name = name.trim();
   }
-  if (location && location.trim()) {
+  if (location !== undefined && location !== null) {
     currentPro.location = location.trim();
   }
   if (type && type.trim()) {
     currentPro.type = type.trim();
     currentPro.category = type.trim();
+  } else if (!currentPro.type) {
+    currentPro.type = 'Professional';
+    currentPro.category = 'Professional';
   }
 
+  // Profile image resolution:
+  // IF professional has uploaded/set a profile image: show actual image.
+  // ELSE: show professional-role default avatar/icon.
+  // Never show random stock person or stock URLs.
+  let resolvedAvatar = "";
+  const candidateUrl = (photoUrl || currentPro.profilePhotoUrl || currentPro.photoUrl || currentPro.avatar || "").toString().trim();
+  const isInvalidStock = !candidateUrl || 
+                         candidateUrl.includes("images.unsplash.com") || 
+                         candidateUrl.includes("placehold.co") || 
+                         candidateUrl.includes("via.placeholder");
+
+  if (!isInvalidStock && (candidateUrl.startsWith("http") || candidateUrl.startsWith("data:") || candidateUrl.startsWith("/"))) {
+    resolvedAvatar = candidateUrl;
+  } else {
+    resolvedAvatar = getProfessionalFallbackAvatar(currentPro.type);
+  }
+
+  currentPro.avatar = resolvedAvatar;
+
   // Update DOM elements
+  const sideAvatar = document.getElementById('side-avatar');
+  if (sideAvatar) {
+    sideAvatar.src = resolvedAvatar;
+    sideAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
+  }
+
+  const topAvatar = document.getElementById('top-avatar');
+  if (topAvatar) {
+    topAvatar.src = resolvedAvatar;
+    topAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
+  }
+
+  const sideBadge = document.getElementById('side-verified-badge');
+  if (sideBadge) {
+    sideBadge.classList.toggle('hidden', !(currentPro.isVerified || currentPro.verificationStatus === 'VERIFIED'));
+  }
+
   const sideName = document.getElementById('side-name');
   if (sideName) sideName.innerText = currentPro.name;
 
@@ -311,10 +469,13 @@ function applyProfessionalIdentity(name, location, type) {
   if (sideRole) sideRole.innerText = currentPro.type;
 
   const sideLoc = document.getElementById('side-loc');
-  if (sideLoc) sideLoc.innerText = currentPro.location;
+  if (sideLoc) sideLoc.innerText = currentPro.location || 'Location not specified';
 
   const topGreeting = document.getElementById('top-greeting');
-  if (topGreeting) topGreeting.innerHTML = `Good Morning, ${currentPro.name} 👋`;
+  if (topGreeting) {
+    const greeting = getDynamicGreeting();
+    topGreeting.innerHTML = `${greeting}, ${escapeHtml(currentPro.name)} 👋`;
+  }
 
   const topRoleBadge = document.getElementById('top-role-badge');
   if (topRoleBadge) topRoleBadge.innerText = currentPro.type;
@@ -325,8 +486,17 @@ function applyProfessionalIdentity(name, location, type) {
   const menuName = document.getElementById('menu-name');
   if (menuName) menuName.innerText = currentPro.name;
 
+  const menuId = document.getElementById('menu-id');
+  if (menuId) menuId.innerText = currentPro.id ? `ID: ${currentPro.id}` : 'BuildBid Professional';
+
   const topSubtext = document.getElementById('top-subtext');
-  if (topSubtext) topSubtext.innerText = `Active for on-site ${currentPro.type.toLowerCase()} consultations`;
+  if (topSubtext) {
+    topSubtext.innerText = currentPro.type === 'Professional'
+      ? 'Active for professional service consultations'
+      : `Active for on-site ${currentPro.type.toLowerCase()} consultations`;
+  }
+
+  updateLiveDate();
 }
 
 function syncIdentityWithStoredSession() {
@@ -337,12 +507,41 @@ function syncIdentityWithStoredSession() {
   } catch (e) {}
 
   if (cachedUser) {
-    const name = cachedUser.name || cachedUser.fullName || cachedUser.username || "";
+    const name = cachedUser.name || cachedUser.fullName || cachedUser.username || "Professional";
     const location = cachedUser.location || "";
     const rawType = cachedUser.category || cachedUser.profession || cachedUser.professionalType || cachedUser.type || "";
     const type = normalizeProfessionalType(rawType);
-    applyProfessionalIdentity(name, location, type);
+    const photoUrl = cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.profilePhotoUrl || cachedUser.photoUrl || "";
+
+    const isVerified = Boolean(
+      cachedUser.isVerified || 
+      cachedUser.verified || 
+      cachedUser.verificationStatus === 'VERIFIED'
+    );
+    currentPro.isVerified = isVerified;
+    currentPro.verificationStatus = cachedUser.verificationStatus || (isVerified ? 'VERIFIED' : 'NOT_REQUIRED');
+
+    if (Array.isArray(cachedUser.documents)) currentPro.documents = cachedUser.documents;
+    if (Array.isArray(cachedUser.requests)) currentPro.requests = cachedUser.requests;
+    if (Array.isArray(cachedUser.projects)) currentPro.projects = cachedUser.projects;
+
+    if (cachedUser.stats && typeof cachedUser.stats === 'object') {
+      Object.assign(currentPro.stats, cachedUser.stats);
+    } else {
+      if (typeof cachedUser.totalEarnings === 'number') currentPro.stats.totalEarnings = cachedUser.totalEarnings;
+      if (typeof cachedUser.pendingPayments === 'number') currentPro.stats.pendingPayments = cachedUser.pendingPayments;
+      if (typeof cachedUser.activeProjects === 'number') currentPro.stats.activeProjects = cachedUser.activeProjects;
+      if (typeof cachedUser.completedProjects === 'number') currentPro.stats.completedProjects = cachedUser.completedProjects;
+    }
+
+    if (cachedUser.rating !== undefined && cachedUser.rating !== null) currentPro.rating = cachedUser.rating;
+    if (cachedUser.reviewsCount !== undefined && cachedUser.reviewsCount !== null) currentPro.reviewsCount = cachedUser.reviewsCount;
+
+    applyProfessionalIdentity(name, location, type, photoUrl);
+  } else {
+    applyProfessionalIdentity(currentPro.name, currentPro.location, currentPro.type, "");
   }
+  updateLiveDate();
 }
 
 async function fetchAndUpdateProfile() {
@@ -367,8 +566,57 @@ async function fetchAndUpdateProfile() {
       } catch (e) {}
       const rawType = (cachedUser && (cachedUser.category || cachedUser.profession || cachedUser.type)) || profile.category || profile.profession || profile.type || "";
       const type = normalizeProfessionalType(rawType);
+      const photoUrl = profile.profilePhotoUrl || profile.profilePhoto || profile.avatarUrl || (cachedUser && (cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.profilePhotoUrl)) || "";
 
-      applyProfessionalIdentity(name, location, type);
+      const isVerified = Boolean(
+        profile.verified || 
+        profile.isVerified || 
+        profile.verificationStatus === 'VERIFIED' ||
+        (cachedUser && (cachedUser.isVerified || cachedUser.verified || cachedUser.verificationStatus === 'VERIFIED'))
+      );
+      currentPro.isVerified = isVerified;
+      currentPro.verificationStatus = profile.verificationStatus || (isVerified ? 'VERIFIED' : 'NOT_REQUIRED');
+
+      applyProfessionalIdentity(name, location, type, photoUrl);
+
+      // Load services to check for real verification and documents
+      try {
+        const sRes = await fetch(`${getApiBaseUrl()}/api/professional/services`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+        if (sRes.ok) {
+          const sList = await sRes.json();
+          if (Array.isArray(sList) && sList.length > 0) {
+            currentPro.services = sList;
+            const liveDocs = [];
+            let anyVerified = false;
+            sList.forEach(s => {
+              if (s.verificationStatus === 'VERIFIED') anyVerified = true;
+              if (s.licenseNumber || s.qualificationTitle || s.documentName) {
+                liveDocs.push({
+                  title: s.qualificationTitle || s.serviceTitleEn || 'Professional Credential',
+                  issuer: s.issuingAuthority || 'Regulatory Board',
+                  idNumber: s.licenseNumber ? `LIC-••••-${s.licenseNumber.slice(-4)}` : 'On file',
+                  status: s.verificationStatus || 'PENDING',
+                  date: s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recent'
+                });
+              }
+            });
+            if (anyVerified) {
+              currentPro.isVerified = true;
+              currentPro.verificationStatus = 'VERIFIED';
+            }
+            if (liveDocs.length > 0) {
+              currentPro.documents = liveDocs;
+            }
+          }
+        }
+      } catch (sErr) {
+        console.warn("Could not fetch professional services for credentials:", sErr);
+      }
 
       // Re-render active route view with fresh values
       navigate(activeRoute);
@@ -481,7 +729,7 @@ function getInitialPersonaKey() {
 
 let activePersonaKey = getInitialPersonaKey();
 let activeRoute = 'dashboard';
-let currentPro = JSON.parse(JSON.stringify(PERSONAS[activePersonaKey]));
+let currentPro = initializeCurrentProfessional();
 syncIdentityWithStoredSession();
 
 function showToast(message, type = 'info') {
@@ -739,26 +987,40 @@ function switchPersona(newKey) {
   const sideRole = document.getElementById('side-role');
   if (sideRole) sideRole.innerText = currentPro.type;
   const sideLoc = document.getElementById('side-loc');
-  if (sideLoc) sideLoc.innerText = currentPro.location;
+  if (sideLoc) sideLoc.innerText = currentPro.location || 'Location not specified';
+  const sideBadge = document.getElementById('side-verified-badge');
+  if (sideBadge) {
+    sideBadge.classList.toggle('hidden', !(currentPro.isVerified || currentPro.verificationStatus === 'VERIFIED'));
+  }
   const sideAvatar = document.getElementById('side-avatar');
-  if (sideAvatar) sideAvatar.src = currentPro.avatar;
+  if (sideAvatar) {
+    sideAvatar.src = currentPro.avatar;
+    sideAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
+  }
 
   const topGreeting = document.getElementById('top-greeting');
-  if (topGreeting) topGreeting.innerHTML = `Good Morning, ${currentPro.name} 👋`;
+  if (topGreeting) topGreeting.innerHTML = `${getDynamicGreeting()}, ${escapeHtml(currentPro.name)} 👋`;
   const topRoleBadge = document.getElementById('top-role-badge');
   if (topRoleBadge) topRoleBadge.innerText = currentPro.type;
   const topName = document.getElementById('top-name');
   if (topName) topName.innerText = currentPro.name;
   const topAvatar = document.getElementById('top-avatar');
-  if (topAvatar) topAvatar.src = currentPro.avatar;
+  if (topAvatar) {
+    topAvatar.src = currentPro.avatar;
+    topAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
+  }
   const menuName = document.getElementById('menu-name');
   if (menuName) menuName.innerText = currentPro.name;
   const menuId = document.getElementById('menu-id');
-  if (menuId) menuId.innerText = `ID: ${currentPro.id}`;
+  if (menuId) menuId.innerText = currentPro.id ? `ID: ${currentPro.id}` : 'BuildBid Professional';
+
+  updateLiveDate();
 
   // Re-render the current view
-  navigate(activeRoute);
-  showToast(`Active trade updated to ${currentPro.type}`, 'success');
+  const container = document.getElementById('main-view');
+  if (container) {
+    navigate(activeRoute);
+  }
 }
 
 function navigate(route) {
@@ -823,44 +1085,257 @@ function navigate(route) {
   container.scrollTop = 0;
 }
 
+function getHeroVerificationBadgeHtml(pro) {
+  if (pro.isVerified || pro.verificationStatus === 'VERIFIED') {
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+        <i class="fa-solid fa-circle-check text-[10px]"></i> Verified Professional
+      </span>
+    `;
+  } else if (pro.verificationStatus === 'PENDING') {
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+        <i class="fa-solid fa-clock text-[10px]"></i> Verification In Review
+      </span>
+    `;
+  } else {
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/10 text-slate-200 border border-white/20">
+        <i class="fa-solid fa-user-check text-[10px]"></i> Professional Account
+      </span>
+    `;
+  }
+}
+
+function getHeroVerificationBadgeHtml(pro) {
+  if (pro.isVerified || pro.verificationStatus === 'VERIFIED') {
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+        <i class="fa-solid fa-circle-check text-[10px]"></i> Verified Professional
+      </span>
+    `;
+  } else if (pro.verificationStatus === 'PENDING') {
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+        <i class="fa-solid fa-clock text-[10px]"></i> Verification In Review
+      </span>
+    `;
+  } else {
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/10 text-slate-200 border border-white/20">
+        <i class="fa-solid fa-user-check text-[10px]"></i> Professional Account
+      </span>
+    `;
+  }
+}
+
 function renderDashboard(container) {
+  const displayRole = (currentPro.type && currentPro.type.trim()) ? escapeHtml(currentPro.type) : 'Professional';
+  const displayLoc = (currentPro.location && currentPro.location.trim()) ? escapeHtml(currentPro.location) : 'Location not specified';
+  const locArea = (currentPro.location && currentPro.location.trim()) ? escapeHtml(currentPro.location.split(',')[0].trim()) : 'your service';
+  
+  // Real request counts
+  const reqCount = (currentPro.requests && Array.isArray(currentPro.requests)) ? currentPro.requests.length : 0;
+  
+  // Real stats
+  const pendingEscrow = typeof currentPro.stats?.pendingPayments === 'number' ? currentPro.stats.pendingPayments : 0;
+  const totalEarnings = typeof currentPro.stats?.totalEarnings === 'number' ? currentPro.stats.totalEarnings : 0;
+  const activePrjCount = typeof currentPro.stats?.activeProjects === 'number' 
+    ? currentPro.stats.activeProjects 
+    : (Array.isArray(currentPro.projects) ? currentPro.projects.filter(p => p.status === 'Active').length : 0);
+  const completedPrjCount = typeof currentPro.stats?.completedProjects === 'number' 
+    ? currentPro.stats.completedProjects 
+    : (Array.isArray(currentPro.projects) ? currentPro.projects.filter(p => p.status === 'Completed').length : 0);
+
+  // Credentials / Documents logic for Card 1
+  const hasDocs = Array.isArray(currentPro.documents) && currentPro.documents.length > 0;
+  const isVerifiedAccount = Boolean(currentPro.isVerified || currentPro.verificationStatus === 'VERIFIED');
+  const isPendingAccount = currentPro.verificationStatus === 'PENDING';
+
+  let card1StatusBadge = '';
+  let card1Subtitle = '';
+  if (isVerifiedAccount) {
+    card1StatusBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">Verified</span>';
+    card1Subtitle = 'Authenticated Record';
+  } else if (isPendingAccount) {
+    card1StatusBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800">In Review</span>';
+    card1Subtitle = 'Verification Pending';
+  } else {
+    card1StatusBadge = '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600">Standard</span>';
+    card1Subtitle = 'Profile & Licensing';
+  }
+
+  let card1DetailsHtml = '';
+  if (hasDocs) {
+    const doc1 = currentPro.documents[0];
+    const doc2 = currentPro.documents[1];
+    card1DetailsHtml = `
+      <div class="space-y-1.5 my-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+        <div class="flex items-center justify-between text-slate-600">
+          <span class="flex items-center gap-1.5 truncate mr-2"><i class="fa-solid fa-file-contract text-emerald-600 text-[11px]"></i> ${escapeHtml(doc1.title || 'Credential')}:</span>
+          <strong class="text-slate-800 font-mono text-[11px] flex-shrink-0">${escapeHtml(doc1.idNumber || doc1.status || 'On File')}</strong>
+        </div>
+        ${doc2 ? `
+          <div class="flex items-center justify-between text-slate-600">
+            <span class="flex items-center gap-1.5 truncate mr-2"><i class="fa-solid fa-stamp text-emerald-600 text-[11px]"></i> ${escapeHtml(doc2.title || 'License')}:</span>
+            <strong class="text-slate-800 font-mono text-[11px] flex-shrink-0">${escapeHtml(doc2.idNumber || doc2.status || 'On File')}</strong>
+          </div>
+        ` : `
+          <div class="flex items-center justify-between text-slate-600">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-check text-sky-600 text-[11px]"></i> Status:</span>
+            <strong class="text-slate-800">${escapeHtml(doc1.status || 'Active')}</strong>
+          </div>
+        `}
+      </div>
+    `;
+  } else {
+    card1DetailsHtml = `
+      <div class="space-y-1.5 my-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+        <div class="flex items-center justify-between text-slate-600">
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-id-card text-slate-400 text-[11px]"></i> Identity Record:</span>
+          <strong class="text-slate-500 font-normal">Not uploaded</strong>
+        </div>
+        <div class="flex items-center justify-between text-slate-600">
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-stamp text-slate-400 text-[11px]"></i> Trade License:</span>
+          <strong class="text-slate-500 font-normal">Not on file</strong>
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <div class="space-y-7 max-w-[1700px] mx-auto">
-      <!-- TOP ROW: Professional Trust & Verification Card (Masked Privacy) -->
-      <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-subtle flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-        <div class="flex items-center space-x-4">
-          <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0 border border-emerald-100">
-            <i class="fa-solid fa-shield-check"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2.5">
-              <h2 class="text-base font-bold text-slate-900">BuildBid Professional Verification & Escrow Protection</h2>
-              <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">100% VERIFIED</span>
+      <!-- TOP BLUE PROFESSIONAL HERO (Inspired by BuildBid Reference Image) -->
+      <div class="pro-hero-card mb-6">
+        <div class="pro-hero-glow-1"></div>
+        <div class="pro-hero-glow-2"></div>
+
+        <!-- Hero Header Row -->
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-sky-400/20">
+          <div class="flex items-center gap-3.5">
+            <div class="pro-hero-icon-box">
+              <i class="fa-solid fa-helmet-safety"></i>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Government ID, trade competence credentials, and payout banking lines are authenticated.</p>
+            <div>
+              <div class="flex items-center gap-2.5 flex-wrap">
+                <h2 class="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                  ${getDynamicGreeting()}, <span class="text-sky-300 font-extrabold">${escapeHtml(currentPro.name)}</span>!
+                </h2>
+                ${getHeroVerificationBadgeHtml(currentPro)}
+              </div>
+              <p class="text-xs sm:text-[13px] text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-sky-200">${displayRole} Workspace</span>
+                <span class="text-slate-500">•</span>
+                <span><i class="fa-solid fa-location-dot text-sky-400 text-[11px] mr-1"></i>${displayLoc}</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Header Right Quick Actions -->
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button onclick="navigate('find-work')" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition backdrop-blur-xs pro-btn">
+              <i class="fa-solid fa-magnifying-glass-location text-sky-400 text-xs"></i>
+              <span>Find Leads</span>
+            </button>
+            <button onclick="navigate('documents')" class="px-3.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 text-xs font-semibold flex items-center gap-2 transition backdrop-blur-xs pro-btn">
+              <i class="fa-solid fa-shield-check text-sky-300 text-xs"></i>
+              <span>Credentials</span>
+            </button>
+            <button onclick="window.location.href='add-new-service.html'" class="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm pro-btn">
+              <i class="fa-solid fa-plus text-xs"></i>
+              <span>Add Service</span>
+            </button>
           </div>
         </div>
 
-        <!-- Masked Credential Tags -->
-        <div class="flex flex-wrap items-center gap-3 text-xs">
-          <div class="px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center space-x-2">
-            <i class="fa-solid fa-id-card text-emerald-600"></i>
-            <span class="text-slate-600">Aadhaar (UIDAI): <strong class="text-slate-800">•••• •••• 8912</strong></span>
+        <!-- 3 Feature Cards Row (Mirroring Reference Image Layout) -->
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+          <!-- Card 1: Verified Credentials -->
+          <div class="pro-hero-feature-card">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="pro-exp-icon pro-exp-emerald">
+                    <i class="fa-solid fa-shield-check"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-900 leading-snug">Trade Credentials</h3>
+                    <p class="text-[11px] text-slate-500">${card1Subtitle}</p>
+                  </div>
+                </div>
+                ${card1StatusBadge}
+              </div>
+              ${card1DetailsHtml}
+            </div>
+            <button onclick="navigate('documents')" class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition pro-btn">
+              <span>${hasDocs ? 'View Credentials' : 'Manage Credentials'}</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
           </div>
-          <div class="px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center space-x-2">
-            <i class="fa-solid fa-stamp text-emerald-600"></i>
-            <span class="text-slate-600">Trade License: <strong class="text-slate-800">${currentPro.documents[1]?.idNumber || 'AUTH-••••-410'}</strong></span>
+
+          <!-- Card 2: Client Work Leads -->
+          <div class="pro-hero-feature-card">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="pro-exp-icon pro-exp-orange">
+                    <i class="fa-solid fa-inbox"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-900 leading-snug">Client Requests</h3>
+                    <p class="text-[11px] text-slate-500">Inbound Work Leads</p>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-100 text-orange-800">${reqCount} Live ${reqCount === 1 ? 'Lead' : 'Leads'}</span>
+              </div>
+              <div class="my-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-slate-600 leading-relaxed">
+                <p>Direct quotation & site inspection requests in <strong>${locArea}</strong> area.</p>
+                <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Real-time lead notifications</p>
+              </div>
+            </div>
+            <button onclick="navigate('requests')" class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-2 transition shadow-sm pro-btn">
+              <span>Inspect Client Requests</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
           </div>
-          <div class="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center space-x-2 text-emerald-800 font-semibold">
-            <i class="fa-solid fa-building-columns"></i>
-            <span>Direct Escrow Active</span>
+
+          <!-- Card 3: Active Projects & Escrow Security -->
+          <div class="pro-hero-feature-card">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="pro-exp-icon pro-exp-blue">
+                    <i class="fa-solid fa-building-shield"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-900 leading-snug">Escrow Security</h3>
+                    <p class="text-[11px] text-slate-500">Guaranteed Milestones</p>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800">₹${pendingEscrow.toLocaleString('en-IN')} Escrow</span>
+              </div>
+              <div class="space-y-1.5 my-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <div class="flex items-center justify-between text-slate-600">
+                  <span>Active Contracts:</span>
+                  <strong class="text-slate-800">${activePrjCount} In Progress</strong>
+                </div>
+                <div class="flex items-center justify-between text-slate-600">
+                  <span>Cleared Payouts:</span>
+                  <strong class="text-emerald-600">₹${totalEarnings.toLocaleString('en-IN')}</strong>
+                </div>
+              </div>
+            </div>
+            <button onclick="navigate('projects')" class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center gap-2 transition pro-btn">
+              <span>Track Active Milestones</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
           </div>
         </div>
       </div>
 
       <!-- 8 DESKTOP STATS CARDS GRID -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-orange-300 transition">
+        <div onclick="navigate('requests')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-orange-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">New Work Requests</span>
             <span class="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xs">
@@ -868,13 +1343,15 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats.newRequests}</span>
-            <span class="text-xs font-bold text-emerald-600">+12% this month</span>
+            <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats?.newRequests ?? 0}</span>
+            ${(currentPro.stats?.newRequests ?? 0) > 0 
+              ? '<span class="text-xs font-bold text-emerald-600">Active</span>' 
+              : '<span class="text-xs font-bold text-slate-400">None pending</span>'}
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Pending client bids in your area</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-blue-300 transition">
+        <div onclick="navigate('projects')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-blue-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Active Projects</span>
             <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
@@ -882,13 +1359,15 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">0${currentPro.stats.activeProjects}</span>
-            <span class="text-xs font-bold text-blue-600">On Track</span>
+            <span class="text-3xl font-extrabold text-slate-900">${activePrjCount < 10 ? '0' + activePrjCount : activePrjCount}</span>
+            ${activePrjCount > 0 
+              ? '<span class="text-xs font-bold text-blue-600">In Progress</span>' 
+              : '<span class="text-xs font-bold text-slate-400">0 Active</span>'}
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Milestones under execution</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-emerald-300 transition">
+        <div onclick="navigate('earnings')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-emerald-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Total Cleared Earnings</span>
             <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
@@ -896,13 +1375,13 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">₹${currentPro.stats.totalEarnings.toLocaleString('en-IN')}</span>
-            <span class="text-xs font-bold text-emerald-600">+18% MoM</span>
+            <span class="text-3xl font-extrabold text-slate-900">₹${totalEarnings.toLocaleString('en-IN')}</span>
+            <span class="text-xs font-bold ${totalEarnings > 0 ? 'text-emerald-600' : 'text-slate-400'}">Direct Escrow</span>
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Directly settled to your bank</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-amber-300 transition">
+        <div onclick="navigate('earnings')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-amber-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Pending in Escrow</span>
             <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
@@ -910,13 +1389,13 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-amber-600">₹${currentPro.stats.pendingPayments.toLocaleString('en-IN')}</span>
-            <span class="text-xs font-bold text-amber-600">2 Milestones</span>
+            <span class="text-3xl font-extrabold text-amber-600">₹${pendingEscrow.toLocaleString('en-IN')}</span>
+            <span class="text-xs font-bold ${pendingEscrow > 0 ? 'text-amber-600' : 'text-slate-400'}">${pendingEscrow > 0 ? 'Secured' : '₹0 Held'}</span>
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Secured until client completion sign-off</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-purple-300 transition">
+        <div onclick="navigate('projects')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-purple-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Completed Projects</span>
             <span class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xs">
@@ -924,13 +1403,13 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats.completedProjects}</span>
-            <span class="text-xs font-bold text-purple-600">100% Delivered</span>
+            <span class="text-3xl font-extrabold text-slate-900">${completedPrjCount}</span>
+            <span class="text-xs font-bold ${completedPrjCount > 0 ? 'text-purple-600' : 'text-slate-400'}">${completedPrjCount > 0 ? 'Delivered' : 'None yet'}</span>
           </div>
-          <p class="text-[11px] text-slate-400 mt-1">Historical verified works</p>
+          <p class="text-[11px] text-slate-400 mt-1">Historical completed works</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-yellow-300 transition">
+        <div onclick="navigate('reviews')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-yellow-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Average Client Rating</span>
             <span class="w-8 h-8 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-xs">
@@ -938,13 +1417,13 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">${currentPro.rating} ★</span>
-            <span class="text-xs font-bold text-slate-500">${currentPro.reviewsCount} Reviews</span>
+            <span class="text-3xl font-extrabold text-slate-900">${(currentPro.rating && currentPro.rating !== '—' && Number(currentPro.rating) > 0) ? currentPro.rating + ' ★' : '—'}</span>
+            <span class="text-xs font-bold text-slate-500">${currentPro.reviewsCount ?? 0} Reviews</span>
           </div>
-          <p class="text-[11px] text-slate-400 mt-1">Top tier in ${currentPro.location.split(',')[0]}</p>
+          <p class="text-[11px] text-slate-400 mt-1">${(currentPro.location && currentPro.location.trim()) ? 'Service area: ' + escapeHtml(currentPro.location.split(',')[0]) : 'BuildBid Verified Marketplace'}</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-teal-300 transition">
+        <div onclick="navigate('profile')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-teal-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Profile Views</span>
             <span class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xs">
@@ -952,13 +1431,13 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats.profileViews}</span>
-            <span class="text-xs font-bold text-teal-600">+22%</span>
+            <span class="text-3xl font-extrabold text-slate-900">${(currentPro.stats?.profileViews ?? 0) > 0 ? currentPro.stats.profileViews : '—'}</span>
+            <span class="text-xs font-bold text-teal-600">Visibility</span>
           </div>
-          <p class="text-[11px] text-slate-400 mt-1">Searches by builders & owners</p>
+          <p class="text-[11px] text-slate-400 mt-1">Client searches & direct views</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-indigo-300 transition">
+        <div onclick="navigate('availability')" class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-subtle hover:border-indigo-300 transition pro-stat-card cursor-pointer">
           <div class="flex items-center justify-between text-slate-500">
             <span class="text-xs font-semibold">Response & Close Rate</span>
             <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">
@@ -966,10 +1445,10 @@ function renderDashboard(container) {
             </span>
           </div>
           <div class="mt-3 flex items-baseline justify-between">
-            <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats.responseRate}</span>
-            <span class="text-xs font-bold text-indigo-600">${currentPro.stats.completionRate} Finish</span>
+            <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats?.responseRate || '—'}</span>
+            <span class="text-xs font-bold text-indigo-600">${currentPro.stats?.completionRate && currentPro.stats.completionRate !== '—' ? currentPro.stats.completionRate + ' Close' : 'Direct Hire'}</span>
           </div>
-          <p class="text-[11px] text-slate-400 mt-1">Avg quotation turn: 40 mins</p>
+          <p class="text-[11px] text-slate-400 mt-1">Inbound request response rate</p>
         </div>
       </div>
 
@@ -980,7 +1459,7 @@ function renderDashboard(container) {
           <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
             <div>
               <h3 class="text-sm font-bold text-slate-900">Inbound Service Requests</h3>
-              <p class="text-xs text-slate-500">Clients requesting direct quotations for ${currentPro.type}</p>
+              <p class="text-xs text-slate-500">Clients requesting direct quotations for ${displayRole}</p>
             </div>
             <button onclick="navigate('requests')" class="text-xs font-semibold text-orange-600 hover:underline">View All Table</button>
           </div>
@@ -1034,7 +1513,12 @@ function renderDashboard(container) {
           </div>
 
           <div class="space-y-4 flex-1">
-            ${currentPro.projects.map(prj => `
+            ${(!currentPro.projects || currentPro.projects.length === 0) ? `
+              <div class="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                <i class="fa-solid fa-folder-open text-slate-300 text-2xl mb-2 block"></i>
+                <span>No active projects in progress. Client milestones will appear here once contracts are awarded.</span>
+              </div>
+            ` : currentPro.projects.map(prj => `
               <div class="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3">
                 <div class="flex items-start justify-between">
                   <div>
@@ -1103,18 +1587,18 @@ function renderDashboard(container) {
             <div class="space-y-3 text-xs">
               <div class="p-3.5 bg-slate-50 rounded-xl border-l-4 border-orange-500">
                 <div class="flex items-center justify-between font-bold text-slate-800">
-                  <span>Duplex Villa Lintel Inspection</span>
+                  <span>Site Consultation & Inspection</span>
                   <span class="text-[10px] text-orange-700 bg-orange-100 px-2 py-0.5 rounded">10:00 AM</span>
                 </div>
-                <p class="text-[11px] text-slate-500 mt-1">Client: Amit Kumar • Sector 44, Noida</p>
-                <p class="text-[10px] text-slate-400 mt-1"><i class="fa-solid fa-car"></i> Travel time: ~22 mins</p>
+                <p class="text-[11px] text-slate-500 mt-1">Client Consultation Slot</p>
+                <p class="text-[10px] text-slate-400 mt-1"><i class="fa-solid fa-car"></i> Service Radius: ${currentPro.serviceRadius || 25} km</p>
               </div>
               <div class="p-3.5 bg-slate-50 rounded-xl border-l-4 border-blue-500">
                 <div class="flex items-center justify-between font-bold text-slate-800">
-                  <span>Commercial Warehouse BOQ Review</span>
+                  <span>Scope of Work Review</span>
                   <span class="text-[10px] text-blue-700 bg-blue-100 px-2 py-0.5 rounded">03:30 PM</span>
                 </div>
-                <p class="text-[11px] text-slate-500 mt-1">Client: Sunil Narang • Online Consultation</p>
+                <p class="text-[11px] text-slate-500 mt-1">Online & Technical Evaluation</p>
               </div>
             </div>
           </div>
@@ -1134,49 +1618,49 @@ function renderDashboard(container) {
               </div>
               <div class="flex items-center space-x-2 text-xs">
                 <span class="px-2.5 py-1 bg-slate-100 font-semibold text-slate-700 rounded-lg">FY 2026-27</span>
-                <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-lg">+24% YoY Growth</span>
+                <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-lg">Direct Escrow</span>
               </div>
             </div>
 
             <!-- Desktop Bar Chart Visualization -->
             <div class="h-44 w-full flex items-end justify-between gap-3 pt-4 px-4">
               <div class="flex-1 flex flex-col items-center gap-1 group">
-                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹28k</span>
+                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹${Math.round(totalEarnings * 0.15).toLocaleString('en-IN')}</span>
                 <div class="w-full bg-slate-100 group-hover:bg-orange-500 rounded-t-lg h-20 transition-all chart-bar-hover"></div>
                 <span class="text-[11px] text-slate-400 font-medium">May</span>
               </div>
               <div class="flex-1 flex flex-col items-center gap-1 group">
-                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹34k</span>
+                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹${Math.round(totalEarnings * 0.2).toLocaleString('en-IN')}</span>
                 <div class="w-full bg-slate-100 group-hover:bg-orange-500 rounded-t-lg h-24 transition-all chart-bar-hover"></div>
                 <span class="text-[11px] text-slate-400 font-medium">Jun</span>
               </div>
               <div class="flex-1 flex flex-col items-center gap-1 group">
-                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹48k</span>
+                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹${Math.round(totalEarnings * 0.25).toLocaleString('en-IN')}</span>
                 <div class="w-full bg-slate-100 group-hover:bg-orange-500 rounded-t-lg h-32 transition-all chart-bar-hover"></div>
                 <span class="text-[11px] text-slate-400 font-medium">Jul</span>
               </div>
               <div class="flex-1 flex flex-col items-center gap-1 group">
-                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹41k</span>
+                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹${Math.round(totalEarnings * 0.2).toLocaleString('en-IN')}</span>
                 <div class="w-full bg-slate-100 group-hover:bg-orange-500 rounded-t-lg h-28 transition-all chart-bar-hover"></div>
                 <span class="text-[11px] text-slate-400 font-medium">Aug</span>
               </div>
               <div class="flex-1 flex flex-col items-center gap-1 group">
-                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹62k</span>
+                <span class="text-[11px] font-bold text-slate-500 group-hover:text-orange-600 transition">₹${Math.round(totalEarnings * 0.35).toLocaleString('en-IN')}</span>
                 <div class="w-full bg-slate-100 group-hover:bg-orange-500 rounded-t-lg h-36 transition-all chart-bar-hover"></div>
                 <span class="text-[11px] text-slate-400 font-medium">Sep</span>
               </div>
               <div class="flex-1 flex flex-col items-center gap-1 group">
-                <span class="text-[11px] font-bold text-orange-600">₹68k</span>
+                <span class="text-[11px] font-bold text-orange-600">₹${totalEarnings.toLocaleString('en-IN')}</span>
                 <div class="w-full bg-orange-600 rounded-t-lg h-40 shadow-sm chart-bar-hover"></div>
-                <span class="text-[11px] font-bold text-orange-600">Oct (Current)</span>
+                <span class="text-[11px] font-bold text-orange-600">${getDynamicDateString().split(' ')[0]}</span>
               </div>
             </div>
           </div>
 
           <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <div class="flex items-center space-x-6">
-              <span>Avg Contract Size: <strong class="text-slate-800">₹22,500</strong></span>
-              <span>Escrow Hold Period: <strong class="text-slate-800">Direct Release on Milestone</strong></span>
+              <span>Cleared Escrow: <strong class="text-slate-800">₹${totalEarnings.toLocaleString('en-IN')}</strong></span>
+              <span>Pending Escrow: <strong class="text-slate-800">₹${pendingEscrow.toLocaleString('en-IN')}</strong></span>
             </div>
             <button onclick="navigate('earnings')" class="text-orange-600 font-semibold hover:underline">View Detailed Ledger →</button>
           </div>
@@ -1870,6 +2354,8 @@ function renderProfile(container) {
 }
 
 function renderDocuments(container) {
+  const hasDocs = Array.isArray(currentPro.documents) && currentPro.documents.length > 0;
+
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto">
       <div class="flex items-center justify-between">
@@ -1882,22 +2368,31 @@ function renderDocuments(container) {
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-5">
-        ${currentPro.documents.map(doc => `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        ${!hasDocs ? `
+          <div class="col-span-1 md:col-span-2 p-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl bg-white">
+            <i class="fa-solid fa-file-circle-question text-slate-300 text-3xl mb-3 block"></i>
+            <p class="font-semibold text-slate-700">No credentials or licenses uploaded yet.</p>
+            <p class="mt-1 text-slate-400">Upload your government ID, trade license, or academic degree to earn verified professional status.</p>
+          </div>
+        ` : currentPro.documents.map(doc => `
           <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-5 flex items-start justify-between">
             <div class="flex items-start space-x-4">
               <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg flex-shrink-0">
                 <i class="fa-solid fa-file-shield"></i>
               </div>
               <div>
-                <h4 class="text-xs font-bold text-slate-900">${doc.title}</h4>
-                <p class="text-[11px] text-slate-500">Authority: ${doc.issuer}</p>
-                <p class="text-xs font-mono text-slate-700 mt-1">ID Number: <strong>${doc.idNumber}</strong></p>
-                <span class="text-[10px] text-slate-400 mt-0.5 block">Approved: ${doc.date}</span>
+                <h4 class="text-xs font-bold text-slate-900">${escapeHtml(doc.title || 'Credential')}</h4>
+                <p class="text-[11px] text-slate-500">Authority: ${escapeHtml(doc.issuer || 'Regulatory Board')}</p>
+                <p class="text-xs font-mono text-slate-700 mt-1">ID Number: <strong>${escapeHtml(doc.idNumber || 'On file')}</strong></p>
+                <span class="text-[10px] text-slate-400 mt-0.5 block">Approved: ${escapeHtml(doc.date || 'Active')}</span>
               </div>
             </div>
             <div class="flex flex-col items-end space-y-2">
-              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Verified</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                (doc.status || '').toLowerCase() === 'verified' ? 'bg-emerald-100 text-emerald-800' :
+                (doc.status || '').toLowerCase() === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+              }">${escapeHtml(doc.status || 'Verified')}</span>
               <button onclick="showToast('Displaying masked verification record', 'info')" class="text-xs text-orange-600 font-semibold hover:underline">View File</button>
             </div>
           </div>
@@ -2319,14 +2814,6 @@ function promptLogout() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Auth guard: if user is not authenticated, redirect to login
-  const token = getCleanToken();
-  const cachedUser = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
-  if (!token && !cachedUser) {
-    window.location.href = "index.html";
-    return;
-  }
-
   // Synchronously sync identity from stored session (zero flash)
   syncIdentityWithStoredSession();
 
