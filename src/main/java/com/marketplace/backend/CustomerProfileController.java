@@ -139,7 +139,11 @@ public class CustomerProfileController {
                 p.getPreferredLanguage() != null ? p.getPreferredLanguage() : "English, Hindi",
                 u.getCreatedAt(),
                 p.getUpdatedAt(),
-                roleStrings
+                roleStrings,
+                u.isEmailVerified(),
+                u.getEmailVerifiedAt(),
+                u.isPhoneVerified(),
+                u.getPhoneVerifiedAt()
         );
     }
 
@@ -177,6 +181,31 @@ public class CustomerProfileController {
             String preferredLanguage,
             LocalDateTime memberSince,
             LocalDateTime updatedAt,
-            Set<String> roles
-    ) {}
+            Set<String> roles,
+            boolean emailVerified,
+            LocalDateTime emailVerifiedAt,
+            boolean phoneVerified,
+            LocalDateTime phoneVerifiedAt
+    ) {
+        public CustomerProfileResponse(
+                Long id,
+                Long userId,
+                String fullName,
+                String username,
+                String email,
+                String phone,
+                String profilePhoto,
+                String address,
+                String city,
+                String state,
+                String pincode,
+                String aboutMe,
+                String preferredLanguage,
+                LocalDateTime memberSince,
+                LocalDateTime updatedAt,
+                Set<String> roles
+        ) {
+            this(id, userId, fullName, username, email, phone, profilePhoto, address, city, state, pincode, aboutMe, preferredLanguage, memberSince, updatedAt, roles, false, null, false, null);
+        }
+    }
 }

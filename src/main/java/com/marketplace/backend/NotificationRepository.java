@@ -21,5 +21,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     boolean existsByRecipientIdAndNotificationTypeAndReferenceId(Long recipientId, String notificationType, String referenceId);
     List<Notification> findByRecipientIdAndNotificationType(Long recipientId, String notificationType);
+
+    void deleteByRecipient(MarketplaceBackendApplication.MarketplaceUser recipient);
+    void deleteByRecipientId(Long recipientId);
 }
 

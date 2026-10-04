@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid - Customer Account Settings</title>
+  <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="customer-account-settings.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="customer dashboard.html" class="brand-logo">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" placeholder="Search projects, materials, professionals...">
+        <div class="dropdown-wrapper">
+          <select class="category-select">
+            <option>Projects</option>
+            <option>Materials</option>
+            <option>Professionals</option>
+          </select>
+          <i class="fa-solid fa-chevron-down select-arrow"></i>
+        </div>
+        <button class="btn-search">Search</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notification-badge" id="navNotificationCount">0</span>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill">
+        <img src="https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User" alt="Avatar" class="pill-avatar" id="navAvatar">
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Customer</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Body Layout -->
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <ul class="side-menu">
+        <li><a href="customer dashboard.html"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+        <li>
+          <a href="customer projects.html" class="sidebar-item">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>My Projects</span>
+          </a>
+        </li>
+        <li><a href="my-construction.html"><i class="fa-solid fa-person-digging"></i> My Construction</a></li>
+        <li><a href="buy-material-select.html"><i class="fa-solid fa-cart-shopping"></i> Buy Materials</a></li>
+        <li><a href="my-requests.html"><i class="fa-solid fa-file-circle-check"></i> My Requests</a></li>
+        <li><a href="my-orders.html"><i class="fa-solid fa-boxes-packing"></i> My Orders</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-solid fa-user-group"></i> Common Requirements</a></li>
+        <li><a href="direct-hire.html"><i class="fa-solid fa-user-tie"></i> Direct Hire</a></li>
+        <li><a href="post-requirements.html"><i class="fa-solid fa-user-plus"></i>Post Requirements</a></li>
+        <li><a href="hired-professionals.html"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-bookmark"></i> Saved Items</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-credit-card"></i> Wallet & Payments</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-star"></i> Reviews & Ratings</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+        <li class="active"><a href="customer-account-settings.html"><i class="fa-solid fa-gear"></i> Account Settings</a></li>
+        <li><a href="javascript:void(0)"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="#" id="logoutBtn" class="logout-action">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="settings-main-container">
+
+      <!-- Breadcrumbs -->
+      <div class="breadcrumb">
+        <a href="index.html">Home</a>
+        <i class="fa-solid fa-chevron-right breadcrumb-separator"></i>
+        <a href="customer dashboard.html">Customer Dashboard</a>
+        <i class="fa-solid fa-chevron-right breadcrumb-separator"></i>
+        <span>Account Settings</span>
+      </div>
+
+      <!-- Settings Header Banner -->
+      <div class="settings-header-banner">
+        <div class="banner-content">
+          <div class="banner-badge">
+            <i class="fa-solid fa-gear"></i> Customer Account Settings
+          </div>
+          <h1 class="banner-title">Account Settings</h1>
+          <p class="banner-subtitle">Manage your personal profile, credentials, contact information, and account preferences.</p>
+        </div>
+      </div>
+
+      <!-- Two-Column Settings Grid -->
+      <div class="settings-grid">
+
+        <!-- Left: Settings Navigation Menu -->
+        <aside class="settings-nav-card dash-card">
+          <div class="card-title-head">
+            <div class="title-icon">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <h3>Settings Navigation</h3>
+          </div>
+
+          <nav class="settings-menu-list">
+            <a href="#personal-info" class="settings-menu-item active" data-section="personal-info">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-user-pen"></i>
+                <span class="menu-item-text">Personal Information</span>
+              </span>
+              <span class="settings-badge active-badge">Active</span>
+            </a>
+
+            <a href="#verification" class="settings-menu-item" data-section="verification" id="navEmailMobileVerification">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span class="menu-item-text">Email & Mobile Verification</span>
+              </span>
+              <span class="settings-badge active-badge" id="navVerifBadge">Step 2</span>
+            </a>
+
+            <a href="#security" class="settings-menu-item" data-section="security" id="navSecurityLogin">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-lock"></i>
+                <span class="menu-item-text">Security & Login</span>
+              </span>
+              <span class="settings-badge active-badge" id="navSecurityBadge">Step 3</span>
+            </a>
+
+            <a href="#construction-preferences" class="settings-menu-item" data-section="construction-preferences" id="navConstructionPreferences">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-compass-drafting"></i>
+                <span class="menu-item-text">Construction Preferences</span>
+              </span>
+              <span class="settings-badge active-badge" id="navPreferencesBadge">Step 4</span>
+            </a>
+
+            <a href="#saved-locations" class="settings-menu-item" data-section="saved-locations" id="navSavedLocations">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-location-dot"></i>
+                <span class="menu-item-text">Saved Locations</span>
+              </span>
+              <span class="settings-badge active-badge" id="navLocationsBadge">Step 5</span>
+            </a>
+
+            <a href="#regional-preferences" class="settings-menu-item" data-section="regional-preferences" id="navRegionalPreferences">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-earth-americas"></i>
+                <span class="menu-item-text">Language & Regional</span>
+              </span>
+              <span class="settings-badge active-badge" id="navRegionalBadge">Step 6</span>
+            </a>
+
+            <a href="#download-data" class="settings-menu-item" data-section="download-data" id="navDownloadData">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-file-arrow-down"></i>
+                <span class="menu-item-text">Download My Data</span>
+              </span>
+              <span class="settings-badge active-badge" id="navDownloadBadge">Step 7</span>
+            </a>
+
+            <a href="#account-deactivation" class="settings-menu-item" data-section="account-deactivation" id="navAccountDeactivation">
+              <span class="menu-item-left">
+                <i class="fa-solid fa-user-xmark"></i>
+                <span class="menu-item-text">Deactivate / Delete</span>
+              </span>
+              <span class="settings-badge active-badge danger-badge" id="navDeactivationBadge">Step 8</span>
+            </a>
+          </nav>
+        </aside>
+
+        <!-- Right: Section 1 - Personal Information Panel -->
+        <div class="settings-content-card dash-card" id="personal-info-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-id-card"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Personal Information</h2>
+                <p class="section-subheading">View and update your personal details, profile photo, and primary contact address.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot"></span> Profile Synchronized
+            </div>
+          </div>
+
+          <!-- Profile Photo Management -->
+          <div class="photo-management-card">
+            <div class="photo-display-col">
+              <div class="avatar-wrapper">
+                <img id="settingsAvatarPreview" src="" alt="Profile Photo" class="settings-avatar-img hidden">
+                <div id="settingsInitialsBadge" class="settings-initials-badge">BB</div>
+              </div>
+            </div>
+            <div class="photo-details-col">
+              <h3 class="photo-title">Profile Photo</h3>
+              <p class="photo-instructions">
+                Upload a clear profile picture. Supported formats are <strong>JPG, JPEG, PNG, WEBP</strong> with maximum file size of <strong>5MB</strong>.
+              </p>
+              <div class="photo-actions-row">
+                <input type="file" id="profilePhotoFileInput" class="hidden-file-input" accept="image/jpeg,image/png,image/webp,image/jpg">
+                <button type="button" id="uploadPhotoBtn" class="btn-action-primary">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Upload New Photo
+                </button>
+                <button type="button" id="removePhotoBtn" class="btn-action-danger hidden">
+                  <i class="fa-solid fa-trash-can"></i> Remove Photo
+                </button>
+              </div>
+              <div id="photoStatusText" class="photo-status-indicator"></div>
+            </div>
+          </div>
+
+          <!-- Personal Information Form -->
+          <form id="personalInfoForm" class="settings-form" novalidate>
+            <!-- Basic Details -->
+            <div class="form-section-title">
+              <i class="fa-solid fa-user-check"></i> Basic Information
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="fullNameInput">Full Name <span class="required-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-user input-icon"></i>
+                  <input type="text" id="fullNameInput" name="fullName" class="form-control" placeholder="Enter your full name" required>
+                </div>
+                <span class="field-error" id="fullNameError"></span>
+              </div>
+
+              <div class="form-group">
+                <label for="usernameInput">Username <span class="badge-readonly">Read-Only</span></label>
+                <div class="input-icon-wrap readonly-wrap">
+                  <i class="fa-solid fa-at input-icon"></i>
+                  <input type="text" id="usernameInput" name="username" class="form-control readonly-input" placeholder="Username" readonly>
+                </div>
+                <span class="field-hint">Unique BuildBid username. Kept read-only for identity safety.</span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="emailInput">Email Address <span class="badge-readonly">Read-Only</span> <span id="personalInfoEmailBadge" class="status-pill-small unverified"><i class="fa-solid fa-circle-exclamation"></i> Not Verified</span></label>
+                <div class="input-icon-wrap readonly-wrap">
+                  <i class="fa-solid fa-envelope input-icon"></i>
+                  <input type="email" id="emailInput" name="email" class="form-control readonly-input" placeholder="Email address" readonly>
+                </div>
+                <span class="field-hint">Primary BuildBid account email. <a href="#verification" class="field-action-link" id="linkGoToEmailVerif">Manage Verification &rarr;</a></span>
+              </div>
+
+              <div class="form-group">
+                <label for="phoneInput">Mobile Number <span id="personalInfoPhoneBadge" class="status-pill-small unverified"><i class="fa-solid fa-circle-exclamation"></i> Not Verified</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-phone input-icon"></i>
+                  <input type="tel" id="phoneInput" name="phone" class="form-control" placeholder="Enter phone number">
+                </div>
+                <span class="field-hint">Primary contact mobile number. <a href="#verification" class="field-action-link" id="linkGoToPhoneVerif">Verify Mobile &rarr;</a></span>
+                <span class="field-error" id="phoneError"></span>
+              </div>
+            </div>
+
+            <!-- About Me / Bio -->
+            <div class="form-group full-width">
+              <label for="aboutMeInput">About Me / Bio</label>
+              <textarea id="aboutMeInput" name="aboutMe" rows="3" class="form-control textarea-control" placeholder="Write a short summary about yourself, your construction needs, or background..."></textarea>
+              <span class="field-hint">Brief bio persisted to your customer profile.</span>
+            </div>
+
+            <!-- Address Information -->
+            <div class="form-section-title" style="margin-top: 24px;">
+              <i class="fa-solid fa-map-location-dot"></i> Primary Contact Address
+              <span class="section-note">(Multi-address management will be available in Saved Locations)</span>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="addressInput">Street Address</label>
+              <div class="input-icon-wrap">
+                <i class="fa-solid fa-house-chimney input-icon"></i>
+                <input type="text" id="addressInput" name="address" class="form-control" placeholder="House/Flat number, building name, street or locality">
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="cityInput">City</label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-city input-icon"></i>
+                  <input type="text" id="cityInput" name="city" class="form-control" placeholder="City">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="stateInput">State</label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-landmark input-icon"></i>
+                  <input type="text" id="stateInput" name="state" class="form-control" placeholder="State">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="pincodeInput">Pincode</label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-map-pin input-icon"></i>
+                  <input type="text" id="pincodeInput" name="pincode" class="form-control" placeholder="Pincode">
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions-bar">
+              <button type="submit" id="saveProfileBtn" class="btn-save-profile">
+                <i class="fa-solid fa-check"></i> Save Changes
+              </button>
+              <button type="button" id="discardChangesBtn" class="btn-discard-profile">
+                <i class="fa-solid fa-rotate-left"></i> Discard Changes
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right: Section 2 - Email & Mobile Verification Panel -->
+        <div class="settings-content-card dash-card hidden" id="verification-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Email &amp; Mobile Verification</h2>
+                <p class="section-subheading">Verify your contact credentials, manage OTP authentication, and update verified details safely.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot"></span> Server-Verified State
+            </div>
+          </div>
+
+          <!-- Card 1: Email Verification -->
+          <div class="verification-card" id="emailVerificationCard">
+            <div class="verif-card-header">
+              <div class="verif-target-group">
+                <div class="verif-icon-circle">
+                  <i class="fa-solid fa-envelope"></i>
+                </div>
+                <div class="verif-target-details">
+                  <h4>Email Address Verification</h4>
+                  <div class="verif-target-val" id="verifDisplayEmail">Loading email...</div>
+                </div>
+              </div>
+              <div id="emailVerifBadgeContainer">
+                <span class="verification-badge unverified" id="emailMainStatusBadge">
+                  <i class="fa-solid fa-circle-exclamation"></i> Not Verified
+                </span>
+              </div>
+            </div>
+
+            <p class="verif-description">
+              Your verified email is required for secure authentication, password resets, project bids, material invoices, and critical account security notices.
+            </p>
+
+            <div class="verif-actions-row" id="emailDefaultActions">
+              <button type="button" id="btnTriggerEmailVerify" class="btn-action-primary">
+                <i class="fa-solid fa-paper-plane"></i> Verify Email Address
+              </button>
+              <button type="button" id="btnTriggerEmailChange" class="btn-action-secondary">
+                <i class="fa-solid fa-pen-to-square"></i> Change Email
+              </button>
+            </div>
+
+            <!-- Email OTP Input Sub-Card -->
+            <div class="otp-interactive-card hidden" id="emailOtpSection">
+              <div class="otp-box-header">
+                <h5 class="otp-box-title"><i class="fa-solid fa-key"></i> Enter Email Verification Code</h5>
+                <p class="otp-box-subtitle">
+                  We sent a 6-digit verification code to <strong id="emailOtpTargetDisplay">your email</strong>. Valid for 10 minutes.
+                </p>
+              </div>
+
+              <div class="otp-digits-container" id="emailOtpInputsContainer">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="0" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="1" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="2" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="3" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="4" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="5" autocomplete="off">
+              </div>
+
+              <div class="verif-actions-row">
+                <button type="button" id="btnSubmitEmailOtp" class="btn-save-profile">
+                  <i class="fa-solid fa-check"></i> Verify Email OTP
+                </button>
+                <button type="button" id="btnResendEmailOtp" class="btn-discard-profile" disabled>
+                  <i class="fa-solid fa-rotate-right"></i> <span id="emailResendCountdown">Resend Code (60s)</span>
+                </button>
+                <button type="button" id="btnCancelEmailOtp" class="btn-action-text">Cancel</button>
+              </div>
+
+              <div class="otp-meta-row">
+                <span class="otp-expiry-hint"><i class="fa-regular fa-clock"></i> Code expires in 10 minutes</span>
+                <span>Max 5 attempts allowed</span>
+              </div>
+
+              <div id="emailOtpFeedback" class="otp-feedback-box"></div>
+            </div>
+
+            <!-- Email Change Input Sub-Card -->
+            <div class="change-interactive-card hidden" id="emailChangeSection">
+              <div class="otp-box-header">
+                <h5 class="otp-box-title"><i class="fa-solid fa-envelope-circle-check"></i> Change Email Address</h5>
+                <p class="otp-box-subtitle">
+                  Enter your new email address. A 6-digit OTP will be dispatched to verify ownership before the change is applied.
+                </p>
+              </div>
+
+              <div class="form-group" style="margin-top: 14px; max-width: 480px;">
+                <label for="changeNewEmailInput">New Email Address <span class="required-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-envelope input-icon"></i>
+                  <input type="email" id="changeNewEmailInput" class="form-control" placeholder="Enter new email address">
+                </div>
+                <span class="field-error" id="changeNewEmailError"></span>
+              </div>
+
+              <div class="verif-actions-row" style="margin-top: 16px;">
+                <button type="button" id="btnSubmitEmailChangeReq" class="btn-save-profile">
+                  <i class="fa-solid fa-paper-plane"></i> Send Verification Code
+                </button>
+                <button type="button" id="btnCancelEmailChange" class="btn-discard-profile">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Mobile / Phone Verification -->
+          <div class="verification-card" id="phoneVerificationCard">
+            <div class="verif-card-header">
+              <div class="verif-target-group">
+                <div class="verif-icon-circle">
+                  <i class="fa-solid fa-mobile-screen"></i>
+                </div>
+                <div class="verif-target-details">
+                  <h4>Mobile Number Verification</h4>
+                  <div class="verif-target-val" id="verifDisplayPhone">Loading phone...</div>
+                </div>
+              </div>
+              <div id="phoneVerifBadgeContainer">
+                <span class="verification-badge unverified" id="phoneMainStatusBadge">
+                  <i class="fa-solid fa-circle-exclamation"></i> Not Verified
+                </span>
+              </div>
+            </div>
+
+            <p class="verif-description">
+              Your mobile number is used for critical SMS bidding notifications, delivery coordination with material suppliers, and contractor site calls.
+            </p>
+
+            <div class="verif-actions-row" id="phoneDefaultActions">
+              <button type="button" id="btnTriggerPhoneVerify" class="btn-action-primary">
+                <i class="fa-solid fa-paper-plane"></i> Verify Mobile Number
+              </button>
+              <button type="button" id="btnTriggerPhoneChange" class="btn-action-secondary">
+                <i class="fa-solid fa-pen-to-square"></i> Change Mobile Number
+              </button>
+            </div>
+
+            <!-- Phone OTP Input Sub-Card -->
+            <div class="otp-interactive-card hidden" id="phoneOtpSection">
+              <div class="otp-box-header">
+                <h5 class="otp-box-title"><i class="fa-solid fa-key"></i> Enter Mobile Verification Code</h5>
+                <p class="otp-box-subtitle">
+                  We sent a 6-digit verification code to <strong id="phoneOtpTargetDisplay">your mobile</strong> via SMS. Valid for 10 minutes.
+                </p>
+              </div>
+
+              <div class="otp-digits-container" id="phoneOtpInputsContainer">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="0" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="1" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="2" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="3" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="4" autocomplete="off">
+                <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-digit-input" data-index="5" autocomplete="off">
+              </div>
+
+              <div class="verif-actions-row">
+                <button type="button" id="btnSubmitPhoneOtp" class="btn-save-profile">
+                  <i class="fa-solid fa-check"></i> Verify Mobile OTP
+                </button>
+                <button type="button" id="btnResendPhoneOtp" class="btn-discard-profile" disabled>
+                  <i class="fa-solid fa-rotate-right"></i> <span id="phoneResendCountdown">Resend Code (60s)</span>
+                </button>
+                <button type="button" id="btnCancelPhoneOtp" class="btn-action-text">Cancel</button>
+              </div>
+
+              <div class="otp-meta-row">
+                <span class="otp-expiry-hint"><i class="fa-regular fa-clock"></i> Code expires in 10 minutes</span>
+                <span>Max 5 attempts allowed</span>
+              </div>
+
+              <div id="phoneOtpFeedback" class="otp-feedback-box"></div>
+            </div>
+
+            <!-- Phone Change Input Sub-Card -->
+            <div class="change-interactive-card hidden" id="phoneChangeSection">
+              <div class="otp-box-header">
+                <h5 class="otp-box-title"><i class="fa-solid fa-phone-volume"></i> Change Mobile Number</h5>
+                <p class="otp-box-subtitle">
+                  Enter your new mobile number. Changing your number requires fresh 6-digit OTP verification.
+                </p>
+              </div>
+
+              <div class="form-group" style="margin-top: 14px; max-width: 480px;">
+                <label for="changeNewPhoneInput">New Mobile Number <span class="required-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-phone input-icon"></i>
+                  <input type="tel" id="changeNewPhoneInput" class="form-control" placeholder="Enter 10-digit mobile number">
+                </div>
+                <span class="field-error" id="changeNewPhoneError"></span>
+              </div>
+
+              <div class="verif-actions-row" style="margin-top: 16px;">
+                <button type="button" id="btnSubmitPhoneChangeReq" class="btn-save-profile">
+                  <i class="fa-solid fa-paper-plane"></i> Send Verification Code
+                </button>
+                <button type="button" id="btnCancelPhoneChange" class="btn-discard-profile">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trust & Security Policy Card -->
+          <div class="security-trust-card">
+            <div class="security-trust-header">
+              <i class="fa-solid fa-shield-halved"></i>
+              <h3>BuildBid Security &amp; Uniqueness Policy</h3>
+            </div>
+            <ul class="security-trust-list">
+              <li>
+                <i class="fa-solid fa-circle-check"></i>
+                <span><strong>One Email = One Account:</strong> Each normalized email address is strictly bound to exactly one BuildBid account across all roles (Customer, Contractor, Professional, Material Seller). Duplicate registrations are rejected globally.</span>
+              </li>
+              <li>
+                <i class="fa-solid fa-circle-check"></i>
+                <span><strong>Cryptographic OTP Security:</strong> Verification codes are 6 numeric digits generated using secure random algorithms, hashed server-side, and expire in 10 minutes.</span>
+              </li>
+              <li>
+                <i class="fa-solid fa-circle-check"></i>
+                <span><strong>Brute-Force &amp; Spam Protection:</strong> Maximum 5 verification attempts are allowed per code, enforced by a 60-second cooldown timer between resends.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Right: Section 3 - Security & Login Panel -->
+        <div class="settings-content-card dash-card hidden" id="security-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Security &amp; Login</h2>
+                <p class="section-subheading">Manage your password, login credentials, and cross-device session security.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot"></span> End-to-End Encrypted
+            </div>
+          </div>
+
+          <!-- Card 1: Account Security & Verification Status Overview -->
+          <div class="security-overview-card">
+            <div class="sec-overview-header">
+              <div class="title-icon" style="width: 30px; height: 30px; font-size: 13px;">
+                <i class="fa-solid fa-shield-heart"></i>
+              </div>
+              <div>
+                <h3 class="sec-overview-title">Account Security &amp; Login Status</h3>
+                <p class="sec-overview-subtitle">Real-time cryptographic authentication status for your BuildBid account.</p>
+              </div>
+            </div>
+
+            <div class="sec-status-grid">
+              <div class="sec-status-tile">
+                <div class="tile-icon-wrap key-wrap">
+                  <i class="fa-solid fa-key"></i>
+                </div>
+                <div class="tile-content">
+                  <span class="tile-label">Password Protection</span>
+                  <div class="tile-status-row">
+                    <span class="status-pill-small verified" id="secPasswordStatusBadge">
+                      <i class="fa-solid fa-circle-check"></i> Active &amp; Strong
+                    </span>
+                  </div>
+                  <span class="tile-hint" id="secPasswordLastChanged">Loading status...</span>
+                </div>
+              </div>
+
+              <div class="sec-status-tile">
+                <div class="tile-icon-wrap email-wrap">
+                  <i class="fa-solid fa-envelope-circle-check"></i>
+                </div>
+                <div class="tile-content">
+                  <span class="tile-label">Email Verification</span>
+                  <div class="tile-status-row">
+                    <span class="status-pill-small unverified" id="secEmailStatusBadge">
+                      <i class="fa-solid fa-circle-exclamation"></i> Not Verified
+                    </span>
+                  </div>
+                  <span class="tile-hint" id="secEmailDisplay">Loading email...</span>
+                </div>
+              </div>
+
+              <div class="sec-status-tile">
+                <div class="tile-icon-wrap phone-wrap">
+                  <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <div class="tile-content">
+                  <span class="tile-label">Mobile Verification</span>
+                  <div class="tile-status-row">
+                    <span class="status-pill-small unverified" id="secPhoneStatusBadge">
+                      <i class="fa-solid fa-circle-exclamation"></i> Not Verified
+                    </span>
+                  </div>
+                  <span class="tile-hint" id="secPhoneDisplay">Loading mobile...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Change Password -->
+          <div class="security-card" id="changePasswordCard">
+            <div class="sec-card-header">
+              <div class="sec-card-title-group">
+                <div class="sec-icon-circle">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                  <h4>Change Password</h4>
+                  <p class="sec-card-desc">Update your login password. We recommend choosing a unique, strong password with at least 8 characters.</p>
+                </div>
+              </div>
+            </div>
+
+            <form id="changePasswordForm" class="security-form" novalidate autocomplete="off">
+              <!-- Current Password -->
+              <div class="form-group" style="max-width: 480px;">
+                <label for="currentPasswordInput">Current Password <span class="required-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-lock input-icon"></i>
+                  <input type="password" id="currentPasswordInput" name="currentPassword" class="form-control password-input" placeholder="Enter current password" autocomplete="current-password" required>
+                  <button type="button" class="btn-toggle-password" data-target="currentPasswordInput" title="Toggle password visibility">
+                    <i class="fa-regular fa-eye"></i>
+                  </button>
+                </div>
+                <span class="field-error" id="currentPasswordError"></span>
+              </div>
+
+              <!-- New Password -->
+              <div class="form-group" style="max-width: 480px; margin-top: 14px;">
+                <label for="newPasswordInput">New Password <span class="required-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-key input-icon"></i>
+                  <input type="password" id="newPasswordInput" name="newPassword" class="form-control password-input" placeholder="Enter new password (min. 8 characters)" autocomplete="new-password" required>
+                  <button type="button" class="btn-toggle-password" data-target="newPasswordInput" title="Toggle password visibility">
+                    <i class="fa-regular fa-eye"></i>
+                  </button>
+                </div>
+                <span class="field-error" id="newPasswordError"></span>
+
+                <!-- Password Strength Meter -->
+                <div class="password-strength-container hidden" id="passwordStrengthBox">
+                  <div class="strength-track">
+                    <div class="strength-bar" id="strengthBar"></div>
+                  </div>
+                  <div class="strength-label-row">
+                    <span class="strength-text" id="strengthText">Strength: Weak</span>
+                    <span class="strength-hint" id="strengthHint">Use 8+ characters with mixed types</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Confirm New Password -->
+              <div class="form-group" style="max-width: 480px; margin-top: 14px;">
+                <label for="confirmPasswordInput">Confirm New Password <span class="required-star">*</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fa-solid fa-check-double input-icon"></i>
+                  <input type="password" id="confirmPasswordInput" name="confirmPassword" class="form-control password-input" placeholder="Re-enter your new password" autocomplete="new-password" required>
+                  <button type="button" class="btn-toggle-password" data-target="confirmPasswordInput" title="Toggle password visibility">
+                    <i class="fa-regular fa-eye"></i>
+                  </button>
+                </div>
+                <span class="field-error" id="confirmPasswordError"></span>
+              </div>
+
+              <!-- Password Policy Hint List -->
+              <div class="password-rules-box">
+                <span class="rules-title"><i class="fa-solid fa-circle-info"></i> Password Requirements:</span>
+                <ul class="rules-checklist">
+                  <li id="ruleLength"><i class="fa-solid fa-circle-dot"></i> At least 8 characters in length</li>
+                  <li id="ruleNotSame"><i class="fa-solid fa-circle-dot"></i> Cannot be identical to current password</li>
+                  <li id="ruleMatch"><i class="fa-solid fa-circle-dot"></i> New password and confirmation must match</li>
+                </ul>
+              </div>
+
+              <!-- Feedback Alert Box -->
+              <div id="passwordFeedbackBox" class="security-feedback-box hidden"></div>
+
+              <!-- Form Actions -->
+              <div class="verif-actions-row" style="margin-top: 20px;">
+                <button type="submit" id="btnSubmitPasswordChange" class="btn-save-profile">
+                  <i class="fa-solid fa-lock"></i> Update Password
+                </button>
+                <button type="button" id="btnCancelPasswordChange" class="btn-discard-profile">
+                  <i class="fa-solid fa-rotate-left"></i> Clear Fields
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Card 3: Session & Token Security (Real Server-Side Invalidation) -->
+          <div class="security-card" id="sessionSecurityCard">
+            <div class="sec-card-header">
+              <div class="sec-card-title-group">
+                <div class="sec-icon-circle session-circle">
+                  <i class="fa-solid fa-tower-broadcast"></i>
+                </div>
+                <div>
+                  <h4>Session &amp; Token Security</h4>
+                  <p class="sec-card-desc">BuildBid uses stateless cryptographic JWT authentication backed by server-side security timestamps.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="session-info-grid">
+              <div class="session-info-item">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div>
+                  <strong>Server-Side Invalidation</strong>
+                  <p>When you change your password or click revoke, your account's security timestamp is immediately updated server-side. All tokens issued prior to that moment are rejected on every device.</p>
+                </div>
+              </div>
+
+              <div class="session-info-item">
+                <i class="fa-solid fa-fingerprint"></i>
+                <div>
+                  <strong>Stateless Cryptography &amp; Zero Plaintext</strong>
+                  <p>No plaintext passwords or raw tokens are stored on the server. Password credentials are authenticated using salted BCrypt hashing.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="session-danger-zone">
+              <div class="danger-zone-details">
+                <h5><i class="fa-solid fa-triangle-exclamation"></i> Revoke All Active Sessions</h5>
+                <p>Lost a device or want to ensure no other browser has access? This will immediately invalidate all active tokens and require you to log in again with your credentials.</p>
+              </div>
+              <button type="button" id="btnRevokeAllSessions" class="btn-action-danger">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Revoke All Sessions &amp; Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Section 4 - Construction Preferences Panel -->
+        <div class="settings-content-card dash-card hidden" id="construction-preferences-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-compass-drafting"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Construction Preferences</h2>
+                <p class="section-subheading">Set your general construction preferences to help BuildBid prefill and personalize future project planning.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot" style="background: #0284c7;"></span> Defaults Only
+            </div>
+          </div>
+
+          <!-- Defaults Notice Card -->
+          <div class="pref-disclaimer-card">
+            <div class="disclaimer-icon-wrap">
+              <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div class="disclaimer-content">
+              <strong>Defaults &amp; Recommendations:</strong>
+              <p>These preferences are defaults only. When you create or submit a specific construction project, any project-specific selections and requirements you enter will always override these preferences.</p>
+            </div>
+          </div>
+
+          <!-- Preferences Form -->
+          <form id="constructionPreferencesForm" class="preferences-form" novalidate autocomplete="off">
+
+            <!-- Card 1: Project & Property Types -->
+            <div class="pref-group-card">
+              <div class="pref-group-header">
+                <div class="sec-icon-circle">
+                  <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                  <h4>Project &amp; Property Types</h4>
+                  <p class="pref-group-desc">Select your primary construction project category and target structure type.</p>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- 1. Preferred Project Type -->
+                <div class="form-group">
+                  <label for="prefProjectType">Preferred Project Type <span class="optional-tag">(Optional)</span></label>
+                  <div class="select-wrapper">
+                    <select id="prefProjectType" name="preferredProjectType" class="form-control">
+                      <option value="">-- No Preference (Select) --</option>
+                      <option value="New Construction">New Construction</option>
+                      <option value="Remodeling / Renovation">Remodeling / Renovation</option>
+                      <option value="Home Extension">Home Extension</option>
+                      <option value="Finishing">Finishing</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Industrial Warehouse">Industrial Warehouse</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down select-caret"></i>
+                  </div>
+                  <span class="field-hint">General category for future project suggestions.</span>
+                  <span class="field-error" id="prefProjectTypeError"></span>
+                </div>
+
+                <!-- 2. Preferred Property Type -->
+                <div class="form-group">
+                  <label for="prefPropertyType">Preferred Property Type <span class="optional-tag">(Optional)</span></label>
+                  <div class="select-wrapper">
+                    <select id="prefPropertyType" name="preferredPropertyType" class="form-control">
+                      <option value="">-- No Preference (Select) --</option>
+                      <option value="Independent House">Independent House</option>
+                      <option value="Villa">Villa</option>
+                      <option value="Apartment">Apartment</option>
+                      <option value="Duplex">Duplex</option>
+                      <option value="Commercial Space">Commercial Space</option>
+                      <option value="Industrial / Warehouse">Industrial / Warehouse</option>
+                      <option value="Farmhouse">Farmhouse</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down select-caret"></i>
+                  </div>
+                  <span class="field-hint">Structure type you typically plan to build or renovate.</span>
+                  <span class="field-error" id="prefPropertyTypeError"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Size & Floors -->
+            <div class="pref-group-card">
+              <div class="pref-group-header">
+                <div class="sec-icon-circle">
+                  <i class="fa-solid fa-ruler-combined"></i>
+                </div>
+                <div>
+                  <h4>Size &amp; Floors</h4>
+                  <p class="pref-group-desc">Specify typical dimensions and vertical building scale for prefill assistance.</p>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- 3. Preferred Built-up Area -->
+                <div class="form-group">
+                  <label for="prefBuiltUpArea">Preferred Built-up Area <span class="optional-tag">(Optional)</span></label>
+                  <div class="input-with-unit-wrap">
+                    <input type="number" id="prefBuiltUpArea" name="preferredBuiltUpArea" class="form-control" placeholder="e.g. 2500" min="1" max="10000000" step="any">
+                    <span class="input-unit-badge">sq ft</span>
+                  </div>
+                  <span class="field-hint">Standard floor footprint or total built-up area in square feet.</span>
+                  <span class="field-error" id="prefBuiltUpAreaError"></span>
+                </div>
+
+                <!-- 4. Preferred Number of Floors -->
+                <div class="form-group">
+                  <label for="prefFloors">Preferred Number of Floors <span class="optional-tag">(Optional)</span></label>
+                  <div class="select-wrapper">
+                    <select id="prefFloors" name="preferredNumberOfFloors" class="form-control">
+                      <option value="">-- No Preference (Select) --</option>
+                      <option value="1">1 (Ground Floor Only)</option>
+                      <option value="2">2 (Ground + 1 Floor)</option>
+                      <option value="3">3 (Ground + 2 Floors)</option>
+                      <option value="4">4 (Ground + 3 Floors)</option>
+                      <option value="5+">5+ (5 or more Floors)</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down select-caret"></i>
+                  </div>
+                  <span class="field-hint">Controlled vertical elevation level benchmark.</span>
+                  <span class="field-error" id="prefFloorsError"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Quality & Budget -->
+            <div class="pref-group-card">
+              <div class="pref-group-header">
+                <div class="sec-icon-circle">
+                  <i class="fa-solid fa-gem"></i>
+                </div>
+                <div>
+                  <h4>Quality &amp; Budget</h4>
+                  <p class="pref-group-desc">Define baseline material specification tier and expected project investment range.</p>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- 5. Preferred Construction Quality -->
+                <div class="form-group">
+                  <label for="prefQuality">Preferred Construction Quality <span class="optional-tag">(Optional)</span></label>
+                  <div class="select-wrapper">
+                    <select id="prefQuality" name="preferredConstructionQuality" class="form-control">
+                      <option value="">-- No Preference (Select) --</option>
+                      <option value="Basic">Basic (Standard materials, functional finish)</option>
+                      <option value="Standard">Standard (Ultratech, Primary Steel, Vitrified Tiles)</option>
+                      <option value="Premium">Premium (Italian Marble, Automation, Branded Fittings)</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down select-caret"></i>
+                  </div>
+                  <span class="field-hint">Standardized construction tier compatible with cost estimator.</span>
+                  <span class="field-error" id="prefQualityError"></span>
+                </div>
+
+                <!-- 6. Preferred Budget Range -->
+                <div class="form-group">
+                  <label for="prefBudget">Preferred Budget Range <span class="optional-tag">(Optional)</span></label>
+                  <div class="select-wrapper">
+                    <select id="prefBudget" name="preferredBudgetRange" class="form-control">
+                      <option value="">-- No Preference (Select) --</option>
+                      <option value="Under ₹10 Lakh">Under ₹10 Lakh</option>
+                      <option value="₹10–25 Lakh">₹10–25 Lakh</option>
+                      <option value="₹25–50 Lakh">₹25–50 Lakh</option>
+                      <option value="₹50 Lakh–₹1 Crore">₹50 Lakh–₹1 Crore</option>
+                      <option value="₹1 Crore+">₹1 Crore+</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down select-caret"></i>
+                  </div>
+                  <span class="field-hint">Broad financial expectation in Indian Rupees (INR).</span>
+                  <span class="field-error" id="prefBudgetError"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feedback Alert Box -->
+            <div id="preferencesFeedbackBox" class="security-feedback-box hidden"></div>
+
+            <!-- Actions Row -->
+            <div class="verif-actions-row" style="margin-top: 24px; display: flex; gap: 12px; align-items: center;">
+              <button type="submit" id="btnSavePreferences" class="btn-save-profile">
+                <i class="fa-solid fa-floppy-disk"></i> Save Preferences
+              </button>
+              <button type="button" id="btnResetPreferences" class="btn-discard-profile">
+                <i class="fa-solid fa-rotate-left"></i> Reset Preferences
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Right: Section 5 - Saved Locations Panel -->
+        <div class="settings-content-card dash-card hidden" id="saved-locations-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-location-dot"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Saved Locations</h2>
+                <p class="section-subheading">Save frequently used construction, home, office, or site addresses for faster access across BuildBid.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot" style="background: #10b981;"></span> Active Addresses
+            </div>
+          </div>
+
+          <!-- Section Controls / Top Bar -->
+          <div class="locations-top-bar">
+            <div class="locations-counter">
+              <span class="counter-label">Saved Addresses:</span>
+              <span class="counter-badge" id="savedLocationsCounter">0</span>
+            </div>
+            <button type="button" id="btnOpenAddLocationForm" class="btn-action-primary">
+              <i class="fa-solid fa-plus"></i> Add New Location
+            </button>
+          </div>
+
+          <!-- Add / Edit Location Form Card (Collapsible) -->
+          <div class="location-form-card hidden" id="locationFormCard">
+            <div class="location-form-header">
+              <div class="loc-form-title-wrap">
+                <div class="sec-icon-circle">
+                  <i class="fa-solid fa-map-location-dot" id="locationFormIcon"></i>
+                </div>
+                <div>
+                  <h4 id="locationFormTitle">Add New Location</h4>
+                  <p class="loc-form-desc" id="locationFormDesc">Enter details of your project site, residence, or commercial property.</p>
+                </div>
+              </div>
+              <button type="button" class="btn-close-loc-form" id="btnCloseLocForm" title="Close form">&times;</button>
+            </div>
+
+            <form id="savedLocationForm" class="location-form" novalidate autocomplete="off">
+              <input type="hidden" id="locEditId" value="">
+
+              <!-- Label with Preset Pills -->
+              <div class="form-group">
+                <label for="locLabel">Location Label <span class="required-star">*</span></label>
+                <div class="label-input-wrap">
+                  <input type="text" id="locLabel" name="label" class="form-control" placeholder="e.g. Home, Construction Site, Office, Farmhouse" maxlength="100" required>
+                </div>
+                <div class="label-preset-pills">
+                  <span class="pills-title">Quick Labels:</span>
+                  <button type="button" class="loc-pill-btn" data-preset="Home"><i class="fa-solid fa-house"></i> Home</button>
+                  <button type="button" class="loc-pill-btn" data-preset="Construction Site"><i class="fa-solid fa-person-digging"></i> Construction Site</button>
+                  <button type="button" class="loc-pill-btn" data-preset="Office"><i class="fa-solid fa-building"></i> Office</button>
+                  <button type="button" class="loc-pill-btn" data-preset="Farmhouse"><i class="fa-solid fa-tree"></i> Farmhouse</button>
+                  <button type="button" class="loc-pill-btn" data-preset="Warehouse"><i class="fa-solid fa-warehouse"></i> Warehouse</button>
+                </div>
+                <span class="field-error" id="locLabelError"></span>
+              </div>
+
+              <!-- Address Line 1 -->
+              <div class="form-group">
+                <label for="locAddress1">Address Line 1 <span class="required-star">*</span></label>
+                <input type="text" id="locAddress1" name="addressLine1" class="form-control" placeholder="House / Flat / Plot No., Building Name, Street" maxlength="255" required>
+                <span class="field-hint">Primary street address or site identifier.</span>
+                <span class="field-error" id="locAddress1Error"></span>
+              </div>
+
+              <!-- Address Line 2 -->
+              <div class="form-group">
+                <label for="locAddress2">Address Line 2 <span class="optional-tag">(Optional)</span></label>
+                <input type="text" id="locAddress2" name="addressLine2" class="form-control" placeholder="Area, Locality, Sector, Phase" maxlength="255">
+                <span class="field-error" id="locAddress2Error"></span>
+              </div>
+
+              <!-- City, State, PIN Code 3-Col Grid -->
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label for="locCity">City <span class="required-star">*</span></label>
+                  <input type="text" id="locCity" name="city" class="form-control" placeholder="City / District" maxlength="100" required>
+                  <span class="field-error" id="locCityError"></span>
+                </div>
+
+                <div class="form-group">
+                  <label for="locState">State <span class="required-star">*</span></label>
+                  <input type="text" id="locState" name="state" class="form-control" placeholder="State" maxlength="100" required>
+                  <span class="field-error" id="locStateError"></span>
+                </div>
+
+                <div class="form-group">
+                  <label for="locPincode">PIN Code <span class="required-star">*</span></label>
+                  <input type="text" id="locPincode" name="pincode" class="form-control" placeholder="6-digit PIN" maxlength="6" pattern="[0-9]{6}" required>
+                  <span class="field-error" id="locPincodeError"></span>
+                </div>
+              </div>
+
+              <!-- Landmark -->
+              <div class="form-group">
+                <label for="locLandmark">Nearby Landmark <span class="optional-tag">(Optional)</span></label>
+                <input type="text" id="locLandmark" name="landmark" class="form-control" placeholder="e.g. Near City Center Metro Station, Opposite Park" maxlength="255">
+                <span class="field-error" id="locLandmarkError"></span>
+              </div>
+
+              <!-- Default Location Checkbox -->
+              <div class="form-group loc-checkbox-group">
+                <label class="custom-checkbox-label">
+                  <input type="checkbox" id="locIsDefault" name="isDefault" class="custom-checkbox-input">
+                  <span class="custom-checkbox-box"></span>
+                  <span class="checkbox-text">
+                    <strong>Set as default address</strong>
+                    <span class="checkbox-subtext">This address will be prioritized for future project estimates and delivery requests.</span>
+                  </span>
+                </label>
+              </div>
+
+              <!-- Form Feedback Box -->
+              <div id="locationFormFeedback" class="security-feedback-box hidden"></div>
+
+              <!-- Form Action Buttons -->
+              <div class="verif-actions-row" style="margin-top: 20px;">
+                <button type="submit" id="btnSaveLocation" class="btn-save-profile">
+                  <i class="fa-solid fa-floppy-disk"></i> Save Location
+                </button>
+                <button type="button" id="btnCancelLocationForm" class="btn-discard-profile">
+                  Cancel
+                </button>
+              </div>
+
+            </form>
+          </div>
+
+          <!-- Locations Cards Grid / Container -->
+          <div class="locations-cards-grid" id="savedLocationsListContainer">
+            <!-- Dynamically rendered location cards -->
+          </div>
+
+          <!-- Empty State (Shown when 0 locations) -->
+          <div class="locations-empty-card hidden" id="savedLocationsEmptyState">
+            <div class="empty-icon-wrap">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <h3>No saved locations yet</h3>
+            <p>Add your home, office, construction site, or another frequently used address for faster access across BuildBid.</p>
+            <button type="button" id="btnEmptyAddLocation" class="btn-action-primary">
+              <i class="fa-solid fa-plus"></i> Add New Location
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Right: Section 6 - Language & Regional Preferences Panel -->
+        <div class="settings-content-card dash-card hidden" id="regional-preferences-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-earth-americas"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Language & Regional Preferences</h2>
+                <p class="section-subheading">Choose how BuildBid displays language, dates, numbers, currency and construction measurements for your account.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot" style="background: #0ea5e9;"></span> Active Preferences
+            </div>
+          </div>
+
+          <!-- Section Information / Disclaimer Note -->
+          <div class="pref-disclaimer-card" style="margin-bottom: 24px;">
+            <div class="disclaimer-icon-wrap">
+              <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div class="disclaimer-content">
+              <strong>Display & Regional Personalization</strong>
+              <p>Choose how BuildBid displays language, dates, numbers, currency and construction measurements for your account. These preferences affect display and future personalization. They do not automatically change existing project data or cost calculations.</p>
+            </div>
+          </div>
+
+          <!-- Regional Preferences Form -->
+          <form id="regionalPreferencesForm" class="settings-form" novalidate autocomplete="off">
+            <div class="form-grid-2">
+
+              <!-- 1. Preferred Language -->
+              <div class="form-group">
+                <label for="regPreferredLanguage">Preferred Language <span class="required-star">*</span></label>
+                <div class="select-wrapper">
+                  <select id="regPreferredLanguage" name="preferredLanguage" class="form-control">
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-caret"></i>
+                </div>
+                <span class="field-hint">Primary interface and communication language.</span>
+                <span class="field-error" id="regPreferredLanguageError"></span>
+              </div>
+
+              <!-- 2. Time Zone -->
+              <div class="form-group">
+                <label for="regTimeZone">Time Zone <span class="required-star">*</span></label>
+                <div class="select-wrapper">
+                  <select id="regTimeZone" name="timeZone" class="form-control">
+                    <option value="Asia/Kolkata">India Standard Time (Asia/Kolkata)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-caret"></i>
+                </div>
+                <span class="field-hint">Time zone for construction timelines, bid deadlines, and activities.</span>
+                <span class="field-error" id="regTimeZoneError"></span>
+              </div>
+
+              <!-- 3. Currency -->
+              <div class="form-group">
+                <label for="regCurrency">Currency <span class="required-star">*</span></label>
+                <div class="select-wrapper">
+                  <select id="regCurrency" name="currency" class="form-control">
+                    <option value="INR">Indian Rupee (INR ₹)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-caret"></i>
+                </div>
+                <span class="field-hint">Display currency for material prices, estimates, and budgets.</span>
+                <span class="field-error" id="regCurrencyError"></span>
+              </div>
+
+              <!-- 4. Area / Measurement Unit -->
+              <div class="form-group">
+                <label for="regAreaUnit">Area Unit <span class="required-star">*</span></label>
+                <div class="select-wrapper">
+                  <select id="regAreaUnit" name="areaUnit" class="form-control">
+                    <option value="sq ft">Square Feet (sq ft)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-caret"></i>
+                </div>
+                <span class="field-hint">Standard construction area measurement unit across BuildBid.</span>
+                <span class="field-error" id="regAreaUnitError"></span>
+              </div>
+
+              <!-- 5. Date Format -->
+              <div class="form-group">
+                <label for="regDateFormat">Date Format <span class="required-star">*</span></label>
+                <div class="select-wrapper">
+                  <select id="regDateFormat" name="dateFormat" class="form-control">
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-caret"></i>
+                </div>
+                <span class="field-hint">Preferred date presentation for project milestones and events.</span>
+                <span class="field-error" id="regDateFormatError"></span>
+              </div>
+
+              <!-- 6. Number Format / Regional Format -->
+              <div class="form-group">
+                <label for="regNumberFormat">Number Format <span class="required-star">*</span></label>
+                <div class="select-wrapper">
+                  <select id="regNumberFormat" name="numberFormat" class="form-control">
+                    <option value="Indian">Indian Number Format (e.g. 1,00,000)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-caret"></i>
+                </div>
+                <span class="field-hint">Display format for amounts, quantities, and numeric values.</span>
+                <span class="field-error" id="regNumberFormatError"></span>
+              </div>
+
+            </div>
+
+            <!-- Feedback Alert Box -->
+            <div id="regionalPreferencesFeedback" class="security-feedback-box hidden"></div>
+
+            <!-- Action Buttons -->
+            <div class="verif-actions-row" style="margin-top: 28px;">
+              <button type="submit" id="btnSaveRegionalPreferences" class="btn-save-profile">
+                <i class="fa-solid fa-floppy-disk"></i> Save Regional Preferences
+              </button>
+              <button type="button" id="btnResetRegionalPreferences" class="btn-discard-profile">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Reset Regional Preferences
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Right: Section 7 - Download My Data Panel -->
+        <div class="settings-content-card dash-card hidden" id="download-data-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon">
+                <i class="fa-solid fa-file-arrow-down"></i>
+              </div>
+              <div>
+                <h2 class="section-heading">Download My Data</h2>
+                <p class="section-subheading">Download an authoritative copy of your BuildBid account and activity data in machine-readable JSON format.</p>
+              </div>
+            </div>
+            <div class="section-status-pill">
+              <span class="live-dot" style="background: #10b981;"></span> Export Ready
+            </div>
+          </div>
+
+          <!-- Overview & Security Guarantee Banner -->
+          <div class="download-info-banner">
+            <div class="banner-icon-col">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="banner-body-col">
+              <h4>Your Privacy & Data Ownership</h4>
+              <p>You have full ownership of your data on BuildBid. You can export a snapshot of all personal, project, requirement, and order information associated with your account at any time. The exported file is securely generated directly from our authoritative database in JSON format.</p>
+            </div>
+          </div>
+
+          <!-- Two-Column Cards: Included vs Excluded -->
+          <div class="download-details-grid">
+            <div class="download-data-box included-box">
+              <div class="box-head">
+                <i class="fa-solid fa-circle-check"></i>
+                <h3>What is Included in Your Export</h3>
+              </div>
+              <ul class="download-checklist">
+                <li><i class="fa-solid fa-check"></i> <strong>Account Details:</strong> Name, username, email, phone, and registration timestamp.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Profile Information:</strong> Addresses, contact details, about section, and language preference.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Verification Status:</strong> Verification status and timestamps for email and phone.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Construction Preferences:</strong> Preferred project types, property sizes, quality tiers, and budget ranges.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Saved Locations:</strong> All registered site addresses and default delivery markers.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Regional Preferences:</strong> Time zone, currency, measurement units, and date/number formats.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>My Projects:</strong> Details, budgets, scopes, and specifications of your posted projects.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Requests & Material Orders:</strong> Material requirements, service requests, and confirmed orders.</li>
+                <li><i class="fa-solid fa-check"></i> <strong>Hired Professionals:</strong> Accepted direct hires and trade professionals on your projects.</li>
+              </ul>
+            </div>
+
+            <div class="download-data-box excluded-box">
+              <div class="box-head">
+                <i class="fa-solid fa-shield-cat"></i>
+                <h3>What is Never Exported (For Your Security)</h3>
+              </div>
+              <ul class="download-checklist excluded-checklist">
+                <li><i class="fa-solid fa-xmark"></i> <strong>Password Hashes & Passwords:</strong> Your credentials remain strictly encrypted on our secure server.</li>
+                <li><i class="fa-solid fa-xmark"></i> <strong>Active Session Tokens:</strong> JWT access tokens and session authorization secrets are never included.</li>
+                <li><i class="fa-solid fa-xmark"></i> <strong>One-Time Passwords (OTPs):</strong> OTP codes, hashes, and temporary verification tokens are omitted.</li>
+                <li><i class="fa-solid fa-xmark"></i> <strong>Private Information of Other Users:</strong> Contractor internal records and other customer details are strictly isolated.</li>
+                <li><i class="fa-solid fa-xmark"></i> <strong>Payment Credentials:</strong> BuildBid never stores or exports raw credit card or banking secrets.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Format and Download Trigger Action Card -->
+          <div class="download-action-card">
+            <div class="format-spec-row">
+              <div class="format-badge">
+                <i class="fa-solid fa-code"></i> JSON
+              </div>
+              <div class="format-meta">
+                <span class="meta-label">File Format:</span>
+                <span class="meta-value">JavaScript Object Notation (.json)</span>
+              </div>
+              <div class="format-meta">
+                <span class="meta-label">Encoding:</span>
+                <span class="meta-value">UTF-8</span>
+              </div>
+              <div class="format-meta">
+                <span class="meta-label">Version:</span>
+                <span class="meta-value">1.0</span>
+              </div>
+            </div>
+
+            <!-- Feedback Alert Box -->
+            <div id="downloadDataFeedback" class="security-feedback-box hidden" style="margin-top: 20px;"></div>
+
+            <!-- Download Button -->
+            <div class="download-cta-row">
+              <button type="button" id="btnDownloadMyData" class="btn-save-profile btn-download-primary">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Download My Data
+              </button>
+              <span class="download-subtext">Clicking will securely generate and download your account JSON file to your device.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Section 8 - Account Deactivation / Deletion Panel -->
+        <div class="settings-content-card dash-card hidden" id="account-deactivation-panel">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <div class="title-icon danger-icon">
+                <i class="fa-solid fa-user-xmark"></i>
+              </div>
+              <div class="title-text-group">
+                <div class="title-with-badge">
+                  <h2 class="section-heading">Account Deactivation / Deletion</h2>
+                  <span class="settings-badge active-badge danger-badge">Step 8</span>
+                </div>
+                <p class="section-subtext">Manage account deactivation or permanently remove your customer account and personal data from BuildBid.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Security Status Bar -->
+          <div class="deactivation-status-strip" id="deactivationStatusStrip">
+            <div class="status-strip-item">
+              <span class="status-strip-label">Account Status:</span>
+              <span class="status-strip-pill active" id="deactAccountStatePill">
+                <i class="fa-solid fa-circle-check"></i> Active
+              </span>
+            </div>
+            <div class="status-strip-item">
+              <span class="status-strip-label">Verified Email:</span>
+              <span class="status-strip-pill" id="deactEmailStatusPill">
+                <i class="fa-solid fa-spinner fa-spin"></i> Checking...
+              </span>
+            </div>
+            <div class="status-strip-item">
+              <span class="status-strip-label">Verified Mobile:</span>
+              <span class="status-strip-pill" id="deactPhoneStatusPill">
+                <i class="fa-solid fa-spinner fa-spin"></i> Checking...
+              </span>
+            </div>
+          </div>
+
+          <!-- Two Main Action Cards -->
+          <div class="deactivation-cards-grid">
+            <!-- Card 1: Account Deactivation (Reversible) -->
+            <div class="deactivation-action-card deactivation-card">
+              <div class="action-card-header">
+                <div class="action-card-icon warning">
+                  <i class="fa-solid fa-pause"></i>
+                </div>
+                <div class="action-card-titles">
+                  <h3 class="action-card-title">Deactivate Account</h3>
+                  <span class="action-type-badge warning-badge">Temporary / Reversible</span>
+                </div>
+              </div>
+              <p class="action-card-desc">
+                Temporarily pause your BuildBid customer account. While deactivated:
+              </p>
+              <ul class="action-card-features">
+                <li><i class="fa-solid fa-check"></i> You will be logged out of all active sessions immediately.</li>
+                <li><i class="fa-solid fa-check"></i> Direct login will be blocked until your account is reactivated.</li>
+                <li><i class="fa-solid fa-check"></i> Your personal profile, addresses, and preferences remain securely preserved.</li>
+                <li><i class="fa-solid fa-check"></i> No personal or business data is deleted during deactivation.</li>
+              </ul>
+              <div class="action-card-cta">
+                <button type="button" class="btn-deactivate-action" id="btnOpenDeactivateModal">
+                  <i class="fa-solid fa-pause"></i> Deactivate Account
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 2: Permanent Account Deletion (Destructive) -->
+            <div class="deactivation-action-card deletion-card">
+              <div class="action-card-header">
+                <div class="action-card-icon danger">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="action-card-titles">
+                  <h3 class="action-card-title">Permanently Delete Account</h3>
+                  <span class="action-type-badge danger-badge">Irreversible / Destructive</span>
+                </div>
+              </div>
+              <p class="action-card-desc">
+                Permanently erase your BuildBid customer profile and personal records. This action cannot be undone:
+              </p>
+              <ul class="action-card-features destructive-features">
+                <li><i class="fa-solid fa-xmark"></i> Your customer profile, saved locations, and regional preferences are permanently erased.</li>
+                <li><i class="fa-solid fa-xmark"></i> Your password, security records, and active authentication tokens are invalidated.</li>
+                <li><i class="fa-solid fa-shield-halved"></i> Shared legal and transactional records (orders, bids) are retained for audit and anonymized.</li>
+                <li><i class="fa-solid fa-envelope-circle-check"></i> Requires password verification &amp; 6-digit OTP delivered to <strong>both</strong> verified email and mobile.</li>
+              </ul>
+              <div class="action-card-cta">
+                <button type="button" class="btn-delete-action" id="btnOpenDeleteModal">
+                  <i class="fa-solid fa-trash-can"></i> Permanently Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Information notice box -->
+          <div class="deactivation-notice-box">
+            <div class="notice-icon">
+              <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div class="notice-text">
+              <h4>Security Notice &amp; Prerequisite Policy</h4>
+              <p>For your protection against unauthorized destruction of customer accounts, permanent deletion requires having both a <strong>verified email address</strong> and a <strong>verified mobile phone number</strong>. If either channel is unverified, please visit the <a href="#verification" id="linkDeactGoToVerif">Email &amp; Mobile Verification (Step 2)</a> tab to verify them first before initiating deletion.</p>
+            </div>
+          </div>
+        </div>
+
+      <!-- App Footer -->
+      <footer class="app-footer" style="margin-top: 40px;">
+        <div class="footer-columns">
+          <div class="footer-brand-side">
+            <div class="brand-logo">
+              <img src="logo.png" alt="BuildBid Logo" class="site-logo">
+              <div class="brand-text">
+                <span class="brand-title">BuildBid</span>
+                <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Platform</h4>
+            <a href="customer projects.html">Projects</a>
+            <a href="buy-material-select.html">Materials</a>
+            <a href="direct-hire.html">Professionals</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Company</h4>
+            <a href="#">About Us</a>
+            <a href="#">How It Works</a>
+            <a href="#">Contact Us</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Support</h4>
+            <a href="#">Help Center</a>
+            <a href="#">Terms & Conditions</a>
+            <a href="#">Privacy Policy</a>
+          </div>
+
+          <div class="footer-links-col">
+            <h4>Follow Us</h4>
+            <div class="social-links-row">
+              <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+              <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+              <a href="#"><i class="fa-brands fa-instagram"></i></a>
+              <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-copyright-note">
+          &copy; 2026 BuildBid. All rights reserved.
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Top-Right Floating Notification Toast -->
+  <div id="custom-toast" class="toast-card">
+    <div class="toast-icon" id="custom-toast-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+    </div>
+    <div class="toast-body">
+      <h4 id="toast-title" class="toast-title">Notification</h4>
+      <p id="toast-message" class="toast-message">Message text</p>
+    </div>
+    <button class="toast-close" id="toastCloseBtn">&times;</button>
+  </div>
+
+  <!-- Delete Saved Location Confirmation Modal -->
+  <div id="deleteLocationModal" class="location-modal-overlay hidden">
+    <div class="location-modal-dialog">
+      <div class="location-modal-header">
+        <div class="modal-icon-circle danger-circle">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="modal-header-text">
+          <h3>Delete Saved Location</h3>
+          <p>Confirm location deletion</p>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnCancelDeleteModalX">&times;</button>
+      </div>
+      <div class="location-modal-body">
+        <p>Are you sure you want to delete this saved location: <strong id="deleteLocationTargetLabel">Location</strong>?</p>
+        <p class="modal-body-subtext">
+          <i class="fa-solid fa-shield-halved"></i>
+          Only this saved address will be removed. Your personal profile address and existing project data will remain unaffected.
+        </p>
+      </div>
+      <div class="location-modal-footer">
+        <button type="button" id="btnConfirmDeleteLocation" class="btn-action-danger">
+          <i class="fa-solid fa-trash-can"></i> Delete Location
+        </button>
+        <button type="button" id="btnCancelDeleteLocation" class="btn-discard-profile">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deactivate Account Confirmation Modal -->
+  <div id="deactivateAccountModal" class="location-modal-overlay hidden">
+    <div class="location-modal-dialog">
+      <div class="location-modal-header">
+        <div class="modal-icon-circle warning-circle">
+          <i class="fa-solid fa-pause"></i>
+        </div>
+        <div class="modal-header-text">
+          <h3>Deactivate Account</h3>
+          <p>Temporary Account Deactivation</p>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnCloseDeactivateModal">&times;</button>
+      </div>
+      <div class="location-modal-body">
+        <p>Are you sure you want to deactivate your BuildBid customer account?</p>
+        <p class="modal-body-subtext">
+          <i class="fa-solid fa-shield-halved"></i>
+          Your account will be safely disabled and you will be logged out on all devices. Your profile, settings, and business records will be preserved.
+        </p>
+        <div class="modal-form-group" style="margin-top: 16px;">
+          <label for="deactivatePasswordInput" class="modal-input-label">Enter Current Password to Confirm:</label>
+          <input type="password" id="deactivatePasswordInput" class="form-input modal-input" placeholder="Current account password" autocomplete="current-password">
+        </div>
+        <div id="deactivateFeedbackBox" class="security-feedback-box hidden" style="margin-top: 14px;"></div>
+      </div>
+      <div class="location-modal-footer">
+        <button type="button" id="btnConfirmDeactivateAccount" class="btn-action-warning">
+          <i class="fa-solid fa-pause"></i> Deactivate Account
+        </button>
+        <button type="button" id="btnCancelDeactivateAccount" class="btn-discard-profile">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permanent Account Deletion Multi-Step Modal -->
+  <div id="permanentDeleteModal" class="location-modal-overlay hidden">
+    <div class="location-modal-dialog deletion-dialog">
+      <div class="location-modal-header">
+        <div class="modal-icon-circle danger-circle">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="modal-header-text">
+          <h3 id="deleteModalTitle">Permanent Account Deletion</h3>
+          <p id="deleteModalSubtitle">Step 1 of 4: Prerequisites &amp; Notice</p>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnCloseDeleteModal">&times;</button>
+      </div>
+
+      <!-- Step Indicator Bar -->
+      <div class="deletion-step-bar">
+        <div class="step-indicator-item active" id="stepInd1"><span class="step-num">1</span> Notice</div>
+        <div class="step-indicator-item" id="stepInd2"><span class="step-num">2</span> Password</div>
+        <div class="step-indicator-item" id="stepInd3"><span class="step-num">3</span> Dual OTP</div>
+        <div class="step-indicator-item" id="stepInd4"><span class="step-num">4</span> Confirm</div>
+      </div>
+
+      <div class="location-modal-body deletion-modal-body">
+        <!-- SCREEN 1: Prerequisites & Notice -->
+        <div id="deleteScreen1" class="deletion-screen">
+          <div class="danger-callout-box">
+            <i class="fa-solid fa-triangle-exclamation callout-icon"></i>
+            <div>
+              <strong>Warning: This action is permanent and irreversible.</strong>
+              <p>All personal profile details, preferences, and saved locations will be permanently erased. You will lose access immediately.</p>
+            </div>
+          </div>
+
+          <h4 class="subscreen-heading">Required Verification Channels</h4>
+          <p class="modal-body-subtext">Before initiating permanent deletion, both your email and phone must be verified to prevent unauthorized deletion:</p>
+
+          <div class="channel-check-list">
+            <div class="channel-check-item" id="checkEmailChannel">
+              <i class="fa-solid fa-envelope channel-icon"></i>
+              <div class="channel-info">
+                <span class="channel-name">Verified Email Address</span>
+                <span class="channel-status" id="screen1EmailStatus">Checking...</span>
+              </div>
+              <span class="channel-badge" id="screen1EmailBadge"><i class="fa-solid fa-spinner fa-spin"></i></span>
+            </div>
+
+            <div class="channel-check-item" id="checkPhoneChannel">
+              <i class="fa-solid fa-phone channel-icon"></i>
+              <div class="channel-info">
+                <span class="channel-name">Verified Mobile Number</span>
+                <span class="channel-status" id="screen1PhoneStatus">Checking...</span>
+              </div>
+              <span class="channel-badge" id="screen1PhoneBadge"><i class="fa-solid fa-spinner fa-spin"></i></span>
+            </div>
+          </div>
+
+          <div id="deleteScreen1Feedback" class="security-feedback-box hidden" style="margin-top: 14px;"></div>
+        </div>
+
+        <!-- SCREEN 2: Explicit Confirmation & Current Password -->
+        <div id="deleteScreen2" class="deletion-screen hidden">
+          <p class="modal-body-subtext" style="margin-bottom: 16px;">
+            To proceed, verify your identity with your current password and type <strong>DELETE</strong> in all uppercase.
+          </p>
+
+          <div class="modal-form-group">
+            <label for="deleteCurrentPasswordInput" class="modal-input-label">Current Password:</label>
+            <input type="password" id="deleteCurrentPasswordInput" class="form-input modal-input" placeholder="Enter your current password" autocomplete="current-password">
+          </div>
+
+          <div class="modal-form-group" style="margin-top: 14px;">
+            <label for="deleteConfirmWordInput" class="modal-input-label">Type <strong>DELETE</strong> to confirm:</label>
+            <input type="text" id="deleteConfirmWordInput" class="form-input modal-input" placeholder="DELETE" autocomplete="off" spellcheck="false">
+          </div>
+
+          <div id="deleteScreen2Feedback" class="security-feedback-box hidden" style="margin-top: 14px;"></div>
+        </div>
+
+        <!-- SCREEN 3: Dual-Channel OTP Entry -->
+        <div id="deleteScreen3" class="deletion-screen hidden">
+          <div class="info-callout-box">
+            <i class="fa-solid fa-envelope-circle-check callout-icon"></i>
+            <div>
+              <strong>Verification OTP Dispatched</strong>
+              <p>The exact same 6-digit deletion authorization code has been dispatched to both your verified email and verified mobile number.</p>
+            </div>
+          </div>
+
+          <p class="otp-instruction-text">
+            Enter the 6-digit verification code sent to your verified email and mobile number.
+          </p>
+
+          <div class="otp-digits-container" id="deleteOtpDigitsContainer">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input delete-otp-digit" autocomplete="off">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input delete-otp-digit" autocomplete="off">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input delete-otp-digit" autocomplete="off">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input delete-otp-digit" autocomplete="off">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input delete-otp-digit" autocomplete="off">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input delete-otp-digit" autocomplete="off">
+          </div>
+
+          <div class="otp-meta-row">
+            <span class="otp-expiry-hint" id="deleteOtpExpiryTimer">
+              <i class="fa-regular fa-clock"></i> Code expires in: <strong id="deleteExpiryCount">10:00</strong>
+            </span>
+            <button type="button" class="btn-resend-inline" id="btnResendDeletionOtp" disabled>
+              Resend OTP (<span id="deleteResendCountdown">60</span>s)
+            </button>
+          </div>
+
+          <div id="deleteScreen3Feedback" class="security-feedback-box hidden" style="margin-top: 14px;"></div>
+        </div>
+
+        <!-- SCREEN 4: Final Confirmation & Execution -->
+        <div id="deleteScreen4" class="deletion-screen hidden">
+          <div class="success-callout-box">
+            <i class="fa-solid fa-circle-check callout-icon"></i>
+            <div>
+              <strong>OTP Verified Successfully</strong>
+              <p>Your identity has been fully verified across both channels. Deletion authorization is active for 5 minutes.</p>
+            </div>
+          </div>
+
+          <div class="final-warning-box">
+            <h4 style="color: #991b1b; margin: 0 0 8px 0; font-size: 14px;">FINAL ACTION REQUIRED:</h4>
+            <p style="margin: 0; font-size: 13px; color: #475569;">
+              Clicking below will permanently erase your profile, revoke all login tokens, and conclude your customer account. An official bilingual confirmation email will be sent to your inbox.
+            </p>
+          </div>
+
+          <div id="deleteScreen4Feedback" class="security-feedback-box hidden" style="margin-top: 14px;"></div>
+        </div>
+      </div>
+
+      <div class="location-modal-footer">
+        <!-- Screen 1 Buttons -->
+        <div id="screen1Footer" class="screen-footer-actions">
+          <button type="button" id="btnProceedToScreen2" class="btn-action-danger" disabled>
+            Continue to Verification <i class="fa-solid fa-arrow-right"></i>
+          </button>
+          <button type="button" class="btn-discard-profile btn-cancel-delete">Cancel</button>
+        </div>
+
+        <!-- Screen 2 Buttons -->
+        <div id="screen2Footer" class="screen-footer-actions hidden">
+          <button type="button" id="btnSendDeletionOtp" class="btn-action-danger">
+            <i class="fa-solid fa-paper-plane"></i> Send Deletion OTP
+          </button>
+          <button type="button" class="btn-discard-profile" id="btnBackToScreen1">Back</button>
+          <button type="button" class="btn-discard-profile btn-cancel-delete">Cancel</button>
+        </div>
+
+        <!-- Screen 3 Buttons -->
+        <div id="screen3Footer" class="screen-footer-actions hidden">
+          <button type="button" id="btnVerifyDeletionOtp" class="btn-action-danger">
+            <i class="fa-solid fa-shield-check"></i> Verify OTP &amp; Authorize
+          </button>
+          <button type="button" class="btn-discard-profile btn-cancel-delete">Cancel</button>
+        </div>
+
+        <!-- Screen 4 Buttons -->
+        <div id="screen4Footer" class="screen-footer-actions hidden">
+          <button type="button" id="btnFinalizePermanentDeletion" class="btn-action-danger btn-danger-pulse">
+            <i class="fa-solid fa-trash-can"></i> Permanently Delete My Account Now
+          </button>
+          <button type="button" class="btn-discard-profile btn-cancel-delete">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="customer-account-settings.js"></script>
+  <script src="layout.js"></script>
+</body>
+</html>

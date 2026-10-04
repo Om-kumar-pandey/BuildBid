@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   renderUserProfile(user);
   renderUserStats(user.stats);
-  renderVerificationStatus(user.verifications);
+  renderVerificationStatus(user.verifications, user.emailVerified, user.phoneVerified);
   renderRecentActivities(user.activities);
 
   // 2. Fetch fresh details from backend safely
@@ -143,6 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // Re-render with database synced data
       renderUserProfile(user);
+      renderVerificationStatus(null, user.emailVerified, user.phoneVerified);
     } else {
       console.warn("Live profile sync status:", response.status);
     }
@@ -182,6 +183,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         localStorage.setItem("currentUser", JSON.stringify(user));
         localStorage.setItem("customerUser", JSON.stringify(user));
         renderUserProfile(user);
+        renderVerificationStatus(null, user.emailVerified, user.phoneVerified);
       }
     } catch (profErr) {
       console.warn("Customer profile fetch failed:", profErr);
@@ -327,6 +329,16 @@ function renderUserProfile(user) {
   const heroName = document.getElementById("heroName");
   if (heroName) heroName.textContent = fullName;
 
+  const heroVerifiedBadge = document.getElementById("heroVerifiedBadge");
+  if (heroVerifiedBadge) {
+    if (user.emailVerified) {
+      heroVerifiedBadge.style.display = "inline-block";
+      heroVerifiedBadge.title = "Verified Customer (Email Verified)";
+    } else {
+      heroVerifiedBadge.style.display = "none";
+    }
+  }
+
   const heroAvatar = document.getElementById("heroAvatar");
   if (heroAvatar) heroAvatar.src = avatarUrl;
 
@@ -370,10 +382,22 @@ function renderUserProfile(user) {
   if (dataFullName) dataFullName.textContent = (fullName && fullName.toLowerCase() !== "customer") ? fullName : "--";
 
   const dataEmail = document.getElementById("dataEmail");
-  if (dataEmail) dataEmail.textContent = email;
+  if (dataEmail) {
+    if (user.emailVerified && email && email !== "--") {
+      dataEmail.innerHTML = `${email} <span style="display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:600; color:#10b981; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> Verified</span>`;
+    } else {
+      dataEmail.textContent = email;
+    }
+  }
 
   const dataPhone = document.getElementById("dataPhone");
-  if (dataPhone) dataPhone.textContent = phone;
+  if (dataPhone) {
+    if (user.phoneVerified && phone && phone !== "--") {
+      dataPhone.innerHTML = `${phone} <span style="display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:600; color:#10b981; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> Verified</span>`;
+    } else {
+      dataPhone.textContent = phone;
+    }
+  }
 
   const dataAddress = document.getElementById("dataAddress");
   if (dataAddress) dataAddress.textContent = (user.address && user.address.trim() !== "") ? user.address : "--";
@@ -403,13 +427,16 @@ function renderUserStats(stats) {
   if (statAverageRating) statAverageRating.textContent = parseFloat(userStats.averageRating).toFixed(1);
 }
 
-function renderVerificationStatus(verifications) {
+function renderVerificationStatus(verifications, emailVerified, phoneVerified) {
   const verifyContainer = document.getElementById("verificationContainer");
   if (!verifyContainer) return;
 
-  const defaultVerifications = verifications || [
-    { title: "Email Verified", isVerified: true },
-    { title: "Phone Verified", isVerified: true },
+  const isEmailV = (typeof emailVerified === "boolean") ? emailVerified : false;
+  const isPhoneV = (typeof phoneVerified === "boolean") ? phoneVerified : false;
+
+  const defaultVerifications = (verifications && verifications.length > 0) ? verifications : [
+    { title: "Email Verified", isVerified: isEmailV },
+    { title: "Phone Verified", isVerified: isPhoneV },
     { title: "ID Proof Verified", isVerified: false },
     { title: "Address Verified", isVerified: false }
   ];

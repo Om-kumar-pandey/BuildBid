@@ -152,6 +152,36 @@ public class MarketplaceBackendApplication {
             createdAt = LocalDateTime.now();
         }
 
+        @Column(name = "email_verified", nullable = false)
+        private boolean emailVerified = false;
+
+        @Column(name = "email_verified_at")
+        private LocalDateTime emailVerifiedAt;
+
+        @Column(name = "phone_verified", nullable = false)
+        private boolean phoneVerified = false;
+
+        @Column(name = "phone_verified_at")
+        private LocalDateTime phoneVerifiedAt;
+
+        @Column(name = "password_updated_at")
+        private LocalDateTime passwordUpdatedAt;
+
+        @Column(name = "is_deleted", nullable = false)
+        private boolean deleted = false;
+
+        @Column(name = "deleted_at")
+        private LocalDateTime deletedAt;
+
+        @Column(name = "deactivated_at")
+        private LocalDateTime deactivatedAt;
+
+        @Column(name = "deletion_auth_token", length = 100)
+        private String deletionAuthToken;
+
+        @Column(name = "deletion_auth_expiry")
+        private LocalDateTime deletionAuthExpiry;
+
         public Long getId() { return id; }
         public String getName() { return name; }
         public String getUsername() { return username; }
@@ -163,6 +193,16 @@ public class MarketplaceBackendApplication {
         public Set<Role> getRoles() { return roles; }
         public boolean isEnabled() { return enabled; }
         public LocalDateTime getCreatedAt() { return createdAt; }
+        public boolean isEmailVerified() { return emailVerified; }
+        public LocalDateTime getEmailVerifiedAt() { return emailVerifiedAt; }
+        public boolean isPhoneVerified() { return phoneVerified; }
+        public LocalDateTime getPhoneVerifiedAt() { return phoneVerifiedAt; }
+        public LocalDateTime getPasswordUpdatedAt() { return passwordUpdatedAt; }
+        public boolean isDeleted() { return deleted; }
+        public LocalDateTime getDeletedAt() { return deletedAt; }
+        public LocalDateTime getDeactivatedAt() { return deactivatedAt; }
+        public String getDeletionAuthToken() { return deletionAuthToken; }
+        public LocalDateTime getDeletionAuthExpiry() { return deletionAuthExpiry; }
 
         public void setName(String name) { this.name = name; }
         public void setUsername(String username) { this.username = username; }
@@ -173,6 +213,16 @@ public class MarketplaceBackendApplication {
         public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
         public void setRoles(Set<Role> roles) { this.roles = roles; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+        public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; }
+        public void setPhoneVerified(boolean phoneVerified) { this.phoneVerified = phoneVerified; }
+        public void setPhoneVerifiedAt(LocalDateTime phoneVerifiedAt) { this.phoneVerifiedAt = phoneVerifiedAt; }
+        public void setPasswordUpdatedAt(LocalDateTime passwordUpdatedAt) { this.passwordUpdatedAt = passwordUpdatedAt; }
+        public void setDeleted(boolean deleted) { this.deleted = deleted; }
+        public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+        public void setDeactivatedAt(LocalDateTime deactivatedAt) { this.deactivatedAt = deactivatedAt; }
+        public void setDeletionAuthToken(String deletionAuthToken) { this.deletionAuthToken = deletionAuthToken; }
+        public void setDeletionAuthExpiry(LocalDateTime deletionAuthExpiry) { this.deletionAuthExpiry = deletionAuthExpiry; }
     }
 
 
@@ -183,8 +233,10 @@ public class MarketplaceBackendApplication {
     public interface UserRepository extends JpaRepository<MarketplaceUser, Long> {
         Optional<MarketplaceUser> findByUsername(String username);
         Optional<MarketplaceUser> findByEmail(String email);
+        Optional<MarketplaceUser> findByEmailIgnoreCase(String email);
         boolean existsByUsername(String username);
         boolean existsByEmail(String email);
+        boolean existsByEmailIgnoreCase(String email);
     }
 
 
@@ -229,8 +281,23 @@ public class MarketplaceBackendApplication {
             String email,
             String phone,
             String location,
-            Set<String> roles
-    ) {}
+            Set<String> roles,
+            boolean emailVerified,
+            boolean phoneVerified
+    ) {
+        public AuthResponse(
+                String token,
+                String tokenType,
+                String username,
+                String name,
+                String email,
+                String phone,
+                String location,
+                Set<String> roles
+        ) {
+            this(token, tokenType, username, name, email, phone, location, roles, false, false);
+        }
+    }
 
 
     // ========================================================
@@ -282,8 +349,30 @@ public class MarketplaceBackendApplication {
                         .parseSignedClaims(token)
                         .getPayload();
 
-                return claims.getSubject().equals(user.getUsername())
-                        && claims.getExpiration().after(new Date());
+                boolean basicValid = claims.getSubject().equals(user.getUsername())
+                        && claims.getExpiration().after(new Date())
+                        && user.isEnabled();
+                if (!basicValid) {
+                    return false;
+                }
+
+                if (user instanceof CustomUserDetails customUser) {
+                    LocalDateTime pwdUpdatedAt = customUser.getPasswordUpdatedAt();
+                    if (pwdUpdatedAt != null) {
+                        Date issuedAt = claims.getIssuedAt();
+                        if (issuedAt != null) {
+                            long pwdUpdatedEpochMillis = pwdUpdatedAt
+                                    .atZone(java.time.ZoneId.systemDefault())
+                                    .toInstant()
+                                    .toEpochMilli();
+                            if (issuedAt.getTime() < pwdUpdatedEpochMillis - 1000) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                return true;
             } catch (Exception e) {
                 return false;
             }
@@ -292,8 +381,29 @@ public class MarketplaceBackendApplication {
 
 
     // ========================================================
-    // USER DETAILS SERVICE
+    // CUSTOM USER DETAILS & USER DETAILS SERVICE
     // ========================================================
+
+    public static class CustomUserDetails extends User {
+        private final Long userId;
+        private final LocalDateTime passwordUpdatedAt;
+
+        public CustomUserDetails(
+                Long userId,
+                String username,
+                String password,
+                boolean enabled,
+                java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities,
+                LocalDateTime passwordUpdatedAt
+        ) {
+            super(username, password, enabled, true, true, true, authorities);
+            this.userId = userId;
+            this.passwordUpdatedAt = passwordUpdatedAt;
+        }
+
+        public Long getUserId() { return userId; }
+        public LocalDateTime getPasswordUpdatedAt() { return passwordUpdatedAt; }
+    }
 
     @Service
     public static class CustomUserDetailsService implements UserDetailsService {
@@ -309,16 +419,23 @@ public class MarketplaceBackendApplication {
                     .orElseGet(() -> repository.findByUsername(email)
                             .orElseThrow(() -> new UsernameNotFoundException("Please sign up first, then login.")));
 
-            String[] roles = user.getRoles()
-                    .stream()
-                    .map(Enum::name)
-                    .toArray(String[]::new);
+            if (user.isDeleted()) {
+                throw new UsernameNotFoundException("This account has been permanently deleted.");
+            }
 
-            return User.withUsername(user.getEmail())
-                    .password(user.getPasswordHash())
-                    .roles(roles)
-                    .disabled(!user.isEnabled())
-                    .build();
+            java.util.List<org.springframework.security.core.GrantedAuthority> authorities = user.getRoles()
+                    .stream()
+                    .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + r.name()))
+                    .collect(Collectors.toList());
+
+            return new CustomUserDetails(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getPasswordHash(),
+                    user.isEnabled(),
+                    authorities,
+                    user.getPasswordUpdatedAt()
+            );
         }
     }
 
@@ -475,7 +592,7 @@ public class MarketplaceBackendApplication {
                                     "/my-orders.js",
                                     "/customer-requests.html"
                             ).permitAll()
-                            .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**").permitAll()
+                            .requestMatchers("/api/auth/**", "/api/health", "/error", "/api/public/**", "/api/verification/public/**").permitAll()
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/direct-buy/materials").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/direct-buy/matching-sellers").permitAll()
@@ -485,7 +602,14 @@ public class MarketplaceBackendApplication {
                             .requestMatchers(HttpMethod.GET, "/api/projects", "/api/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
                             .requestMatchers("/api/customer/profile", "/api/customer/profile/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/customer/security", "/api/customer/security/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/customer/preferences", "/api/customer/preferences/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/customer/saved-locations", "/api/customer/saved-locations/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/security", "/api/security/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/customer/account", "/api/customer/account/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/customer/download-data", "/api/customer/download-data/**").hasRole("CUSTOMER")
                             .requestMatchers("/api/contractor/**").hasRole("CONTRACTOR")
+                            .requestMatchers("/api/verification/**").authenticated()
                             .anyRequest().authenticated()
                     )
                     .authenticationProvider(authenticationProvider())
@@ -531,24 +655,28 @@ public class MarketplaceBackendApplication {
         private final PasswordEncoder passwordEncoder;
         private final AuthenticationManager authenticationManager;
         private final JwtService jwtService;
+        private final VerificationService verificationService;
 
         public AuthService(
                 UserRepository repository,
                 PasswordEncoder passwordEncoder,
                 AuthenticationManager authenticationManager,
-                JwtService jwtService
+                JwtService jwtService,
+                @org.springframework.context.annotation.Lazy VerificationService verificationService
         ) {
             this.repository = repository;
             this.passwordEncoder = passwordEncoder;
             this.authenticationManager = authenticationManager;
             this.jwtService = jwtService;
+            this.verificationService = verificationService;
         }
 
         public AuthResponse register(RegisterRequest request) {
             String email = request.email().trim().toLowerCase();
 
-            if (repository.existsByEmail(email)) {
-                throw new IllegalArgumentException("Email already exists. Please login instead.");
+            // STRICT GLOBAL ONE EMAIL = ONE BUILDBID ACCOUNT CHECK ACROSS ALL ROLES
+            if (repository.existsByEmail(email) || repository.existsByEmailIgnoreCase(email)) {
+                throw new IllegalArgumentException("This email already exists. Try another email.");
             }
 
             String username = (request.username() != null && !request.username().isBlank())
@@ -581,8 +709,24 @@ public class MarketplaceBackendApplication {
             user.setLocation(location);
             user.setPasswordHash(passwordEncoder.encode(request.password()));
             user.setRoles(roles);
+            user.setEmailVerified(false);
+            user.setPhoneVerified(false);
 
-            MarketplaceUser savedUser = repository.save(user);
+            MarketplaceUser savedUser;
+            try {
+                savedUser = repository.saveAndFlush(user);
+            } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                // Handle concurrent registration race-condition gracefully without exposing database constraints
+                throw new IllegalArgumentException("This email already exists. Try another email.");
+            }
+
+            if (verificationService != null) {
+                try {
+                    verificationService.sendEmailVerification(savedUser);
+                } catch (Exception ex) {
+                    // Safe log, permit registration to finish
+                }
+            }
 
             UserDetails userDetails = createUserDetails(savedUser);
             String token = jwtService.createToken(userDetails);
@@ -593,8 +737,18 @@ public class MarketplaceBackendApplication {
         public AuthResponse login(LoginRequest request) {
             String email = request.email().trim().toLowerCase();
 
-            if (!repository.existsByEmail(email)) {
+            if (!repository.existsByEmail(email) && !repository.existsByEmailIgnoreCase(email)) {
                 throw new UsernameNotFoundException("Please sign up first, then login.");
+            }
+
+            MarketplaceUser checkUser = repository.findByEmail(email)
+                    .or(() -> repository.findByEmailIgnoreCase(email))
+                    .orElse(null);
+            if (checkUser != null && checkUser.isDeleted()) {
+                throw new UsernameNotFoundException("This account has been permanently deleted.");
+            }
+            if (checkUser != null && !checkUser.isEnabled()) {
+                throw new org.springframework.security.authentication.DisabledException("This account has been deactivated. Please contact support.");
             }
 
             authenticationManager.authenticate(
@@ -602,6 +756,7 @@ public class MarketplaceBackendApplication {
             );
 
             MarketplaceUser user = repository.findByEmail(email)
+                    .or(() -> repository.findByEmailIgnoreCase(email))
                     .orElseThrow(() -> new UsernameNotFoundException("Please sign up first, then login."));
 
             // STRICT FOUR-ROLE LOGIN VALIDATION
@@ -654,16 +809,19 @@ public class MarketplaceBackendApplication {
         }
 
         private UserDetails createUserDetails(MarketplaceUser user) {
-            String[] roles = user.getRoles()
+            java.util.List<org.springframework.security.core.GrantedAuthority> authorities = user.getRoles()
                     .stream()
-                    .map(Enum::name)
-                    .toArray(String[]::new);
+                    .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + r.name()))
+                    .collect(Collectors.toList());
 
-            return User.withUsername(user.getEmail())
-                    .password(user.getPasswordHash())
-                    .roles(roles)
-                    .disabled(!user.isEnabled())
-                    .build();
+            return new CustomUserDetails(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getPasswordHash(),
+                    user.isEnabled(),
+                    authorities,
+                    user.getPasswordUpdatedAt()
+            );
         }
 
         private AuthResponse createResponse(String token, MarketplaceUser user) {
@@ -680,7 +838,9 @@ public class MarketplaceBackendApplication {
                     user.getEmail(),
                     user.getPhone() != null ? user.getPhone() : "",
                     user.getLocation() != null ? user.getLocation() : "",
-                    roles
+                    roles,
+                    user.isEmailVerified(),
+                    user.isPhoneVerified()
             );
         }
     }
@@ -806,6 +966,11 @@ public class MarketplaceBackendApplication {
             profile.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : "");
             profile.put("roles", user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
             profile.put("enabled", user.isEnabled());
+            profile.put("emailVerified", user.isEmailVerified());
+            profile.put("emailVerifiedAt", user.getEmailVerifiedAt() != null ? user.getEmailVerifiedAt().toString() : null);
+            profile.put("phoneVerified", user.isPhoneVerified());
+            profile.put("phoneVerifiedAt", user.getPhoneVerifiedAt() != null ? user.getPhoneVerifiedAt().toString() : null);
+            profile.put("passwordUpdatedAt", user.getPasswordUpdatedAt() != null ? user.getPasswordUpdatedAt().toString() : null);
             return profile;
         }
     }

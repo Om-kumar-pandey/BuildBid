@@ -60,6 +60,10 @@ public class CustomerProfileService {
 
         if (request.phone() != null) {
             String phone = request.phone().trim();
+            if (user.getPhone() == null || !user.getPhone().equals(phone)) {
+                user.setPhoneVerified(false);
+                user.setPhoneVerifiedAt(null);
+            }
             profile.setPhone(phone);
             user.setPhone(phone);
         }

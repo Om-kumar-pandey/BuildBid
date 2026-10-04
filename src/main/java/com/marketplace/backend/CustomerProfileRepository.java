@@ -10,4 +10,6 @@ public interface CustomerProfileRepository extends JpaRepository<CustomerProfile
     Optional<CustomerProfile> findByUser(MarketplaceBackendApplication.MarketplaceUser user);
     Optional<CustomerProfile> findByUserId(Long userId);
     boolean existsByUserId(Long userId);
+    void deleteByUser(MarketplaceBackendApplication.MarketplaceUser user);
+    void deleteByUserId(Long userId);
 }
