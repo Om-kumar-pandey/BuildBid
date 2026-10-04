@@ -505,4 +505,158 @@ public class DirectMaterialPurchaseAcceptanceTest {
         List<?> list = (List<?>) resp.getBody();
         assertTrue(list.isEmpty(), "Allocated requirement must be filtered out from seller active requests");
     }
+
+    /**
+     * Scenario H1: Valid Forward Status Transitions in Order Lifecycle
+     * WAITING_FOR_ACCEPTANCE -> ORDER_ACCEPTED -> PROCESSING -> READY_FOR_DISPATCH -> OUT_FOR_DELIVERY -> DELIVERED
+     */
+    @Test
+    public void testScenarioH1_ValidForwardStatusTransitions() {
+        MaterialRequest directReq = new MaterialRequest();
+        ReflectionTestUtils.setField(directReq, "id", 3001L);
+        directReq.setRequestId("DMR-3001");
+        directReq.setBuyer(customerUser);
+        directReq.setRequestType("DIRECT_MATERIAL");
+        directReq.setTargetSeller(sellerUser);
+        directReq.setStatus("ORDER_ACCEPTED");
+
+        when(materialRequestRepository.findById(3001L)).thenReturn(Optional.of(directReq));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 1. ORDER_ACCEPTED -> PROCESSING
+        ResponseEntity<?> procResp = directBuyController.updateDirectBuyStatus(3001L, Map.of("status", "PROCESSING"), authSeller);
+        assertEquals(HttpStatus.OK, procResp.getStatusCode());
+        assertEquals("PROCESSING", directReq.getStatus());
+
+        // 2. PROCESSING -> READY_FOR_DISPATCH
+        ResponseEntity<?> dispResp = directBuyController.updateDirectBuyStatus(3001L, Map.of("status", "READY_FOR_DISPATCH"), authSeller);
+        assertEquals(HttpStatus.OK, dispResp.getStatusCode());
+        assertEquals("READY_FOR_DISPATCH", directReq.getStatus());
+
+        // 3. READY_FOR_DISPATCH -> OUT_FOR_DELIVERY
+        ResponseEntity<?> outResp = directBuyController.updateDirectBuyStatus(3001L, Map.of("status", "OUT_FOR_DELIVERY"), authSeller);
+        assertEquals(HttpStatus.OK, outResp.getStatusCode());
+        assertEquals("OUT_FOR_DELIVERY", directReq.getStatus());
+
+        // 4. OUT_FOR_DELIVERY -> DELIVERED
+        ResponseEntity<?> delResp = directBuyController.updateDirectBuyStatus(3001L, Map.of("status", "DELIVERED"), authSeller);
+        assertEquals(HttpStatus.OK, delResp.getStatusCode());
+        assertEquals("DELIVERED", directReq.getStatus());
+    }
+
+    /**
+     * Scenario H2: Invalid Direct Forward Status Jump is Rejected
+     * WAITING_FOR_ACCEPTANCE -> DELIVERED must be rejected with 400 Bad Request
+     */
+    @Test
+    public void testScenarioH2_InvalidForwardStatusJumpRejected() {
+        MaterialRequest directReq = new MaterialRequest();
+        ReflectionTestUtils.setField(directReq, "id", 3002L);
+        directReq.setRequestId("DMR-3002");
+        directReq.setBuyer(customerUser);
+        directReq.setRequestType("DIRECT_MATERIAL");
+        directReq.setTargetSeller(sellerUser);
+        directReq.setStatus("WAITING_FOR_ACCEPTANCE");
+
+        when(materialRequestRepository.findById(3002L)).thenReturn(Optional.of(directReq));
+
+        ResponseEntity<?> jumpResp = directBuyController.updateDirectBuyStatus(3002L, Map.of("status", "DELIVERED"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, jumpResp.getStatusCode());
+        assertEquals("WAITING_FOR_ACCEPTANCE", directReq.getStatus());
+    }
+
+    /**
+     * Scenario H3: Backward Status Transition is Rejected
+     * DELIVERED -> PROCESSING must be rejected with 400 Bad Request
+     */
+    @Test
+    public void testScenarioH3_BackwardStatusTransitionRejected() {
+        MaterialRequest directReq = new MaterialRequest();
+        ReflectionTestUtils.setField(directReq, "id", 3003L);
+        directReq.setRequestId("DMR-3003");
+        directReq.setBuyer(customerUser);
+        directReq.setRequestType("DIRECT_MATERIAL");
+        directReq.setTargetSeller(sellerUser);
+        directReq.setStatus("DELIVERED");
+
+        when(materialRequestRepository.findById(3003L)).thenReturn(Optional.of(directReq));
+
+        ResponseEntity<?> backResp = directBuyController.updateDirectBuyStatus(3003L, Map.of("status", "PROCESSING"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, backResp.getStatusCode());
+        assertEquals("DELIVERED", directReq.getStatus());
+    }
+
+    /**
+     * Scenario H4: Unauthorized Seller Update Rejected
+     * Other seller cannot update status of seller's order
+     */
+    @Test
+    public void testScenarioH4_UnauthorizedSellerStatusUpdateRejected() {
+        MaterialRequest directReq = new MaterialRequest();
+        ReflectionTestUtils.setField(directReq, "id", 3004L);
+        directReq.setRequestId("DMR-3004");
+        directReq.setBuyer(customerUser);
+        directReq.setRequestType("DIRECT_MATERIAL");
+        directReq.setTargetSeller(sellerUser);
+        directReq.setStatus("ORDER_ACCEPTED");
+
+        when(materialRequestRepository.findById(3004L)).thenReturn(Optional.of(directReq));
+
+        ResponseEntity<?> resp = directBuyController.updateDirectBuyStatus(3004L, Map.of("status", "PROCESSING"), authOtherSeller);
+        assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
+    }
+
+    /**
+     * Scenario I: Direct Hire Status in My Requests Response
+     * - Before acceptance: status is "Waiting for Acceptance"
+     * - After acceptance: status is "Accepted"
+     */
+    @Test
+    public void testScenarioI_DirectHireStatusNormalizationInMyRequests() {
+        ClientServiceRequestRepository csrRepo = mock(ClientServiceRequestRepository.class);
+        CustomerRequestController ctrl = new CustomerRequestController(
+                materialRequestRepository,
+                csrRepo,
+                userRepository,
+                quotationRepository,
+                materialOrderRepository
+        );
+
+        ClientServiceRequest csrNew = new ClientServiceRequest();
+        ReflectionTestUtils.setField(csrNew, "id", 4001L);
+        csrNew.setRequestId("REQ-4001");
+        csrNew.setClient(customerUser);
+        csrNew.setProfessional(sellerUser);
+        csrNew.setStatus("New");
+        csrNew.setRequestedService("Plumber");
+        csrNew.setCreatedAt(LocalDateTime.now(IST_ZONE));
+
+        ClientServiceRequest csrAccepted = new ClientServiceRequest();
+        ReflectionTestUtils.setField(csrAccepted, "id", 4002L);
+        csrAccepted.setRequestId("REQ-4002");
+        csrAccepted.setClient(customerUser);
+        csrAccepted.setProfessional(sellerUser);
+        csrAccepted.setStatus("Accepted");
+        csrAccepted.setRequestedService("Electrician");
+        csrAccepted.setCreatedAt(LocalDateTime.now(IST_ZONE).minusHours(2));
+
+        when(materialRequestRepository.findByBuyerOrderByCreatedAtDesc(customerUser)).thenReturn(Collections.emptyList());
+        when(csrRepo.findByClient_IdOrderByCreatedAtDesc(customerUser.getId())).thenReturn(List.of(csrNew, csrAccepted));
+
+        ResponseEntity<?> resp = ctrl.getCustomerMyRequests(authCustomer);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> cards = (List<Map<String, Object>>) resp.getBody();
+        assertEquals(2, cards.size());
+
+        Map<String, Object> newCard = cards.stream().filter(c -> "REQ-4001".equals(c.get("id"))).findFirst().orElseThrow();
+        assertEquals("Waiting for Acceptance", newCard.get("status"));
+        assertEquals("Waiting for Acceptance", newCard.get("statusEn"));
+        assertEquals("स्वीकृति की प्रतीक्षा", newCard.get("statusHi"));
+
+        Map<String, Object> acceptedCard = cards.stream().filter(c -> "REQ-4002".equals(c.get("id"))).findFirst().orElseThrow();
+        assertEquals("Accepted", acceptedCard.get("status"));
+        assertEquals("Accepted", acceptedCard.get("statusEn"));
+        assertEquals("स्वीकार किया गया", acceptedCard.get("statusHi"));
+    }
 }

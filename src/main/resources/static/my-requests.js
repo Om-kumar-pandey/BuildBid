@@ -14,40 +14,83 @@ function escapeHtml(str) {
    ========================================================= */
 function getDirectBuyTimelineHTML(req) {
   const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
-  let step = 1;
-  let statusTextEn = "Waiting for Acceptance";
-  let statusTextHi = "विक्रेता की स्वीकृति की प्रतीक्षा";
-  let descText = "Your direct material purchase request has been sent to the seller and is waiting for acceptance.";
+  let currentStep = 1;
 
-  if (rawStatus.includes("DELIVERED") || rawStatus.includes("डिलीवर")) {
-    step = 6;
-    statusTextEn = "Delivered";
-    statusTextHi = "डिलीवर हो गया";
-    descText = "Your material order has been safely delivered to your site.";
-  } else if (rawStatus.includes("OUT_FOR_DELIVERY") || rawStatus.includes("रवाना") || rawStatus.includes("OUT FOR DELIVERY")) {
-    step = 5;
-    statusTextEn = "Out for Delivery";
-    statusTextHi = "डिलीवरी के लिए रवाना";
-    descText = "Order has been dispatched and is currently on the vehicle out for delivery to your site.";
-  } else if (rawStatus.includes("READY_FOR_DISPATCH") || rawStatus.includes("तैयार") || rawStatus.includes("READY FOR DISPATCH")) {
-    step = 4;
-    statusTextEn = "Ready for Dispatch";
-    statusTextHi = "भेजने के लिए तैयार";
-    descText = "Seller has prepared, checked, and packaged materials for dispatch.";
+  if (rawStatus.includes("DELIVERED") || rawStatus.includes("डिलीवर") || rawStatus === "COMPLETED") {
+    currentStep = 6;
+  } else if (rawStatus.includes("OUT_FOR_DELIVERY") || rawStatus.includes("OUT FOR DELIVERY") || rawStatus.includes("रवाना")) {
+    currentStep = 5;
+  } else if (rawStatus.includes("READY_FOR_DISPATCH") || rawStatus.includes("READY FOR DISPATCH") || rawStatus.includes("DISPATCH") || rawStatus.includes("तैयार")) {
+    currentStep = 4;
   } else if (rawStatus.includes("PROCESSING") || rawStatus.includes("प्रक्रिया")) {
-    step = 3;
-    statusTextEn = "Processing";
-    statusTextHi = "प्रक्रिया में";
-    descText = "Seller is currently processing and preparing your direct purchase order.";
-  } else if (rawStatus.includes("ACCEPTED") || rawStatus.includes("स्वीकार") || rawStatus.includes("ORDER ACCEPTED")) {
-    step = 2;
-    statusTextEn = "Order Accepted";
-    statusTextHi = "ऑर्डर स्वीकार किया गया";
-    descText = "The seller has accepted your direct purchase order.";
+    currentStep = 3;
+  } else if (rawStatus.includes("ORDER_ACCEPTED") || rawStatus.includes("ACCEPTED") || rawStatus.includes("स्वीकार")) {
+    currentStep = 2;
+  } else {
+    currentStep = 1; // WAITING_FOR_ACCEPTANCE
+  }
+
+  const DIRECT_BUY_PHASES = [
+    { step: 1, key: "WAITING_FOR_ACCEPTANCE", en: "Waiting for Acceptance", hi: "स्वीकृति की प्रतीक्षा", desc: "Your direct material purchase request has been sent to the seller and is waiting for acceptance." },
+    { step: 2, key: "ORDER_ACCEPTED", en: "Order Accepted", hi: "ऑर्डर स्वीकार किया गया", desc: "The seller has accepted your direct purchase order." },
+    { step: 3, key: "PROCESSING", en: "Processing", hi: "प्रक्रिया में", desc: "Seller is currently processing and preparing your direct purchase order." },
+    { step: 4, key: "READY_FOR_DISPATCH", en: "Ready for Dispatch", hi: "भेजने के लिए तैयार", desc: "Seller has prepared, checked, and packaged materials for dispatch." },
+    { step: 5, key: "OUT_FOR_DELIVERY", en: "Out for Delivery", hi: "डिलीवरी के लिए रवाना", desc: "Order has been dispatched and is currently on the vehicle out for delivery to your site." },
+    { step: 6, key: "DELIVERED", en: "Delivered", hi: "डिलीवर किया गया", desc: "Your material order has been safely delivered to your site." }
+  ];
+
+  const currentPhase = DIRECT_BUY_PHASES[currentStep - 1];
+  let badgeClass = "pending";
+  if (currentStep === 1) {
+    badgeClass = "pending";
+  } else if (currentStep === 2) {
+    badgeClass = "accepted";
+  } else if (currentStep === 6) {
+    badgeClass = "completed";
+  } else {
+    badgeClass = "active";
   }
 
   const sellerName = req.sellerName || req.targetProvider || "Designated Seller";
   const sellerPhone = req.sellerPhone;
+
+  // Build the 6-Stage Timeline Tracker
+  const stepsHTML = DIRECT_BUY_PHASES.map((p) => {
+    let stepClass = "direct-timeline-step";
+    let dotClass = "step-dot";
+    let dotContent = "";
+
+    if (currentStep === 6) {
+      // DELIVERED: All 6 phases are completed with checkmark. NO spinner on delivered.
+      stepClass += " passed";
+      dotClass += " completed";
+      dotContent = '<i class="fa-solid fa-check"></i>';
+    } else {
+      if (p.step < currentStep) {
+        stepClass += " passed";
+        dotClass += " completed";
+        dotContent = '<i class="fa-solid fa-check"></i>';
+      } else if (p.step === currentStep) {
+        stepClass += " current";
+        dotClass += " current";
+        dotContent = '<span class="phase-spinner" title="In Progress"></span>';
+      } else {
+        stepClass += " pending";
+        dotClass += " pending";
+        dotContent = '<span class="dot-inactive"></span>';
+      }
+    }
+
+    return `
+      <div class="${stepClass}">
+        <div class="${dotClass}">
+          ${dotContent}
+        </div>
+        <span class="step-label-en">${p.en}</span>
+        <span class="step-label-hi">${p.hi}</span>
+      </div>
+    `;
+  }).join("");
 
   return `
     <div class="card-direct-buy-section">
@@ -57,58 +100,35 @@ function getDirectBuyTimelineHTML(req) {
             <i class="fa-solid fa-truck-fast mr-1"></i> Direct Purchase Flow / सीधा खरीद प्रवाह
           </span>
           <h4 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 3px 0 0;">
-            ${sellerName}
+            ${escapeHtml(sellerName)}
           </h4>
         </div>
-        <span class="status-badge ${step === 1 ? 'pending' : (step === 2 ? 'accepted' : 'active')}">
-          <i class="fa-solid fa-circle-dot"></i> ${statusTextEn} / ${statusTextHi}
+        <span class="status-badge ${badgeClass}">
+          <i class="fa-solid fa-circle-dot"></i> ${currentPhase.en} / ${currentPhase.hi}
         </span>
       </div>
 
-      <!-- 6-Stage Timeline Tracker -->
+      <!-- 6-Stage Dynamic Timeline Tracker -->
       <div class="direct-buy-timeline-tracker">
-        <div class="direct-buy-step ${step >= 1 ? (step === 1 ? 'current' : 'completed') : ''}">
-          <div class="direct-buy-dot">${step > 1 ? '<i class="fa-solid fa-check"></i>' : '1'}</div>
-          <div class="direct-buy-label">Waiting for Acceptance<br><small>स्वीकृति की प्रतीक्षा</small></div>
-        </div>
-        <div class="direct-buy-step ${step >= 2 ? (step === 2 ? 'current' : 'completed') : ''}">
-          <div class="direct-buy-dot">${step > 2 ? '<i class="fa-solid fa-check"></i>' : '2'}</div>
-          <div class="direct-buy-label">Order Accepted<br><small>ऑर्डर स्वीकार किया गया</small></div>
-        </div>
-        <div class="direct-buy-step ${step >= 3 ? (step === 3 ? 'current' : 'completed') : ''}">
-          <div class="direct-buy-dot">${step > 3 ? '<i class="fa-solid fa-check"></i>' : '3'}</div>
-          <div class="direct-buy-label">Processing<br><small>प्रक्रिया में</small></div>
-        </div>
-        <div class="direct-buy-step ${step >= 4 ? (step === 4 ? 'current' : 'completed') : ''}">
-          <div class="direct-buy-dot">${step > 4 ? '<i class="fa-solid fa-check"></i>' : '4'}</div>
-          <div class="direct-buy-label">Ready for Dispatch<br><small>भेजने के लिए तैयार</small></div>
-        </div>
-        <div class="direct-buy-step ${step >= 5 ? (step === 5 ? 'current' : 'completed') : ''}">
-          <div class="direct-buy-dot">${step > 5 ? '<i class="fa-solid fa-check"></i>' : '5'}</div>
-          <div class="direct-buy-label">Out for Delivery<br><small>डिलीवरी के लिए रवाना</small></div>
-        </div>
-        <div class="direct-buy-step ${step >= 6 ? 'completed' : ''}">
-          <div class="direct-buy-dot">${step >= 6 ? '<i class="fa-solid fa-check"></i>' : '6'}</div>
-          <div class="direct-buy-label">Delivered<br><small>डिलीवर हो गया</small></div>
-        </div>
+        ${stepsHTML}
       </div>
 
       <div style="margin-top: 12px; font-size: 13px; color: #475569; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
         <div>
           <i class="fa-solid fa-circle-info" style="color: #0284c7; margin-right: 4px;"></i>
-          <span>${descText}</span>
+          <span>${currentPhase.desc}</span>
         </div>
         ${req.expectedDeliveryDate ? `
           <div style="font-weight: 600; color: #0f172a; font-size: 12px;">
-            <i class="fa-regular fa-calendar-check" style="color: #64748b; margin-right: 4px;"></i> Expected Delivery: ${req.expectedDeliveryDate}
+            <i class="fa-regular fa-calendar-check" style="color: #64748b; margin-right: 4px;"></i> Expected Delivery: ${escapeHtml(req.expectedDeliveryDate)}
           </div>
         ` : ''}
       </div>
 
-      ${step >= 2 && sellerPhone ? `
+      ${currentStep >= 2 && sellerPhone ? `
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 13px; color: #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-          <span><strong><i class="fa-solid fa-store" style="color: #475569; margin-right: 4px;"></i> Authorized Seller Contact:</strong> ${sellerName} (${sellerPhone})</span>
-          <button class="btn-card-action" style="padding: 4px 10px; font-size: 12px;" onclick="openContactProviderModal('${sellerName}', 'Material Seller', '${sellerPhone}', '')">
+          <span><strong><i class="fa-solid fa-store" style="color: #475569; margin-right: 4px;"></i> Authorized Seller Contact:</strong> ${escapeHtml(sellerName)} (${escapeHtml(sellerPhone)})</span>
+          <button class="btn-card-action" style="padding: 4px 10px; font-size: 12px;" onclick="openContactProviderModal('${escapeHtml(sellerName)}', 'Material Seller', '${escapeHtml(sellerPhone)}', '')">
             <i class="fa-solid fa-phone" style="margin-right: 4px;"></i> Contact Seller
           </button>
         </div>
@@ -364,48 +384,12 @@ const INITIAL_REQUESTS_DATA = [
     deliverySite: "Flat 402, Shipra Sun City",
     submittedDate: "2 days ago, 04:45 PM",
     submittedTimestamp: Date.now() - 48 * 60 * 60 * 1000,
-    status: "Pending",
+    status: "Waiting for Acceptance",
+    statusEn: "Waiting for Acceptance",
+    statusHi: "स्वीकृति की प्रतीक्षा",
+    rawStatus: "WAITING_FOR_ACCEPTANCE",
     description: "Direct hire request sent to certified electrical technician for complete apartment rewiring: conduit grooving, copper wire pulling (Finolex/Polycab), 8-way distribution board setup with RCCB, inverter changeover switch, and modular switchboard box fitting.",
-    quotations: [
-      {
-        id: "BB-QT-301",
-        providerName: "Raj Electrical & Automation Services",
-        providerType: "PROFESSIONAL",
-        providerTypeLabel: "Professional",
-        rating: 4.9,
-        reviewsCount: 56,
-        isVerified: true,
-        location: "Vaishali Sector 4, Ghaziabad",
-        phone: "+91 98188 77665",
-        email: "raj.electrician@gmail.com",
-        quotedAmount: 28500,
-        timeline: "5 Days",
-        validity: "15 Days",
-        warranty: "6 Months Service & Breakdown Warranty",
-        paymentTerms: "30% Start, 40% Mid, 30% Testing & Handover",
-        submittedAgo: "3 hours ago",
-        status: "Received",
-        costBreakdown: {
-          items: [
-            { name: "Wall Chasing & PVC Conduit Piping (approx 450 Rft)", qty: "450 Rft", rate: 22, amount: 9900 },
-            { name: "Copper Cable Pulling (Light, Power, AC circuits)", qty: "3 BHK Unit", rate: 9500, amount: 9500 },
-            { name: "8-Way Double Door MCB / RCCB Distribution Board Setup", qty: "1 DB Unit", rate: 4500, amount: 4500 },
-            { name: "Modular Switch Box Dressing & Inverter Line Routing", qty: "12 Boards", rate: 380, amount: 4600 }
-          ],
-          labour: 0,
-          freight: 0,
-          taxes: 0,
-          total: 28500
-        },
-        terms: {
-          payment: "30% on mobilization, 40% after wire pulling, 30% on megger insulation testing handover.",
-          warranty: "6 months free emergency breakdown support for any tripping or short circuit.",
-          included: ["Certified grade-A wireman tools", "Megger insulation resistance test", "Circuit labeling"],
-          excluded: ["Cost of wire bundles, switches, and MCBs (client to provide material or billed at actuals)"]
-        },
-        message: "Govt licensed supervisor with 12+ years experience in premium apartments. Ready to start from Thursday with a 3-member skilled team."
-      }
-    ]
+    quotations: []
   },
   {
     id: "BB-REQ-004",
@@ -633,81 +617,11 @@ const INITIAL_REQUESTS_DATA = [
     submittedDate: "5 days ago",
     submittedTimestamp: Date.now() - 5 * 24 * 60 * 60 * 1000,
     status: "Accepted",
+    statusEn: "Accepted",
+    statusHi: "स्वीकार किया गया",
+    rawStatus: "ACCEPTED",
     description: "Direct hire for geotechnical investigation and soil bearing capacity test for structural design of warehouse. Required standard penetration test (SPT) and laboratory grain size analysis report.",
-    quotations: [
-      {
-        id: "BB-QT-601",
-        providerName: "Dr. Verma Geo-Tech Consultants",
-        providerType: "PROFESSIONAL",
-        providerTypeLabel: "Professional",
-        rating: 5.0,
-        reviewsCount: 48,
-        isVerified: true,
-        location: "Knowledge Park 3, Greater Noida",
-        phone: "+91 98110 99001",
-        email: "verma.geotech@consultants.in",
-        quotedAmount: 18000,
-        timeline: "3 Days",
-        validity: "30 Days",
-        warranty: "NABL Accredited Lab Certification",
-        paymentTerms: "50% Field Work, 50% Report Submission",
-        submittedAgo: "4 days ago",
-        status: "Accepted",
-        costBreakdown: {
-          items: [
-            { name: "3 x 15m Soil Borehole Drilling with SPT", qty: "3 Holes", rate: 4500, amount: 13500 },
-            { name: "Lab Testing & Formal NABL Soil Bearing Capacity Report", qty: "1 Report", rate: 4500, amount: 4500 }
-          ],
-          labour: 0,
-          freight: 0,
-          taxes: 0,
-          total: 18000
-        },
-        terms: {
-          payment: "50% upon field rig deployment, 50% upon dispatch of signed NABL test report.",
-          warranty: "Full acceptance guarantee with town planning and structural engineer approval.",
-          included: ["Hydraulic drilling rig", "On-site sample sealing", "Foundation recommendation calculations"],
-          excluded: ["Site water arrangement for drilling"]
-        },
-        message: "NABL certified laboratory with retired IIT professor technical head. Full compliance with IS 1892 & IS 2131."
-      },
-      {
-        id: "BB-QT-602",
-        providerName: "SoilMaster Testing Labs Pvt Ltd",
-        providerType: "PROFESSIONAL",
-        providerTypeLabel: "Professional",
-        rating: 4.7,
-        reviewsCount: 18,
-        isVerified: true,
-        location: "Sector 83, Noida",
-        phone: "+91 97115 66778",
-        email: "info@soilmasterlabs.com",
-        quotedAmount: 22000,
-        timeline: "4 Days",
-        validity: "15 Days",
-        warranty: "NABL Certified",
-        paymentTerms: "100% Advance",
-        submittedAgo: "4 days ago",
-        status: "Received",
-        costBreakdown: {
-          items: [
-            { name: "Geotechnical Investigation & Core Extraction", qty: "3 Boreholes", rate: 6000, amount: 18000 },
-            { name: "Detailed Soil Profile & Triaxial Shear Report", qty: "1 Report", rate: 4000, amount: 4000 }
-          ],
-          labour: 0,
-          freight: 0,
-          taxes: 0,
-          total: 22000
-        },
-        terms: {
-          payment: "100% mobilization advance.",
-          warranty: "Certified by registered geotechnical consultant.",
-          included: ["Field testing", "Moisture, Atterberg limits and triaxial test"],
-          excluded: ["Excavator assistance"]
-        },
-        message: "Equipped with automated rotary core drill rig. Standard turnaround 4 working days."
-      }
-    ]
+    quotations: []
   },
   {
     id: "BB-REQ-007",
@@ -862,9 +776,12 @@ const INITIAL_REQUESTS_DATA = [
     deliverySite: "Office Suite 301, Star Chambers",
     submittedDate: "3 days ago, 05:30 PM",
     submittedTimestamp: Date.now() - 75 * 60 * 60 * 1000,
-    status: "Pending",
+    status: "Waiting for Acceptance",
+    statusEn: "Waiting for Acceptance",
+    statusHi: "स्वीकृति की प्रतीक्षा",
+    rawStatus: "WAITING_FOR_ACCEPTANCE",
     description: "Direct hire inquiry sent for hydraulic pressure testing of CPVC lines at 10 kg/cm² and installation of sensor-operated commercial basin taps and dual-flush cisterns.",
-    quotations: [] // ZERO QUOTATIONS
+    quotations: []
   },
   {
     id: "BB-REQ-010",
@@ -1177,8 +1094,16 @@ function syncUserProfileUI() {
    ========================================================= */
 function renderSummaryMetrics() {
   const totalRequests = currentRequests.length;
-  const pendingRequests = currentRequests.filter(r => r.status.toLowerCase() === "pending").length;
-  const activeRequests = currentRequests.filter(r => r.status.toLowerCase() === "active").length;
+  const pendingRequests = currentRequests.filter(r => {
+    const s = (r.status || "").toLowerCase();
+    const rs = (r.rawStatus || "").toLowerCase();
+    return s === "pending" || s.includes("waiting") || rs === "pending" || rs.includes("waiting");
+  }).length;
+  const activeRequests = currentRequests.filter(r => {
+    const s = (r.status || "").toLowerCase();
+    const rs = (r.rawStatus || "").toLowerCase();
+    return s === "active" || s.includes("accepted") || s.includes("processing") || s.includes("dispatch") || s.includes("delivery") || rs.includes("accepted") || rs.includes("processing") || rs.includes("dispatch") || rs.includes("delivery");
+  }).length;
   const totalQuotations = currentRequests.reduce((sum, r) => sum + (r.quotations ? r.quotations.length : 0), 0);
 
   const totalEl = document.getElementById("statTotalRequests");
@@ -1222,9 +1147,9 @@ function renderRequests() {
 
 function createRequestCardHTML(req) {
   const typeClass = (req.type || "").toLowerCase().replace(/_/g, "-");
-  const rawStatus = (req.rawStatus || req.status || "").toLowerCase().replace(/\s+/g, "-");
   const quoteCount = req.quotations ? req.quotations.length : 0;
   const isDirectBuy = (req.type === "DIRECT_BUY" || req.isDirectBuy === true);
+  const isDirectHire = (req.type === "DIRECT_HIRE");
   const isPlanConfirmed = (req.status === "Purchase Plan Confirmed" || req.status === "ALLOCATED" || (req.rawStatus || "").toUpperCase() === "ALLOCATED");
 
   // Determine Main Section State
@@ -1232,6 +1157,9 @@ function createRequestCardHTML(req) {
   if (isDirectBuy) {
     // FLOW A: DIRECT BUY NEVER RENDERS QUOTATION UI
     quotationSectionHTML = getDirectBuyTimelineHTML(req);
+  } else if (isDirectHire) {
+    // DIRECT HIRE HAS NO QUOTATION WORKFLOW WHATSOEVER
+    quotationSectionHTML = "";
   } else if (isPlanConfirmed) {
     // FLOW B: PURCHASE PLAN CONFIRMED
     quotationSectionHTML = getConfirmedAllocationCardHTML(req);
@@ -1285,72 +1213,72 @@ function createRequestCardHTML(req) {
     specificDetailsHTML = `
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-cube"></i> Material & Specs</span>
-        <span class="detail-value">${req.material}</span>
+        <span class="detail-value">${escapeHtml(req.material)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-scale-balanced"></i> Quantity</span>
-        <span class="detail-value highlight-blue">${req.quantity}</span>
+        <span class="detail-value highlight-blue">${escapeHtml(req.quantity)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-store"></i> Selected Seller</span>
-        <span class="detail-value">${req.sellerName || req.targetProvider || "Verified Seller"}</span>
+        <span class="detail-value">${escapeHtml(req.sellerName || req.targetProvider || "Verified Seller")}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Delivery Site</span>
-        <span class="detail-value">${req.deliverySite || req.location}</span>
+        <span class="detail-value">${escapeHtml(req.deliverySite || req.location)}</span>
       </div>
     `;
   } else if (req.type === "MATERIAL_REQUIREMENT") {
     specificDetailsHTML = `
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-layer-group"></i> Required Material</span>
-        <span class="detail-value">${req.material}</span>
+        <span class="detail-value">${escapeHtml(req.material)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-weight-hanging"></i> Required Quantity</span>
-        <span class="detail-value highlight-blue">${req.quantity}</span>
+        <span class="detail-value highlight-blue">${escapeHtml(req.quantity)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Site Location</span>
-        <span class="detail-value">${req.location}</span>
+        <span class="detail-value">${escapeHtml(req.location)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-truck-ramp-box"></i> Offloading Site</span>
-        <span class="detail-value">${req.deliverySite || req.location}</span>
+        <span class="detail-value">${escapeHtml(req.deliverySite || req.location)}</span>
       </div>
     `;
-  } else if (req.type === "DIRECT_HIRE") {
+  } else if (isDirectHire) {
     specificDetailsHTML = `
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-screwdriver-wrench"></i> Service Required</span>
-        <span class="detail-value">${req.service}</span>
+        <span class="detail-value">${escapeHtml(req.service || req.title)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-user-check"></i> Targeted Provider</span>
-        <span class="detail-value highlight-blue">${req.targetProvider || "Independent Professional"}</span>
+        <span class="detail-value highlight-blue">${escapeHtml(req.targetProvider || "Independent Professional")}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-ruler-combined"></i> Scope / Volume</span>
-        <span class="detail-value">${req.quantity}</span>
+        <span class="detail-value">${escapeHtml(req.quantity || "Direct Engagement")}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Job Address</span>
-        <span class="detail-value">${req.location}</span>
+        <span class="detail-value">${escapeHtml(req.location || "Site Location")}</span>
       </div>
     `;
   } else if (req.type === "PROJECT_REQUIREMENT") {
     specificDetailsHTML = `
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-trowel-bricks"></i> Construction Scope</span>
-        <span class="detail-value">${req.service}</span>
+        <span class="detail-value">${escapeHtml(req.service)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-chart-area"></i> Built-up Area</span>
-        <span class="detail-value highlight-blue">${req.quantity}</span>
+        <span class="detail-value highlight-blue">${escapeHtml(req.quantity)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-map-location-dot"></i> Plot Address</span>
-        <span class="detail-value">${req.location}</span>
+        <span class="detail-value">${escapeHtml(req.location)}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label"><i class="fa-solid fa-hard-hat"></i> Contract Category</span>
@@ -1370,10 +1298,22 @@ function createRequestCardHTML(req) {
         <i class="fa-solid fa-truck-ramp-box"></i> Track in My Orders
       </a>
       ${(req.sellerPhone) ? `
-        <button class="btn-card-action" onclick="openContactProviderModal('${req.sellerName || 'Seller'}', 'Material Seller', '${req.sellerPhone}', '')">
+        <button class="btn-card-action" onclick="openContactProviderModal('${escapeHtml(req.sellerName || 'Seller')}', 'Material Seller', '${escapeHtml(req.sellerPhone)}', '')">
           <i class="fa-solid fa-phone"></i> Contact Seller
         </button>
       ` : ''}
+    `;
+  } else if (isDirectHire) {
+    footerButtonsHTML = `
+      <button class="btn-card-action primary-subtle" onclick="openRequestDetailsModal('${req.id}')">
+        <i class="fa-solid fa-circle-info"></i> View Details
+      </button>
+      <button class="btn-card-action" onclick="handleEditRequest('${req.id}')">
+        <i class="fa-solid fa-pen-to-square"></i> Edit Request
+      </button>
+      <button class="btn-card-action text-red" onclick="handleCancelRequestPrompt('${req.id}')">
+        <i class="fa-solid fa-ban"></i> Cancel
+      </button>
     `;
   } else {
     const editLabel = req.type.includes("REQUIREMENT") ? "Edit Requirement" : "Edit Request";
@@ -1397,10 +1337,32 @@ function createRequestCardHTML(req) {
     `;
   }
 
-  // Status Badge Label
+  // Card Header Status Badge Label & Style Class
+  const sUpper = (req.rawStatus || req.status || "").toUpperCase();
   let badgeLabel = req.status;
   if (req.statusEn && req.statusHi) {
     badgeLabel = `${req.statusEn} / ${req.statusHi}`;
+  } else if (isDirectHire) {
+    if (sUpper.includes("ACCEPTED") || sUpper.includes("स्वीकार")) {
+      badgeLabel = "Accepted / स्वीकार किया गया";
+    } else {
+      badgeLabel = "Waiting for Acceptance / स्वीकृति की प्रतीक्षा";
+    }
+  }
+
+  let badgeClass = "pending";
+  if (sUpper.includes("DELIVERED") || sUpper.includes("COMPLETED") || sUpper.includes("CLOSED")) {
+    badgeClass = "completed";
+  } else if (sUpper.includes("OUT_FOR_DELIVERY") || sUpper.includes("DISPATCH") || sUpper.includes("PROCESSING") || sUpper.includes("ACTIVE")) {
+    badgeClass = "active";
+  } else if (sUpper.includes("ACCEPTED") || sUpper.includes("स्वीकार")) {
+    badgeClass = "accepted";
+  } else if (sUpper.includes("CANCEL") || sUpper.includes("रद्द")) {
+    badgeClass = "cancelled";
+  } else if (sUpper.includes("DECLIN") || sUpper.includes("REJECT") || sUpper.includes("अस्वीकृत")) {
+    badgeClass = "rejected";
+  } else {
+    badgeClass = "pending";
   }
 
   return `
@@ -1414,7 +1376,7 @@ function createRequestCardHTML(req) {
           <span class="request-id-badge">${req.id}</span>
         </div>
         <div class="header-right-status">
-          <span class="status-badge ${rawStatus}">
+          <span class="status-badge ${badgeClass}">
             <i class="fa-solid fa-circle-dot"></i> ${badgeLabel}
           </span>
         </div>
@@ -1468,7 +1430,7 @@ function getFilteredAndSortedRequests() {
       const matchTitle = req.title.toLowerCase().includes(searchVal);
       const matchMaterial = (req.material || "").toLowerCase().includes(searchVal);
       const matchService = (req.service || "").toLowerCase().includes(searchVal);
-      const matchLoc = req.location.toLowerCase().includes(searchVal);
+      const matchLoc = (req.location || "").toLowerCase().includes(searchVal);
       const matchProvider = (req.targetProvider || "").toLowerCase().includes(searchVal);
       if (!matchId && !matchTitle && !matchMaterial && !matchService && !matchLoc && !matchProvider) {
         return false;
@@ -1481,15 +1443,42 @@ function getFilteredAndSortedRequests() {
     }
 
     // Status filter
-    if (statusFilter !== "ALL" && req.status.toUpperCase() !== statusFilter.toUpperCase()) {
-      return false;
+    if (statusFilter !== "ALL") {
+      const s = (req.status || "").toUpperCase();
+      const rs = (req.rawStatus || "").toUpperCase();
+      if (statusFilter === "PENDING") {
+        const isPending = s.includes("PENDING") || s.includes("WAITING") || rs.includes("PENDING") || rs.includes("WAITING");
+        if (!isPending) return false;
+      } else if (statusFilter === "ACCEPTED") {
+        const isAccepted = s.includes("ACCEPTED") || rs.includes("ACCEPTED");
+        if (!isAccepted) return false;
+      } else if (statusFilter === "ACTIVE") {
+        const isActive = s.includes("ACTIVE") || s.includes("PROCESSING") || s.includes("DISPATCH") || s.includes("DELIVERY") || rs.includes("ACTIVE") || rs.includes("PROCESSING") || rs.includes("DISPATCH") || rs.includes("DELIVERY") || rs.includes("ACCEPTED");
+        if (!isActive) return false;
+      } else if (statusFilter === "COMPLETED") {
+        const isCompleted = s.includes("COMPLETED") || s.includes("DELIVERED") || s.includes("CLOSED") || rs.includes("COMPLETED") || rs.includes("DELIVERED") || rs.includes("CLOSED");
+        if (!isCompleted) return false;
+      } else if (statusFilter === "CANCELLED") {
+        const isCancelled = s.includes("CANCEL") || rs.includes("CANCEL");
+        if (!isCancelled) return false;
+      } else if (statusFilter === "REJECTED") {
+        const isRejected = s.includes("REJECT") || s.includes("DECLIN") || rs.includes("REJECT") || rs.includes("DECLIN");
+        if (!isRejected) return false;
+      } else {
+        if (s !== statusFilter && rs !== statusFilter) return false;
+      }
     }
 
-    // Quotation status filter
-    const quoteCount = req.quotations ? req.quotations.length : 0;
-    if (quoteFilter === "NO_QUOTES" && quoteCount > 0) return false;
-    if (quoteFilter === "HAS_QUOTES" && quoteCount === 0) return false;
-    if (quoteFilter === "MULTIPLE_QUOTES" && quoteCount <= 1) return false;
+    // Quotation status filter (Direct Buy and Direct Hire have no quotation workflow)
+    if (quoteFilter !== "ALL") {
+      if (req.type === "DIRECT_BUY" || req.isDirectBuy === true || req.type === "DIRECT_HIRE") {
+        return false;
+      }
+      const quoteCount = req.quotations ? req.quotations.length : 0;
+      if (quoteFilter === "NO_QUOTES" && quoteCount > 0) return false;
+      if (quoteFilter === "HAS_QUOTES" && quoteCount === 0) return false;
+      if (quoteFilter === "MULTIPLE_QUOTES" && quoteCount <= 1) return false;
+    }
 
     return true;
   }).sort((a, b) => {
@@ -2081,9 +2070,11 @@ function openRequestDetailsModal(requestId) {
   if (!body) return;
 
   const isDirectBuy = (req.type === "DIRECT_BUY" || req.isDirectBuy === true);
+  const isDirectHire = (req.type === "DIRECT_HIRE");
   const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
   const quoteCount = req.quotations ? req.quotations.length : 0;
   const isAccepted = isDirectBuy && (!rawStatus.includes("WAITING_FOR_ACCEPTANCE") && !rawStatus.includes("NEW") && !rawStatus.includes("PENDING"));
+  const isProAccepted = isDirectHire && (rawStatus.includes("ACCEPTED") || rawStatus.includes("IN_PROGRESS") || rawStatus.includes("CONTACTED"));
 
   body.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 18px;">
@@ -2093,7 +2084,7 @@ function openRequestDetailsModal(requestId) {
           <div style="font-size: 14px; font-weight: 800; color: #1e293b; margin-top: 2px;">${escapeHtml(req.status)}</div>
         </div>
         <div>
-          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Category / Material</span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Category / Service</span>
           <div style="font-size: 14px; font-weight: 800; color: #1e293b; margin-top: 2px;">${escapeHtml(req.material || req.service || req.category)}</div>
         </div>
         <div>
@@ -2101,8 +2092,8 @@ function openRequestDetailsModal(requestId) {
           <div style="font-size: 14px; font-weight: 800; color: #0284c7; margin-top: 2px;">${escapeHtml(String(req.quantity))}</div>
         </div>
         <div>
-          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">${isDirectBuy ? 'Direct Purchase Status' : 'Quotations Received'}</span>
-          <div style="font-size: 14px; font-weight: 800; color: ${isDirectBuy ? '#0284c7' : '#10b981'}; margin-top: 2px;">${isDirectBuy ? escapeHtml(req.status) : (quoteCount + ' Received')}</div>
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">${isDirectBuy ? 'Direct Purchase Status' : (isDirectHire ? 'Hiring Status' : 'Quotations Received')}</span>
+          <div style="font-size: 14px; font-weight: 800; color: ${(isDirectBuy || isDirectHire) ? '#0284c7' : '#10b981'}; margin-top: 2px;">${(isDirectBuy || isDirectHire) ? escapeHtml(req.status) : (quoteCount + ' Received')}</div>
         </div>
       </div>
 
@@ -2161,6 +2152,31 @@ function openRequestDetailsModal(requestId) {
       <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 12px; padding: 14px 18px; font-size: 13px; color: #854d0e;">
         <span style="font-weight: 700;"><i class="fa-solid fa-hourglass-half"></i> Waiting for Seller Acceptance:</span>
         Your direct material purchase order has been placed with <strong>${escapeHtml(req.sellerName || req.targetProvider || 'Verified Seller')}</strong>. Complete seller contact credentials and expected delivery updates will be revealed once the order is accepted.
+      </div>
+      `) : ''}
+
+      ${isDirectHire ? (isProAccepted ? `
+      <!-- Accepted Professional Information -->
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px 20px;">
+        <h5 style="font-size: 13.5px; font-weight: 800; color: #166534; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-user-check" style="color: #15803d;"></i> Assigned Professional & Engagement Details
+        </h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 13px; color: #1e293b;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Assigned Professional</span>
+            <div style="font-weight: 700; color: #0f172a; margin-top: 2px;">${escapeHtml(req.targetProvider || 'Verified Professional')}</div>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Engagement Status</span>
+            <div style="font-weight: 700; color: #16a34a; margin-top: 2px;">Accepted / स्वीकार किया गया</div>
+          </div>
+        </div>
+      </div>
+      ` : `
+      <!-- Waiting for Professional Acceptance Notice -->
+      <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 12px; padding: 14px 18px; font-size: 13px; color: #854d0e;">
+        <span style="font-weight: 700;"><i class="fa-solid fa-hourglass-half"></i> Waiting for Professional Acceptance:</span>
+        Your direct hire service request has been sent to <strong>${escapeHtml(req.targetProvider || 'Verified Professional')}</strong> and is awaiting acceptance.
       </div>
       `) : ''}
 

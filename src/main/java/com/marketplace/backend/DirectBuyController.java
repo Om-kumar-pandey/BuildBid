@@ -576,6 +576,12 @@ public class DirectBuyController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller account not found"));
         }
 
+        MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+        if (!hasSellerRole(seller)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Only registered material sellers can accept orders."));
+        }
+
         MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
                 .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
         if (req == null) {
@@ -583,7 +589,7 @@ public class DirectBuyController {
         }
 
         // Validate seller ownership
-        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
+        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Forbidden: You are not authorized to accept this direct request."));
         }
@@ -619,8 +625,8 @@ public class DirectBuyController {
                         saved.getBuyer(),
                         "Order Accepted",
                         "ऑर्डर स्वीकार किया गया",
-                        "Seller " + sellerOpt.get().getName() + " has accepted your material order.",
-                        "विक्रेता " + sellerOpt.get().getName() + " ने आपका सामग्री ऑर्डर स्वीकार कर लिया है।",
+                        "Seller " + seller.getName() + " has accepted your material order.",
+                        "विक्रेता " + seller.getName() + " ने आपका सामग्री ऑर्डर स्वीकार कर लिया है।",
                         "DIRECT_BUY_ACCEPTED",
                         saved.getRequestId()
                 );
@@ -661,13 +667,19 @@ public class DirectBuyController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller account not found"));
         }
 
+        MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+        if (!hasSellerRole(seller)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Only registered material sellers can update order status."));
+        }
+
         Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
         if (reqOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
         MaterialRequest req = reqOpt.get();
-        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
+        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Forbidden: Not your direct buy order."));
         }
@@ -677,38 +689,45 @@ public class DirectBuyController {
             return ResponseEntity.badRequest().body(Map.of("error", "Status is required"));
         }
 
-        // Normalize
-        if ("ACCEPTED".equalsIgnoreCase(targetStatus)) targetStatus = "ORDER_ACCEPTED";
-        if ("DISPATCHED".equalsIgnoreCase(targetStatus)) targetStatus = "READY_FOR_DISPATCH";
+        String rawCurrent = req.getStatus() != null ? req.getStatus().trim().toUpperCase() : "WAITING_FOR_ACCEPTANCE";
+        String normalizedCurrent = normalizeOrderStatus(rawCurrent);
+        String normalizedTarget = normalizeOrderStatus(targetStatus);
 
-        req.setStatus(targetStatus);
+        if (!isValidOrderTransition(normalizedCurrent, normalizedTarget)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Invalid status transition from " + rawCurrent + " to " + targetStatus + ".",
+                    "message", "Invalid status transition from " + rawCurrent + " to " + targetStatus + "."
+            ));
+        }
+
+        req.setStatus(normalizedTarget);
         MaterialRequest saved = materialRequestRepository.save(req);
 
         // Bilingual notifications to buyer
         if (notificationService != null && saved.getBuyer() != null) {
             String titleEn = "Order Update";
             String titleHi = "ऑर्डर अपडेट";
-            String msgEn = "Order " + saved.getRequestId() + " status updated to " + targetStatus;
-            String msgHi = "ऑर्डर " + saved.getRequestId() + " की स्थिति अपडेट की गई: " + targetStatus;
+            String msgEn = "Order " + saved.getRequestId() + " status updated to " + normalizedTarget;
+            String msgHi = "ऑर्डर " + saved.getRequestId() + " की स्थिति अपडेट की गई: " + normalizedTarget;
 
-            if ("PROCESSING".equals(targetStatus)) {
+            if ("PROCESSING".equals(normalizedTarget)) {
                 titleEn = "Processing";
                 titleHi = "प्रक्रिया में";
-                msgEn = "Seller " + sellerOpt.get().getName() + " is now processing your material order.";
-                msgHi = "विक्रेता " + sellerOpt.get().getName() + " आपके सामग्री ऑर्डर को तैयार कर रहे हैं।";
-            } else if ("READY_FOR_DISPATCH".equals(targetStatus)) {
+                msgEn = "Seller " + seller.getName() + " is now processing your material order.";
+                msgHi = "विक्रेता " + seller.getName() + " आपके सामग्री ऑर्डर को तैयार कर रहे हैं।";
+            } else if ("READY_FOR_DISPATCH".equals(normalizedTarget)) {
                 titleEn = "Ready for Dispatch";
                 titleHi = "भेजने के लिए तैयार";
                 msgEn = "Your material order " + saved.getRequestId() + " is packed and ready for dispatch.";
                 msgHi = "आपका सामग्री ऑर्डर " + saved.getRequestId() + " भेजने के लिए तैयार है।";
-            } else if ("OUT_FOR_DELIVERY".equals(targetStatus)) {
+            } else if ("OUT_FOR_DELIVERY".equals(normalizedTarget)) {
                 titleEn = "Out for Delivery";
                 titleHi = "डिलीवरी के लिए रवाना";
                 msgEn = "Your material order " + saved.getRequestId() + " is out for delivery.";
                 msgHi = "आपका सामग्री ऑर्डर " + saved.getRequestId() + " डिलीवरी के लिए निकल चुका है।";
-            } else if ("DELIVERED".equals(targetStatus)) {
+            } else if ("DELIVERED".equals(normalizedTarget)) {
                 titleEn = "Delivered";
-                titleHi = "डिलीवर हो गया";
+                titleHi = "डिलीवर किया गया";
                 msgEn = "Your material order " + saved.getRequestId() + " has been marked as delivered.";
                 msgHi = "आपका सामग्री ऑर्डर " + saved.getRequestId() + " डिलीवर हो चुका है।";
             }
@@ -880,5 +899,37 @@ public class DirectBuyController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private boolean hasSellerRole(MarketplaceBackendApplication.MarketplaceUser user) {
+        if (user == null || user.getRoles() == null) {
+            return false;
+        }
+        return user.getRoles().contains(MarketplaceBackendApplication.Role.MATERIAL_SELLER)
+                || user.getRoles().contains(MarketplaceBackendApplication.Role.SELLER);
+    }
+
+    private String normalizeOrderStatus(String status) {
+        if (status == null) return "WAITING_FOR_ACCEPTANCE";
+        String s = status.trim().toUpperCase();
+        if ("NEW".equals(s) || "PENDING".equals(s)) return "WAITING_FOR_ACCEPTANCE";
+        if ("ACCEPTED".equals(s)) return "ORDER_ACCEPTED";
+        if ("DISPATCHED".equals(s)) return "READY_FOR_DISPATCH";
+        if ("COMPLETED".equals(s)) return "DELIVERED";
+        if ("REJECTED".equals(s)) return "DECLINED";
+        return s;
+    }
+
+    private boolean isValidOrderTransition(String current, String target) {
+        if (current.equals(target)) return true; // idempotent
+        return switch (current) {
+            case "WAITING_FOR_ACCEPTANCE" -> "ORDER_ACCEPTED".equals(target) || "DECLINED".equals(target) || "CANCELLED".equals(target);
+            case "ORDER_ACCEPTED" -> "PROCESSING".equals(target) || "CANCELLED".equals(target);
+            case "PROCESSING" -> "READY_FOR_DISPATCH".equals(target) || "CANCELLED".equals(target);
+            case "READY_FOR_DISPATCH" -> "OUT_FOR_DELIVERY".equals(target) || "CANCELLED".equals(target);
+            case "OUT_FOR_DELIVERY" -> "DELIVERED".equals(target) || "CANCELLED".equals(target);
+            case "DELIVERED", "DECLINED", "CANCELLED" -> false; // Terminal states
+            default -> false;
+        };
     }
 }

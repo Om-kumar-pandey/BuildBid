@@ -148,10 +148,10 @@ public class CustomerRequestController {
         String statusHi = "सक्रिय";
 
         if (isDirectBuy) {
-            if ("WAITING_FOR_ACCEPTANCE".equals(rawStatus) || "NEW".equals(rawStatus)) {
+            if ("WAITING_FOR_ACCEPTANCE".equals(rawStatus) || "NEW".equals(rawStatus) || "PENDING".equals(rawStatus)) {
                 displayStatus = "Waiting for Acceptance";
                 statusEn = "Waiting for Acceptance";
-                statusHi = "विक्रेता की स्वीकृति की प्रतीक्षा";
+                statusHi = "स्वीकृति की प्रतीक्षा";
             } else if ("ORDER_ACCEPTED".equals(rawStatus) || "ACCEPTED".equals(rawStatus)) {
                 displayStatus = "Order Accepted";
                 statusEn = "Order Accepted";
@@ -171,7 +171,7 @@ public class CustomerRequestController {
             } else if ("DELIVERED".equals(rawStatus) || "COMPLETED".equals(rawStatus)) {
                 displayStatus = "Delivered";
                 statusEn = "Delivered";
-                statusHi = "डिलीवर हो गया";
+                statusHi = "डिलीवर किया गया";
             } else if ("DECLINED".equals(rawStatus) || "REJECTED".equals(rawStatus)) {
                 displayStatus = "Declined";
                 statusEn = "Declined";
@@ -443,19 +443,36 @@ public class CustomerRequestController {
 
         // Status normalization
         String rawStatus = csr.getStatus() != null ? csr.getStatus().trim() : "New";
-        String displayStatus = "Pending";
-        if ("New".equalsIgnoreCase(rawStatus)) {
-            displayStatus = "Pending";
-        } else if ("Contacted".equalsIgnoreCase(rawStatus)) {
-            displayStatus = "Active";
-        } else if ("Accepted".equalsIgnoreCase(rawStatus)) {
+        String displayStatus = "Waiting for Acceptance";
+        String statusEn = "Waiting for Acceptance";
+        String statusHi = "स्वीकृति की प्रतीक्षा";
+
+        if ("Accepted".equalsIgnoreCase(rawStatus)) {
             displayStatus = "Accepted";
-        } else if ("Declined".equalsIgnoreCase(rawStatus)) {
+            statusEn = "Accepted";
+            statusHi = "स्वीकार किया गया";
+        } else if ("Declined".equalsIgnoreCase(rawStatus) || "Rejected".equalsIgnoreCase(rawStatus)) {
+            displayStatus = "Declined";
+            statusEn = "Declined";
+            statusHi = "अस्वीकृत";
+        } else if ("Cancelled".equalsIgnoreCase(rawStatus)) {
             displayStatus = "Cancelled";
+            statusEn = "Cancelled";
+            statusHi = "रद्द";
+        } else if ("Contacted".equalsIgnoreCase(rawStatus) || "In Progress".equalsIgnoreCase(rawStatus)) {
+            displayStatus = "Active";
+            statusEn = "Active";
+            statusHi = "सक्रिय";
         } else {
-            displayStatus = rawStatus.substring(0, 1).toUpperCase() + rawStatus.substring(1).toLowerCase();
+            // "New", "Pending", "WAITING_FOR_ACCEPTANCE"
+            displayStatus = "Waiting for Acceptance";
+            statusEn = "Waiting for Acceptance";
+            statusHi = "स्वीकृति की प्रतीक्षा";
         }
         card.put("status", displayStatus);
+        card.put("statusEn", statusEn);
+        card.put("statusHi", statusHi);
+        card.put("rawStatus", rawStatus.toUpperCase());
 
         String desc = csr.getProjectScope() != null && !csr.getProjectScope().isBlank()
                 ? csr.getProjectScope()

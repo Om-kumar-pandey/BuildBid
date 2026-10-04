@@ -519,6 +519,10 @@ public class MaterialRequestController {
         }
 
         MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+        if (!hasSellerRole(seller)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Only registered material sellers can accept orders."));
+        }
 
         MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
                 .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
@@ -645,11 +649,43 @@ public class MaterialRequestController {
 
         MaterialRequest req = reqOpt.get();
         String newStatus = payload.get("status") != null ? payload.get("status").toString().trim().toUpperCase() : "";
-        if (!newStatus.isEmpty()) {
-            req.setStatus(newStatus);
-            req.setUpdatedAt(LocalDateTime.now());
-            materialRequestRepository.save(req);
+        if (newStatus.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Status is required"));
         }
+
+        if ("DIRECT_MATERIAL".equalsIgnoreCase(req.getRequestType())) {
+            String principal = authentication.getName();
+            Optional<MarketplaceBackendApplication.MarketplaceUser> sellerOpt =
+                    userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+            if (sellerOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller account not found"));
+            }
+            MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+            if (!hasSellerRole(seller)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Access denied: Only registered material sellers can update order status."));
+            }
+            if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Forbidden: Not your direct material order."));
+            }
+
+            String rawCurrent = req.getStatus() != null ? req.getStatus().trim().toUpperCase() : "WAITING_FOR_ACCEPTANCE";
+            String normalizedCurrent = normalizeOrderStatus(rawCurrent);
+            String normalizedTarget = normalizeOrderStatus(newStatus);
+
+            if (!isValidOrderTransition(normalizedCurrent, normalizedTarget)) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid status transition from " + rawCurrent + " to " + newStatus + ".",
+                        "message", "Invalid status transition from " + rawCurrent + " to " + newStatus + "."
+                ));
+            }
+            newStatus = normalizedTarget;
+        }
+
+        req.setStatus(newStatus);
+        req.setUpdatedAt(LocalDateTime.now());
+        materialRequestRepository.save(req);
 
         return ResponseEntity.ok(Map.of("success", true, "status", req.getStatus()));
     }
@@ -808,5 +844,37 @@ public class MaterialRequestController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private boolean hasSellerRole(MarketplaceBackendApplication.MarketplaceUser user) {
+        if (user == null || user.getRoles() == null) {
+            return false;
+        }
+        return user.getRoles().contains(MarketplaceBackendApplication.Role.MATERIAL_SELLER)
+                || user.getRoles().contains(MarketplaceBackendApplication.Role.SELLER);
+    }
+
+    private String normalizeOrderStatus(String status) {
+        if (status == null) return "WAITING_FOR_ACCEPTANCE";
+        String s = status.trim().toUpperCase();
+        if ("NEW".equals(s) || "PENDING".equals(s)) return "WAITING_FOR_ACCEPTANCE";
+        if ("ACCEPTED".equals(s)) return "ORDER_ACCEPTED";
+        if ("DISPATCHED".equals(s)) return "READY_FOR_DISPATCH";
+        if ("COMPLETED".equals(s)) return "DELIVERED";
+        if ("REJECTED".equals(s)) return "DECLINED";
+        return s;
+    }
+
+    private boolean isValidOrderTransition(String current, String target) {
+        if (current.equals(target)) return true; // idempotent
+        return switch (current) {
+            case "WAITING_FOR_ACCEPTANCE" -> "ORDER_ACCEPTED".equals(target) || "DECLINED".equals(target) || "CANCELLED".equals(target);
+            case "ORDER_ACCEPTED" -> "PROCESSING".equals(target) || "CANCELLED".equals(target);
+            case "PROCESSING" -> "READY_FOR_DISPATCH".equals(target) || "CANCELLED".equals(target);
+            case "READY_FOR_DISPATCH" -> "OUT_FOR_DELIVERY".equals(target) || "CANCELLED".equals(target);
+            case "OUT_FOR_DELIVERY" -> "DELIVERED".equals(target) || "CANCELLED".equals(target);
+            case "DELIVERED", "DECLINED", "CANCELLED" -> false; // Terminal states
+            default -> false;
+        };
     }
 }
