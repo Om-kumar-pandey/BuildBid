@@ -65,6 +65,155 @@ function updateLiveDate() {
   if (el) el.textContent = getDynamicDateString();
 }
 
+function isWorkScheduledDatePast(scheduledDateStr) {
+  if (!scheduledDateStr) return false;
+  if (typeof scheduledDateStr !== 'string' && typeof scheduledDateStr !== 'number' && !(scheduledDateStr instanceof Date)) {
+    return false;
+  }
+
+  let sYear, sMonth, sDay;
+
+  if (scheduledDateStr instanceof Date) {
+    if (isNaN(scheduledDateStr.getTime())) return false;
+    sYear = scheduledDateStr.getFullYear();
+    sMonth = scheduledDateStr.getMonth();
+    sDay = scheduledDateStr.getDate();
+  } else if (typeof scheduledDateStr === 'number') {
+    const d = new Date(scheduledDateStr);
+    if (isNaN(d.getTime())) return false;
+    sYear = d.getFullYear();
+    sMonth = d.getMonth();
+    sDay = d.getDate();
+  } else {
+    const raw = String(scheduledDateStr).trim();
+    if (!raw || raw === '--' || raw === '-') return false;
+
+    const lower = raw.toLowerCase();
+    if (
+      lower === 'flexible' ||
+      lower === 'immediate' ||
+      lower === 'tbd' ||
+      lower === 'n/a' ||
+      lower === 'na' ||
+      lower === 'none' ||
+      lower === 'pending' ||
+      lower.includes('flexible') ||
+      lower.includes('immediate') ||
+      lower.includes('tbd')
+    ) {
+      return false;
+    }
+
+    const monthMap = {
+      jan: 0, january: 0,
+      feb: 1, february: 1,
+      mar: 2, march: 2,
+      apr: 3, april: 3,
+      may: 4,
+      jun: 5, june: 5,
+      jul: 6, july: 6,
+      aug: 7, august: 7,
+      sep: 8, sept: 8, september: 8,
+      oct: 9, october: 9,
+      nov: 10, november: 10,
+      dec: 11, december: 11
+    };
+
+    // 1. ISO format: YYYY-MM-DD or YYYY/MM/DD
+    const isoMatch = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (isoMatch) {
+      sYear = parseInt(isoMatch[1], 10);
+      sMonth = parseInt(isoMatch[2], 10) - 1;
+      sDay = parseInt(isoMatch[3], 10);
+    }
+
+    // 2. Day Month Year: e.g. "10 October 2026", "10 Oct 2026", "10th Oct 2026"
+    if (sYear === undefined) {
+      const dmyMatch = raw.match(/^(\d{1,2})(?:st|nd|rd|th)?[\s,-]+([a-zA-Z]+)[\s,-]+(\d{4})/);
+      if (dmyMatch) {
+        const mKey = dmyMatch[2].toLowerCase();
+        if (monthMap[mKey] !== undefined) {
+          sDay = parseInt(dmyMatch[1], 10);
+          sMonth = monthMap[mKey];
+          sYear = parseInt(dmyMatch[3], 10);
+        }
+      }
+    }
+
+    // 3. Month Day Year: e.g. "October 10, 2026", "Oct 10, 2026"
+    if (sYear === undefined) {
+      const mdyMatch = raw.match(/^([a-zA-Z]+)[\s,-]+(\d{1,2})(?:st|nd|rd|th)?(?:,)?[\s,-]+(\d{4})/);
+      if (mdyMatch) {
+        const mKey = mdyMatch[1].toLowerCase();
+        if (monthMap[mKey] !== undefined) {
+          sMonth = monthMap[mKey];
+          sDay = parseInt(mdyMatch[2], 10);
+          sYear = parseInt(mdyMatch[3], 10);
+        }
+      }
+    }
+
+    // 4. Numeric DD-MM-YYYY or DD/MM/YYYY or MM/DD/YYYY
+    if (sYear === undefined) {
+      const numMatch = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+      if (numMatch) {
+        const p1 = parseInt(numMatch[1], 10);
+        const p2 = parseInt(numMatch[2], 10);
+        const y = parseInt(numMatch[3], 10);
+        if (p1 > 12) {
+          sDay = p1;
+          sMonth = p2 - 1;
+          sYear = y;
+        } else if (p2 > 12) {
+          sMonth = p1 - 1;
+          sDay = p2;
+          sYear = y;
+        } else {
+          sDay = p1;
+          sMonth = p2 - 1;
+          sYear = y;
+        }
+      }
+    }
+
+    // 5. Fallback safe Date parse
+    if (sYear === undefined || isNaN(sYear) || sMonth === undefined || isNaN(sMonth) || sDay === undefined || isNaN(sDay)) {
+      try {
+        const parsed = new Date(raw);
+        if (!isNaN(parsed.getTime())) {
+          sYear = parsed.getFullYear();
+          sMonth = parsed.getMonth();
+          sDay = parsed.getDate();
+        } else {
+          return false;
+        }
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  // Final sanity check on calendar units
+  if (
+    typeof sYear !== 'number' || isNaN(sYear) ||
+    typeof sMonth !== 'number' || isNaN(sMonth) || sMonth < 0 || sMonth > 11 ||
+    typeof sDay !== 'number' || isNaN(sDay) || sDay < 1 || sDay > 31
+  ) {
+    return false;
+  }
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDay = now.getDate();
+
+  if (sYear < currentYear) return true;
+  if (sYear > currentYear) return false;
+  if (sMonth < currentMonth) return true;
+  if (sMonth > currentMonth) return false;
+  return sDay < currentDay;
+}
+
 function getProfessionalFallbackAvatar(roleTitle) {
   return "data:image/svg+xml;utf8," + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
@@ -1666,8 +1815,11 @@ function renderDashboard(container) {
                 <i class="fa-solid fa-folder-open text-slate-300 text-2xl mb-2 block"></i>
                 <span>No active projects in progress. Client milestones will appear here once contracts are awarded.</span>
               </div>
-            ` : currentPro.projects.map(prj => `
-              <div class="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3">
+            ` : currentPro.projects.map(prj => {
+              const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
+              const isPast = isWorkScheduledDatePast(rawDate);
+              return `
+              <div class="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3${isPast ? ' opacity-65' : ''}"${isPast ? ' style="opacity: 0.65;"' : ''}>
                 <div class="flex items-start justify-between">
                   <div>
                     <div class="flex items-center gap-2">
@@ -1715,7 +1867,8 @@ function renderDashboard(container) {
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         </div>
       </div>
@@ -2696,8 +2849,11 @@ function renderProjects(container) {
       </div>
 
       <div class="space-y-5">
-        ${currentPro.projects.map(prj => `
-          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 space-y-5">
+        ${currentPro.projects.map(prj => {
+          const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
+          const isPast = isWorkScheduledDatePast(rawDate);
+          return `
+          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 space-y-5${isPast ? ' opacity-65' : ''}"${isPast ? ' style="opacity: 0.65;"' : ''}>
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <div class="flex items-center gap-3">
@@ -2773,7 +2929,8 @@ function renderProjects(container) {
               </div>
             </div>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     </div>
   `;
