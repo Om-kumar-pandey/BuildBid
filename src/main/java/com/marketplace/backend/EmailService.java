@@ -5,11 +5,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -17,6 +26,7 @@ public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
+    private final RestClient restClient;
 
     @Value("${spring.mail.username:no-reply@buildbid.com}")
     private String fromEmail;
@@ -24,9 +34,36 @@ public class EmailService {
     @Value("${app.email.from-name:BuildBid Team}")
     private String fromName;
 
+    @Value("${brevo.api-key:}")
+    private String brevoApiKey;
+
+    @Value("${brevo.template-id:1}")
+    private Long brevoTemplateId;
+
+    @Value("${brevo.sender.email:omkumarpandey4145@gmail.com}")
+    private String brevoSenderEmail;
+
+    @Value("${brevo.sender.name:BuildBid}")
+    private String brevoSenderName;
+
+    @Value("${brevo.api-url:https://api.brevo.com/v3/smtp/email}")
+    private String brevoApiUrl;
+
     @Autowired
     public EmailService(@Autowired(required = false) JavaMailSender mailSender) {
+        this(mailSender, buildDefaultRestClient());
+    }
+
+    public EmailService(JavaMailSender mailSender, RestClient restClient) {
         this.mailSender = mailSender;
+        this.restClient = (restClient != null) ? restClient : buildDefaultRestClient();
+    }
+
+    private static RestClient buildDefaultRestClient() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(Duration.ofSeconds(10));
+        return RestClient.builder().requestFactory(requestFactory).build();
     }
 
     public boolean sendVerificationOtpEmail(
@@ -42,18 +79,79 @@ public class EmailService {
 
         String displayName = (recipientName != null && !recipientName.isBlank()) ? recipientName.trim() : "BuildBid User";
         String displayPurpose = (purpose != null && !purpose.isBlank()) ? purpose : "Email Verification";
-        String subject = "BuildBid Verification: Your One-Time Password (OTP)";
 
-        String htmlBody = buildHtmlEmailTemplate(displayName, otp, displayPurpose);
+        // 1. Primary delivery: Brevo Transactional Email API v3
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            return sendViaBrevoApi(toEmail.trim(), displayName, otp.trim(), displayPurpose);
+        }
 
+        // 2. Fallback / Dev environment simulation when neither Brevo nor SMTP is configured
         if (mailSender == null) {
-            // SMTP provider is not configured in this environment (e.g. local dev / test)
-            // Log notice without exposing sensitive plaintext OTP
-            log.info("[EmailService] JavaMailSender is not configured in application properties. Delivery simulated for recipient: {}", maskEmail(toEmail));
+            log.info("[EmailService] Neither Brevo API key nor JavaMailSender is configured. Delivery simulated for recipient: {}", maskEmail(toEmail));
             return true;
         }
 
+        // 3. Fallback SMTP Dispatch
+        String subject = "BuildBid Verification: Your One-Time Password (OTP)";
+        String htmlBody = buildHtmlEmailTemplate(displayName, otp, displayPurpose);
         return dispatchEmailInternal(toEmail, subject, htmlBody, true);
+    }
+
+    private boolean sendViaBrevoApi(String toEmail, String recipientName, String otp, String purpose) {
+        try {
+            String firstName = recipientName;
+            if (firstName.contains(" ")) {
+                firstName = firstName.split("\\s+")[0].trim();
+            }
+
+            Map<String, Object> senderMap = new HashMap<>();
+            senderMap.put("email", (brevoSenderEmail != null && !brevoSenderEmail.isBlank()) ? brevoSenderEmail.trim() : "omkumarpandey4145@gmail.com");
+            senderMap.put("name", (brevoSenderName != null && !brevoSenderName.isBlank()) ? brevoSenderName.trim() : "BuildBid");
+
+            Map<String, Object> toMap = new HashMap<>();
+            toMap.put("email", toEmail);
+            toMap.put("name", recipientName);
+
+            Map<String, Object> paramsMap = new HashMap<>();
+            paramsMap.put("otp", otp);
+            paramsMap.put("action", purpose);
+            paramsMap.put("expiry", "10");
+            paramsMap.put("FIRSTNAME", firstName);
+
+            Long templateId = (brevoTemplateId != null && brevoTemplateId > 0) ? brevoTemplateId : 1L;
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("sender", senderMap);
+            payload.put("to", Collections.singletonList(toMap));
+            payload.put("templateId", templateId);
+            payload.put("params", paramsMap);
+
+            String targetUrl = (brevoApiUrl != null && !brevoApiUrl.isBlank()) ? brevoApiUrl.trim() : "https://api.brevo.com/v3/smtp/email";
+
+            ResponseEntity<String> response = restClient.post()
+                    .uri(targetUrl)
+                    .header("api-key", brevoApiKey.trim())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toEntity(String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("[EmailService] Verification OTP email successfully delivered via Brevo API to {}", maskEmail(toEmail));
+                return true;
+            } else {
+                log.warn("[EmailService] Brevo API returned non-2xx status {} for recipient {}", response.getStatusCode(), maskEmail(toEmail));
+                return false;
+            }
+        } catch (RestClientResponseException ex) {
+            log.error("[EmailService] Brevo API error (HTTP {}) for recipient {}: {}",
+                    ex.getStatusCode(), maskEmail(toEmail), ex.getResponseBodyAsString());
+            return false;
+        } catch (Exception ex) {
+            log.error("[EmailService] Failed to dispatch verification OTP via Brevo API to {}: {}", maskEmail(toEmail), ex.getMessage());
+            return false;
+        }
     }
 
     public boolean sendDeletionOtpEmail(String toEmail, String recipientName, String otp) {
