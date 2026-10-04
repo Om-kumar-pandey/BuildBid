@@ -74,7 +74,7 @@
           <button onclick="navigate('find-work')" data-route="find-work" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
             <i class="fa-solid fa-magnifying-glass-location w-5 mr-2.5 text-slate-400 text-sm"></i>
             <span class="flex-1 text-left font-medium">Find Work Leads</span>
-            <span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">8 Live</span>
+            <span id="side-findwork-badge" class="bg-orange-100 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">0 Live</span>
           </button>
           <button onclick="navigate('requests')" data-route="requests" class="nav-link w-full flex items-center px-3.5 py-2.5 text-xs rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
             <i class="fa-solid fa-clipboard-list w-5 mr-2.5 text-slate-400 text-sm"></i>
@@ -290,6 +290,24 @@
     </div>
   </div>
 
+  <!-- MODAL: View Post Requirement Scope & Trade Quotas -->
+  <div id="modal-requirement-detail" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-float border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center space-x-2.5">
+          <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+          <h3 class="text-sm font-bold text-slate-900">Post Requirement Details & Trade Quotas</h3>
+        </div>
+        <button onclick="closeModal('modal-requirement-detail')" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs" id="modal-requirement-body">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: Submit Official Work Proposal -->
   <div id="modal-proposal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xs">
     <div class="bg-white rounded-2xl max-w-xl w-full shadow-float border border-slate-200 p-6">
@@ -301,23 +319,42 @@
         <button onclick="closeModal('modal-proposal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="handleProposalSubmit(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="prop-project-id" value="">
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Contract Amount (₹ INR)</label>
-          <input type="number" id="prop-amt" required placeholder="e.g. 35000" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+          <label class="block font-semibold text-slate-700 mb-1">Eligible Trade Role</label>
+          <select id="prop-trade-role" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none bg-white">
+            <!-- Populated dynamically -->
+          </select>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Execution Duration</label>
-            <input type="text" id="prop-duration" required placeholder="e.g. 5 Business Days" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+            <label class="block font-semibold text-slate-700 mb-1">Proposed Quotation Rate (₹ INR)</label>
+            <input type="number" id="prop-amt" required min="1" step="any" placeholder="e.g. 1500" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Earliest Site Date</label>
-            <input type="date" id="prop-date" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+            <label class="block font-semibold text-slate-700 mb-1">Rate Billing Type</label>
+            <select id="prop-rate-type" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none bg-white">
+              <option value="PER_DAY" selected>Per Day (प्रति दिन)</option>
+              <option value="LUMP_SUM">Lump Sum / Project (कुल परियोजना)</option>
+              <option value="PER_SQFT">Per Sq. Ft. (प्रति वर्ग फुट)</option>
+              <option value="PER_MONTH">Per Month (प्रति माह)</option>
+              <option value="PER_HOUR">Per Hour (प्रति घंटा)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Team Size</label>
+            <input type="number" id="prop-team-size" min="1" value="1" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Estimated Execution Duration</label>
+            <input type="text" id="prop-duration" placeholder="e.g. 5 Business Days" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none">
           </div>
         </div>
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Technical Scope & Milestone Breakdown</label>
-          <textarea id="prop-notes" rows="4" required placeholder="Specify site inspection methodology, deliverables, and payment schedule..." class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none"></textarea>
+          <label class="block font-semibold text-slate-700 mb-1">Technical Scope & Cover Message</label>
+          <textarea id="prop-notes" rows="3" placeholder="Specify your site availability, deliverables, and methodology..." class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:ring-1 focus:ring-orange-500 outline-none"></textarea>
         </div>
         <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2.5">
           <i class="fa-solid fa-shield-halved mt-0.5 text-amber-600"></i>
@@ -325,7 +362,9 @@
         </div>
         <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
           <button type="button" onclick="closeModal('modal-proposal')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm">Submit Proposal</button>
+          <button type="submit" id="prop-submit-btn" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm inline-flex items-center gap-2">
+            <span>Submit Quotation</span>
+          </button>
         </div>
       </form>
     </div>

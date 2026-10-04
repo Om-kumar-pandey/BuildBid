@@ -93,4 +93,10 @@ public class NotificationService {
         if (user == null || user.getId() == null) return;
         notificationRepository.markAllAsReadForUser(user.getId());
     }
+
+    @Transactional(readOnly = true)
+    public boolean existsNotification(Long recipientId, String type, String referenceId) {
+        if (recipientId == null || type == null || referenceId == null) return false;
+        return notificationRepository.existsByRecipientIdAndNotificationTypeAndReferenceId(recipientId, type, referenceId);
+    }
 }

@@ -11,10 +11,15 @@ import java.util.Optional;
 public class ClientServiceRequestService {
 
     private final ClientServiceRequestRepository requestRepository;
+    private final NotificationService notificationService;
 
     @Autowired
-    public ClientServiceRequestService(ClientServiceRequestRepository requestRepository) {
+    public ClientServiceRequestService(
+            ClientServiceRequestRepository requestRepository,
+            @Autowired(required = false) NotificationService notificationService
+    ) {
         this.requestRepository = requestRepository;
+        this.notificationService = notificationService;
     }
 
     public List<ClientServiceRequest> getRequestsForProfessional(MarketplaceBackendApplication.MarketplaceUser professional) {
@@ -56,18 +61,104 @@ public class ClientServiceRequestService {
         }
     }
 
+    public Optional<ClientServiceRequest> findByIdOrRequestIdGlobal(String identifier) {
+        if (identifier == null || identifier.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        String cleanId = identifier.trim();
+        Optional<ClientServiceRequest> byReqId = requestRepository.findByRequestId(cleanId);
+        if (byReqId.isPresent()) {
+            return byReqId;
+        }
+
+        try {
+            Long numericId = Long.parseLong(cleanId);
+            return requestRepository.findById(numericId);
+        } catch (NumberFormatException ignored) {
+            return Optional.empty();
+        }
+    }
+
     @Transactional
     public ClientServiceRequest updateStatus(String identifier, String newStatus, MarketplaceBackendApplication.MarketplaceUser professional) {
         ClientServiceRequest req = findByIdOrRequestId(identifier, professional.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Request not found for this professional: " + identifier));
 
-        req.setStatus(newStatus != null ? newStatus.trim() : "Pending");
-        return requestRepository.save(req);
+        String normalizedStatus = newStatus != null ? newStatus.trim() : "Pending";
+        if ("Accepted".equalsIgnoreCase(normalizedStatus)) {
+            normalizedStatus = "Accepted";
+        } else if ("Declined".equalsIgnoreCase(normalizedStatus)) {
+            normalizedStatus = "Declined";
+        }
+
+        if ("Accepted".equals(normalizedStatus)) {
+            if ("Declined".equalsIgnoreCase(req.getStatus()) || "Cancelled".equalsIgnoreCase(req.getStatus())) {
+                throw new IllegalStateException("Cannot accept a request that has already been declined or cancelled.");
+            }
+        }
+
+        String oldStatus = req.getStatus();
+        req.setStatus(normalizedStatus);
+        ClientServiceRequest saved = requestRepository.save(req);
+
+        if (notificationService != null && saved.getClient() != null) {
+            String proName = professional.getName() != null && !professional.getName().isBlank()
+                    ? professional.getName()
+                    : "Professional";
+            String requestedService = saved.getRequestedService() != null && !saved.getRequestedService().isBlank()
+                    ? saved.getRequestedService()
+                    : "service";
+
+            if ("Accepted".equals(normalizedStatus) && !"Accepted".equalsIgnoreCase(oldStatus)) {
+                notificationService.createNotification(
+                        saved.getClient(),
+                        "Hiring Request Accepted",
+                        "हायरिंग अनुरोध स्वीकार किया गया",
+                        "Professional " + proName + " has accepted your direct hire request for " + requestedService + ".",
+                        "प्रोफेशनल " + proName + " ने " + requestedService + " के लिए आपका डायरेक्ट हायर अनुरोध स्वीकार कर लिया है।",
+                        "HIRING_REQUEST_ACCEPTED",
+                        saved.getRequestId()
+                );
+            } else if ("Declined".equals(normalizedStatus) && !"Declined".equalsIgnoreCase(oldStatus)) {
+                notificationService.createNotification(
+                        saved.getClient(),
+                        "Hiring Request Declined",
+                        "हायरिंग अनुरोध अस्वीकार किया गया",
+                        "Professional " + proName + " has declined your direct hire request for " + requestedService + ".",
+                        "प्रोफेशनल " + proName + " ने " + requestedService + " के लिए आपका डायरेक्ट हायर अनुरोध अस्वीकार कर दिया है।",
+                        "HIRING_REQUEST_DECLINED",
+                        saved.getRequestId()
+                );
+            }
+        }
+
+        return saved;
     }
 
     @Transactional
     public ClientServiceRequest createRequest(ClientServiceRequest request) {
-        return requestRepository.save(request);
+        ClientServiceRequest saved = requestRepository.save(request);
+
+        if (notificationService != null && saved.getProfessional() != null) {
+            String clientName = saved.getClientName() != null && !saved.getClientName().isBlank()
+                    ? saved.getClientName()
+                    : "A client";
+            String requestedService = saved.getRequestedService() != null && !saved.getRequestedService().isBlank()
+                    ? saved.getRequestedService()
+                    : "service";
+
+            notificationService.createNotification(
+                    saved.getProfessional(),
+                    "New Direct Hire Request",
+                    "नया डायरेक्ट हायर अनुरोध",
+                    "Client " + clientName + " has sent a direct hire request for " + requestedService + ".",
+                    "ग्राहक " + clientName + " ने " + requestedService + " के लिए डायरेक्ट हायर अनुरोध भेजा है।",
+                    "DIRECT_HIRE_REQUEST",
+                    saved.getRequestId()
+            );
+        }
+
+        return saved;
     }
 
     /**

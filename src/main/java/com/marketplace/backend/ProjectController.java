@@ -26,19 +26,32 @@ public class ProjectController {
     private final ProjectRepository projectRepository;
     private final MarketplaceBackendApplication.UserRepository userRepository;
     private final CostEstimatorService costEstimatorService;
+    private ProjectApplicationService projectApplicationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ProjectController(ProjectRepository projectRepository, MarketplaceBackendApplication.UserRepository userRepository) {
-        this(projectRepository, userRepository, null);
+        this(projectRepository, userRepository, null, null);
+    }
+
+    public ProjectController(ProjectRepository projectRepository,
+                             MarketplaceBackendApplication.UserRepository userRepository,
+                             CostEstimatorService costEstimatorService) {
+        this(projectRepository, userRepository, costEstimatorService, null);
     }
 
     @Autowired
     public ProjectController(ProjectRepository projectRepository,
                              MarketplaceBackendApplication.UserRepository userRepository,
-                             @Autowired(required = false) CostEstimatorService costEstimatorService) {
+                             @Autowired(required = false) CostEstimatorService costEstimatorService,
+                             @Autowired(required = false) ProjectApplicationService projectApplicationService) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.costEstimatorService = costEstimatorService;
+        this.projectApplicationService = projectApplicationService;
+    }
+
+    public void setProjectApplicationService(ProjectApplicationService projectApplicationService) {
+        this.projectApplicationService = projectApplicationService;
     }
 
     @Transactional
@@ -368,6 +381,15 @@ public class ProjectController {
 
             // Persist entity to Cloud MySQL
             Project savedProject = projectRepository.save(project);
+
+            // POST REQUIREMENT MATCH NOTIFICATIONS (STEP 11A/11K)
+            if (projectApplicationService != null) {
+                try {
+                    projectApplicationService.notifyMatchingProfessionals(savedProject);
+                } catch (Exception e) {
+                    System.err.println("Failed to dispatch match notifications: " + e.getMessage());
+                }
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Project posted and saved to Cloud MySQL successfully!");

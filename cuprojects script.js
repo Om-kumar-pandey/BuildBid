@@ -606,9 +606,15 @@ function renderProjectCards() {
                 <button class="btn-ref-details" onclick="openProjectDetailsModal('${projectIdArg}')">
                   View Details <i class="fa-solid fa-arrow-right"></i>
                 </button>
-                <button class="btn-ref-bids" id="btnViewBids-${p.id}" onclick="openBidsDashboardModal('${projectIdArg}')">
-                  <i class="fa-solid fa-user-group"></i> View Bids
-                </button>
+                ${((p.projectId && String(p.projectId).startsWith("HIRE-")) || (p.completeDataJson && String(p.completeDataJson).includes("requestedProfessionals"))) ? `
+                  <button class="btn-ref-bids" id="btnViewBids-${p.id}" onclick="window.location.href='requirement-applications.html?projectId=${encodeURIComponent(projectIdArg)}'">
+                    <i class="fa-solid fa-users-viewfinder"></i> Review Quotes
+                  </button>
+                ` : `
+                  <button class="btn-ref-bids" id="btnViewBids-${p.id}" onclick="openBidsDashboardModal('${projectIdArg}')">
+                    <i class="fa-solid fa-user-group"></i> View Bids
+                  </button>
+                `}
               </div>
             </div>
           </div>
@@ -1027,11 +1033,23 @@ function openProjectDetailsModal(id) {
   }
 
   if (viewBidsBtn) {
-    viewBidsBtn.onclick = () => {
-      closeProjectDetailsModal();
-      const targetId = project.id !== undefined && project.id !== null ? project.id : (project.projectId || "");
-      openBidsDashboardModal(targetId);
-    };
+    const isHireProject = (project.projectId && String(project.projectId).startsWith("HIRE-")) || 
+                          (project.completeDataJson && String(project.completeDataJson).includes("requestedProfessionals"));
+    if (isHireProject) {
+      viewBidsBtn.innerHTML = `<i class="fa-solid fa-users-viewfinder"></i> Review Applications — प्रोफेशनल्स देखें`;
+      viewBidsBtn.onclick = () => {
+        closeProjectDetailsModal();
+        const targetId = project.projectId || project.id;
+        window.location.href = `requirement-applications.html?projectId=${encodeURIComponent(targetId)}`;
+      };
+    } else {
+      viewBidsBtn.innerHTML = `<i class="fa-solid fa-user-group"></i> View Bids — बोलियाँ देखें`;
+      viewBidsBtn.onclick = () => {
+        closeProjectDetailsModal();
+        const targetId = project.id !== undefined && project.id !== null ? project.id : (project.projectId || "");
+        openBidsDashboardModal(targetId);
+      };
+    }
   }
 
   if (overlay) {

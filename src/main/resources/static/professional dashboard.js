@@ -626,6 +626,84 @@ async function fetchAndUpdateProfile() {
   }
 }
 
+let isRequestsLoading = false;
+let requestsFetchError = null;
+let activeRequestTab = 'DIRECT_HIRE'; // 'DIRECT_HIRE' or 'POST_REQUIREMENT'
+let requestStatusFilter = 'ALL'; // 'ALL', 'NEW', 'ACCEPTED', 'DECLINED'
+let requestSearchQuery = '';
+
+function setRequestsTab(tab) {
+  activeRequestTab = tab;
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'requests') {
+    renderRequests(container);
+  }
+}
+
+function setRequestsStatusFilter(filter) {
+  requestStatusFilter = filter;
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'requests') {
+    renderRequests(container);
+  }
+}
+
+function handleRequestSearch(query) {
+  requestSearchQuery = (query || '').trim().toLowerCase();
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'requests') {
+    renderRequests(container);
+  }
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatRequesterRole(role) {
+  if (!role) return 'Customer';
+  const r = String(role).toUpperCase().replace('ROLE_', '').trim();
+  if (r === 'CUSTOMER') return 'Customer';
+  if (r === 'CONTRACTOR') return 'Contractor';
+  if (r === 'MATERIAL_SELLER' || r === 'SELLER') return 'Material Seller';
+  if (r === 'PROFESSIONAL' || r === 'SERVICE_PROVIDER') return 'Professional';
+  return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+}
+
+function getRequesterRoleBadge(role) {
+  const r = String(role || 'CUSTOMER').toUpperCase().replace('ROLE_', '').trim();
+  if (r === 'CONTRACTOR') {
+    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80"><i class="fa-solid fa-hard-hat text-[9px]"></i> Contractor</span>`;
+  } else if (r === 'MATERIAL_SELLER' || r === 'SELLER') {
+    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80"><i class="fa-solid fa-boxes-stacked text-[9px]"></i> Material Seller</span>`;
+  }
+  return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80"><i class="fa-solid fa-user text-[9px]"></i> Customer</span>`;
+}
+
+function getRequestStatusBadge(status) {
+  const s = String(status || 'New').trim().toLowerCase();
+  if (s === 'new') {
+    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200"><span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span> New Request</span>`;
+  }
+  if (s === 'accepted') {
+    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check text-[9px]"></i> Accepted</span>`;
+  }
+  if (s === 'declined') {
+    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark text-[9px]"></i> Declined</span>`;
+  }
+  return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">${escapeHtml(status)}</span>`;
+}
+
+function getRequestTypeBadge(type) {
+  return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80"><i class="fa-solid fa-handshake text-[9px]"></i> Direct Hire</span>`;
+}
+
 function updateSidebarRequestBadge(count) {
   const badge = document.getElementById('side-req-badge');
   if (badge) {
@@ -638,8 +716,16 @@ async function fetchAndUpdateRequests() {
   const token = getCleanToken();
   if (!token) {
     updateSidebarRequestBadge(0);
+    requestsFetchError = 'Please log in to view client requests.';
+    if (activeRoute === 'requests') {
+      const container = document.getElementById('main-view');
+      if (container) renderRequests(container);
+    }
     return;
   }
+
+  isRequestsLoading = true;
+  requestsFetchError = null;
 
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/professional/requests`, {
@@ -649,24 +735,62 @@ async function fetchAndUpdateRequests() {
       }
     });
 
+    isRequestsLoading = false;
+
     if (res.ok) {
       const backendRequests = await res.json();
       if (Array.isArray(backendRequests)) {
-        currentPro.requests = backendRequests.map(req => ({
-          id: req.id || req.requestId || ('REQ-' + req.numericId),
-          numericId: req.numericId,
-          project: req.project || 'Untitled Project',
-          customer: req.customer || 'Client',
-          service: req.service || currentPro.type || 'Service',
-          location: req.location || currentPro.location || '',
-          distance: req.distance || '',
-          date: req.date || '--',
-          budget: req.budget ? req.budget : '--',
-          rawBudget: req.rawBudget,
-          status: req.status || 'New',
-          desc: req.desc || '',
-          time: req.time || ''
-        }));
+        currentPro.requests = backendRequests.map(req => {
+          const reqId = req.requestId || req.id || ('REQ-' + (req.numericId || ''));
+          const rType = (req.requestType || 'DIRECT_HIRE').toUpperCase();
+          const rawBudget = (req.clientBudget !== undefined && req.clientBudget !== null) ? req.clientBudget : req.rawBudget;
+          let formattedBudget = '--';
+          if (typeof rawBudget === 'number' && rawBudget > 0) {
+            formattedBudget = '₹' + rawBudget.toLocaleString('en-IN');
+          } else if (req.budget) {
+            formattedBudget = req.budget;
+          }
+
+          return {
+            id: reqId,
+            requestId: reqId,
+            numericId: req.numericId,
+            requestType: rType,
+            requestStatus: req.requestStatus || req.status || 'New',
+            status: req.requestStatus || req.status || 'New',
+
+            // Requester info
+            requesterUserId: req.requesterUserId || null,
+            requesterName: req.requesterName || req.customer || 'Client',
+            customer: req.requesterName || req.customer || 'Client',
+            requesterRole: req.requesterRole || req.requesterType || 'CUSTOMER',
+            requesterPhone: req.requesterPhone || '',
+            requesterLocation: req.requesterLocation || req.location || '',
+
+            // Project & Service info
+            service: req.requestedService || req.service || currentPro.type || 'Service',
+            requestedService: req.requestedService || req.service || currentPro.type || 'Service',
+            project: req.projectName || req.project || 'Direct Hire Engagement',
+            projectName: req.projectName || req.project || 'Direct Hire Engagement',
+            projectScope: req.projectScope || req.desc || '',
+            desc: req.projectScope || req.desc || '',
+
+            // Location & Schedule
+            location: req.location || req.requesterLocation || currentPro.location || '',
+            distance: req.distance || '',
+            date: req.date || req.targetDate || '--',
+
+            // Budget
+            clientBudget: rawBudget,
+            rawBudget: rawBudget,
+            budget: formattedBudget,
+
+            // Ownership & Metadata
+            professionalId: req.professionalId || null,
+            createdAt: req.createdAt || null,
+            time: req.time || ''
+          };
+        });
 
         updateSidebarRequestBadge(currentPro.requests.length);
         if (currentPro && currentPro.stats) {
@@ -674,22 +798,29 @@ async function fetchAndUpdateRequests() {
           const statElem = document.getElementById('stat-new-requests');
           if (statElem) statElem.innerText = currentPro.stats.newRequests;
         }
-
-        if (activeRoute === 'requests' || activeRoute === 'dashboard') {
-          const container = document.getElementById('main-view');
-          if (container) {
-            if (activeRoute === 'requests') renderRequests(container);
-            else if (activeRoute === 'dashboard') renderDashboard(container);
-          }
-        }
       }
+    } else if (res.status === 401) {
+      requestsFetchError = 'Session expired. Please log in again to view your requests.';
+      updateSidebarRequestBadge(0);
+    } else if (res.status === 403) {
+      requestsFetchError = 'Access denied. Only registered professionals can view this console.';
+      updateSidebarRequestBadge(0);
     } else {
+      requestsFetchError = `Unable to fetch requests from server (Status ${res.status}).`;
       console.warn("Could not fetch requests from backend, status:", res.status);
-      updateSidebarRequestBadge(currentPro && currentPro.requests ? currentPro.requests.length : 0);
     }
   } catch (err) {
+    isRequestsLoading = false;
+    requestsFetchError = 'Network error: Could not connect to backend server.';
     console.warn("Could not fetch requests from backend:", err);
-    updateSidebarRequestBadge(currentPro && currentPro.requests ? currentPro.requests.length : 0);
+  }
+
+  if (activeRoute === 'requests' || activeRoute === 'dashboard') {
+    const container = document.getElementById('main-view');
+    if (container) {
+      if (activeRoute === 'requests') renderRequests(container);
+      else if (activeRoute === 'dashboard') renderDashboard(container);
+    }
   }
 }
 
@@ -867,6 +998,9 @@ async function fetchAndUpdateNotifications() {
       let iconColor = "bg-orange-500";
       if (type.includes("ORDER") || type.includes("PAYMENT")) iconColor = "bg-emerald-500";
       else if (type.includes("REQUEST") || type.includes("LEAD")) iconColor = "bg-blue-500";
+      else if (type.includes("POST_REQUIREMENT_ACCEPTED")) iconColor = "bg-green-500";
+      else if (type.includes("POST_REQUIREMENT_REJECTED")) iconColor = "bg-rose-500";
+      else if (type.includes("POST_REQUIREMENT_MATCH")) iconColor = "bg-amber-500";
 
       return `
         <div class="p-3 hover:bg-slate-50 flex items-start space-x-2.5 cursor-pointer transition ${isUnread ? 'bg-orange-50/30' : ''}"
@@ -914,7 +1048,15 @@ async function handleProNotificationClick(notifId, type, refId, isUnread) {
   }
 
   const t = (type || "").toUpperCase();
-  if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
+  if (t === "POST_REQUIREMENT_MATCH" || t.includes("POST_REQUIREMENT_MATCH")) {
+    navigate('find-work');
+  } else if (t === "POST_REQUIREMENT_ACCEPTED" || t.includes("POST_REQUIREMENT_ACCEPTED")) {
+    navigate('requests');
+  } else if (t === "POST_REQUIREMENT_REJECTED" || t.includes("POST_REQUIREMENT_REJECTED")) {
+    navigate('find-work');
+  } else if (t === "POST_REQUIREMENT_APPLICATION" || t.includes("POST_REQUIREMENT_APPLICATION")) {
+    window.location.href = `requirement-applications.html${refId ? '?applicationId=' + encodeURIComponent(refId) : ''}`;
+  } else if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
     window.location.href = "my-orders.html";
   } else if (t.includes("REQUEST") || t.includes("LEAD") || t.includes("QUOTATION")) {
     navigate('requests');
@@ -1043,6 +1185,7 @@ function navigate(route) {
       break;
     case 'find-work':
       renderFindWork(container);
+      fetchFindWorkRequirements();
       break;
     case 'requests':
       renderRequests(container);
@@ -1473,27 +1616,32 @@ function renderDashboard(container) {
               <div class="p-4 rounded-xl border border-slate-200/90 hover:border-orange-300 transition bg-white space-y-3">
                 <div class="flex items-start justify-between">
                   <div>
-                    <div class="flex items-center gap-2">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700">${req.service}</span>
-                      <span class="text-xs text-slate-400">• ${req.distance ? req.distance + ' away' : 'Local'}</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700">${escapeHtml(req.service)}</span>
+                      ${getRequestTypeBadge(req.requestType)}
+                      ${getRequesterRoleBadge(req.requesterRole)}
+                      <span class="text-xs text-slate-400">• ${req.distance ? escapeHtml(req.distance) + ' away' : 'Local'}</span>
                     </div>
-                    <h4 class="text-sm font-bold text-slate-900 mt-1">${req.project}</h4>
-                    <p class="text-xs text-slate-500">Client: <strong class="text-slate-700">${req.customer}</strong> • <i class="fa-solid fa-location-dot text-[10px]"></i> ${req.location}</p>
+                    <h4 class="text-sm font-bold text-slate-900 mt-1">${escapeHtml(req.project)}</h4>
+                    <p class="text-xs text-slate-500">Requester: <strong class="text-slate-700">${escapeHtml(req.customer)}</strong> • <i class="fa-solid fa-location-dot text-[10px]"></i> ${escapeHtml(req.location)}</p>
                   </div>
                   <div class="text-right">
-                    <span class="text-sm font-extrabold text-slate-900 block">${req.budget ? req.budget : '--'}</span>
-                    <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock"></i> ${req.time || ''}</span>
+                    <span class="text-sm font-extrabold text-slate-900 block">${req.budget ? escapeHtml(req.budget) : '--'}</span>
+                    <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock"></i> ${escapeHtml(req.time || '')}</span>
                   </div>
                 </div>
 
-                <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">${req.desc || ''}</p>
+                <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 line-clamp-2">${escapeHtml(req.desc || '')}</p>
 
                 <div class="flex items-center justify-between pt-1">
-                  <span class="text-[11px] font-semibold text-slate-500">Requested: ${req.date || '--'}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-semibold text-slate-500">Requested: ${escapeHtml(req.date || '--')}</span>
+                    ${getRequestStatusBadge(req.status)}
+                  </div>
                   <div class="flex items-center space-x-2">
-                    <button onclick="openRequestModal('${req.id}')" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">View Scope</button>
+                    <button onclick="openRequestModal('${escapeHtml(req.id)}')" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">View Details</button>
                     ${(req.status || '').toLowerCase() === 'new' ? `
-                      <button onclick="acceptRequest('${req.id}')" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition">Accept Request</button>
+                      <button onclick="acceptRequest('${escapeHtml(req.id)}')" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition">Accept Request</button>
                     ` : ''}
                   </div>
                 </div>
@@ -1670,118 +1818,641 @@ function renderDashboard(container) {
   `;
 }
 
+/* =========================================================
+   FIND WORK & LIVE POST REQUIREMENT OPPORTUNITIES (STEP 9)
+   ========================================================= */
+
+let liveFindWorkRequirements = [];
+let isFindWorkLoading = false;
+let findWorkFetchError = null;
+let findWorkFilterSpecialty = 'ALL';
+let findWorkFilterRadius = 'ALL';
+let findWorkFilterBudget = 'ALL';
+let findWorkFilterType = 'ALL';
+let findWorkSearchQuery = '';
+
+function updateSidebarFindWorkBadge(count) {
+  const badge = document.getElementById('side-findwork-badge');
+  if (badge) {
+    const val = typeof count === 'number' ? count : (liveFindWorkRequirements ? liveFindWorkRequirements.length : 0);
+    badge.innerText = `${val} Live`;
+  }
+}
+
+async function fetchFindWorkRequirements() {
+  const token = getCleanToken();
+  if (!token) {
+    liveFindWorkRequirements = [];
+    isFindWorkLoading = false;
+    findWorkFetchError = 'Please log in as a registered professional to view requirement opportunities.';
+    updateSidebarFindWorkBadge(0);
+    if (activeRoute === 'find-work') {
+      const container = document.getElementById('main-view');
+      if (container) renderFindWork(container);
+    }
+    return;
+  }
+
+  isFindWorkLoading = true;
+  findWorkFetchError = null;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/professional/requirements`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    isFindWorkLoading = false;
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        liveFindWorkRequirements = data;
+        updateSidebarFindWorkBadge(liveFindWorkRequirements.length);
+      } else {
+        liveFindWorkRequirements = [];
+        updateSidebarFindWorkBadge(0);
+      }
+    } else if (res.status === 401) {
+      findWorkFetchError = 'Session expired. Please log in again to view live requirement leads.';
+      updateSidebarFindWorkBadge(0);
+    } else if (res.status === 403) {
+      findWorkFetchError = 'Access denied. Only registered professionals with verified services can access requirement opportunities.';
+      updateSidebarFindWorkBadge(0);
+    } else if (res.status === 404) {
+      liveFindWorkRequirements = [];
+      findWorkFetchError = null;
+      updateSidebarFindWorkBadge(0);
+    } else {
+      let errBody = {};
+      try { errBody = await res.json(); } catch (_) {}
+      findWorkFetchError = errBody.error || `Unable to fetch opportunities from server (Status ${res.status}).`;
+      console.warn("Could not fetch requirements from backend, status:", res.status);
+    }
+  } catch (err) {
+    isFindWorkLoading = false;
+    findWorkFetchError = 'Network error: Could not connect to backend server. Please check your connection.';
+    console.warn("Could not fetch requirements from backend:", err);
+  }
+
+  if (activeRoute === 'find-work') {
+    const container = document.getElementById('main-view');
+    if (container) renderFindWork(container);
+  }
+}
+
 function renderFindWork(container) {
+  // Collect unique trade specialties for the specialty filter dropdown
+  const allTrades = new Set();
+  (liveFindWorkRequirements || []).forEach(req => {
+    (req.tradeRequirements || []).forEach(t => {
+      if (t.tradeRole) allTrades.add(t.tradeRole);
+    });
+  });
+
+  const specialtyOptions = Array.from(allTrades).sort();
+
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Find Work & Direct Construction Tender Inquiries</h2>
-          <p class="text-xs text-slate-500">Live inquiries in your territory matching ${currentPro.type} specifications.</p>
+          <h2 class="text-lg font-bold text-slate-900">Find Work & Post Requirement Opportunities</h2>
+          <p class="text-xs text-slate-500">Live multi-trade project tenders matching your verified services.</p>
         </div>
         <div class="flex items-center space-x-3 text-xs">
-          <span class="text-slate-500">Active Perimeter: <strong class="text-slate-800">${currentPro.serviceRadius} km</strong></span>
+          <button onclick="fetchFindWorkRequirements()" class="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate ${isFindWorkLoading ? 'fa-spin text-orange-600' : 'text-slate-500'}"></i>
+            <span>Refresh Leads</span>
+          </button>
+          <span class="text-slate-500">Active Perimeter: <strong class="text-slate-800">${escapeHtml(currentPro.serviceRadius || '25')} km</strong></span>
           <button onclick="navigate('availability')" class="text-orange-600 font-semibold hover:underline">Change Radius</button>
         </div>
       </div>
 
-      <!-- Desktop Filter Bar -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-subtle grid grid-cols-4 gap-4 text-xs">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Service Specialty</label>
-          <select class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
-            <option>${currentPro.type} (All)</option>
-            <option>On-site Supervision</option>
-            <option>Consultation & BOQ</option>
-          </select>
+      <!-- Desktop Filter & Search Bar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle space-y-3 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Service Specialty / Trade</label>
+            <select id="findwork-filter-specialty" onchange="applyFindWorkFilters()" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
+              <option value="ALL">All Eligible Trades (${specialtyOptions.length > 0 ? specialtyOptions.length : 'Any'})</option>
+              ${specialtyOptions.map(trade => `<option value="${escapeHtml(trade)}" ${findWorkFilterSpecialty === trade ? 'selected' : ''}>${escapeHtml(trade)}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Location Radius</label>
+            <select id="findwork-filter-radius" onchange="applyFindWorkFilters()" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
+              <option value="ALL" ${findWorkFilterRadius === 'ALL' ? 'selected' : ''}>All Locations</option>
+              <option value="LOCAL" ${findWorkFilterRadius === 'LOCAL' ? 'selected' : ''}>Within ${escapeHtml(currentPro.serviceRadius || '25')} km (${escapeHtml((currentPro.location || '').split(',')[0] || 'Local')})</option>
+              <option value="50KM" ${findWorkFilterRadius === '50KM' ? 'selected' : ''}>Within 50 km (Extended Region)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Budget Allocation</label>
+            <select id="findwork-filter-budget" onchange="applyFindWorkFilters()" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
+              <option value="ALL" ${findWorkFilterBudget === 'ALL' ? 'selected' : ''}>Any Budget</option>
+              <option value="UNDER_20K" ${findWorkFilterBudget === 'UNDER_20K' ? 'selected' : ''}>Under ₹20,000</option>
+              <option value="20K_50K" ${findWorkFilterBudget === '20K_50K' ? 'selected' : ''}>₹20,000 – ₹50,000</option>
+              <option value="50K_PLUS" ${findWorkFilterBudget === '50K_PLUS' ? 'selected' : ''}>₹50,000+</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Application Status</label>
+            <select id="findwork-filter-type" onchange="applyFindWorkFilters()" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
+              <option value="ALL" ${findWorkFilterType === 'ALL' ? 'selected' : ''}>All Postings</option>
+              <option value="OPEN" ${findWorkFilterType === 'OPEN' ? 'selected' : ''}>Open for Quotation</option>
+              <option value="APPLIED" ${findWorkFilterType === 'APPLIED' ? 'selected' : ''}>Already Applied</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Location Radius</label>
-          <select class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
-            <option>Within ${currentPro.serviceRadius} km (${currentPro.location.split(',')[0]})</option>
-            <option>Within 50 km (NCR Extended)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Budget Allocation</label>
-          <select class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
-            <option>Any Budget</option>
-            <option>₹15,000 – ₹50,000</option>
-            <option>₹50,000+</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Work Type</label>
-          <select class="w-full p-2.5 border border-slate-200 rounded-xl outline-none bg-white">
-            <option>All Postings</option>
-            <option>Direct Client Inquiry</option>
-            <option>Contractor Sub-contract</option>
-          </select>
+
+        <!-- Search Input Bar -->
+        <div class="relative w-full pt-1 border-t border-slate-100 flex items-center justify-between">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="findwork-search-input" placeholder="Search by requirement ID, project title, trade role, or location..." value="${escapeHtml(findWorkSearchQuery)}" oninput="handleFindWorkSearch(this.value)" class="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 text-slate-800 placeholder-slate-400">
+          </div>
+          <span id="findwork-count-text" class="text-[11px] text-slate-500 font-medium ml-3 whitespace-nowrap">
+            ${liveFindWorkRequirements.length} Opportunities Live
+          </span>
         </div>
       </div>
 
-      <!-- Desktop Widescreen Leads Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-subtle hover:border-orange-400 transition flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[10px] font-bold">Escrow Verified Client</span>
-              <span class="text-sm font-extrabold text-slate-900">₹40,000</span>
-            </div>
-            <h3 class="text-sm font-bold text-slate-900 mt-2">Comprehensive Structural & Slab Audit for 3-Floor G+2 House</h3>
-            <p class="text-xs text-slate-600 mt-1.5 line-clamp-3">Property owner in Sector 62 requiring licensed ${currentPro.type} to inspect column deflection and prepare certified reinforcement drawings before second slab casting.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">On-site Audit</span>
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">Immediate Start</span>
-            </div>
+      <!-- Container for dynamic cards -->
+      <div id="findwork-cards-container">
+        <!-- Rendered by applyFindWorkFilters() -->
+      </div>
+    </div>
+  `;
+
+  applyFindWorkFilters();
+}
+
+function handleFindWorkSearch(val) {
+  findWorkSearchQuery = (val || '').trim();
+  applyFindWorkFilters();
+}
+
+function resetFindWorkFilters() {
+  findWorkFilterSpecialty = 'ALL';
+  findWorkFilterRadius = 'ALL';
+  findWorkFilterBudget = 'ALL';
+  findWorkFilterType = 'ALL';
+  findWorkSearchQuery = '';
+  const c = document.getElementById('main-view');
+  if (c) renderFindWork(c);
+}
+
+function applyFindWorkFilters() {
+  const container = document.getElementById('findwork-cards-container');
+  if (!container) return;
+
+  const specialtyEl = document.getElementById('findwork-filter-specialty');
+  const radiusEl = document.getElementById('findwork-filter-radius');
+  const budgetEl = document.getElementById('findwork-filter-budget');
+  const typeEl = document.getElementById('findwork-filter-type');
+  const searchEl = document.getElementById('findwork-search-input');
+
+  if (specialtyEl) findWorkFilterSpecialty = specialtyEl.value;
+  if (radiusEl) findWorkFilterRadius = radiusEl.value;
+  if (budgetEl) findWorkFilterBudget = budgetEl.value;
+  if (typeEl) findWorkFilterType = typeEl.value;
+  if (searchEl) findWorkSearchQuery = searchEl.value.trim();
+
+  // Handle loading state
+  if (isFindWorkLoading) {
+    container.innerHTML = `
+      <div class="py-16 text-center bg-white rounded-2xl border border-slate-200 p-8 shadow-subtle">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-orange-500 border-t-transparent mb-3"></div>
+        <p class="text-sm font-semibold text-slate-800">Loading Live Requirement Leads...</p>
+        <p class="text-xs text-slate-500 mt-1">Connecting to BuildBid Post Requirement tender network</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Handle fetch error state
+  if (findWorkFetchError) {
+    container.innerHTML = `
+      <div class="p-8 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-3 max-w-xl mx-auto shadow-subtle">
+        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-lg">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-sm font-bold text-rose-900">${escapeHtml(findWorkFetchError)}</h3>
+        <p class="text-xs text-rose-700">Please verify your session status or network connection.</p>
+        <div>
+          <button onclick="fetchFindWorkRequirements()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold transition">
+            <i class="fa-solid fa-arrow-rotate-right mr-1.5"></i> Retry
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  let filtered = [...liveFindWorkRequirements];
+
+  // Specialty filter
+  if (findWorkFilterSpecialty !== 'ALL') {
+    filtered = filtered.filter(req => {
+      return (req.tradeRequirements || []).some(t => 
+        (t.tradeRole || '').toLowerCase() === findWorkFilterSpecialty.toLowerCase()
+      );
+    });
+  }
+
+  // Application status filter
+  if (findWorkFilterType === 'OPEN') {
+    filtered = filtered.filter(req => !req.hasApplied);
+  } else if (findWorkFilterType === 'APPLIED') {
+    filtered = filtered.filter(req => req.hasApplied);
+  }
+
+  // Budget filter
+  if (findWorkFilterBudget !== 'ALL') {
+    filtered = filtered.filter(req => {
+      const eligibleTrade = (req.tradeRequirements || []).find(t => t.eligible) || (req.tradeRequirements || [])[0];
+      const amt = (eligibleTrade && eligibleTrade.offerAmount) ? Number(eligibleTrade.offerAmount) : 0;
+      if (findWorkFilterBudget === 'UNDER_20K') return amt > 0 && amt < 20000;
+      if (findWorkFilterBudget === '20K_50K') return amt >= 20000 && amt <= 50000;
+      if (findWorkFilterBudget === '50K_PLUS') return amt > 50000;
+      return true;
+    });
+  }
+
+  // Search query
+  if (findWorkSearchQuery) {
+    const q = findWorkSearchQuery.toLowerCase();
+    filtered = filtered.filter(req => {
+      const title = (req.projectTitle || '').toLowerCase();
+      const pId = (req.projectId || '').toLowerCase();
+      const desc = (req.description || '').toLowerCase();
+      const loc = (req.location || '').toLowerCase();
+      const pType = (req.projectType || '').toLowerCase();
+      const trades = (req.tradeRequirements || []).map(t => (t.tradeRole || '').toLowerCase()).join(' ');
+      return title.includes(q) || pId.includes(q) || desc.includes(q) || loc.includes(q) || pType.includes(q) || trades.includes(q);
+    });
+  }
+
+  const countText = document.getElementById('findwork-count-text');
+  if (countText) {
+    countText.innerText = `${filtered.length} of ${liveFindWorkRequirements.length} Shown`;
+  }
+
+  // Empty state
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="py-16 text-center bg-white rounded-2xl border border-slate-200/90 p-8 shadow-subtle">
+        <div class="w-14 h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-orange-100">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">No Matching Requirements Found</h3>
+        <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+          No live Post Requirements match your current filter selection. Try changing the trade specialty, budget range, or search criteria.
+        </p>
+        <div class="mt-4 flex items-center justify-center gap-2">
+          <button onclick="resetFindWorkFilters()" class="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold">
+            Reset Filters
+          </button>
+          <button onclick="fetchFindWorkRequirements()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold">
+            <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh Leads
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Render cards grid
+  container.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      ${filtered.map(req => renderFindWorkCardHtml(req)).join('')}
+    </div>
+  `;
+}
+
+function renderFindWorkCardHtml(req) {
+  const eligibleTrades = (req.tradeRequirements || []).filter(t => t.eligible);
+  const primaryEligible = eligibleTrades[0] || (req.tradeRequirements || [])[0] || null;
+
+  let offerDisplay = 'Quotation Invited';
+  if (primaryEligible && primaryEligible.offerAmount && Number(primaryEligible.offerAmount) > 0) {
+    offerDisplay = '₹' + Number(primaryEligible.offerAmount).toLocaleString('en-IN');
+    if (primaryEligible.offerType) {
+      offerDisplay += ` <span class="text-xs font-normal text-slate-500">/ ${escapeHtml(primaryEligible.offerType)}</span>`;
+    }
+  }
+
+  const tradesHtml = (req.tradeRequirements || []).map(t => {
+    const isEligible = !!t.eligible;
+    const isFilled = (t.remainingQuantity <= 0) || t.filled;
+    let cardClass = isEligible
+      ? (isFilled ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-orange-50/70 text-orange-950 border-orange-200 font-medium')
+      : 'bg-slate-50 text-slate-600 border-slate-200';
+    return `
+      <div class="px-2.5 py-1.5 rounded-xl border text-[11px] ${cardClass} flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 truncate">
+          ${isEligible ? '<span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-orange-600 text-white text-[9px]"><i class="fa-solid fa-check"></i></span>' : '<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>'}
+          <span class="truncate font-semibold">${escapeHtml(t.tradeRole)}</span>
+        </div>
+        <div class="flex items-center gap-1 font-mono text-[10px] shrink-0">
+          ${isFilled ? '<span class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold uppercase text-[9px]">Filled</span>' : `<span>Req: <strong>${t.requiredQuantity}</strong></span><span class="text-slate-300">|</span><span>Rem: <strong class="text-emerald-700">${t.remainingQuantity}</strong></span>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-subtle hover:border-orange-400 transition flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold uppercase tracking-wider">${escapeHtml(req.projectType || 'Project')}</span>
+            <span class="font-mono text-[10px] text-slate-400">#${escapeHtml(req.projectId)}</span>
           </div>
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="text-slate-500"><i class="fa-solid fa-location-dot"></i> Sector 62 (6.2 km)</span>
-            <button onclick="openProposalModal('Comprehensive Structural Audit for G+2 House', 'Sector 62, Noida')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm transition">
-              Send Proposal
-            </button>
-          </div>
+          <span class="text-sm font-extrabold text-slate-900">${offerDisplay}</span>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-subtle hover:border-orange-400 transition flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold">Commercial Tender</span>
-              <span class="text-sm font-extrabold text-slate-900">₹75,000</span>
-            </div>
-            <h3 class="text-sm font-bold text-slate-900 mt-2">Commercial Showroom Renovation & Spatial BOQ</h3>
-            <p class="text-xs text-slate-600 mt-1.5 line-clamp-3">Complete execution drawings, material schedules, and labor supervision needed for 2,400 sq.ft retail space prior to contractor tendering.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">Turnkey</span>
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">BOQ Estimation</span>
-            </div>
-          </div>
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="text-slate-500"><i class="fa-solid fa-location-dot"></i> Indirapuram (11.5 km)</span>
-            <button onclick="openProposalModal('Commercial Showroom Renovation & Spatial BOQ', 'Indirapuram')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm transition">
-              Send Proposal
-            </button>
-          </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">${escapeHtml(req.projectTitle || 'Post Requirement Opportunity')}</h3>
+          <p class="text-xs text-slate-600 mt-1.5 line-clamp-3 leading-relaxed">${escapeHtml(req.description || 'No detailed scope description provided.')}</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-subtle hover:border-orange-400 transition flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded-md text-[10px] font-bold">Urgent Site Call</span>
-              <span class="text-sm font-extrabold text-slate-900">₹18,500</span>
+        <div class="space-y-1.5 pt-1">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Trade Requirements</span>
+            ${req.startDate ? `<span>Starts ${escapeHtml(req.startDate)}</span>` : ''}
+          </div>
+          <div class="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+            ${tradesHtml}
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs gap-2">
+        <span class="text-slate-500 truncate" title="${escapeHtml(req.location || 'Location upon request')}">
+          <i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${escapeHtml(req.location || 'Location upon request')}
+        </span>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="openRequirementDetailModal('${escapeHtml(req.projectId)}')" class="px-3 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-semibold text-xs transition">
+            Details
+          </button>
+          ${req.hasApplied ? (() => {
+            const st = (req.applicationStatus || 'APPLIED').toUpperCase();
+            if (st === 'ACCEPTED') {
+              return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-circle-check text-emerald-600"></i> Accepted</span>';
+            } else if (st === 'SHORTLISTED') {
+              return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-star text-purple-600"></i> Shortlisted</span>';
+            } else if (st === 'REJECTED') {
+              return '<span class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-slate-400"></i> Not Selected</span>';
+            }
+            return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-paper-plane text-blue-500"></i> Applied</span>';
+          })() : (
+            primaryEligible && (primaryEligible.remainingQuantity <= 0 || primaryEligible.filled) ? `
+              <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs cursor-not-allowed">Requirement Filled</button>
+            ` : primaryEligible ? `
+              <button onclick="openProposalModal('${escapeHtml(req.projectId)}', '${escapeHtml(primaryEligible.tradeRole)}', ${primaryEligible.offerAmount || 0}, '${escapeHtml(primaryEligible.offerType || 'PER_DAY')}')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm transition text-xs flex items-center gap-1.5">
+                <span>Send Proposal</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            ` : `
+              <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs cursor-not-allowed" title="Your verified profile does not match requested trades">Trade Not Eligible</button>
+            `
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function openRequirementDetailModal(projectId) {
+  const modal = document.getElementById('modal-requirement-detail');
+  const body = document.getElementById('modal-requirement-body');
+  if (!modal || !body) return;
+
+  openModal('modal-requirement-detail');
+
+  body.innerHTML = `
+    <div class="py-12 text-center text-slate-500">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-orange-500 border-t-transparent mb-3"></div>
+      <p class="text-xs font-semibold text-slate-700">Loading requirement scope and trade quotas...</p>
+    </div>
+  `;
+
+  const token = getCleanToken();
+  if (!token) {
+    body.innerHTML = `
+      <div class="p-6 text-center space-y-3">
+        <p class="text-xs text-rose-600 font-semibold">Please log in to view requirement details.</p>
+        <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Close</button>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/professional/requirements/${encodeURIComponent(projectId)}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const d = await res.json();
+      renderRequirementDetailBody(body, d);
+    } else if (res.status === 401) {
+      body.innerHTML = `
+        <div class="p-6 text-center space-y-3">
+          <p class="text-xs text-rose-600 font-semibold">Session expired. Please log in again.</p>
+          <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Close</button>
+        </div>
+      `;
+    } else if (res.status === 403) {
+      body.innerHTML = `
+        <div class="p-6 text-center space-y-3">
+          <p class="text-xs text-rose-600 font-semibold">Access denied. Only registered professionals can view requirement details.</p>
+          <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Close</button>
+        </div>
+      `;
+    } else if (res.status === 404) {
+      body.innerHTML = `
+        <div class="p-6 text-center space-y-3">
+          <p class="text-xs text-slate-600 font-semibold">Requirement not found or is no longer available.</p>
+          <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Close</button>
+        </div>
+      `;
+    } else {
+      body.innerHTML = `
+        <div class="p-6 text-center space-y-3">
+          <p class="text-xs text-rose-600 font-semibold">Unable to load details (Status ${res.status}).</p>
+          <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Close</button>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error("Error fetching requirement detail:", err);
+    body.innerHTML = `
+      <div class="p-6 text-center space-y-3">
+        <p class="text-xs text-rose-600 font-semibold">Network error: Could not connect to server.</p>
+        <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Close</button>
+      </div>
+    `;
+  }
+}
+
+function renderRequirementDetailBody(body, d) {
+  const reqTrades = d.tradeRequirements || [];
+  const eligibleTrades = reqTrades.filter(t => t.eligible);
+  const firstEligible = eligibleTrades[0] || null;
+
+  body.innerHTML = `
+    <div class="space-y-4">
+      <!-- Header meta strip -->
+      <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-mono font-bold text-slate-800 text-xs">#${escapeHtml(d.projectId)}</span>
+            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold uppercase tracking-wider">${escapeHtml(d.projectType || 'Project')}</span>
+            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[10px] font-bold uppercase tracking-wider">${escapeHtml(d.status || 'OPEN')}</span>
+          </div>
+          <h4 class="text-sm font-bold text-slate-900 mt-1">${escapeHtml(d.projectTitle || 'Post Requirement')}</h4>
+          <div class="flex items-center gap-3 text-slate-500 text-[11px] flex-wrap">
+            <span><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${escapeHtml(d.location || 'Location upon request')}</span>
+            <span><i class="fa-regular fa-calendar text-slate-400 mr-1"></i>Start Date: ${escapeHtml(d.startDate || 'Immediate')}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scope / Description -->
+      <div class="p-4 border border-slate-200/90 rounded-xl bg-white space-y-1.5">
+        <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+          <i class="fa-solid fa-align-left text-orange-600"></i>
+          Project Scope & Requirement Overview
+        </span>
+        <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+          ${escapeHtml(d.description || 'No detailed scope description provided by requester.')}
+        </p>
+      </div>
+
+      <!-- Multi-Trade Requirements Breakdown -->
+      <div class="p-4 border border-slate-200/90 rounded-xl bg-white space-y-2.5">
+        <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+          <i class="fa-solid fa-users-gear text-orange-600"></i>
+          Trade Roles & Staffing Quotas
+        </span>
+        <div class="space-y-2">
+          ${reqTrades.map(t => {
+            const isEligible = !!t.eligible;
+            const isFilled = (t.remainingQuantity <= 0) || t.filled;
+            const offerText = (t.offerAmount && Number(t.offerAmount) > 0)
+              ? `₹${Number(t.offerAmount).toLocaleString('en-IN')}${t.offerType ? ' / ' + escapeHtml(t.offerType) : ''}`
+              : 'Open for Quotation';
+
+            return `
+              <div class="p-2.5 rounded-xl border ${isEligible ? (isFilled ? 'bg-slate-50 border-slate-200' : 'bg-orange-50/60 border-orange-200') : 'bg-slate-50/50 border-slate-200'} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-1.5">
+                    ${isEligible ? '<span class="px-1.5 py-0.5 rounded bg-orange-600 text-white text-[9px] font-bold">Your Trade</span>' : '<span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 text-[9px]">Trade</span>'}
+                    <span class="font-bold text-xs text-slate-900">${escapeHtml(t.tradeRole)}</span>
+                    ${isFilled ? '<span class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[9px] font-bold uppercase">Capacity Filled</span>' : '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[9px] font-bold">Positions Open</span>'}
+                  </div>
+                  <div class="text-[11px] text-slate-500">
+                    Client Target Offer: <strong class="text-slate-700">${offerText}</strong>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] font-mono shrink-0">
+                  <span class="px-2 py-1 bg-white rounded-lg border border-slate-200">Required: <strong>${t.requiredQuantity}</strong></span>
+                  <span class="px-2 py-1 bg-white rounded-lg border border-slate-200">Accepted: <strong class="text-slate-700">${t.acceptedQuantity}</strong></span>
+                  <span class="px-2 py-1 bg-white rounded-lg border border-slate-200">Remaining: <strong class="${isFilled ? 'text-rose-600' : 'text-emerald-700'}">${t.remainingQuantity}</strong></span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- My Application Details (If already applied) -->
+      ${(d.hasApplied && d.myApplication) ? `
+        <div class="p-4 border border-blue-200 rounded-xl bg-blue-50/50 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-file-signature text-blue-600"></i>
+              Your Submitted Quotation (#${escapeHtml(d.myApplication.applicationId)})
+            </span>
+            ${(() => {
+              const st = (d.myApplication.status || 'APPLIED').toUpperCase();
+              if (st === 'ACCEPTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Quotation Accepted</span>';
+              if (st === 'SHORTLISTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">Shortlisted</span>';
+              if (st === 'REJECTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Not Selected</span>';
+              return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">Application Submitted</span>';
+            })()}
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+            <div>
+              <span class="text-slate-400 block text-[10px]">Applied Trade</span>
+              <span class="font-bold text-slate-800">${escapeHtml(d.myApplication.tradeRole)}</span>
             </div>
-            <h3 class="text-sm font-bold text-slate-900 mt-2">Foundation & Retaining Wall Moisture Diagnostics</h3>
-            <p class="text-xs text-slate-600 mt-1.5 line-clamp-3">Retaining wall showing severe moisture ingress during monsoon drainage check. Requires expert diagnostic and remedial plan.</p>
-            <div class="flex flex-wrap gap-1.5 mt-3">
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">Diagnostics</span>
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">Urgent 24h</span>
+            <div>
+              <span class="text-slate-400 block text-[10px]">Proposed Rate</span>
+              <span class="font-extrabold text-slate-900">₹${Number(d.myApplication.proposedRate).toLocaleString('en-IN')} <span class="text-[9px] font-normal text-slate-500">/ ${escapeHtml(d.myApplication.rateType)}</span></span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">Team Size</span>
+              <span class="font-bold text-slate-800">${d.myApplication.teamSize} Member(s)</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">Duration</span>
+              <span class="font-bold text-slate-800">${escapeHtml(d.myApplication.estimatedDuration || '--')}</span>
             </div>
           </div>
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="text-slate-500"><i class="fa-solid fa-location-dot"></i> Greater Noida (14 km)</span>
-            <button onclick="openProposalModal('Foundation & Retaining Wall Moisture Diagnostics', 'Greater Noida')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm transition">
-              Send Proposal
-            </button>
-          </div>
+          ${d.myApplication.coverMessage ? `
+            <div class="pt-2 border-t border-blue-100 text-[11px]">
+              <span class="text-slate-400 block text-[10px]">Cover Message</span>
+              <p class="text-slate-700 italic">${escapeHtml(d.myApplication.coverMessage)}</p>
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- BuildBid Escrow Notice -->
+      <div class="p-3 bg-amber-50 rounded-xl text-amber-800 text-[11px] flex items-center space-x-2 border border-amber-100">
+        <i class="fa-solid fa-shield-halved text-amber-600 text-xs"></i>
+        <span>BuildBid Escrow Guarantee: Client deposits funds into platform escrow prior to work commencement. Payouts released upon milestone approval.</span>
+      </div>
+
+      <!-- Action Row -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div>
+          ${d.hasApplied ? `
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              <i class="fa-solid fa-circle-check"></i> Application on File
+            </span>
+          ` : ''}
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('modal-requirement-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition text-xs">
+            Close
+          </button>
+          ${!d.hasApplied ? (
+            firstEligible && (firstEligible.remainingQuantity > 0 && !firstEligible.filled) ? `
+              <button onclick="closeModal('modal-requirement-detail'); openProposalModal('${escapeHtml(d.projectId)}', '${escapeHtml(firstEligible.tradeRole)}', ${firstEligible.offerAmount || 0}, '${escapeHtml(firstEligible.offerType || 'PER_DAY')}')" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-xs transition text-xs flex items-center gap-1.5">
+                <span>Send Proposal / Quotation</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            ` : firstEligible ? `
+              <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs cursor-not-allowed">
+                Requirement Filled
+              </button>
+            ` : `
+              <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs cursor-not-allowed">
+                Trade Not Eligible
+              </button>
+            `
+          ) : ''}
         </div>
       </div>
     </div>
@@ -1789,84 +2460,224 @@ function renderFindWork(container) {
 }
 
 function renderRequests(container) {
+  const allReqs = (currentPro && Array.isArray(currentPro.requests)) ? currentPro.requests : [];
+  const directHireRequests = allReqs.filter(r => (r.requestType || 'DIRECT_HIRE').toUpperCase() === 'DIRECT_HIRE');
+  const postReqRequests = allReqs.filter(r => (r.requestType || '').toUpperCase() === 'POST_REQUIREMENT');
+
+  const newCount = directHireRequests.filter(r => (r.status || '').toLowerCase() === 'new').length;
+  const acceptedCount = directHireRequests.filter(r => (r.status || '').toLowerCase() === 'accepted').length;
+  const declinedCount = directHireRequests.filter(r => (r.status || '').toLowerCase() === 'declined').length;
+
+  let displayedRequests = activeRequestTab === 'DIRECT_HIRE' ? directHireRequests : postReqRequests;
+
+  // Filter by status if in Direct Hire tab
+  if (activeRequestTab === 'DIRECT_HIRE' && requestStatusFilter !== 'ALL') {
+    displayedRequests = displayedRequests.filter(r => (r.status || '').toUpperCase() === requestStatusFilter);
+  }
+
+  // Filter by search query
+  if (requestSearchQuery) {
+    const q = requestSearchQuery.toLowerCase();
+    displayedRequests = displayedRequests.filter(r => {
+      const idMatch = (r.requestId || r.id || '').toLowerCase().includes(q);
+      const nameMatch = (r.requesterName || r.customer || '').toLowerCase().includes(q);
+      const projectMatch = (r.projectName || r.project || '').toLowerCase().includes(q);
+      const serviceMatch = (r.requestedService || r.service || '').toLowerCase().includes(q);
+      const roleMatch = (r.requesterRole || '').toLowerCase().includes(q);
+      const locMatch = (r.location || r.requesterLocation || '').toLowerCase().includes(q);
+      return idMatch || nameMatch || projectMatch || serviceMatch || roleMatch || locMatch;
+    });
+  }
+
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto">
-      <div class="flex items-center justify-between">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900">Client Service Requests Management</h2>
-          <p class="text-xs text-slate-500">Review prospective client bids, review technical requirements, and accept inquiries.</p>
+          <p class="text-xs text-slate-500">Review prospective client inquiries, technical requirements, and direct hire engagements.</p>
         </div>
-        <button onclick="navigate('find-work')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition">
-          <i class="fa-solid fa-magnifying-glass mr-1.5"></i> Find More Work
+        <div class="flex items-center space-x-2.5">
+          <button onclick="fetchAndUpdateRequests()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5" title="Refresh Requests from Server">
+            <i class="fa-solid fa-arrows-rotate ${isRequestsLoading ? 'fa-spin text-orange-600' : 'text-slate-500'}"></i>
+            <span>Refresh</span>
+          </button>
+          <button onclick="navigate('find-work')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            <span>Find More Work</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Switcher: Direct Hire vs Post Requirement -->
+      <div class="flex items-center gap-3 border-b border-slate-200 pb-3">
+        <button onclick="setRequestsTab('DIRECT_HIRE')" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${activeRequestTab === 'DIRECT_HIRE' ? 'bg-orange-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}">
+          <i class="fa-solid fa-handshake"></i>
+          <span>Direct Hire Requests</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[10px] ${activeRequestTab === 'DIRECT_HIRE' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}">${directHireRequests.length}</span>
+        </button>
+        <button onclick="setRequestsTab('POST_REQUIREMENT')" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${activeRequestTab === 'POST_REQUIREMENT' ? 'bg-orange-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>Post Requirement Requests</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[10px] ${activeRequestTab === 'POST_REQUIREMENT' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}">0</span>
         </button>
       </div>
 
-      <!-- Desktop Table Container -->
-      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle overflow-hidden">
-        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-          <div class="flex items-center space-x-2">
-            <span class="text-xs font-bold text-slate-800">Filtered Table View</span>
-            <span class="text-[11px] text-slate-500">(${currentPro.requests ? currentPro.requests.length : 0} Requests total)</span>
+      ${activeRequestTab === 'POST_REQUIREMENT' ? `
+        <!-- POST REQUIREMENT SAFE EMPTY STATE -->
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-12 text-center space-y-4">
+          <div class="w-16 h-16 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto text-2xl border border-orange-100">
+            <i class="fa-solid fa-clipboard-list"></i>
           </div>
-          <div class="text-xs text-slate-500 flex items-center space-x-2">
-            <i class="fa-solid fa-shield text-emerald-600"></i>
-            <span>Customer phone & email protected under BuildBid Escrow</span>
+          <div class="space-y-1.5 max-w-md mx-auto">
+            <h3 class="text-base font-bold text-slate-900">No Post Requirement requests available.</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Post Requirement broadcast matching is not yet active for your profile. Direct hire requests sent to you specifically are accessible under the Direct Hire tab.
+            </p>
+          </div>
+          <div>
+            <button onclick="setRequestsTab('DIRECT_HIRE')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-xs transition">
+              View Direct Hire Requests (${directHireRequests.length})
+            </button>
+          </div>
+        </div>
+      ` : `
+        <!-- DIRECT HIRE CONTROLS & TABLE -->
+        <!-- Filter & Search Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-subtle">
+          <!-- Status Pills -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button onclick="setRequestsStatusFilter('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+              All (${directHireRequests.length})
+            </button>
+            <button onclick="setRequestsStatusFilter('NEW')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'NEW' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100'}">
+              New (${newCount})
+            </button>
+            <button onclick="setRequestsStatusFilter('ACCEPTED')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'ACCEPTED' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}">
+              Accepted (${acceptedCount})
+            </button>
+            <button onclick="setRequestsStatusFilter('DECLINED')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'DECLINED' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}">
+              Declined (${declinedCount})
+            </button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-72">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" placeholder="Search by client, project, service..." value="${escapeHtml(requestSearchQuery)}" oninput="handleRequestSearch(this.value)" class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 text-slate-800 placeholder-slate-400">
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
-              <tr>
-                <th class="p-4">Request ID</th>
-                <th class="p-4">Project & Customer</th>
-                <th class="p-4">Required Service</th>
-                <th class="p-4">Location</th>
-                <th class="p-4">Target Date</th>
-                <th class="p-4">Client Budget</th>
-                <th class="p-4">Status</th>
-                <th class="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              ${(!currentPro.requests || currentPro.requests.length === 0) ? `
-                <tr>
-                  <td colspan="8" class="p-8 text-center text-slate-400">
-                    <i class="fa-regular fa-clipboard text-2xl mb-2 block text-slate-300"></i>
-                    <span>No client service requests found at this time.</span>
-                  </td>
-                </tr>
-              ` : currentPro.requests.map(req => `
-                <tr class="hover:bg-slate-50 transition">
-                  <td class="p-4 font-mono font-bold text-slate-800">${req.id}</td>
-                  <td class="p-4">
-                    <div class="font-bold text-slate-900">${req.project}</div>
-                    <div class="text-[11px] text-slate-500">Client: ${req.customer}</div>
-                  </td>
-                  <td class="p-4 font-medium text-slate-700">${req.service}</td>
-                  <td class="p-4 text-slate-600">${req.location}${req.distance ? ` (${req.distance})` : ''}</td>
-                  <td class="p-4 text-slate-600">${req.date || '--'}</td>
-                  <td class="p-4 font-bold text-slate-900">${req.budget ? req.budget : '--'}</td>
-                  <td class="p-4">
-                    <span class="px-2.5 py-1 rounded-md text-[10px] font-bold ${
-                      (req.status || '').toLowerCase() === 'new' ? 'bg-orange-100 text-orange-700' :
-                      (req.status || '').toLowerCase() === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
-                      (req.status || '').toLowerCase() === 'declined' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'
-                    }">${req.status}</span>
-                  </td>
-                  <td class="p-4 text-right space-x-1.5">
-                    <button onclick="openRequestModal('${req.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs transition">View Scope</button>
-                    ${(req.status || '').toLowerCase() === 'new' ? `
-                      <button onclick="acceptRequest('${req.id}')" class="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold text-xs shadow-sm transition">Accept</button>
-                      <button onclick="promptDecline('${req.id}')" class="px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg font-semibold text-xs transition">Decline</button>
-                    ` : ''}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <!-- Table Container -->
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-slate-800">Direct Hire Requests</span>
+              <span class="text-[11px] text-slate-500">(${displayedRequests.length} of ${directHireRequests.length} shown)</span>
+            </div>
+            <div class="text-xs text-slate-500 flex items-center space-x-2">
+              <i class="fa-solid fa-shield text-emerald-600"></i>
+              <span>Escrow & Identity Protected</span>
+            </div>
+          </div>
+
+          ${requestsFetchError ? `
+            <div class="p-8 text-center space-y-3">
+              <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl border border-rose-200">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">Unable to Load Client Requests</h4>
+                <p class="text-xs text-slate-500 mt-1">${escapeHtml(requestsFetchError)}</p>
+              </div>
+              <button onclick="fetchAndUpdateRequests()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition">
+                <i class="fa-solid fa-arrows-rotate mr-1.5"></i> Retry
+              </button>
+            </div>
+          ` : isRequestsLoading ? `
+            <div class="p-12 text-center text-slate-400 space-y-2">
+              <i class="fa-solid fa-circle-notch fa-spin text-2xl text-orange-500"></i>
+              <p class="text-xs font-medium text-slate-500">Loading client service requests...</p>
+            </div>
+          ` : displayedRequests.length === 0 ? `
+            <div class="p-10 text-center text-slate-400 space-y-3">
+              <div class="w-12 h-12 rounded-full bg-slate-50 text-slate-300 flex items-center justify-center mx-auto text-xl border border-slate-100">
+                <i class="fa-regular fa-clipboard"></i>
+              </div>
+              <p class="text-xs text-slate-500 font-medium">
+                ${requestSearchQuery || requestStatusFilter !== 'ALL' ? 'No requests match your current filters.' : 'No Direct Hire service requests found at this time.'}
+              </p>
+              ${requestSearchQuery || requestStatusFilter !== 'ALL' ? `
+                <button onclick="requestStatusFilter='ALL'; requestSearchQuery=''; renderRequests(document.getElementById('main-view'));" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                  Clear Filters
+                </button>
+              ` : ''}
+            </div>
+          ` : `
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
+                  <tr>
+                    <th class="p-4">Request ID & Type</th>
+                    <th class="p-4">Requester & Role</th>
+                    <th class="p-4">Required Service & Project</th>
+                    <th class="p-4">Location</th>
+                    <th class="p-4">Target Date</th>
+                    <th class="p-4">Client Budget</th>
+                    <th class="p-4">Status</th>
+                    <th class="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${displayedRequests.map(req => `
+                    <tr class="hover:bg-slate-50/80 transition">
+                      <td class="p-4">
+                        <span class="font-mono font-bold text-slate-800 text-xs">${escapeHtml(req.requestId || req.id)}</span>
+                        <div class="mt-1">${getRequestTypeBadge(req.requestType)}</div>
+                      </td>
+                      <td class="p-4">
+                        <div class="font-bold text-slate-900">${escapeHtml(req.requesterName || req.customer || 'Client')}</div>
+                        <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                          ${getRequesterRoleBadge(req.requesterRole)}
+                          ${req.requesterPhone ? `<span class="text-[10px] text-slate-500"><i class="fa-solid fa-phone text-[9px] text-slate-400"></i> ${escapeHtml(req.requesterPhone)}</span>` : ''}
+                        </div>
+                      </td>
+                      <td class="p-4">
+                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-100">${escapeHtml(req.requestedService || req.service)}</span>
+                        <div class="font-bold text-slate-800 text-xs mt-1">${escapeHtml(req.projectName || req.project)}</div>
+                      </td>
+                      <td class="p-4 text-slate-600">
+                        <div><i class="fa-solid fa-location-dot text-[10px] text-slate-400"></i> ${escapeHtml(req.location || 'Local')}</div>
+                        ${req.distance ? `<div class="text-[10px] text-slate-400 mt-0.5">${escapeHtml(req.distance)} away</div>` : ''}
+                      </td>
+                      <td class="p-4 text-slate-600">${escapeHtml(req.date || '--')}</td>
+                      <td class="p-4 font-bold text-slate-900">${escapeHtml(req.budget || '--')}</td>
+                      <td class="p-4">
+                        ${getRequestStatusBadge(req.status)}
+                      </td>
+                      <td class="p-4 text-right">
+                        <div class="flex items-center justify-end space-x-1.5">
+                          <button onclick="openRequestModal('${escapeHtml(req.id)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs transition" title="View Full Scope & Requester Details">
+                            View Details
+                          </button>
+                          ${(req.status || '').toLowerCase() === 'new' ? `
+                            <button onclick="acceptRequest('${escapeHtml(req.id)}')" class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold text-xs shadow-xs transition">
+                              Accept
+                            </button>
+                            <button onclick="promptDecline('${escapeHtml(req.id)}')" class="px-3 py-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg font-semibold text-xs transition">
+                              Decline
+                            </button>
+                          ` : ''}
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
         </div>
-      </div>
+      `}
     </div>
   `;
 }
@@ -2578,43 +3389,135 @@ function renderReviews(container) {
 }
 
 function openRequestModal(reqId) {
-  const req = (currentPro.requests || []).find(r => String(r.id) === String(reqId)) || (currentPro.requests && currentPro.requests[0]);
+  const req = (currentPro.requests || []).find(r => 
+    String(r.id) === String(reqId) || 
+    String(r.requestId) === String(reqId) || 
+    (r.numericId && String(r.numericId) === String(reqId))
+  );
   if (!req) return;
+
   const body = document.getElementById('modal-request-body');
+  if (!body) return;
+
+  const statusLower = (req.status || '').toLowerCase();
+
   body.innerHTML = `
     <div class="space-y-4 text-xs">
-      <div class="p-4 bg-slate-50 rounded-xl space-y-1">
-        <span class="text-[10px] font-bold text-orange-600 uppercase tracking-wider">${req.service}</span>
-        <h4 class="text-sm font-bold text-slate-900">${req.project}</h4>
-        <p class="text-slate-500">Customer: <strong class="text-slate-700">${req.customer}</strong> • Target Date: ${req.date || '--'}</p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <div class="p-3.5 border border-slate-200 rounded-xl">
+      <!-- Header meta strip -->
+      <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-mono font-bold text-slate-800 text-xs">${escapeHtml(req.requestId || req.id)}</span>
+            ${getRequestTypeBadge(req.requestType)}
+            ${getRequestStatusBadge(req.status)}
+          </div>
+          <h4 class="text-sm font-bold text-slate-900 mt-1">${escapeHtml(req.projectName || req.project)}</h4>
+          <span class="text-[11px] font-semibold text-orange-600 uppercase tracking-wider">${escapeHtml(req.requestedService || req.service)}</span>
+        </div>
+        <div class="text-left sm:text-right">
           <span class="text-slate-400 block text-[10px]">Estimated Budget</span>
-          <span class="text-base font-extrabold text-slate-900">${req.budget ? req.budget : '--'}</span>
-        </div>
-        <div class="p-3.5 border border-slate-200 rounded-xl">
-          <span class="text-slate-400 block text-[10px]">Site Distance</span>
-          <span class="text-base font-extrabold text-slate-900">${req.distance || '--'}</span>
+          <span class="text-base font-extrabold text-slate-900">${escapeHtml(req.budget || '--')}</span>
         </div>
       </div>
 
+      <!-- Requester Identity Card -->
+      <div class="p-4 border border-slate-200/90 rounded-xl bg-white space-y-2.5">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-id-card text-orange-600"></i>
+            Requester Identity
+          </span>
+          ${getRequesterRoleBadge(req.requesterRole)}
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <span class="text-slate-400 block text-[10px]">Name</span>
+            <span class="font-bold text-slate-900 text-xs">${escapeHtml(req.requesterName || req.customer || 'Client')}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px]">Role</span>
+            <span class="font-semibold text-slate-800 text-xs">${escapeHtml(formatRequesterRole(req.requesterRole))}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px]">Phone Number</span>
+            ${req.requesterPhone ? `
+              <a href="tel:${escapeHtml(req.requesterPhone)}" class="text-orange-600 hover:text-orange-700 font-semibold text-xs inline-flex items-center gap-1">
+                <i class="fa-solid fa-phone text-[10px]"></i>
+                ${escapeHtml(req.requesterPhone)}
+              </a>
+            ` : `
+              <span class="text-slate-400 italic text-xs">Not provided</span>
+            `}
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px]">Requester Location</span>
+            <span class="text-slate-700 font-medium text-xs">
+              <i class="fa-solid fa-location-dot text-[10px] text-slate-400"></i>
+              ${escapeHtml(req.requesterLocation || req.location || 'Local')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Details Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="p-3 border border-slate-200 rounded-xl">
+          <span class="text-slate-400 block text-[10px]">Work Location</span>
+          <span class="font-bold text-slate-800 text-xs">${escapeHtml(req.location || 'Local')}${req.distance ? ` (${escapeHtml(req.distance)})` : ''}</span>
+        </div>
+        <div class="p-3 border border-slate-200 rounded-xl">
+          <span class="text-slate-400 block text-[10px]">Target Date</span>
+          <span class="font-bold text-slate-800 text-xs">${escapeHtml(req.date || '--')}</span>
+        </div>
+        <div class="p-3 border border-slate-200 rounded-xl col-span-2 sm:col-span-1">
+          <span class="text-slate-400 block text-[10px]">Requested On</span>
+          <span class="font-bold text-slate-800 text-xs">${escapeHtml(req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (req.date || '--'))}</span>
+        </div>
+      </div>
+
+      <!-- Scope of Work / Requirements -->
       <div>
-        <h5 class="font-bold text-slate-800 mb-1">Project Scope & Client Requirements</h5>
-        <p class="text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">${req.desc || 'No additional scope details provided.'}</p>
+        <h5 class="font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+          <i class="fa-solid fa-file-lines text-slate-400"></i>
+          Project Scope & Requirements
+        </h5>
+        <div class="text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100 max-h-40 overflow-y-auto whitespace-pre-line">
+          ${escapeHtml(req.projectScope || req.desc || 'No additional scope details provided.')}
+        </div>
       </div>
 
-      <div class="p-3 bg-blue-50 rounded-xl text-blue-800 text-[11px] flex items-center space-x-2">
-        <i class="fa-solid fa-lock"></i>
-        <span>BuildBid Shield: Client direct contact numbers are masked until quotation acceptance to prevent off-platform disputes.</span>
+      <!-- Escrow Note -->
+      <div class="p-3 bg-blue-50 rounded-xl text-blue-800 text-[11px] flex items-center space-x-2 border border-blue-100">
+        <i class="fa-solid fa-shield text-blue-600 text-xs"></i>
+        <span>BuildBid Escrow Protection: Client engagement terms and payment milestones are tracked securely under platform escrow.</span>
       </div>
 
-      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-        <button onclick="closeModal('modal-request-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold">Close</button>
-        ${(req.status || '').toLowerCase() === 'new' ? `
-          <button onclick="acceptRequest('${req.id}'); closeModal('modal-request-detail');" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm">Accept Request</button>
-        ` : ''}
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div>
+          ${statusLower === 'accepted' ? `
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <i class="fa-solid fa-circle-check"></i> Request Accepted
+            </span>
+          ` : statusLower === 'declined' ? `
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+              <i class="fa-solid fa-circle-xmark"></i> Request Declined
+            </span>
+          ` : ''}
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeModal('modal-request-detail')" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition">
+            Close
+          </button>
+          ${statusLower === 'new' ? `
+            <button onclick="promptDecline('${escapeHtml(req.id)}')" class="px-4 py-2 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl font-semibold transition">
+              Decline
+            </button>
+            <button onclick="acceptRequest('${escapeHtml(req.id)}')" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-xs transition">
+              Accept Request
+            </button>
+          ` : ''}
+        </div>
       </div>
     </div>
   `;
@@ -2622,47 +3525,72 @@ function openRequestModal(reqId) {
 }
 
 async function acceptRequest(reqId) {
-  const r = (currentPro.requests || []).find(x => String(x.id) === String(reqId));
-  if (r) {
-    r.status = 'Accepted';
-    showToast(`Request ${reqId} accepted and added to Active Works pipeline!`, 'success');
-    navigate(activeRoute);
+  const token = getCleanToken();
+  if (!token) {
+    showToast('Please log in to accept requests.', 'error');
+    return;
+  }
 
-    const token = getCleanToken();
-    if (token) {
-      try {
-        await fetch(`${getApiBaseUrl()}/api/professional/requests/${encodeURIComponent(reqId)}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ status: 'Accepted' })
-        });
-      } catch (e) {
-        console.warn("Could not sync request acceptance to backend:", e);
-      }
+  const req = (currentPro.requests || []).find(x => 
+    String(x.id) === String(reqId) || 
+    String(x.requestId) === String(reqId) || 
+    (x.numericId && String(x.numericId) === String(reqId))
+  );
+  const targetId = (req && req.numericId) ? req.numericId : reqId;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/professional/requests/${encodeURIComponent(targetId)}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ status: 'Accepted' })
+    });
+
+    if (res.ok) {
+      showToast(`Request #${targetId} accepted successfully!`, 'success');
+      closeModal('modal-request-detail');
+      await fetchAndUpdateRequests();
+    } else {
+      let errData = {};
+      try { errData = await res.json(); } catch (_) {}
+      showToast(errData.error || errData.message || `Failed to accept request (Status ${res.status}).`, 'error');
     }
+  } catch (err) {
+    console.error("Error accepting request:", err);
+    showToast('Network error: Could not accept request.', 'error');
   }
 }
 
 function promptDecline(reqId) {
+  const req = (currentPro.requests || []).find(x => 
+    String(x.id) === String(reqId) || 
+    String(x.requestId) === String(reqId) || 
+    (x.numericId && String(x.numericId) === String(reqId))
+  );
+  const targetId = (req && req.numericId) ? req.numericId : reqId;
+
   const confirmBtn = document.getElementById('confirm-action-btn');
-  document.getElementById('confirm-title').innerText = "Decline Work Request?";
-  document.getElementById('confirm-msg').innerText = "The client will be matched with another verified professional in your area.";
+  const titleEl = document.getElementById('confirm-title');
+  const msgEl = document.getElementById('confirm-msg');
+  if (titleEl) titleEl.innerText = "Decline Service Request?";
+  if (msgEl) msgEl.innerText = `Are you sure you want to decline request #${targetId}? The client will be notified.`;
 
-  confirmBtn.onclick = async () => {
-    currentPro.requests = (currentPro.requests || []).filter(r => String(r.id) !== String(reqId));
-    updateSidebarRequestBadge(currentPro.requests.length);
-    closeModal('modal-confirm');
-    showToast(`Request ${reqId} was declined`, 'info');
-    navigate(activeRoute);
+  if (confirmBtn) {
+    confirmBtn.onclick = async () => {
+      confirmBtn.disabled = true;
+      const token = getCleanToken();
+      if (!token) {
+        showToast('Please log in to decline requests.', 'error');
+        confirmBtn.disabled = false;
+        closeModal('modal-confirm');
+        return;
+      }
 
-    const token = getCleanToken();
-    if (token) {
       try {
-        await fetch(`${getApiBaseUrl()}/api/professional/requests/${encodeURIComponent(reqId)}/status`, {
+        const res = await fetch(`${getApiBaseUrl()}/api/professional/requests/${encodeURIComponent(targetId)}/status`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -2671,23 +3599,211 @@ function promptDecline(reqId) {
           },
           body: JSON.stringify({ status: 'Declined' })
         });
-      } catch (e) {
-        console.warn("Could not sync request decline to backend:", e);
+
+        confirmBtn.disabled = false;
+        closeModal('modal-confirm');
+        closeModal('modal-request-detail');
+
+        if (res.ok) {
+          showToast(`Request #${targetId} has been declined.`, 'info');
+          await fetchAndUpdateRequests();
+        } else {
+          let errData = {};
+          try { errData = await res.json(); } catch (_) {}
+          showToast(errData.error || errData.message || `Failed to decline request (Status ${res.status}).`, 'error');
+        }
+      } catch (err) {
+        confirmBtn.disabled = false;
+        closeModal('modal-confirm');
+        console.error("Error declining request:", err);
+        showToast('Network error: Could not decline request.', 'error');
       }
-    }
-  };
+    };
+  }
   openModal('modal-confirm');
 }
 
-function openProposalModal(title, loc) {
-  document.getElementById('proposal-target-desc').innerText = `${title} • ${loc}`;
+function openProposalModal(projectId, tradeRole, defaultOfferAmount, defaultOfferType) {
+  const req = (liveFindWorkRequirements || []).find(r => String(r.projectId) === String(projectId));
+  const descEl = document.getElementById('proposal-target-desc');
+  const projInput = document.getElementById('prop-project-id');
+  const tradeSelect = document.getElementById('prop-trade-role');
+  const amtInput = document.getElementById('prop-amt');
+  const rateTypeSelect = document.getElementById('prop-rate-type');
+  const teamSizeInput = document.getElementById('prop-team-size');
+  const durationInput = document.getElementById('prop-duration');
+  const notesInput = document.getElementById('prop-notes');
+
+  if (projInput) projInput.value = projectId || '';
+  if (descEl) {
+    if (req) {
+      descEl.innerText = `${req.projectTitle || 'Post Requirement'} • ${req.location || 'Location upon request'}`;
+    } else {
+      descEl.innerText = projectId ? `Requirement #${projectId}` : 'Send Proposal';
+    }
+  }
+
+  // Populate eligible trade select
+  if (tradeSelect) {
+    tradeSelect.innerHTML = '';
+    const trades = (req && req.tradeRequirements) ? req.tradeRequirements : [];
+    const eligibleTrades = trades.filter(t => t.eligible);
+    const availableTrades = eligibleTrades.length > 0 ? eligibleTrades : trades;
+
+    if (availableTrades.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = tradeRole || (currentPro ? currentPro.type : 'Professional');
+      opt.innerText = opt.value;
+      tradeSelect.appendChild(opt);
+    } else {
+      availableTrades.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.tradeRole;
+        const remText = t.remainingQuantity !== undefined ? ` (Remaining: ${t.remainingQuantity})` : '';
+        opt.innerText = `${t.tradeRole}${remText}`;
+        if (tradeRole && t.tradeRole.toLowerCase() === tradeRole.toLowerCase()) {
+          opt.selected = true;
+        }
+        tradeSelect.appendChild(opt);
+      });
+    }
+
+    if (tradeRole) {
+      tradeSelect.value = tradeRole;
+    }
+  }
+
+  // Prefill proposed rate if offer amount is present
+  if (amtInput) {
+    amtInput.value = (defaultOfferAmount && Number(defaultOfferAmount) > 0) ? defaultOfferAmount : '';
+  }
+
+  // Rate type
+  if (rateTypeSelect) {
+    if (defaultOfferType) {
+      const norm = defaultOfferType.toUpperCase();
+      if (norm.includes('DAY')) rateTypeSelect.value = 'PER_DAY';
+      else if (norm.includes('LUMP') || norm.includes('PROJECT')) rateTypeSelect.value = 'LUMP_SUM';
+      else if (norm.includes('MONTH')) rateTypeSelect.value = 'PER_MONTH';
+      else if (norm.includes('HOUR')) rateTypeSelect.value = 'PER_HOUR';
+      else if (norm.includes('SQ')) rateTypeSelect.value = 'PER_SQFT';
+      else rateTypeSelect.value = 'PER_DAY';
+    } else {
+      rateTypeSelect.value = 'PER_DAY';
+    }
+  }
+
+  if (teamSizeInput) teamSizeInput.value = 1;
+  if (durationInput) durationInput.value = '';
+  if (notesInput) notesInput.value = '';
+
   openModal('modal-proposal');
 }
 
-function handleProposalSubmit(e) {
-  e.preventDefault();
-  closeModal('modal-proposal');
-  showToast('Official quotation submitted. Customer notified via SMS & In-App!', 'success');
+async function handleProposalSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const token = getCleanToken();
+  if (!token) {
+    showToast('Please log in as a professional to submit proposals.', 'error');
+    return;
+  }
+
+  const projectId = document.getElementById('prop-project-id')?.value;
+  const tradeRole = document.getElementById('prop-trade-role')?.value?.trim();
+  const amtVal = document.getElementById('prop-amt')?.value;
+  const proposedRate = parseFloat(amtVal);
+  const rateType = document.getElementById('prop-rate-type')?.value?.trim() || 'PER_DAY';
+  const teamSizeVal = document.getElementById('prop-team-size')?.value;
+  const teamSize = parseInt(teamSizeVal, 10) || 1;
+  const estimatedDuration = document.getElementById('prop-duration')?.value?.trim() || '';
+  const coverMessage = document.getElementById('prop-notes')?.value?.trim() || '';
+
+  if (!projectId) {
+    showToast('Missing requirement reference. Please try again.', 'error');
+    return;
+  }
+  if (!tradeRole) {
+    showToast('Please select your trade role.', 'error');
+    return;
+  }
+  if (isNaN(proposedRate) || proposedRate <= 0) {
+    showToast('Please enter a valid quotation rate greater than zero.', 'error');
+    return;
+  }
+  if (teamSize < 1) {
+    showToast('Team size must be at least 1.', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('prop-submit-btn');
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : 'Submit Quotation';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/professional/requirements/${encodeURIComponent(projectId)}/apply`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        tradeRole: tradeRole,
+        proposedRate: proposedRate,
+        rateType: rateType,
+        teamSize: teamSize,
+        estimatedDuration: estimatedDuration,
+        coverMessage: coverMessage
+      })
+    });
+
+    if (res.ok) {
+      showToast('Quotation submitted successfully! The client will review your proposal.', 'success');
+      closeModal('modal-proposal');
+      closeModal('modal-requirement-detail');
+      await fetchFindWorkRequirements();
+    } else {
+      let errData = {};
+      try { errData = await res.json(); } catch (_) {}
+      const errMsg = errData.error || errData.message || '';
+
+      if (res.status === 409) {
+        if (errMsg.toLowerCase().includes('fulfilled') || errMsg.toLowerCase().includes('capacity') || errMsg.toLowerCase().includes('filled')) {
+          showToast('This trade requirement has already been filled. Please refresh the opportunities to view the latest status.', 'error');
+        } else if (errMsg.toLowerCase().includes('already')) {
+          showToast('You have already submitted an application for this requirement.', 'info');
+        } else {
+          showToast(errMsg || 'Quotation conflict: unable to submit.', 'error');
+        }
+        closeModal('modal-proposal');
+        await fetchFindWorkRequirements();
+      } else if (res.status === 400) {
+        showToast(errMsg || 'Invalid quotation data. Please review your inputs.', 'error');
+      } else if (res.status === 401) {
+        showToast('Session expired. Please log in again.', 'error');
+      } else if (res.status === 403) {
+        showToast(errMsg || 'Access denied. You can only apply for trades matching your verified services.', 'error');
+      } else if (res.status === 404) {
+        showToast('This requirement is no longer available.', 'error');
+        closeModal('modal-proposal');
+        await fetchFindWorkRequirements();
+      } else {
+        showToast(errMsg || `Failed to submit quotation (Status ${res.status}).`, 'error');
+      }
+    }
+  } catch (err) {
+    console.error('Error submitting proposal:', err);
+    showToast('Network error: Could not submit quotation. Please check your connection.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  }
 }
 
 function handleNewService(e) {
@@ -2829,8 +3945,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // Asynchronously fetch fresh notifications from backend
   fetchAndUpdateNotifications();
 
+  // Asynchronously fetch fresh requirement leads from backend (STEP 9)
+  fetchFindWorkRequirements();
+
   const hash = (window.location.hash || '').replace('#', '').trim();
-  const validRoutes = ['dashboard', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages'];
+  const validRoutes = ['dashboard', 'find-work', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages'];
   if (hash && validRoutes.includes(hash)) {
     navigate(hash);
   } else {

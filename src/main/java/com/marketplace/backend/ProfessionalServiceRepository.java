@@ -18,6 +18,8 @@ public interface ProfessionalServiceRepository extends JpaRepository<Professiona
 
     List<ProfessionalService> findByProfessional_IdAndActiveTrue(Long professionalId);
 
+    List<ProfessionalService> findByActiveTrue();
+
     List<ProfessionalService> findByProfessional_IdAndActiveTrueAndVerificationStatusIn(
             Long professionalId,
             Collection<VerificationStatus> statuses

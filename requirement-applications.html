@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildBid — Post Requirement Applications & Quotations</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6.5.1 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Core Layout Stylesheet -->
+  <link rel="stylesheet" href="layout.css">
+
+  <!-- Dedicated Requirement Applications Stylesheet -->
+  <link rel="stylesheet" href="requirement-applications.css">
+</head>
+<body>
+
+  <!-- =========================================================
+       1. TOP NAVBAR (UNIFIED BUILDBID SHELL)
+       ========================================================= -->
+  <header class="top-navbar">
+    <div class="nav-left">
+      <a href="customer dashboard.html" class="brand-logo" id="brandLogoLink">
+        <img src="logo.png" alt="BuildBid Logo" class="site-logo" onerror="this.src='https://via.placeholder.com/40?text=BB'">
+        <div class="brand-text">
+          <span class="brand-title">BuildBid</span>
+          <span class="brand-subtitle">Build Better, Bid Smarter.</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-center">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="globalNavSearchInput" placeholder="Search applications, trades, professionals...">
+        <button class="btn-search" type="button">Search</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-action-item" title="Notifications" onclick="handleNotificationClick()">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-bell"></i>
+        </div>
+        <span class="nav-action-text">Notifications</span>
+      </div>
+
+      <div class="nav-action-item" title="Messages" onclick="handleMessagesClick()">
+        <div class="icon-wrap">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <span class="nav-action-text">Messages</span>
+      </div>
+
+      <div class="user-pill" id="navUserPill" title="View Profile Dashboard">
+        <img src="https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=User" alt="Avatar" class="pill-avatar" id="navAvatar">
+        <div class="pill-info">
+          <span class="pill-name" id="navUserName">Loading...</span>
+          <span class="pill-role" id="navUserRole">Customer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       2. APP LAYOUT (ROLE-AWARE SIDEBAR + MAIN CONTENT)
+       ========================================================= -->
+  <div class="app-layout">
+
+    <!-- Role Sidebar: CUSTOMER (Default) -->
+    <aside class="sidebar customer-sidebar" id="customerSidebar">
+      <ul class="side-menu">
+        <li>
+          <a href="customer dashboard.html">
+            <i class="fa-solid fa-circle-user"></i> My Profile
+          </a>
+        </li>
+        <li>
+          <a href="customer projects.html" class="sidebar-item">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>My Projects</span>
+          </a>
+        </li>
+        <li>
+          <a href="my-construction.html">
+            <i class="fa-solid fa-person-digging"></i> My Construction
+          </a>
+        </li>
+        <li>
+          <a href="buy-material-select.html">
+            <i class="fa-solid fa-cart-shopping"></i> Buy Materials
+          </a>
+        </li>
+        <li>
+          <a href="my-requests.html">
+            <i class="fa-solid fa-file-circle-check"></i> My Requests
+          </a>
+        </li>
+        <li>
+          <a href="direct-hire.html">
+            <i class="fa-solid fa-user-tie"></i> Direct Hire
+          </a>
+        </li>
+        <li>
+          <a href="post-requirements.html">
+            <i class="fa-solid fa-user-plus"></i> Post Requirements
+          </a>
+        </li>
+        <li class="active">
+          <a href="requirement-applications.html">
+            <i class="fa-solid fa-users-viewfinder"></i> Requirement Applications
+          </a>
+        </li>
+        <li>
+          <a href="hired-professionals.html">
+            <i class="fa-solid fa-helmet-safety"></i> Hired Professionals
+          </a>
+        </li>
+        <li>
+          <a href="javascript:void(0)">
+            <i class="fa-regular fa-bell"></i> Notifications
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="javascript:void(0)" id="logoutBtn" class="logout-action" onclick="performUnifiedLogout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Role Sidebar: CONTRACTOR -->
+    <aside class="sidebar contractor-sidebar" id="contractorSidebar" style="display: none;">
+      <div class="contractor-brand-header">
+        <div class="panel-badge">
+          <i class="fa-solid fa-user-gear"></i> Contractor Panel
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item">
+          <i class="fa-solid fa-table-cells-large"></i> Dashboard
+        </a>
+        <a href="contractor-projects.html" class="nav-item">
+          <i class="fa-solid fa-briefcase"></i> Projects
+        </a>
+        <a href="contractor-my-bids.html" class="nav-item">
+          <i class="fa-solid fa-gavel"></i> Bids
+        </a>
+        <a href="contractor-post-requirement.html" class="nav-item">
+          <i class="fa-solid fa-user-plus"></i> Post Requirement
+        </a>
+        <a href="requirement-applications.html" class="nav-item active">
+          <i class="fa-solid fa-users-viewfinder"></i> Requirement Applications
+        </a>
+        <a href="buy-material-select.html" class="nav-item">
+          <i class="fa-solid fa-cart-shopping"></i> Buy Material
+        </a>
+        <a href="hired-professionals.html" class="nav-item">
+          <i class="fa-solid fa-helmet-safety"></i> Hired Professionals
+        </a>
+        <a href="direct-hire.html" class="nav-item">
+          <i class="fa-solid fa-user-plus"></i> Direct Hire
+        </a>
+        <a href="contractor-verification.html" class="nav-item">
+          <i class="fa-solid fa-circle-check"></i> Get Verified
+        </a>
+        <a href="javascript:void(0)" class="nav-item nav-logout" onclick="performUnifiedLogout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Role Sidebar: MATERIAL SELLER -->
+    <aside class="sidebar seller-sidebar" id="sellerSidebar" style="display: none;">
+      <div class="seller-brand-header">
+        <div class="panel-badge">
+          <i class="fa-solid fa-warehouse"></i> Seller Workspace
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="seller-dashboard.html#dashboard" class="nav-item">
+          <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </a>
+        <a href="seller-dashboard.html#requests" class="nav-item">
+          <i class="fa-solid fa-clipboard-list"></i> Material Requests
+        </a>
+        <a href="seller-dashboard.html#orders" class="nav-item">
+          <i class="fa-solid fa-boxes-stacked"></i> Orders
+        </a>
+        <a href="direct-hire.html" class="nav-item">
+          <i class="fa-solid fa-user-plus"></i> Direct Hire
+        </a>
+        <a href="requirement-applications.html" class="nav-item active">
+          <i class="fa-solid fa-users-viewfinder"></i> Requirement Applications
+        </a>
+        <a href="hired-professionals.html" class="nav-item">
+          <i class="fa-solid fa-helmet-safety"></i> Hired Professionals
+        </a>
+        <a href="javascript:void(0)" class="nav-item nav-logout" onclick="performUnifiedLogout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </nav>
+    </aside>
+
+    <!-- =========================================================
+         3. MAIN CONTENT: POST REQUIREMENT APPLICATION REVIEW
+         ========================================================= -->
+    <main class="req-apps-main-container">
+
+      <!-- Top Header Banner -->
+      <section class="req-header-banner">
+        <div class="banner-content">
+          <div class="breadcrumb-text">
+            <a href="customer dashboard.html" id="breadcrumbHomeLink">Home</a> &gt; 
+            <a href="customer projects.html" id="breadcrumbProjectsLink">Projects</a> &gt; 
+            <span>Requirement Applications</span>
+          </div>
+          <h1 class="banner-title">Requirement Applications & Quotations</h1>
+          <p class="banner-subtitle">
+            Review trade-wise professional quotations, verify rates and durations, and accept qualified professionals to fulfill your project quotas.
+          </p>
+        </div>
+
+        <div class="banner-action-buttons">
+          <button type="button" class="btn-banner-action secondary" id="btnRefreshApplications" onclick="refreshCurrentRequirement()" title="Refresh applications from server">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+          <a href="post-requirements.html" class="btn-banner-action primary" id="btnPostRequirementLink">
+            <i class="fa-solid fa-plus"></i> Post Requirement
+          </a>
+        </div>
+      </section>
+
+      <!-- Status / Notification Alert Banner Container -->
+      <div id="statusAlertContainer"></div>
+
+      <!-- Post Requirement Summary Header Card -->
+      <section class="project-summary-card" id="projectSummaryCard">
+        <div class="summary-top-row">
+          <div class="summary-title-group">
+            <div class="requirement-tag-row">
+              <span class="req-badge-id" id="summaryProjectIdBadge">#HIRE-1024</span>
+              <span class="req-status-pill status-open" id="summaryProjectStatusBadge">OPEN</span>
+              <span class="req-category-pill" id="summaryCategoryPill">Home Maintenance</span>
+            </div>
+            <h2 class="project-headline" id="summaryProjectTitle">Loading requirement details...</h2>
+          </div>
+
+          <!-- Post Requirement Switcher (Dropdown for requesters with multiple projects) -->
+          <div class="requirement-selector-wrap">
+            <label for="requirementProjectSelect" class="selector-label">
+              <i class="fa-solid fa-folder-tree"></i> Switch Requirement:
+            </label>
+            <div class="select-box-wrapper">
+              <select id="requirementProjectSelect" class="requirement-select" onchange="onRequirementChanged(this.value)">
+                <option value="" disabled selected>Loading your requirements...</option>
+              </select>
+              <i class="fa-solid fa-chevron-down select-chevron"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Requirement Metadata Row -->
+        <div class="summary-meta-grid">
+          <div class="meta-item">
+            <i class="fa-solid fa-location-dot meta-icon text-red"></i>
+            <div class="meta-text">
+              <span class="meta-label">Project Location</span>
+              <strong class="meta-val" id="summaryLocation">Greater Noida</strong>
+            </div>
+          </div>
+
+          <div class="meta-item">
+            <i class="fa-regular fa-calendar-check meta-icon text-blue"></i>
+            <div class="meta-text">
+              <span class="meta-label">Target Start Date</span>
+              <strong class="meta-val" id="summaryStartDate">Immediate / Oct 2026</strong>
+            </div>
+          </div>
+
+          <div class="meta-item">
+            <i class="fa-solid fa-users-gear meta-icon text-purple"></i>
+            <div class="meta-text">
+              <span class="meta-label">Total Required Trades</span>
+              <strong class="meta-val" id="summaryTotalTrades">0 Trades</strong>
+            </div>
+          </div>
+
+          <div class="meta-item">
+            <i class="fa-solid fa-user-check meta-icon text-green"></i>
+            <div class="meta-text">
+              <span class="meta-label">Overall Hiring Progress</span>
+              <strong class="meta-val" id="summaryHiringProgress">0 / 0 Accepted</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description Paragraph -->
+        <div class="summary-desc-wrap" id="summaryDescWrap">
+          <div class="desc-heading">Requirement Scope & Notes:</div>
+          <p class="desc-paragraph" id="summaryDescription">No additional notes provided for this requirement.</p>
+        </div>
+
+        <!-- Global Capacity Progress Bar Strip -->
+        <div class="overall-progress-strip">
+          <div class="progress-labels">
+            <span class="progress-title">Overall Team Fulfillment</span>
+            <span class="progress-fraction" id="overallProgressFraction">0 of 0 positions filled</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="overallProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           4. TRADE QUOTAS & BREAKDOWN (TRADE-WISE NAVIGATION)
+           ========================================================= -->
+      <section class="trade-quotas-section">
+        <div class="section-header-row">
+          <div>
+            <h3 class="section-title">Trade-Wise Applications & Quotas — ट्रेड अनुसार कोटा एवं बोलियां</h3>
+            <p class="section-subtitle">
+              Click any trade below to filter candidate quotations for that trade only. Applications are tracked strictly per trade requirement.
+            </p>
+          </div>
+          <div class="trade-filter-pills" id="tradeTabsContainer">
+            <!-- Dynamic Trade Tabs generated by JS -->
+          </div>
+        </div>
+
+        <!-- Trade Quotas Summary Cards Grid -->
+        <div class="trade-cards-grid" id="tradeCardsGrid">
+          <!-- Dynamic Trade Cards generated by JS -->
+          <div class="trade-card-skeleton">Loading trade quotas...</div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           5. ACTIVE TRADE QUOTATIONS & APPLICATIONS LIST
+           ========================================================= -->
+      <section class="applications-section">
+        <div class="apps-toolbar">
+          <div class="apps-toolbar-left">
+            <h3 class="active-trade-title" id="activeTradeTitleDisplay">
+              All Applications <span class="apps-count-badge" id="activeTradeAppsCount">0</span>
+            </h3>
+            <span class="active-trade-quota-meta" id="activeTradeQuotaDisplay"></span>
+          </div>
+
+          <div class="apps-toolbar-right">
+            <!-- Search within applications -->
+            <div class="app-search-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="appSearchInput" placeholder="Search applicant, location..." oninput="handleFilterChange()">
+            </div>
+
+            <!-- Status Filter -->
+            <div class="app-filter-select-wrap">
+              <select id="appStatusFilter" class="app-filter-select" onchange="handleFilterChange()">
+                <option value="ALL">All Statuses</option>
+                <option value="APPLIED">Applied (Pending)</option>
+                <option value="SHORTLISTED">Shortlisted</option>
+                <option value="ACCEPTED">Accepted / Hired</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+
+            <!-- Sort Filter -->
+            <div class="app-filter-select-wrap">
+              <select id="appSortFilter" class="app-filter-select" onchange="handleFilterChange()">
+                <option value="NEWEST">Newest Applied</option>
+                <option value="RATE_ASC">Proposed Rate: Low to High</option>
+                <option value="RATE_DESC">Proposed Rate: High to Low</option>
+                <option value="NAME_ASC">Name (A-Z)</option>
+              </select>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Applications Cards Grid -->
+        <div class="applications-cards-grid" id="applicationsGrid">
+          <!-- Rendered dynamically by requirement-applications.js -->
+        </div>
+
+        <!-- Empty State Container -->
+        <div class="empty-applications-card" id="emptyApplicationsState" style="display: none;">
+          <div class="empty-icon-wrap">
+            <i class="fa-regular fa-folder-open"></i>
+          </div>
+          <h4 class="empty-title" id="emptyStateTitle">No Applications Yet</h4>
+          <p class="empty-subtitle" id="emptyStateSubtitle">
+            No professional quotations have been submitted for this requirement trade yet.
+          </p>
+        </div>
+
+        <!-- Loading State Skeleton Overlay -->
+        <div class="loading-state-overlay" id="loadingStateOverlay" style="display: none;">
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loadingStateText">Loading applications from server...</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =========================================================
+       6. APPLICATION DETAILS MODAL (VIEW DETAILS DRAWER)
+       ========================================================= -->
+  <div class="app-modal-overlay" id="applicationDetailsModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modalProName">
+    <div class="app-modal-dialog">
+      <!-- Modal Header -->
+      <div class="app-modal-header">
+        <div class="modal-header-left">
+          <span class="modal-super-title">Quotation & Application Review</span>
+          <h2 class="modal-title" id="modalProName">Professional Name</h2>
+        </div>
+        <button type="button" class="btn-modal-close" onclick="closeDetailsModal()" aria-label="Close modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="app-modal-body" id="modalBodyContent">
+        <!-- Professional Profile Header Banner -->
+        <div class="modal-pro-banner">
+          <div class="modal-avatar-wrap">
+            <img src="" alt="" id="modalProAvatar" class="modal-avatar-img" onerror="this.src='https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=Pro'">
+          </div>
+          <div class="modal-pro-meta">
+            <div class="modal-pro-name-row">
+              <h3 id="modalProFullName">Professional Full Name</h3>
+              <span class="modal-trade-pill" id="modalProTrade">LABOUR</span>
+              <span class="modal-status-badge" id="modalProStatusBadge">APPLIED</span>
+            </div>
+            <div class="modal-pro-subline">
+              <span id="modalProLocation"><i class="fa-solid fa-location-dot"></i> Greater Noida</span>
+              <span class="dot-separator">•</span>
+              <span id="modalAppIdDisplay">App ID: APP-1024</span>
+              <span class="dot-separator">•</span>
+              <span id="modalAppDateDisplay">Applied: Oct 4, 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trade Quota Indicator in Modal -->
+        <div class="modal-quota-alert" id="modalQuotaAlert">
+          <i class="fa-solid fa-circle-info"></i>
+          <span id="modalQuotaAlertText">Labour Quota: 2 of 4 accepted. 2 slots available.</span>
+        </div>
+
+        <!-- Quotation Breakdown Grid -->
+        <div class="modal-section-card">
+          <h4 class="modal-card-title"><i class="fa-solid fa-file-invoice-dollar"></i> Proposed Quotation Terms</h4>
+          <div class="quote-specs-grid">
+            <div class="quote-spec-cell">
+              <span class="spec-label">Proposed Rate</span>
+              <strong class="spec-val highlight-rate" id="modalProposedRate">₹700</strong>
+              <small class="spec-sub" id="modalRateType">Per Day</small>
+            </div>
+            <div class="quote-spec-cell">
+              <span class="spec-label">Crew / Team Size</span>
+              <strong class="spec-val" id="modalTeamSize">1 Member</strong>
+              <small class="spec-sub">Dedicated workers</small>
+            </div>
+            <div class="quote-spec-cell">
+              <span class="spec-label">Estimated Duration</span>
+              <strong class="spec-val" id="modalDuration">30 Days</strong>
+              <small class="spec-sub">To completion</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cover Message Block -->
+        <div class="modal-section-card">
+          <h4 class="modal-card-title"><i class="fa-solid fa-message"></i> Professional Proposal & Cover Message</h4>
+          <div class="modal-cover-message" id="modalCoverMessage">
+            "I have 8+ years of construction experience in residential construction..."
+          </div>
+        </div>
+
+        <!-- Error notification inside modal -->
+        <div class="modal-error-box" id="modalActionError" style="display: none;"></div>
+      </div>
+
+      <!-- Modal Actions Footer -->
+      <div class="app-modal-footer">
+        <button type="button" class="btn-action-close" onclick="closeDetailsModal()">Close</button>
+        <div class="modal-cta-group" id="modalCtaGroup">
+          <!-- Dynamic action buttons (Accept, Reject, Shortlist) injected by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       7. CAPACITY CONFLICT MODAL (409 CONFLICT HANDLING)
+       ========================================================= -->
+  <div class="app-modal-overlay" id="conflictModalOverlay" style="display: none;" role="dialog" aria-modal="true">
+    <div class="app-modal-dialog modal-dialog-sm">
+      <div class="conflict-modal-content">
+        <div class="conflict-icon-wrap">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="conflict-title">Trade Requirement Already Filled</h3>
+        <p class="conflict-message" id="conflictModalMessage">
+          This trade requirement has already been filled. Please refresh the applications to view the latest status.
+        </p>
+        <div class="conflict-actions">
+          <button type="button" class="btn-conflict-refresh" onclick="resolveConflictAndRefresh()">
+            <i class="fa-solid fa-rotate"></i> Refresh Applications
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       8. REJECT CONFIRMATION MODAL
+       ========================================================= -->
+  <div class="app-modal-overlay" id="rejectConfirmModal" style="display: none;" role="dialog" aria-modal="true">
+    <div class="app-modal-dialog modal-dialog-sm">
+      <div class="confirm-modal-content">
+        <div class="confirm-icon-wrap text-red">
+          <i class="fa-solid fa-user-xmark"></i>
+        </div>
+        <h3 class="confirm-title">Reject Quotation?</h3>
+        <p class="confirm-message" id="rejectConfirmMessage">
+          Are you sure you want to reject this quotation? The professional will be marked as REJECTED.
+        </p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-confirm-cancel" onclick="closeRejectConfirmModal()">Cancel</button>
+          <button type="button" class="btn-confirm-reject" id="btnExecuteReject">
+            <i class="fa-solid fa-xmark"></i> Reject Quotation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Core JavaScript -->
+  <script src="requirement-applications.js"></script>
+</body>
+</html>

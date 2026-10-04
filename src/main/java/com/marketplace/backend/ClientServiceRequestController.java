@@ -111,7 +111,14 @@ public class ClientServiceRequestController {
             ClientServiceRequest updated = requestService.updateStatus(id, status, user);
             return ResponseEntity.ok(toRequestMap(updated));
         } catch (IllegalArgumentException e) {
+            // Check if request exists globally (belongs to another professional)
+            if (requestService.findByIdOrRequestIdGlobal(id).isPresent()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Access denied: You do not have permission to modify this request."));
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -155,36 +162,40 @@ public class ClientServiceRequestController {
                     .body(Map.of("error", "Unauthorized. Please log in to send a service request."));
         }
 
-        // Determine requester type from authenticated user's roles
-        String requesterType = "CUSTOMER";
+        // PART B: Supported requester roles are ONLY CUSTOMER, CONTRACTOR, MATERIAL_SELLER
         Set<MarketplaceBackendApplication.Role> roles = clientUser.getRoles();
-        if (roles != null) {
-            if (roles.contains(MarketplaceBackendApplication.Role.MATERIAL_SELLER)
-                    || roles.contains(MarketplaceBackendApplication.Role.SELLER)) {
+        boolean hasCustomer = roles != null && roles.contains(MarketplaceBackendApplication.Role.CUSTOMER);
+        boolean hasContractor = roles != null && roles.contains(MarketplaceBackendApplication.Role.CONTRACTOR);
+        boolean hasSeller = roles != null && (roles.contains(MarketplaceBackendApplication.Role.MATERIAL_SELLER) || roles.contains(MarketplaceBackendApplication.Role.SELLER));
+
+        if (!hasCustomer && !hasContractor && !hasSeller) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Only Customers, Contractors, and Material Sellers can send service requests."));
+        }
+
+        String requesterType = null;
+        if (payload != null && (payload.get("requesterType") != null || payload.get("requesterRole") != null)) {
+            Object rObj = payload.get("requesterType") != null ? payload.get("requesterType") : payload.get("requesterRole");
+            String specified = rObj.toString().trim().toUpperCase();
+            if ((specified.equals("MATERIAL_SELLER") || specified.equals("SELLER")) && hasSeller) {
                 requesterType = "MATERIAL_SELLER";
-            } else if (roles.contains(MarketplaceBackendApplication.Role.CONTRACTOR)) {
+            } else if (specified.equals("CONTRACTOR") && hasContractor) {
                 requesterType = "CONTRACTOR";
-            } else if (roles.contains(MarketplaceBackendApplication.Role.CUSTOMER)) {
+            } else if (specified.equals("CUSTOMER") && hasCustomer) {
                 requesterType = "CUSTOMER";
-            } else if (roles.contains(MarketplaceBackendApplication.Role.PROFESSIONAL)
-                    || roles.contains(MarketplaceBackendApplication.Role.SERVICE_PROVIDER)) {
-                requesterType = "PROFESSIONAL";
             }
         }
-        // If payload explicitly specifies role and user has it, respect it
-        if (payload != null && payload.get("requesterType") != null) {
-            String specified = payload.get("requesterType").toString().trim().toUpperCase();
-            if ((specified.equals("MATERIAL_SELLER") || specified.equals("SELLER"))
-                    && roles != null && (roles.contains(MarketplaceBackendApplication.Role.MATERIAL_SELLER) || roles.contains(MarketplaceBackendApplication.Role.SELLER))) {
-                requesterType = "MATERIAL_SELLER";
-            } else if (specified.equals("CONTRACTOR") && roles != null && roles.contains(MarketplaceBackendApplication.Role.CONTRACTOR)) {
-                requesterType = "CONTRACTOR";
-            } else if (specified.equals("CUSTOMER") && roles != null && roles.contains(MarketplaceBackendApplication.Role.CUSTOMER)) {
+        if (requesterType == null) {
+            if (hasCustomer) {
                 requesterType = "CUSTOMER";
+            } else if (hasContractor) {
+                requesterType = "CONTRACTOR";
+            } else if (hasSeller) {
+                requesterType = "MATERIAL_SELLER";
             }
         }
 
-        // Identify receiver professional and professionalServiceId
+        // PART A: Identify receiver professional and professionalServiceId
         MarketplaceBackendApplication.MarketplaceUser professional = null;
         Long professionalServiceId = null;
         String requestedService = null;
@@ -213,6 +224,16 @@ public class ClientServiceRequestController {
 
         if (professional == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Valid professional or serviceId is required."));
+        }
+
+        // Verify target user is actually registered as PROFESSIONAL
+        if (!hasProfessionalRole(professional)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Target user is not registered as a professional."));
+        }
+
+        // Prevent self-hiring
+        if (clientUser.getId().equals(professional.getId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "You cannot hire yourself."));
         }
 
         if (payload != null) {
@@ -301,7 +322,7 @@ public class ClientServiceRequestController {
 
         ClientServiceRequest request = new ClientServiceRequest();
         request.setProfessional(professional);
-        request.setClient(clientUser);
+        request.setClient(clientUser); // Authenticated principal strictly.
         request.setClientName(clientName);
         request.setClientEmail(clientEmail);
         request.setClientPhone(clientPhone);
@@ -372,6 +393,20 @@ public class ClientServiceRequestController {
         map.put("time", calculateTimeAgo(req.getCreatedAt()));
         map.put("requesterType", req.getRequesterType() != null ? req.getRequesterType() : "CUSTOMER");
         map.put("createdAt", req.getCreatedAt());
+
+        // PART C: Logical response fields
+        map.put("requesterUserId", req.getClient() != null ? req.getClient().getId() : null);
+        map.put("requesterName", req.getClientName());
+        map.put("requesterRole", req.getRequesterType() != null ? req.getRequesterType() : "CUSTOMER");
+        map.put("requesterPhone", req.getClientPhone() != null ? req.getClientPhone() : (req.getClient() != null ? req.getClient().getPhone() : null));
+        map.put("requesterLocation", req.getLocation() != null && !req.getLocation().isBlank() ? req.getLocation() : (req.getClient() != null ? req.getClient().getLocation() : null));
+        map.put("professionalId", req.getProfessional() != null ? req.getProfessional().getId() : null);
+        map.put("requestType", "DIRECT_HIRE");
+        map.put("requestStatus", req.getStatus() != null ? req.getStatus() : "New");
+        map.put("requestedService", req.getRequestedService());
+        map.put("projectName", req.getProjectName());
+        map.put("projectScope", req.getProjectScope() != null ? req.getProjectScope() : "");
+        map.put("clientBudget", req.getClientBudget());
 
         return map;
     }

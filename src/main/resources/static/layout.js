@@ -157,6 +157,18 @@ function getNotifTargetUrl(n) {
   const type = (n.type || "").toUpperCase();
   const ref = n.referenceId ? encodeURIComponent(n.referenceId) : "";
   
+  if (type === "POST_REQUIREMENT_MATCH" || type.includes("POST_REQUIREMENT_MATCH")) {
+    return `professional dashboard.html#find-work`;
+  }
+  if (type === "POST_REQUIREMENT_APPLICATION" || type.includes("POST_REQUIREMENT_APPLICATION")) {
+    return `requirement-applications.html`;
+  }
+  if (type === "POST_REQUIREMENT_ACCEPTED" || type.includes("POST_REQUIREMENT_ACCEPTED")) {
+    return `professional dashboard.html#requests`;
+  }
+  if (type === "POST_REQUIREMENT_REJECTED" || type.includes("POST_REQUIREMENT_REJECTED")) {
+    return `professional dashboard.html#find-work`;
+  }
   if (type.includes("QUOTATION_RECEIVED") || type.includes("QUOTATION")) {
     return `my-requests.html${ref ? '?ref=' + ref : ''}`;
   }
@@ -255,6 +267,10 @@ async function initGlobalNotifications() {
             else if (type.includes("QUOTATION")) iconClass = "fa-solid fa-file-invoice-dollar";
             else if (type.includes("DELIVERY") || type.includes("DISPATCH") || type.includes("STATUS")) iconClass = "fa-solid fa-truck-fast";
             else if (type.includes("DIRECT_BUY")) iconClass = "fa-solid fa-cart-shopping";
+            else if (type.includes("POST_REQUIREMENT_MATCH")) iconClass = "fa-solid fa-briefcase";
+            else if (type.includes("POST_REQUIREMENT_ACCEPTED")) iconClass = "fa-solid fa-circle-check";
+            else if (type.includes("POST_REQUIREMENT_REJECTED")) iconClass = "fa-solid fa-circle-xmark";
+            else if (type.includes("POST_REQUIREMENT_APPLICATION")) iconClass = "fa-solid fa-file-lines";
 
             return `
               <div class="notif-item ${isUnread ? 'unread' : ''}" data-notif-id="${n.id}" data-target-url="${getNotifTargetUrl(n)}">

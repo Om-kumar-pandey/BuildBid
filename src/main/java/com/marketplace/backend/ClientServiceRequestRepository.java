@@ -18,6 +18,8 @@ public interface ClientServiceRequestRepository extends JpaRepository<ClientServ
 
     List<ClientServiceRequest> findByClient_IdOrderByCreatedAtDesc(Long clientId);
 
+    List<ClientServiceRequest> findByClient_IdAndStatusIgnoreCaseOrderByCreatedAtDesc(Long clientId, String status);
+
     Optional<ClientServiceRequest> findByRequestId(String requestId);
 
     Optional<ClientServiceRequest> findByIdAndProfessional_Id(Long id, Long professionalId);
