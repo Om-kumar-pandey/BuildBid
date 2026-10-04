@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -841,7 +843,198 @@ public class ProjectApplicationService {
     }
 
     // ========================================================
-    // 10. HELPER METHODS
+    // 10. PROFESSIONAL ACTIVE WORKS
+    // ========================================================
+
+    @Transactional(readOnly = true)
+    public List<ProfessionalActiveWorkDto> getActiveWorksForProfessional(
+            MarketplaceBackendApplication.MarketplaceUser pro
+    ) {
+        verifyProfessionalRole(pro);
+
+        List<ProjectProfessionalApplication> acceptedApps = applicationRepository
+                .findByProfessionalIdAndStatusOrderByCreatedAtDesc(
+                        pro.getId(),
+                        ProjectProfessionalApplication.Status.ACCEPTED
+                );
+
+        if (acceptedApps == null || acceptedApps.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ProfessionalActiveWorkDto> result = new ArrayList<>();
+        DateTimeFormatter startFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
+        DateTimeFormatter isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
+
+        for (ProjectProfessionalApplication app : acceptedApps) {
+            Project project = app.getProject();
+
+            // 1. id: Prefer application.applicationId
+            String id = (app.getApplicationId() != null && !app.getApplicationId().isBlank())
+                    ? app.getApplicationId()
+                    : String.valueOf(app.getId());
+
+            // 2. name: Project title/name
+            String name = "Project Requirement";
+            if (project != null) {
+                if (project.getProjectTitle() != null && !project.getProjectTitle().isBlank()) {
+                    name = project.getProjectTitle().trim();
+                } else if (project.getTitle() != null && !project.getTitle().isBlank()) {
+                    name = project.getTitle().trim();
+                } else if (project.getProjectId() != null && !project.getProjectId().isBlank()) {
+                    name = "Project " + project.getProjectId().trim();
+                }
+            }
+
+            // 3. customer: Customer/requester name from project.customer
+            String customer = "Client";
+            if (project != null && project.getCustomer() != null) {
+                MarketplaceBackendApplication.MarketplaceUser cust = project.getCustomer();
+                if (cust.getName() != null && !cust.getName().isBlank()) {
+                    customer = cust.getName().trim();
+                } else if (cust.getUsername() != null && !cust.getUsername().isBlank()) {
+                    customer = cust.getUsername().trim();
+                }
+            }
+
+            // 4. service: application.tradeRole
+            String service = (app.getTradeRole() != null && !app.getTradeRole().isBlank())
+                    ? app.getTradeRole().trim()
+                    : "Professional Service";
+
+            // 5. budget: application.proposedRate
+            String budget = "--";
+            if (app.getProposedRate() != null && app.getProposedRate() > 0) {
+                budget = "₹" + String.format(Locale.ENGLISH, "%,.0f", app.getProposedRate());
+            }
+
+            // 6. status: "Active"
+            String status = "Active";
+
+            // 7. progress: 25
+            Integer progress = 25;
+
+            // 8. nextMilestone: "Drawings & BOQ"
+            String nextMilestone = "Drawings & BOQ";
+
+            // 9. start: application.hiredAt formatted consistently with existing backend conventions
+            LocalDateTime hiredDate = app.getHiredAt() != null ? app.getHiredAt() : app.getCreatedAt();
+            String start = hiredDate != null ? hiredDate.format(startFormatter) : "--";
+
+            // 10. scheduledDate: project.targetStartDate if available, fallback to application.hiredAt as calendar date
+            String scheduledDate = null;
+            if (project != null && project.getTargetStartDate() != null && !project.getTargetStartDate().isBlank()) {
+                scheduledDate = project.getTargetStartDate().trim();
+            } else if (hiredDate != null) {
+                scheduledDate = hiredDate.format(isoFormatter);
+            } else {
+                scheduledDate = LocalDate.now().format(isoFormatter);
+            }
+
+            // 11. deadline: Safest existing project/application value compatible with frontend
+            String deadline = "--";
+            if (project != null && project.getTimeline() != null && !project.getTimeline().isBlank()) {
+                deadline = project.getTimeline().trim();
+            } else if (app.getEstimatedDuration() != null && !app.getEstimatedDuration().isBlank()) {
+                deadline = app.getEstimatedDuration().trim();
+            } else if (project != null && project.getTargetStartDate() != null && !project.getTargetStartDate().isBlank()) {
+                deadline = project.getTargetStartDate().trim();
+            }
+
+            // 12. source: "POST_REQUIREMENT"
+            String source = "POST_REQUIREMENT";
+
+            result.add(new ProfessionalActiveWorkDto(
+                    id, name, customer, service, budget, status, progress, nextMilestone, start, scheduledDate, deadline, source
+            ));
+        }
+
+        return result;
+    }
+
+    public static class ProfessionalActiveWorkDto {
+        private String id;
+        private String name;
+        private String customer;
+        private String service;
+        private String budget;
+        private String status;
+        private Integer progress;
+        private String nextMilestone;
+        private String start;
+        private String scheduledDate;
+        private String deadline;
+        private String source;
+
+        public ProfessionalActiveWorkDto() {}
+
+        public ProfessionalActiveWorkDto(
+                String id,
+                String name,
+                String customer,
+                String service,
+                String budget,
+                String status,
+                Integer progress,
+                String nextMilestone,
+                String start,
+                String scheduledDate,
+                String deadline,
+                String source
+        ) {
+            this.id = id;
+            this.name = name;
+            this.customer = customer;
+            this.service = service;
+            this.budget = budget;
+            this.status = status;
+            this.progress = progress;
+            this.nextMilestone = nextMilestone;
+            this.start = start;
+            this.scheduledDate = scheduledDate;
+            this.deadline = deadline;
+            this.source = source;
+        }
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+
+        public String getCustomer() { return customer; }
+        public void setCustomer(String customer) { this.customer = customer; }
+
+        public String getService() { return service; }
+        public void setService(String service) { this.service = service; }
+
+        public String getBudget() { return budget; }
+        public void setBudget(String budget) { this.budget = budget; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public Integer getProgress() { return progress; }
+        public void setProgress(Integer progress) { this.progress = progress; }
+
+        public String getNextMilestone() { return nextMilestone; }
+        public void setNextMilestone(String nextMilestone) { this.nextMilestone = nextMilestone; }
+
+        public String getStart() { return start; }
+        public void setStart(String start) { this.start = start; }
+
+        public String getScheduledDate() { return scheduledDate; }
+        public void setScheduledDate(String scheduledDate) { this.scheduledDate = scheduledDate; }
+
+        public String getDeadline() { return deadline; }
+        public void setDeadline(String deadline) { this.deadline = deadline; }
+
+        public String getSource() { return source; }
+        public void setSource(String source) { this.source = source; }
+    }
+
+    // ========================================================
+    // 11. HELPER METHODS
     // ========================================================
 
     private void verifyProfessionalRole(MarketplaceBackendApplication.MarketplaceUser user) {

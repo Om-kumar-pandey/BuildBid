@@ -973,6 +973,85 @@ async function fetchAndUpdateRequests() {
   }
 }
 
+let isActiveWorksLoading = false;
+let activeWorksFetchError = null;
+
+async function fetchAndUpdateActiveWorks() {
+  const token = getCleanToken();
+  if (!token) {
+    currentPro.projects = [];
+    if (activeRoute === 'projects') {
+      const container = document.getElementById('main-view');
+      if (container) renderProjects(container);
+    } else if (activeRoute === 'dashboard') {
+      const container = document.getElementById('main-view');
+      if (container) renderDashboard(container);
+    }
+    return;
+  }
+
+  isActiveWorksLoading = true;
+  activeWorksFetchError = null;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/professional/active-works`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    isActiveWorksLoading = false;
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        currentPro.projects = data.map(item => {
+          let displayBudget = item.budget;
+          if (typeof displayBudget === 'number' && displayBudget > 0) {
+            displayBudget = '₹' + displayBudget.toLocaleString('en-IN');
+          } else if (displayBudget && !String(displayBudget).trim().startsWith('₹')) {
+            displayBudget = '₹' + displayBudget;
+          }
+
+          return {
+            id: item.id || '',
+            name: item.name || 'Active Work',
+            customer: item.customer || 'Client',
+            service: item.service || currentPro.type || 'Professional Service',
+            budget: displayBudget || '--',
+            status: item.status || 'Active',
+            progress: typeof item.progress === 'number' ? item.progress : 25,
+            nextMilestone: item.nextMilestone || 'Drawings & BOQ',
+            start: item.start || '--',
+            scheduledDate: item.scheduledDate || null,
+            deadline: item.deadline || '--',
+            source: item.source || 'POST_REQUIREMENT'
+          };
+        });
+      } else {
+        currentPro.projects = [];
+      }
+    } else {
+      console.warn("Could not fetch active works from backend, status:", res.status);
+      currentPro.projects = [];
+    }
+  } catch (err) {
+    isActiveWorksLoading = false;
+    activeWorksFetchError = 'Network error: Could not connect to backend server.';
+    console.warn("Could not fetch active works from backend:", err);
+  }
+
+  if (activeRoute === 'projects') {
+    const container = document.getElementById('main-view');
+    if (container) renderProjects(container);
+  } else if (activeRoute === 'dashboard') {
+    const container = document.getElementById('main-view');
+    if (container) renderDashboard(container);
+  }
+}
+
 function executeLogout() {
   localStorage.removeItem("marketplaceToken");
   localStorage.removeItem("token");
@@ -1342,6 +1421,7 @@ function navigate(route) {
       break;
     case 'projects':
       renderProjects(container);
+      fetchAndUpdateActiveWorks();
       break;
     case 'schedule':
       renderSchedule(container);
@@ -4104,6 +4184,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Asynchronously fetch fresh requirement leads from backend (STEP 9)
   fetchFindWorkRequirements();
+
+  // Asynchronously fetch accepted active works from backend
+  fetchAndUpdateActiveWorks();
 
   const hash = (window.location.hash || '').replace('#', '').trim();
   const validRoutes = ['dashboard', 'find-work', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages'];

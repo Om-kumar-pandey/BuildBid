@@ -266,6 +266,37 @@ public class ProjectApplicationController {
     }
 
     // ========================================================
+    // 7. PROFESSIONAL ACTIVE WORKS API
+    // ========================================================
+
+    /**
+     * GET /api/professional/active-works
+     * Fetch accepted Post Requirement active works for authenticated professional.
+     */
+    @GetMapping("/api/professional/active-works")
+    public ResponseEntity<?> getActiveWorks(Authentication authentication) {
+        MarketplaceBackendApplication.MarketplaceUser user = getAuthenticatedUser(authentication);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a professional."));
+        }
+        if (!hasProfessionalRole(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Only registered professionals can view active works."));
+        }
+
+        try {
+            List<ProjectApplicationService.ProfessionalActiveWorkDto> activeWorks = applicationService.getActiveWorksForProfessional(user);
+            return ResponseEntity.ok(activeWorks);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve active works: " + e.getMessage()));
+        }
+    }
+
+    // ========================================================
     // HELPER METHODS
     // ========================================================
 
