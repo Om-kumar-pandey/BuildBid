@@ -2920,11 +2920,11 @@ function renderProjects(container) {
     <div class="space-y-6 max-w-[1700px] mx-auto">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Active Work & Milestone Pipeline</h2>
-          <p class="text-xs text-slate-500">Track execution phases, deliver technical reports, and release escrow funds.</p>
+          <h2 class="text-lg font-bold text-slate-900">My Work</h2>
+          <p class="text-xs text-slate-500">Track execution and completion of your assigned client work.</p>
         </div>
         <span class="text-xs font-semibold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
-          Active Sites: <strong class="text-slate-900">${(currentPro.projects || []).filter(p=>p.status==='Active').length} Sites</strong>
+          Active Work: <strong class="text-slate-900">${(currentPro.projects || []).filter(p=>p.status==='Active').length} Active</strong>
         </span>
       </div>
 
@@ -2932,7 +2932,7 @@ function renderProjects(container) {
         ${(!currentPro.projects || currentPro.projects.length === 0) ? `
           <div class="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-subtle space-y-3">
             <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl">
-              <i class="fa-solid fa-building-shield"></i>
+              <i class="fa-solid fa-briefcase"></i>
             </div>
 
             <h3 class="text-sm font-bold text-slate-800">
@@ -2944,14 +2944,14 @@ function renderProjects(container) {
             </p>
 
             <p class="text-[11px] text-slate-400 max-w-sm mx-auto">
-              Accepted contracts, Direct Hire engagements, and site milestones will appear here automatically.
+              Accepted contracts, Direct Hire engagements, and assigned work will appear here automatically.
             </p>
           </div>
         ` : currentPro.projects.map(prj => {
           const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
-          const isPast = isWorkScheduledDatePast(rawDate);
+          const isPast = prj.status !== 'Completed' && isWorkScheduledDatePast(rawDate);
           return `
-          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 space-y-5${isPast ? ' opacity-65' : ''}"${isPast ? ' style="opacity: 0.65;"' : ''}>
+          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 space-y-4${isPast ? ' opacity-65' : ''}"${isPast ? ' style="opacity: 0.65;"' : ''}>
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <div class="flex items-center gap-3">
@@ -2966,63 +2966,17 @@ function renderProjects(container) {
               </div>
             </div>
 
-            <!-- Milestone Stepper Bar -->
-            <div>
-              <div class="flex items-center justify-between text-xs font-semibold mb-2">
-                <span class="text-slate-600">Milestone Progress Execution</span>
-                <span class="text-orange-600 font-bold">${prj.progress}% Completed</span>
-              </div>
-              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                <div class="bg-orange-600 h-3 rounded-full transition-all duration-500" style="width: ${prj.progress}%"></div>
-              </div>
-            </div>
-
-            <!-- Milestone Stages -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-              <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center space-x-2.5">
-                <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
-                <div>
-                  <span class="font-bold text-slate-800 block">Phase 1: Initial Inspection</span>
-                  <span class="text-[10px] text-emerald-700">Verified & Released</span>
-                </div>
-              </div>
-              <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center space-x-2.5">
-                <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
-                <div>
-                  <span class="font-bold text-slate-800 block">Phase 2: Drawings & BOQ</span>
-                  <span class="text-[10px] text-emerald-700">Verified & Released</span>
-                </div>
-              </div>
-              <div class="p-3 bg-orange-50 rounded-xl border border-orange-200 flex items-center space-x-2.5">
-                <i class="fa-solid fa-spinner fa-spin text-orange-600 text-base"></i>
-                <div>
-                  <span class="font-bold text-slate-800 block">Phase 3: ${prj.nextMilestone}</span>
-                  <span class="text-[10px] text-orange-700 font-medium">In Execution</span>
-                </div>
-              </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center space-x-2.5">
-                <i class="fa-regular fa-circle text-slate-400 text-base"></i>
-                <div>
-                  <span class="font-bold text-slate-800 block">Phase 4: Final Sign-off</span>
-                  <span class="text-[10px] text-slate-400">Escrow Pending</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs pt-1">
               <div class="flex items-center space-x-6 text-slate-500">
-                <span><i class="fa-regular fa-calendar"></i> Started: <strong>${prj.start}</strong></span>
-                <span><i class="fa-regular fa-clock"></i> Target: <strong>${prj.deadline}</strong></span>
+                <span><i class="fa-regular fa-calendar"></i> Started: <strong class="text-slate-700">${prj.start}</strong></span>
+                <span><i class="fa-regular fa-clock"></i> Target: <strong class="text-slate-700">${prj.deadline}</strong>${isPast ? ' <span class="text-rose-600 font-semibold text-[11px] ml-1">(Target Date Passed)</span>' : ''}</span>
               </div>
               <div class="space-x-2">
-                <button onclick="advanceProgress('${prj.id}')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition">
-                  <i class="fa-solid fa-arrow-up-right-dots mr-1"></i> Advance Milestone (+15%)
+                <button onclick="navigate('messages')" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition">
+                  Chat Client
                 </button>
                 <button onclick="markComplete('${prj.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition shadow-sm">
                   <i class="fa-solid fa-check mr-1"></i> Mark Project Complete
-                </button>
-                <button onclick="navigate('messages')" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition">
-                  Chat Client
                 </button>
               </div>
             </div>
