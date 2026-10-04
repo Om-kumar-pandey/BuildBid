@@ -255,98 +255,399 @@ a {
 }
 
 
-/* ================= SERVICES ================= */
+/* ================= SERVICES (FEATURE SHOWCASE) ================= */
 
 .services {
     padding: 70px 5%;
+    position: relative;
+    overflow: hidden;
 }
 
 .section-heading {
     text-align: center;
-    margin-bottom: 35px;
+    margin-bottom: 30px;
 }
 
 .section-heading span {
     color: #f28c28;
     font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 1px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 6px;
 }
 
 .section-heading h2 {
     color: #172033;
-    font-size: 30px;
-    margin: 5px 0;
+    font-size: 32px;
+    font-weight: 800;
+    margin: 5px 0 10px 0;
+    letter-spacing: -0.5px;
 }
 
 .section-heading p {
-    color: #697386;
+    color: #64748b;
+    font-size: 15px;
+    max-width: 580px;
+    margin: 0 auto;
 }
 
-.service-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
+/* Feature Showcase Carousel Container */
+.service-carousel-container {
+    position: relative;
+    width: 100%;
+    margin-top: 15px;
 }
 
+
+/* 4-Card Viewport (Strict 4-card visible block on desktop) */
+.service-grid-viewport {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    padding: 16px 6px 26px 6px;
+    margin: -16px -6px -26px -6px;
+}
+
+.service-track {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 18px !important;
+    width: max-content;
+    will-change: transform;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Individual Feature Card (Rich Modern Card with Pop-out & Elevation) */
 .service-card {
-    padding: 25px;
-    border-radius: 10px;
-    min-height: 300px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 16px;
+    padding: 22px 20px;
+    min-height: 440px;
+    position: relative;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+    cursor: pointer;
+    user-select: none;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
 }
 
+.service-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.16), 0 10px 15px -5px rgba(15, 23, 42, 0.08);
+    z-index: 10;
+}
+
+.service-card:active {
+    transform: translateY(-3px) scale(0.99);
+}
+
+/* Incoming Card Pop-in Animation */
+.service-card.incoming-card {
+    animation: cardPopIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes cardPopIn {
+    0% {
+        opacity: 0.8;
+        transform: scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Role-Specific Background Gradients & Accents */
 .customer-card {
-    background: #eaf4ff;
+    background: linear-gradient(155deg, #f0f7ff 0%, #e2efff 100%);
+    border-color: #bfdbfe;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.07);
 }
 
 .contractor-card {
-    background: #fff1e6;
+    background: linear-gradient(155deg, #fff7ed 0%, #ffedd5 100%);
+    border-color: #fed7aa;
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.07);
 }
 
 .material-card {
-    background: #eaf9ef;
+    background: linear-gradient(155deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #bbf7d0;
+    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.07);
 }
 
-.hiring-card {
-    background: #f4ecff;
+.hiring-card, .pro-card {
+    background: linear-gradient(155deg, #faf5ff 0%, #f3e8ff 100%);
+    border-color: #e9d5ff;
+    box-shadow: 0 4px 16px rgba(147, 51, 234, 0.07);
 }
 
-.service-icon {
-    font-size: 38px;
-    margin-bottom: 10px;
+/* ⭐ Prominently Highlighted Seller Feature (Feature 12: Add & Manage Inventory) */
+.material-card.is-spotlight {
+    background: linear-gradient(155deg, #f0fdf4 0%, #d1fae5 100%);
+    border: 2px solid #16a34a;
+    box-shadow: 0 8px 24px -4px rgba(22, 163, 74, 0.28), 0 0 0 1px rgba(22, 163, 74, 0.2);
 }
 
-.service-card h3 {
-    font-size: 20px;
-    margin-bottom: 10px;
+.material-card.is-spotlight:hover {
+    box-shadow: 0 22px 35px -8px rgba(22, 163, 74, 0.32), 0 10px 18px -4px rgba(22, 163, 74, 0.15);
 }
 
-.service-card p {
-    color: #526071;
-    font-size: 13px;
-    min-height: 80px;
+/* ⭐ Prominently Highlighted Professional Feature (Feature 19: My Service Catalog) */
+.hiring-card.is-spotlight-pro {
+    background: linear-gradient(155deg, #faf5ff 0%, #ede9fe 100%);
+    border: 2px solid #9333ea;
+    box-shadow: 0 8px 24px -4px rgba(147, 51, 234, 0.28), 0 0 0 1px rgba(147, 51, 234, 0.2);
 }
 
-.service-card button {
-    border: none;
-    padding: 11px 15px;
+/* Card Header: Role Badge & Spotlight Tag */
+.service-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.service-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
     border-radius: 6px;
-    color: white;
-    background: #0b2a55;
-    font-weight: bold;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
 }
 
-.contractor-card button {
-    background: #f07825;
+.badge-customer {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
 }
 
-.material-card button {
-    background: #17834c;
+.badge-contractor {
+    background: #ffedd5;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
 }
 
-.hiring-card button {
-    background: #7135b6;
+.badge-seller {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
 }
+
+.badge-pro {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border: 1px solid #e9d5ff;
+}
+
+.badge-cross-role {
+    background: linear-gradient(135deg, #dbeafe 0%, #f3e8ff 100%);
+    color: #1e3a8a;
+    border: 1px solid #bfdbfe;
+}
+
+.service-spotlight-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3.5px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+    animation: spotlightPulse 2s infinite ease-in-out;
+}
+
+@keyframes spotlightPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Card Body */
+.service-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Icon Presentation */
+.service-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #ffffff;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: transform 0.25s ease;
+}
+
+.service-card:hover .service-icon-wrap {
+    transform: scale(1.08) rotate(3deg);
+}
+
+.customer-card .service-icon-wrap {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.contractor-card .service-icon-wrap {
+    background: linear-gradient(135deg, #ea580c, #c2410c);
+}
+
+.material-card .service-icon-wrap {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.hiring-card .service-icon-wrap, .pro-card .service-icon-wrap {
+    background: linear-gradient(135deg, #9333ea, #7e22ce);
+}
+
+/* Titles: English + Hindi */
+.service-title-en {
+    font-size: 17.5px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 2px 0;
+    line-height: 1.3;
+}
+
+.service-title-hi {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #475569;
+    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+    margin: 0 0 8px 0;
+    line-height: 1.35;
+}
+
+.service-card-divider {
+    height: 1px;
+    background: rgba(15, 23, 42, 0.08);
+    margin: 6px 0 10px 0;
+}
+
+/* Descriptions: English + Hindi */
+.service-desc-en {
+    font-size: 12px;
+    line-height: 1.55;
+    color: #475569;
+    margin: 0 0 8px 0;
+    min-height: 52px;
+}
+
+.service-desc-hi {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #64748b;
+    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+    background: rgba(255, 255, 255, 0.75);
+    padding: 7px 9px;
+    border-radius: 8px;
+    border-left: 3px solid rgba(15, 23, 42, 0.2);
+    margin: 0;
+    min-height: 50px;
+}
+
+.customer-card .service-desc-hi {
+    border-left-color: #2563eb;
+}
+
+.contractor-card .service-desc-hi {
+    border-left-color: #ea580c;
+}
+
+.material-card .service-desc-hi {
+    border-left-color: #16a34a;
+}
+
+.hiring-card .service-desc-hi, .pro-card .service-desc-hi {
+    border-left-color: #9333ea;
+}
+
+/* Card Footer & Action Button */
+.service-card-footer {
+    margin-top: 14px;
+}
+
+.service-action-btn {
+    width: 100%;
+    border: none;
+    padding: 11px 16px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.service-action-btn .btn-arrow {
+    transition: transform 0.2s ease;
+}
+
+.service-card:hover .service-action-btn .btn-arrow {
+    transform: translateX(4px);
+}
+
+.customer-card .service-action-btn {
+    background: linear-gradient(135deg, #0b2a55, #17417e);
+}
+
+.customer-card .service-action-btn:hover {
+    background: linear-gradient(135deg, #123d7a, #1d529d);
+    box-shadow: 0 4px 12px rgba(11, 42, 85, 0.28);
+}
+
+.contractor-card .service-action-btn {
+    background: linear-gradient(135deg, #ea580c, #c2410c);
+}
+
+.contractor-card .service-action-btn:hover {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.28);
+}
+
+.material-card .service-action-btn {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.material-card .service-action-btn:hover {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28);
+}
+
+.hiring-card .service-action-btn, .pro-card .service-action-btn {
+    background: linear-gradient(135deg, #9333ea, #7e22ce);
+}
+
+.hiring-card .service-action-btn:hover, .pro-card .service-action-btn:hover {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.28);
+}
+
 
 
 /* ================= STATS ================= */

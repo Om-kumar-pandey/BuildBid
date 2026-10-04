@@ -6,13 +6,16 @@
 
     <title>BuildBid | Build Better. Bid Smarter.</title>
 
+    <!-- Google Fonts: Inter & Noto Sans Devanagari -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="website style.css">
 
     <!-- Font Awesome -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    
 </head>
 
 <body>
@@ -197,7 +200,7 @@
 
 <!-- ================= SERVICES ================= -->
 
-<section class="services">
+<section class="services" id="services">
 
     <div class="section-heading">
         <span>BUILDBID SERVICES</span>
@@ -205,54 +208,109 @@
         <p>One platform for your complete construction journey.</p>
     </div>
 
-    <div class="service-grid">
+    <!-- Feature Showcase Auto-Rotating Carousel Block (4 cards visible at a time) -->
+    <div class="service-carousel-container" id="serviceCarouselContainer">
 
-        <div class="service-card customer-card">
-            <div class="service-icon">🏠</div>
-            <h3>Build Your Project</h3>
-            <p>
-                Post your construction requirements and get
-                estimates from trusted professionals.
-            </p>
-            <button onclick="handleProtectedAction('POST_PROJECT')">
-                Post Project →
-            </button>
-        </div>
+        <!-- 4-Card Viewport (maintains exact 4-card block layout) -->
+        <div class="service-grid-viewport" id="serviceGridViewport">
+            <div class="service-grid service-track" id="serviceTrack">
+                <!-- Initial 4 cards rendered for instant display before JS hydration -->
+                <div class="service-card customer-card" data-feature-id="customer-post-project" onclick="handleFeatureCardClick('customer-post-project')">
+                    <div class="service-card-header">
+                        <span class="service-role-badge badge-customer">
+                            <i class="fa-solid fa-shield-halved"></i> CUSTOMER
+                        </span>
+                    </div>
+                    <div class="service-card-body">
+                        <div class="service-icon-wrap">
+                            <i class="fa-solid fa-house-chimney"></i>
+                        </div>
+                        <h3 class="service-title-en">Post Your Project</h3>
+                        <h4 class="service-title-hi">अपना प्रोजेक्ट पोस्ट करें</h4>
+                        <div class="service-card-divider"></div>
+                        <p class="service-desc-en">Share your construction requirements, project type, location, area and other important details to start your construction journey on BuildBid.</p>
+                        <p class="service-desc-hi">अपनी construction requirements, project type, location, area और अन्य जरूरी details साझा करके BuildBid पर अपनी construction journey शुरू करें।</p>
+                    </div>
+                    <div class="service-card-footer">
+                        <button type="button" class="service-action-btn" onclick="event.stopPropagation(); handleFeatureCardClick('customer-post-project')">
+                            <span>Post Project →</span>
+                            <i class="fa-solid fa-arrow-right btn-arrow"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <div class="service-card contractor-card">
-            <div class="service-icon">👷</div>
-            <h3>Find Contractors</h3>
-            <p>
-                Compare verified contractors, their experience,
-                ratings and project bids.
-            </p>
-            <button onclick="handleProtectedAction('FIND_CONTRACTORS')">
-                Find Contractors →
-            </button>
-        </div>
+                <div class="service-card customer-card" data-feature-id="customer-cost-estimator" onclick="handleFeatureCardClick('customer-cost-estimator')">
+                    <div class="service-card-header">
+                        <span class="service-role-badge badge-customer">
+                            <i class="fa-solid fa-shield-halved"></i> CUSTOMER
+                        </span>
+                    </div>
+                    <div class="service-card-body">
+                        <div class="service-icon-wrap">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <h3 class="service-title-en">Construction Cost Estimator</h3>
+                        <h4 class="service-title-hi">निर्माण लागत का अनुमान</h4>
+                        <div class="service-card-divider"></div>
+                        <p class="service-desc-en">Get an approximate construction cost based on your project location, built-up area, floors, construction requirements and current material and labour rates.</p>
+                        <p class="service-desc-hi">अपने project की location, built-up area, floors, construction requirements तथा current material और labour rates के आधार पर अनुमानित construction cost जानें।</p>
+                    </div>
+                    <div class="service-card-footer">
+                        <button type="button" class="service-action-btn" onclick="event.stopPropagation(); handleFeatureCardClick('customer-cost-estimator')">
+                            <span>Estimate Cost →</span>
+                            <i class="fa-solid fa-arrow-right btn-arrow"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <div class="service-card material-card">
-            <div class="service-icon">🧱</div>
-            <h3>Buy Materials</h3>
-            <p>
-                Compare quality building materials and suppliers
-                at competitive prices.
-            </p>
-            <button onclick="handleProtectedAction('BUY_MATERIALS')">
-                Explore Materials →
-            </button>
-        </div>
+                <div class="service-card material-card" data-feature-id="customer-buy-materials" onclick="handleFeatureCardClick('customer-buy-materials')">
+                    <div class="service-card-header">
+                        <span class="service-role-badge badge-cross-role">
+                            <i class="fa-solid fa-shield-halved"></i> CUSTOMER • CONTRACTOR • PRO
+                        </span>
+                    </div>
+                    <div class="service-card-body">
+                        <div class="service-icon-wrap">
+                            <i class="fa-solid fa-cubes-stacked"></i>
+                        </div>
+                        <h3 class="service-title-en">Buy Construction Materials</h3>
+                        <h4 class="service-title-hi">निर्माण सामग्री खरीदें</h4>
+                        <div class="service-card-divider"></div>
+                        <p class="service-desc-en">Find and purchase construction materials from BuildBid material sellers for your projects and construction work. Customers, contractors and professionals can all purchase materials according to their requirements.</p>
+                        <p class="service-desc-hi">अपने projects और construction work के लिए BuildBid material sellers से construction materials खोजें और खरीदें। Customer, Contractor और Professional — तीनों अपनी जरूरत के अनुसार materials खरीद सकते हैं।</p>
+                    </div>
+                    <div class="service-card-footer">
+                        <button type="button" class="service-action-btn" onclick="event.stopPropagation(); handleFeatureCardClick('customer-buy-materials')">
+                            <span>Explore Materials →</span>
+                            <i class="fa-solid fa-arrow-right btn-arrow"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <div class="service-card hiring-card">
-            <div class="service-icon">🛠️</div>
-            <h3>Hire Professionals</h3>
-            <p>
-                Find electricians, plumbers, painters, masons
-                and other skilled workers.
-            </p>
-            <button onclick="handleProtectedAction('HIRE_PROFESSIONALS')">
-                Hire Now →
-            </button>
+                <div class="service-card hiring-card" data-feature-id="customer-hire-professionals" onclick="handleFeatureCardClick('customer-hire-professionals')">
+                    <div class="service-card-header">
+                        <span class="service-role-badge badge-cross-role">
+                            <i class="fa-solid fa-shield-halved"></i> CUSTOMER • CONTRACTOR • PRO
+                        </span>
+                    </div>
+                    <div class="service-card-body">
+                        <div class="service-icon-wrap">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                        <h3 class="service-title-en">Hire Professionals</h3>
+                        <h4 class="service-title-hi">प्रोफेशनल्स को हायर करें</h4>
+                        <div class="service-card-divider"></div>
+                        <p class="service-desc-en">Find skilled professionals such as engineers, electricians, plumbers, painters, masons and other service providers for your construction requirements. Customers, contractors and professionals can all hire suitable experts when needed.</p>
+                        <p class="service-desc-hi">अपनी construction requirements के लिए engineers, electricians, plumbers, painters, masons और अन्य skilled professionals खोजें। Customer, Contractor और Professional — तीनों जरूरत के अनुसार suitable experts को hire कर सकते हैं।</p>
+                    </div>
+                    <div class="service-card-footer">
+                        <button type="button" class="service-action-btn" onclick="event.stopPropagation(); handleFeatureCardClick('customer-hire-professionals')">
+                            <span>Hire Now →</span>
+                            <i class="fa-solid fa-arrow-right btn-arrow"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
