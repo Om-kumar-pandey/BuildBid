@@ -2924,12 +2924,30 @@ function renderProjects(container) {
           <p class="text-xs text-slate-500">Track execution phases, deliver technical reports, and release escrow funds.</p>
         </div>
         <span class="text-xs font-semibold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
-          Active Sites: <strong class="text-slate-900">${currentPro.projects.filter(p=>p.status==='Active').length} Sites</strong>
+          Active Sites: <strong class="text-slate-900">${(currentPro.projects || []).filter(p=>p.status==='Active').length} Sites</strong>
         </span>
       </div>
 
       <div class="space-y-5">
-        ${currentPro.projects.map(prj => {
+        ${(!currentPro.projects || currentPro.projects.length === 0) ? `
+          <div class="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-subtle space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl">
+              <i class="fa-solid fa-building-shield"></i>
+            </div>
+
+            <h3 class="text-sm font-bold text-slate-800">
+              No Active Work
+            </h3>
+
+            <p class="text-xs text-slate-500 font-medium">
+              कोई सक्रिय कार्य नहीं है
+            </p>
+
+            <p class="text-[11px] text-slate-400 max-w-sm mx-auto">
+              Accepted contracts, Direct Hire engagements, and site milestones will appear here automatically.
+            </p>
+          </div>
+        ` : currentPro.projects.map(prj => {
           const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
           const isPast = isWorkScheduledDatePast(rawDate);
           return `
@@ -3790,6 +3808,7 @@ async function acceptRequest(reqId) {
       showToast(`Request #${targetId} accepted successfully!`, 'success');
       closeModal('modal-request-detail');
       await fetchAndUpdateRequests();
+      await fetchAndUpdateActiveWorks();
     } else {
       let errData = {};
       try { errData = await res.json(); } catch (_) {}

@@ -30,6 +30,7 @@ public class ProjectApplicationService {
     private final MarketplaceBackendApplication.UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
+    private final ClientServiceRequestRepository clientServiceRequestRepository;
 
     public ProjectApplicationService(
             ProjectRepository projectRepository,
@@ -38,7 +39,18 @@ public class ProjectApplicationService {
             MarketplaceBackendApplication.UserRepository userRepository,
             ObjectMapper objectMapper
     ) {
-        this(projectRepository, applicationRepository, professionalServiceRepository, userRepository, objectMapper, null);
+        this(projectRepository, applicationRepository, professionalServiceRepository, userRepository, objectMapper, null, null);
+    }
+
+    public ProjectApplicationService(
+            ProjectRepository projectRepository,
+            ProjectProfessionalApplicationRepository applicationRepository,
+            ProfessionalServiceRepository professionalServiceRepository,
+            MarketplaceBackendApplication.UserRepository userRepository,
+            ObjectMapper objectMapper,
+            NotificationService notificationService
+    ) {
+        this(projectRepository, applicationRepository, professionalServiceRepository, userRepository, objectMapper, notificationService, null);
     }
 
     @Autowired
@@ -48,7 +60,8 @@ public class ProjectApplicationService {
             ProfessionalServiceRepository professionalServiceRepository,
             MarketplaceBackendApplication.UserRepository userRepository,
             ObjectMapper objectMapper,
-            @Autowired(required = false) NotificationService notificationService
+            @Autowired(required = false) NotificationService notificationService,
+            @Autowired(required = false) ClientServiceRequestRepository clientServiceRequestRepository
     ) {
         this.projectRepository = projectRepository;
         this.applicationRepository = applicationRepository;
@@ -56,6 +69,7 @@ public class ProjectApplicationService {
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.notificationService = notificationService;
+        this.clientServiceRequestRepository = clientServiceRequestRepository;
     }
 
     // ========================================================
@@ -852,104 +866,214 @@ public class ProjectApplicationService {
     ) {
         verifyProfessionalRole(pro);
 
+        List<ActiveWorkSortEntry> entries = new ArrayList<>();
+        DateTimeFormatter startFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
+        DateTimeFormatter isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
+
+        // 1. SOURCE A: Accepted Post Requirement Applications
         List<ProjectProfessionalApplication> acceptedApps = applicationRepository
                 .findByProfessionalIdAndStatusOrderByCreatedAtDesc(
                         pro.getId(),
                         ProjectProfessionalApplication.Status.ACCEPTED
                 );
 
-        if (acceptedApps == null || acceptedApps.isEmpty()) {
+        if (acceptedApps != null) {
+            for (ProjectProfessionalApplication app : acceptedApps) {
+                Project project = app.getProject();
+
+                // 1. id: Prefer application.applicationId
+                String id = (app.getApplicationId() != null && !app.getApplicationId().isBlank())
+                        ? app.getApplicationId()
+                        : String.valueOf(app.getId());
+
+                // 2. name: Project title/name
+                String name = "Project Requirement";
+                if (project != null) {
+                    if (project.getProjectTitle() != null && !project.getProjectTitle().isBlank()) {
+                        name = project.getProjectTitle().trim();
+                    } else if (project.getTitle() != null && !project.getTitle().isBlank()) {
+                        name = project.getTitle().trim();
+                    } else if (project.getProjectId() != null && !project.getProjectId().isBlank()) {
+                        name = "Project " + project.getProjectId().trim();
+                    }
+                }
+
+                // 3. customer: Customer/requester name from project.customer
+                String customer = "Client";
+                if (project != null && project.getCustomer() != null) {
+                    MarketplaceBackendApplication.MarketplaceUser cust = project.getCustomer();
+                    if (cust.getName() != null && !cust.getName().isBlank()) {
+                        customer = cust.getName().trim();
+                    } else if (cust.getUsername() != null && !cust.getUsername().isBlank()) {
+                        customer = cust.getUsername().trim();
+                    }
+                }
+
+                // 4. service: application.tradeRole
+                String service = (app.getTradeRole() != null && !app.getTradeRole().isBlank())
+                        ? app.getTradeRole().trim()
+                        : "Professional Service";
+
+                // 5. budget: application.proposedRate
+                String budget = "--";
+                if (app.getProposedRate() != null && app.getProposedRate() > 0) {
+                    budget = "₹" + String.format(Locale.ENGLISH, "%,.0f", app.getProposedRate());
+                }
+
+                // 6. status: "Active"
+                String status = "Active";
+
+                // 7. progress: 25
+                Integer progress = 25;
+
+                // 8. nextMilestone: "Drawings & BOQ"
+                String nextMilestone = "Drawings & BOQ";
+
+                // 9. start: application.hiredAt formatted consistently with existing backend conventions
+                LocalDateTime hiredDate = app.getHiredAt() != null ? app.getHiredAt() : app.getCreatedAt();
+                String start = hiredDate != null ? hiredDate.format(startFormatter) : "--";
+
+                // 10. scheduledDate: project.targetStartDate if available, fallback to application.hiredAt as calendar date
+                String scheduledDate = null;
+                if (project != null && project.getTargetStartDate() != null && !project.getTargetStartDate().isBlank()) {
+                    scheduledDate = project.getTargetStartDate().trim();
+                } else if (hiredDate != null) {
+                    scheduledDate = hiredDate.format(isoFormatter);
+                } else {
+                    scheduledDate = LocalDate.now().format(isoFormatter);
+                }
+
+                // 11. deadline: Safest existing project/application value compatible with frontend
+                String deadline = "--";
+                if (project != null && project.getTimeline() != null && !project.getTimeline().isBlank()) {
+                    deadline = project.getTimeline().trim();
+                } else if (app.getEstimatedDuration() != null && !app.getEstimatedDuration().isBlank()) {
+                    deadline = app.getEstimatedDuration().trim();
+                } else if (project != null && project.getTargetStartDate() != null && !project.getTargetStartDate().isBlank()) {
+                    deadline = project.getTargetStartDate().trim();
+                }
+
+                // 12. source: "POST_REQUIREMENT"
+                String source = "POST_REQUIREMENT";
+
+                entries.add(new ActiveWorkSortEntry(hiredDate, new ProfessionalActiveWorkDto(
+                        id, name, customer, service, budget, status, progress, nextMilestone, start, scheduledDate, deadline, source
+                )));
+            }
+        }
+
+        // 2. SOURCE B: Accepted Direct Hire Requests
+        if (clientServiceRequestRepository != null) {
+            List<ClientServiceRequest> acceptedRequests = clientServiceRequestRepository
+                    .findByProfessional_IdAndStatusIgnoreCaseOrderByCreatedAtDesc(
+                            pro.getId(),
+                            "Accepted"
+                    );
+
+            if (acceptedRequests != null) {
+                for (ClientServiceRequest csr : acceptedRequests) {
+                    // id: csr.requestId, fallback to "REQ-" + csr.getId()
+                    String id = (csr.getRequestId() != null && !csr.getRequestId().isBlank())
+                            ? csr.getRequestId().trim()
+                            : ("REQ-" + csr.getId());
+
+                    // name: csr.projectName, fallback to <requestedService> Contract, fallback to Professional Service Contract
+                    String name = "Professional Service Contract";
+                    if (csr.getProjectName() != null && !csr.getProjectName().isBlank()) {
+                        name = csr.getProjectName().trim();
+                    } else if (csr.getRequestedService() != null && !csr.getRequestedService().isBlank()) {
+                        name = csr.getRequestedService().trim() + " Contract";
+                    }
+
+                    // customer: csr.clientName, fallback to csr.client.name, fallback to "Client"
+                    String customer = "Client";
+                    if (csr.getClientName() != null && !csr.getClientName().isBlank()) {
+                        customer = csr.getClientName().trim();
+                    } else if (csr.getClient() != null) {
+                        if (csr.getClient().getName() != null && !csr.getClient().getName().isBlank()) {
+                            customer = csr.getClient().getName().trim();
+                        } else if (csr.getClient().getUsername() != null && !csr.getClient().getUsername().isBlank()) {
+                            customer = csr.getClient().getUsername().trim();
+                        }
+                    }
+
+                    // service: csr.requestedService, fallback to "Professional Service"
+                    String service = (csr.getRequestedService() != null && !csr.getRequestedService().isBlank())
+                            ? csr.getRequestedService().trim()
+                            : "Professional Service";
+
+                    // budget: csr.clientBudget formatted as ₹45,000, fallback to "--"
+                    String budget = "--";
+                    if (csr.getClientBudget() != null && csr.getClientBudget() > 0) {
+                        budget = "₹" + String.format(Locale.ENGLISH, "%,.0f", csr.getClientBudget());
+                    }
+
+                    // status: "Active"
+                    String status = "Active";
+
+                    // progress: 25
+                    Integer progress = 25;
+
+                    // nextMilestone: "Drawings & BOQ"
+                    String nextMilestone = "Drawings & BOQ";
+
+                    // start: csr.updatedAt, fallback to csr.createdAt, formatted as "dd MMM yyyy"
+                    LocalDateTime effectiveDate = csr.getUpdatedAt() != null ? csr.getUpdatedAt() : csr.getCreatedAt();
+                    String start = effectiveDate != null ? effectiveDate.format(startFormatter) : "--";
+
+                    // scheduledDate: csr.targetDate if not blank, fallback to effectiveDate as ISO calendar date
+                    String scheduledDate = null;
+                    if (csr.getTargetDate() != null && !csr.getTargetDate().isBlank()) {
+                        scheduledDate = csr.getTargetDate().trim();
+                    } else if (effectiveDate != null) {
+                        scheduledDate = effectiveDate.format(isoFormatter);
+                    } else {
+                        scheduledDate = LocalDate.now().format(isoFormatter);
+                    }
+
+                    // deadline: csr.targetDate if available, fallback to "--"
+                    String deadline = (csr.getTargetDate() != null && !csr.getTargetDate().isBlank())
+                            ? csr.getTargetDate().trim()
+                            : "--";
+
+                    // source: "DIRECT_HIRE"
+                    String source = "DIRECT_HIRE";
+
+                    entries.add(new ActiveWorkSortEntry(effectiveDate, new ProfessionalActiveWorkDto(
+                            id, name, customer, service, budget, status, progress, nextMilestone, start, scheduledDate, deadline, source
+                    )));
+                }
+            }
+        }
+
+        if (entries.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<ProfessionalActiveWorkDto> result = new ArrayList<>();
-        DateTimeFormatter startFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
-        DateTimeFormatter isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
+        // Sort descending by timestamp (newest first)
+        entries.sort((a, b) -> {
+            if (a.timestamp == null && b.timestamp == null) return 0;
+            if (a.timestamp == null) return 1;
+            if (b.timestamp == null) return -1;
+            return b.timestamp.compareTo(a.timestamp);
+        });
 
-        for (ProjectProfessionalApplication app : acceptedApps) {
-            Project project = app.getProject();
-
-            // 1. id: Prefer application.applicationId
-            String id = (app.getApplicationId() != null && !app.getApplicationId().isBlank())
-                    ? app.getApplicationId()
-                    : String.valueOf(app.getId());
-
-            // 2. name: Project title/name
-            String name = "Project Requirement";
-            if (project != null) {
-                if (project.getProjectTitle() != null && !project.getProjectTitle().isBlank()) {
-                    name = project.getProjectTitle().trim();
-                } else if (project.getTitle() != null && !project.getTitle().isBlank()) {
-                    name = project.getTitle().trim();
-                } else if (project.getProjectId() != null && !project.getProjectId().isBlank()) {
-                    name = "Project " + project.getProjectId().trim();
-                }
-            }
-
-            // 3. customer: Customer/requester name from project.customer
-            String customer = "Client";
-            if (project != null && project.getCustomer() != null) {
-                MarketplaceBackendApplication.MarketplaceUser cust = project.getCustomer();
-                if (cust.getName() != null && !cust.getName().isBlank()) {
-                    customer = cust.getName().trim();
-                } else if (cust.getUsername() != null && !cust.getUsername().isBlank()) {
-                    customer = cust.getUsername().trim();
-                }
-            }
-
-            // 4. service: application.tradeRole
-            String service = (app.getTradeRole() != null && !app.getTradeRole().isBlank())
-                    ? app.getTradeRole().trim()
-                    : "Professional Service";
-
-            // 5. budget: application.proposedRate
-            String budget = "--";
-            if (app.getProposedRate() != null && app.getProposedRate() > 0) {
-                budget = "₹" + String.format(Locale.ENGLISH, "%,.0f", app.getProposedRate());
-            }
-
-            // 6. status: "Active"
-            String status = "Active";
-
-            // 7. progress: 25
-            Integer progress = 25;
-
-            // 8. nextMilestone: "Drawings & BOQ"
-            String nextMilestone = "Drawings & BOQ";
-
-            // 9. start: application.hiredAt formatted consistently with existing backend conventions
-            LocalDateTime hiredDate = app.getHiredAt() != null ? app.getHiredAt() : app.getCreatedAt();
-            String start = hiredDate != null ? hiredDate.format(startFormatter) : "--";
-
-            // 10. scheduledDate: project.targetStartDate if available, fallback to application.hiredAt as calendar date
-            String scheduledDate = null;
-            if (project != null && project.getTargetStartDate() != null && !project.getTargetStartDate().isBlank()) {
-                scheduledDate = project.getTargetStartDate().trim();
-            } else if (hiredDate != null) {
-                scheduledDate = hiredDate.format(isoFormatter);
-            } else {
-                scheduledDate = LocalDate.now().format(isoFormatter);
-            }
-
-            // 11. deadline: Safest existing project/application value compatible with frontend
-            String deadline = "--";
-            if (project != null && project.getTimeline() != null && !project.getTimeline().isBlank()) {
-                deadline = project.getTimeline().trim();
-            } else if (app.getEstimatedDuration() != null && !app.getEstimatedDuration().isBlank()) {
-                deadline = app.getEstimatedDuration().trim();
-            } else if (project != null && project.getTargetStartDate() != null && !project.getTargetStartDate().isBlank()) {
-                deadline = project.getTargetStartDate().trim();
-            }
-
-            // 12. source: "POST_REQUIREMENT"
-            String source = "POST_REQUIREMENT";
-
-            result.add(new ProfessionalActiveWorkDto(
-                    id, name, customer, service, budget, status, progress, nextMilestone, start, scheduledDate, deadline, source
-            ));
+        List<ProfessionalActiveWorkDto> result = new ArrayList<>(entries.size());
+        for (ActiveWorkSortEntry entry : entries) {
+            result.add(entry.dto);
         }
 
         return result;
+    }
+
+    private static class ActiveWorkSortEntry {
+        final LocalDateTime timestamp;
+        final ProfessionalActiveWorkDto dto;
+
+        ActiveWorkSortEntry(LocalDateTime timestamp, ProfessionalActiveWorkDto dto) {
+            this.timestamp = timestamp;
+            this.dto = dto;
+        }
     }
 
     public static class ProfessionalActiveWorkDto {
