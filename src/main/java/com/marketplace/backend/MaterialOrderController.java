@@ -34,6 +34,42 @@ public class MaterialOrderController {
     }
 
     /**
+     * Dedicated Customer My Orders endpoint:
+     * GET /api/material-orders/customer
+     * GET /api/material-orders/customer-orders
+     *
+     * Security & Business Rules:
+     * 1. JWT authentication required (401 if unauthenticated)
+     * 2. CUSTOMER role required (403 if user lacks CUSTOMER role)
+     * 3. Current authenticated user identity strictly from JWT context (never frontend parameter)
+     * 4. Returns ONLY accepted orders (strictly excludes WAITING_FOR_ACCEPTANCE, CANCELLED, etc.)
+     * 5. User data isolation: Customer A sees ONLY Customer A's accepted orders; Customer B cannot see Customer A's orders.
+     */
+    @GetMapping({"/customer", "/customer-orders"})
+    public ResponseEntity<?> getCustomerMyOrders(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in to view orders."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser user = resolveUser(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "User account not found. Please log in again."));
+        }
+
+        // Section 7 & Test 6: Verify authenticated account has allowed Customer role
+        boolean isCustomer = user.getRoles() != null && user.getRoles().contains(MarketplaceBackendApplication.Role.CUSTOMER);
+        if (!isCustomer) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Only Customer accounts can access Customer My Orders."));
+        }
+
+        List<Map<String, Object>> response = materialOrderService.getAcceptedOrdersForCustomer(user);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Returns orders belonging ONLY to the authenticated buyer.
      */
     @GetMapping("/buyer")

@@ -516,6 +516,90 @@ public class MaterialOrderSystemTest {
         assertTrue(body.get("error").toString().contains("Order database connection failure"));
     }
 
+    // 29. Customer My Orders returns accepted order for User A
+    @Test
+    public void test29_CustomerMyOrders_ReturnsAcceptedOrderForUserA() {
+        MaterialOrder orderA = createMockOrder(7001L, "ORD-2026-00001", materialQuote, materialReq, customerA, "CUSTOMER", seller1);
+        orderA.setOrderStatus("PROCESSING");
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(orderA));
+
+        ResponseEntity<?> response = materialOrderController.getCustomerMyOrders(authCustomerA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertEquals(1, list.size());
+    }
+
+    // 30. Customer My Orders excludes waiting for acceptance order
+    @Test
+    public void test30_CustomerMyOrders_ExcludesWaitingForAcceptanceOrder() {
+        MaterialOrder waitingOrder = createMockOrder(7002L, "ORD-2026-00002", materialQuote, materialReq, customerA, "CUSTOMER", seller1);
+        waitingOrder.setOrderStatus("WAITING_FOR_ACCEPTANCE");
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(waitingOrder));
+
+        ResponseEntity<?> response = materialOrderController.getCustomerMyOrders(authCustomerA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertEquals(0, list.size());
+    }
+
+    // 31. Multi-user isolation: User B never sees User A's orders
+    @Test
+    public void test31_CustomerMyOrders_MultiUserDataIsolation() {
+        MaterialOrder orderA = createMockOrder(7001L, "ORD-2026-00001", materialQuote, materialReq, customerA, "CUSTOMER", seller1);
+        MaterialOrder orderB = createMockOrder(7003L, "ORD-2026-00003", materialQuote, materialReq, customerB, "CUSTOMER", seller1);
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(orderA));
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(2L)).thenReturn(List.of(orderB));
+
+        // Customer A gets only Order A
+        ResponseEntity<?> respA = materialOrderController.getCustomerMyOrders(authCustomerA);
+        List<?> listA = (List<?>) respA.getBody();
+        assertEquals(1, listA.size());
+        Map<?, ?> mapA = (Map<?, ?>) listA.get(0);
+        assertEquals(7001L, mapA.get("id"));
+
+        // Customer B gets only Order B
+        ResponseEntity<?> respB = materialOrderController.getCustomerMyOrders(authCustomerB);
+        List<?> listB = (List<?>) respB.getBody();
+        assertEquals(1, listB.size());
+        Map<?, ?> mapB = (Map<?, ?>) listB.get(0);
+        assertEquals(7003L, mapB.get("id"));
+    }
+
+    // 32. IDOR Protection: User B cannot retrieve User A's order by ID
+    @Test
+    public void test32_IDOR_UserBCannotRetrieveUserAOrder() {
+        MaterialOrder orderA = createMockOrder(7001L, "ORD-2026-00001", materialQuote, materialReq, customerA, "CUSTOMER", seller1);
+        when(materialOrderRepository.findById(7001L)).thenReturn(Optional.of(orderA));
+
+        ResponseEntity<?> response = materialOrderController.getOrderById(7001L, authCustomerB);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    // 33. User A cannot view waiting order via IDOR URL manipulation
+    @Test
+    public void test33_UserACannotViewWaitingOrderById() {
+        MaterialOrder waitingOrder = createMockOrder(7002L, "ORD-2026-00002", materialQuote, materialReq, customerA, "CUSTOMER", seller1);
+        waitingOrder.setOrderStatus("WAITING_FOR_ACCEPTANCE");
+        when(materialOrderRepository.findById(7002L)).thenReturn(Optional.of(waitingOrder));
+
+        ResponseEntity<?> response = materialOrderController.getOrderById(7002L, authCustomerA);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    // 34. Non-Customer role blocked from Customer My Orders endpoint
+    @Test
+    public void test34_NonCustomerRoleBlockedFromCustomerMyOrders() {
+        ResponseEntity<?> response = materialOrderController.getCustomerMyOrders(authSeller1);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    // 35. Unauthenticated user blocked from Customer My Orders endpoint
+    @Test
+    public void test35_UnauthenticatedUserBlockedFromCustomerMyOrders() {
+        ResponseEntity<?> response = materialOrderController.getCustomerMyOrders(null);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
     private MaterialOrder createMockOrder(
             Long id,
             String code,

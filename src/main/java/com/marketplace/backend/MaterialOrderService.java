@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * BUILDBID - MATERIAL ORDER SERVICE (Phase 4A)
@@ -220,12 +221,152 @@ public class MaterialOrderService {
         }
     }
 
+    public static boolean isAcceptedOrderStatus(String status) {
+        if (status == null || status.isBlank()) return false;
+        String s = status.trim().toUpperCase();
+        if ("WAITING_FOR_ACCEPTANCE".equals(s) || 
+            "CANCELLED".equals(s) || 
+            "REJECTED".equals(s) || 
+            "DECLINED".equals(s) || 
+            "EXPIRED".equals(s) || 
+            "DRAFT".equals(s) || 
+            "UNACCEPTED".equals(s) ||
+            "NEW".equals(s)) {
+            return false;
+        }
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public List<MaterialOrder> getOrdersForBuyer(MarketplaceBackendApplication.MarketplaceUser buyer) {
         if (buyer == null || buyer.getId() == null) {
             throw new IllegalArgumentException("Valid buyer authentication required.");
         }
-        return materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(buyer.getId());
+        List<MaterialOrder> orders = materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(buyer.getId());
+        if (orders == null) return Collections.emptyList();
+        return orders.stream()
+                .filter(o -> isAcceptedOrderStatus(o.getOrderStatus()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAcceptedOrdersForCustomer(MarketplaceBackendApplication.MarketplaceUser customer) {
+        if (customer == null || customer.getId() == null) {
+            throw new IllegalArgumentException("Valid customer authentication required.");
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        // 1. Material Orders (Quotation & Multi-Seller accepted orders)
+        List<MaterialOrder> orders = materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(customer.getId());
+        if (orders != null) {
+            for (MaterialOrder o : orders) {
+                if (isAcceptedOrderStatus(o.getOrderStatus())) {
+                    Map<String, Object> map = toResponseMap(o);
+                    map.put("type", o.getMaterialRequest() != null && o.getMaterialRequest().getRequestId() != null ? "MULTI_SELLER" : "STANDARD_ORDER");
+                    map.put("typeLabel", "Multi-Seller Allocation / मल्टी-विक्रेता ऑर्डर");
+                    result.add(map);
+                }
+            }
+        }
+
+        // 2. Direct Buy Orders (stored in MaterialRequest with requestType='DIRECT_MATERIAL')
+        if (materialRequestRepository != null) {
+            List<MaterialRequest> directBuyRequests = materialRequestRepository.findByBuyerOrderByCreatedAtDesc(customer);
+            if (directBuyRequests != null) {
+                for (MaterialRequest mr : directBuyRequests) {
+                    if ("DIRECT_MATERIAL".equalsIgnoreCase(mr.getRequestType()) && isAcceptedOrderStatus(mr.getStatus())) {
+                        result.add(mapDirectBuyRequestToOrderCard(mr));
+                    }
+                }
+            }
+        }
+
+        // Sort unified orders by submittedTimestamp descending
+        result.sort((a, b) -> {
+            long tsA = a.get("submittedTimestamp") instanceof Number ? ((Number) a.get("submittedTimestamp")).longValue() : 0L;
+            long tsB = b.get("submittedTimestamp") instanceof Number ? ((Number) b.get("submittedTimestamp")).longValue() : 0L;
+            return Long.compare(tsB, tsA);
+        });
+
+        return result;
+    }
+
+    private Map<String, Object> mapDirectBuyRequestToOrderCard(MaterialRequest mr) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", mr.getId());
+        String orderCode = mr.getRequestId() != null && !mr.getRequestId().isBlank() ? mr.getRequestId() : ("DMR-" + mr.getId());
+        map.put("orderId", orderCode);
+        map.put("orderCode", orderCode);
+        map.put("backendId", mr.getId());
+        map.put("type", "DIRECT_BUY");
+        map.put("typeLabel", "Direct Buy Order / सीधा खरीद ऑर्डर");
+        map.put("buyerId", mr.getBuyer() != null ? mr.getBuyer().getId() : null);
+        map.put("buyerRole", "CUSTOMER");
+        map.put("materialRequestId", mr.getId());
+        map.put("businessRequestId", mr.getRequestId());
+
+        if (mr.getTargetSeller() != null) {
+            map.put("sellerId", mr.getTargetSeller().getId());
+            map.put("sellerName", mr.getTargetSeller().getName());
+            map.put("sellerBusinessName", mr.getTargetSeller().getName());
+            map.put("sellerPhone", mr.getTargetSeller().getPhone() != null ? mr.getTargetSeller().getPhone() : "");
+            map.put("sellerEmail", mr.getTargetSeller().getEmail() != null ? mr.getTargetSeller().getEmail() : "");
+            map.put("sellerLocation", mr.getTargetSeller().getLocation() != null ? mr.getTargetSeller().getLocation() : "");
+            map.put("sellerAddress", mr.getTargetSeller().getLocation() != null ? mr.getTargetSeller().getLocation() : "");
+        }
+
+        // Material / Items
+        List<Map<String, Object>> itemsList = new ArrayList<>();
+        List<MaterialRequestItem> reqItems = mr.getItems();
+        double itemsSubtotal = 0.0;
+        String materialTitle = "Direct Material Purchase";
+        if (reqItems != null && !reqItems.isEmpty()) {
+            materialTitle = reqItems.get(0).getMaterialName();
+            for (MaterialRequestItem item : reqItems) {
+                Map<String, Object> itemMap = new LinkedHashMap<>();
+                itemMap.put("id", item.getId());
+                itemMap.put("materialName", item.getMaterialName());
+                itemMap.put("quantity", item.getQuantity() != null ? item.getQuantity() : 1.0);
+                itemMap.put("unit", item.getUnit() != null ? item.getUnit() : "Units");
+                double unitPrice = mr.getMaterialPrice() != null ? mr.getMaterialPrice() : (mr.getMaterialAmount() != null ? mr.getMaterialAmount() : 0.0);
+                itemMap.put("unitPrice", unitPrice);
+                double lineTotal = (itemMap.get("quantity") != null ? ((Number) itemMap.get("quantity")).doubleValue() : 1.0) * unitPrice;
+                itemMap.put("subtotal", lineTotal);
+                itemsSubtotal += lineTotal;
+                itemsList.add(itemMap);
+            }
+        }
+        map.put("materialTitle", materialTitle);
+        map.put("items", itemsList);
+
+        double matAmount = mr.getMaterialAmount() != null ? mr.getMaterialAmount() : (mr.getMaterialPrice() != null ? mr.getMaterialPrice() : itemsSubtotal);
+        double freight = mr.getTransportationCost() != null ? mr.getTransportationCost() : 0.0;
+        double tax = 0.0;
+        double total = mr.getEstimatedTotal() != null ? mr.getEstimatedTotal() : (matAmount + freight + tax);
+
+        map.put("materialAmount", matAmount);
+        map.put("transportationAmount", freight);
+        map.put("deliveryCharges", freight);
+        map.put("taxAmount", tax);
+        map.put("taxGst", tax);
+        map.put("totalAmount", total);
+        map.put("currency", "INR");
+
+        map.put("deliveryAddress", mr.getDeliveryAddress() != null ? mr.getDeliveryAddress() : (mr.getCity() != null ? mr.getCity() : "Site Location"));
+        map.put("contactNumber", mr.getContactPhone() != null ? mr.getContactPhone() : "");
+        map.put("expectedDeliveryDate", mr.getExpectedDeliveryDate() != null ? mr.getExpectedDeliveryDate() : "Pending confirmation");
+
+        // Status normalization
+        String rawStatus = mr.getStatus() != null ? mr.getStatus().trim().toUpperCase() : "ACCEPTED";
+        map.put("orderStatus", rawStatus);
+        map.put("rawStatus", rawStatus);
+
+        LocalDateTime createdAt = mr.getCreatedAt() != null ? mr.getCreatedAt() : LocalDateTime.now(IST_ZONE);
+        map.put("createdAt", mr.getCreatedAt() != null ? mr.getCreatedAt().toString() : null);
+        map.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
+        map.put("submittedTimestamp", createdAt.atZone(IST_ZONE).toInstant().toEpochMilli());
+
+        return map;
     }
 
     @Transactional(readOnly = true)
@@ -249,6 +390,11 @@ public class MaterialOrderService {
 
         if (!isBuyer && !isSeller) {
             throw new SecurityException("Unauthorized. You are not allowed to view this order.");
+        }
+
+        // If caller is buyer, order must be in an accepted state to be viewable in Customer My Orders
+        if (isBuyer && !isAcceptedOrderStatus(order.getOrderStatus())) {
+            throw new SecurityException("Order is awaiting seller acceptance and cannot be accessed.");
         }
 
         return order;
