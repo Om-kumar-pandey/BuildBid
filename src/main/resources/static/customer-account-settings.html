@@ -735,37 +735,8 @@
             </form>
           </div>
 
-          <!-- Card 3: Session & Token Security (Real Server-Side Invalidation) -->
+          <!-- Card 3: Revoke All Active Sessions -->
           <div class="security-card" id="sessionSecurityCard">
-            <div class="sec-card-header">
-              <div class="sec-card-title-group">
-                <div class="sec-icon-circle session-circle">
-                  <i class="fa-solid fa-tower-broadcast"></i>
-                </div>
-                <div>
-                  <h4>Session &amp; Token Security</h4>
-                  <p class="sec-card-desc">BuildBid uses stateless cryptographic JWT authentication backed by server-side security timestamps.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="session-info-grid">
-              <div class="session-info-item">
-                <i class="fa-solid fa-shield-halved"></i>
-                <div>
-                  <strong>Server-Side Invalidation</strong>
-                  <p>When you change your password or click revoke, your account's security timestamp is immediately updated server-side. All tokens issued prior to that moment are rejected on every device.</p>
-                </div>
-              </div>
-
-              <div class="session-info-item">
-                <i class="fa-solid fa-fingerprint"></i>
-                <div>
-                  <strong>Stateless Cryptography &amp; Zero Plaintext</strong>
-                  <p>No plaintext passwords or raw tokens are stored on the server. Password credentials are authenticated using salted BCrypt hashing.</p>
-                </div>
-              </div>
-            </div>
 
             <div class="session-danger-zone">
               <div class="danger-zone-details">
