@@ -332,7 +332,7 @@ public class DirectBuyController {
                     buyerRole = "CONTRACTOR";
                     hasEligibleRole = true;
                     break;
-                } else if (r == MarketplaceBackendApplication.Role.PROFESSIONAL) {
+                } else if (r == MarketplaceBackendApplication.Role.PROFESSIONAL || r == MarketplaceBackendApplication.Role.SERVICE_PROVIDER) {
                     buyerRole = "PROFESSIONAL";
                     hasEligibleRole = true;
                     break;

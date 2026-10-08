@@ -56,6 +56,9 @@ function getDashboardUrl() {
     if (roleRaw === "CONTRACTOR") {
       return "contractor-dashboard.html";
     }
+    if (roleRaw === "PROFESSIONAL" || roleRaw === "SERVICE_PROVIDER") {
+      return "professional dashboard.html";
+    }
   }
   return "customer dashboard.html";
 }
@@ -118,10 +121,18 @@ function setupUserHeader() {
     const roleRaw = (user.role || (user.roles && user.roles[0]) || "CUSTOMER").toString().replace("ROLE_", "").toUpperCase();
     const displayName = user.name || user.fullName || user.username || "Buyer";
     const isContractor = roleRaw === "CONTRACTOR";
+    const isProfessional = roleRaw === "PROFESSIONAL" || roleRaw === "SERVICE_PROVIDER";
 
     if (userPill) {
-      const roleBadge = isContractor ? "Contractor — ठेकेदार" : "Customer — ग्राहक";
-      const badgeClass = isContractor ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-blue-500/20 text-blue-300 border-blue-500/30";
+      let roleBadge = "Customer — ग्राहक";
+      let badgeClass = "bg-blue-500/20 text-blue-300 border-blue-500/30";
+      if (isContractor) {
+        roleBadge = "Contractor — ठेकेदार";
+        badgeClass = "bg-amber-500/20 text-amber-300 border-amber-500/30";
+      } else if (isProfessional) {
+        roleBadge = "Professional — पेशेवर";
+        badgeClass = "bg-orange-500/20 text-orange-300 border-orange-500/30";
+      }
 
       userPill.innerHTML = `
         <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}">

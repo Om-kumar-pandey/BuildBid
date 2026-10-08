@@ -41,7 +41,7 @@
   <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <a href="customer dashboard.html" class="flex items-center space-x-2.5">
+        <a id="brandLogoLink" href="customer dashboard.html" class="flex items-center space-x-2.5">
           <img src="logo.png" alt="BuildBid Logo" class="h-9 w-auto object-contain" onerror="this.src='hero-building.jpg'">
           <div>
             <div class="flex items-center space-x-2">
@@ -183,7 +183,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Auto adjust back button based on role
+      // Auto adjust back button and brand logo based on role
       const storageKeys = ["currentUser", "customerUser", "loggedInUser", "marketplaceUser", "userData"];
       let user = null;
       for (const k of storageKeys) {
@@ -195,8 +195,18 @@
       if (user) {
         const role = (user.role || (user.roles && user.roles[0]) || "").toString().toUpperCase();
         const backBtn = document.getElementById("backToDashboardBtn");
-        if (backBtn && role.includes("CONTRACTOR")) {
-          backBtn.href = "contractor-dashboard.html";
+        const brandLink = document.getElementById("brandLogoLink");
+        let targetDashboard = "customer dashboard.html";
+        if (role.includes("CONTRACTOR")) {
+          targetDashboard = "contractor-dashboard.html";
+        } else if (role.includes("PROFESSIONAL") || role.includes("SERVICE_PROVIDER")) {
+          targetDashboard = "professional dashboard.html";
+        }
+        if (backBtn) {
+          backBtn.href = targetDashboard;
+        }
+        if (brandLink) {
+          brandLink.href = targetDashboard;
         }
       }
     });

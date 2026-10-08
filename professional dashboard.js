@@ -1450,6 +1450,9 @@ function navigate(route) {
     case 'reviews':
       renderReviews(container);
       break;
+    case 'buy-material':
+      window.location.href = 'buy-material-select.html';
+      break;
     default:
       renderDashboard(container);
   }
