@@ -142,8 +142,14 @@ public class MyBidController {
         private String remarks;
         private String status;
         private LocalDateTime submittedAt;
+        private LocalDateTime updatedAt;
         private LocalDateTime rejectedAt;
         private LocalDateTime visibleUntil;
+        private String projectCustomId;
+        private String projectType;
+        private String projectLocation;
+        private String projectArea;
+        private String projectFloors;
         private ContactInfoDto contractorContact; // Populated ONLY after assignment is established
         private ContactInfoDto customerContact;   // Populated ONLY for accepted contractor
 
@@ -201,6 +207,24 @@ public class MyBidController {
         public void setContractorContact(ContactInfoDto contractorContact) { this.contractorContact = contractorContact; }
         public ContactInfoDto getCustomerContact() { return customerContact; }
         public void setCustomerContact(ContactInfoDto customerContact) { this.customerContact = customerContact; }
+
+        public LocalDateTime getUpdatedAt() { return updatedAt; }
+        public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+        public String getProjectCustomId() { return projectCustomId; }
+        public void setProjectCustomId(String projectCustomId) { this.projectCustomId = projectCustomId; }
+
+        public String getProjectType() { return projectType; }
+        public void setProjectType(String projectType) { this.projectType = projectType; }
+
+        public String getProjectLocation() { return projectLocation; }
+        public void setProjectLocation(String projectLocation) { this.projectLocation = projectLocation; }
+
+        public String getProjectArea() { return projectArea; }
+        public void setProjectArea(String projectArea) { this.projectArea = projectArea; }
+
+        public String getProjectFloors() { return projectFloors; }
+        public void setProjectFloors(String projectFloors) { this.projectFloors = projectFloors; }
     }
 
     public static class AssignmentResponseDto {
@@ -431,10 +455,30 @@ public class MyBidController {
      * they transition to NOT_SELECTED when another bid is accepted.
      */
     @PostMapping("/api/customer/my-bids/bids/{bidId}/reject")
-    public ResponseEntity<?> rejectBid(@PathVariable("bidId") Long bidId) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "Manual individual bid rejection is not part of the My Bid state machine. Competing bids automatically transition to NOT_SELECTED when an accepted contractor is chosen."
-        ));
+    public ResponseEntity<?> rejectBid(
+            @PathVariable("bidId") Long bidId,
+            Authentication authentication
+    ) {
+        MarketplaceBackendApplication.MarketplaceUser customer = resolveUser(authentication);
+        if (customer == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        if (!hasRole(customer, MarketplaceBackendApplication.Role.CUSTOMER)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Customer access only."));
+        }
+
+        try {
+            MyBid rejectedBid = myBidService.rejectBid(customer, bidId);
+            return ResponseEntity.ok(toCustomerBidDto(rejectedBid, customer));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**
@@ -565,8 +609,19 @@ public class MyBidController {
      * GET /api/contractor/my-bids
      * Default active contractor view (7-day visibility rule applied for NOT_SELECTED bids).
      */
-    @GetMapping("/api/contractor/my-bids")
+    @GetMapping({"/api/contractor/my-bids", "/api/contractor/bids"})
+    public ResponseEntity<?> getContractorBids(
+            @RequestParam(value = "history", required = false, defaultValue = "false") boolean history,
+            Authentication authentication
+    ) {
+        return getContractorBidsInternal(authentication, history);
+    }
+
     public ResponseEntity<?> getContractorBids(Authentication authentication) {
+        return getContractorBidsInternal(authentication, false);
+    }
+
+    private ResponseEntity<?> getContractorBidsInternal(Authentication authentication, boolean history) {
         MarketplaceBackendApplication.MarketplaceUser contractor = resolveUser(authentication);
         if (contractor == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
@@ -575,11 +630,204 @@ public class MyBidController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Contractor access only."));
         }
 
-        List<MyBid> bids = myBidService.getContractorBids(contractor, false);
+        List<MyBid> bids = myBidService.getContractorBids(contractor, history);
         List<BidResponseDto> dtoList = bids.stream()
                 .map(b -> toContractorBidDto(b, contractor))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtoList);
+    }
+
+    /**
+     * GET /api/contractor/my-bids/{bidId}
+     */
+    @GetMapping({"/api/contractor/my-bids/{bidId}", "/api/contractor/bids/{bidId}"})
+    public ResponseEntity<?> getContractorBidDetails(
+            @PathVariable("bidId") Long bidId,
+            Authentication authentication
+    ) {
+        MarketplaceBackendApplication.MarketplaceUser contractor = resolveUser(authentication);
+        if (contractor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        if (!hasRole(contractor, MarketplaceBackendApplication.Role.CONTRACTOR)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Contractor access only."));
+        }
+
+        Optional<MyBid> bidOpt = myBidService.getBidById(bidId);
+        if (bidOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Bid not found with ID: " + bidId));
+        }
+
+        MyBid bid = bidOpt.get();
+        if (bid.getContractor() == null || !bid.getContractor().getId().equals(contractor.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. You do not own this bid."));
+        }
+
+        return ResponseEntity.ok(toContractorBidDto(bid, contractor));
+    }
+
+    /**
+     * PUT /api/contractor/my-bids/{bidId}
+     * Contractor updates their pending bid.
+     */
+    @PutMapping({"/api/contractor/my-bids/{bidId}", "/api/contractor/bids/{bidId}"})
+    public ResponseEntity<?> updateContractorBid(
+            @PathVariable("bidId") Long bidId,
+            @RequestBody MyBidService.UpdateBidRequest request,
+            Authentication authentication
+    ) {
+        MarketplaceBackendApplication.MarketplaceUser contractor = resolveUser(authentication);
+        if (contractor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        if (!hasRole(contractor, MarketplaceBackendApplication.Role.CONTRACTOR)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Contractor access only."));
+        }
+
+        try {
+            MyBid updatedBid = myBidService.updateBid(contractor, bidId, request);
+            return ResponseEntity.ok(toContractorBidDto(updatedBid, contractor));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/contractor/my-bids/{bidId}
+     * Contractor withdraws/deletes their bid.
+     */
+    @DeleteMapping({"/api/contractor/my-bids/{bidId}", "/api/contractor/bids/{bidId}"})
+    public ResponseEntity<?> withdrawContractorBid(
+            @PathVariable("bidId") Long bidId,
+            Authentication authentication
+    ) {
+        MarketplaceBackendApplication.MarketplaceUser contractor = resolveUser(authentication);
+        if (contractor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        if (!hasRole(contractor, MarketplaceBackendApplication.Role.CONTRACTOR)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Contractor access only."));
+        }
+
+        try {
+            MyBid withdrawnBid = myBidService.withdrawBid(contractor, bidId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Bid withdrawn successfully.",
+                    "bidId", bidId,
+                    "status", withdrawnBid.getStatus().name()
+            ));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/bids OR /api/contractor/my-bids OR /api/contractor/projects/{projectId}/bid
+     * Contractor submits a new bid on a project.
+     */
+    @PostMapping({"/api/bids", "/api/contractor/my-bids", "/api/contractor/projects/{projectId}/bid"})
+    public ResponseEntity<?> submitContractorBid(
+            @PathVariable(value = "projectId", required = false) String pathProjectId,
+            @RequestBody Map<String, Object> payload,
+            Authentication authentication
+    ) {
+        MarketplaceBackendApplication.MarketplaceUser contractor = resolveUser(authentication);
+        if (contractor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized. Please log in."));
+        }
+        if (!hasRole(contractor, MarketplaceBackendApplication.Role.CONTRACTOR)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden. Contractor access only."));
+        }
+
+        try {
+            Object rawProjId = pathProjectId != null ? pathProjectId : (payload.get("projectId") != null ? payload.get("projectId") : payload.get("id"));
+            if (rawProjId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Project ID is required."));
+            }
+
+            Long targetProjectId = null;
+            String projIdStr = rawProjId.toString().trim();
+            if (projIdStr.matches("^\\d+$")) {
+                targetProjectId = Long.parseLong(projIdStr);
+            } else {
+                Optional<Project> projOpt = projectRepository.findByProjectId(projIdStr);
+                if (projOpt.isPresent()) {
+                    targetProjectId = projOpt.get().getId();
+                } else if (projIdStr.startsWith("PRJ-") && projIdStr.substring(4).matches("^\\d+$")) {
+                    targetProjectId = Long.parseLong(projIdStr.substring(4));
+                }
+            }
+
+            if (targetProjectId == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found for identifier: " + projIdStr));
+            }
+
+            MyBidService.SubmitBidRequest request = new MyBidService.SubmitBidRequest();
+            Double amount = parseDoubleSafe(payload.get("bidAmount") != null ? payload.get("bidAmount") : payload.get("finalAmount"));
+            if (amount == null || amount <= 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "A valid positive bid amount is required."));
+            }
+            request.setBidAmount(amount);
+
+            if (payload.get("materialCost") != null) request.setMaterialCost(parseDoubleSafe(payload.get("materialCost")));
+            if (payload.get("labourCost") != null) request.setLabourCost(parseDoubleSafe(payload.get("labourCost")));
+            if (payload.get("equipmentCost") != null) request.setEquipmentCost(parseDoubleSafe(payload.get("equipmentCost")));
+            if (payload.get("transportCost") != null) request.setTransportCost(parseDoubleSafe(payload.get("transportCost")));
+            if (payload.get("otherCharges") != null) request.setOtherCharges(parseDoubleSafe(payload.get("otherCharges")));
+
+            if (payload.get("estimatedDuration") != null) request.setEstimatedDuration(payload.get("estimatedDuration").toString());
+            else if (payload.get("duration") != null) request.setEstimatedDuration(payload.get("duration").toString());
+            else if (payload.get("durationDays") != null) request.setEstimatedDuration(payload.get("durationDays") + " Days");
+
+            if (payload.get("proposedTimeline") != null) request.setProposedTimeline(payload.get("proposedTimeline").toString());
+            if (payload.get("workersCount") != null) {
+                try { request.setWorkersCount(Integer.parseInt(payload.get("workersCount").toString())); } catch (Exception ignored) {}
+            }
+
+            if (payload.get("scopeOfWork") != null) request.setScopeOfWork(payload.get("scopeOfWork").toString());
+            else if (payload.get("proposal") != null) request.setScopeOfWork(payload.get("proposal").toString());
+
+            if (payload.get("includedWork") != null) {
+                request.setIncludedWork(formatListOrString(payload.get("includedWork")));
+            } else if (payload.get("includedScope") != null) {
+                request.setIncludedWork(formatListOrString(payload.get("includedScope")));
+            }
+
+            if (payload.get("excludedWork") != null) {
+                request.setExcludedWork(formatListOrString(payload.get("excludedWork")));
+            } else if (payload.get("excludedScope") != null) {
+                request.setExcludedWork(formatListOrString(payload.get("excludedScope")));
+            }
+
+            if (payload.get("paymentTerms") != null) request.setPaymentTerms(payload.get("paymentTerms").toString());
+            if (payload.get("warranty") != null) request.setWarranty(payload.get("warranty").toString());
+            if (payload.get("remarks") != null) request.setRemarks(payload.get("remarks").toString());
+
+            MyBid submittedBid = myBidService.submitBid(contractor, targetProjectId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(toContractorBidDto(submittedBid, contractor));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**
@@ -746,8 +994,16 @@ public class MyBidController {
         BidResponseDto dto = new BidResponseDto();
         dto.setId(b.getId());
         if (b.getProject() != null) {
-            dto.setProjectId(b.getProject().getId());
-            dto.setProjectTitle(b.getProject().getProjectTitle() != null ? b.getProject().getProjectTitle() : b.getProject().getTitle());
+            Project p = b.getProject();
+            dto.setProjectId(p.getId());
+            dto.setProjectCustomId(p.getProjectId());
+            dto.setProjectTitle(p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle());
+            dto.setProjectType(p.getProjectType() != null ? p.getProjectType() : p.getType());
+            String loc = p.getCity() != null ? (p.getState() != null ? p.getCity() + ", " + p.getState() : p.getCity()) : p.getLocation();
+            dto.setProjectLocation(loc);
+            Double areaVal = p.getTotalArea() != null ? p.getTotalArea() : (p.getBuiltUpArea() != null ? p.getBuiltUpArea() : p.getPlotArea());
+            dto.setProjectArea(areaVal != null ? areaVal + " sq.ft." : null);
+            dto.setProjectFloors(p.getFloors());
         }
         if (b.getContractor() != null) {
             dto.setContractorId(b.getContractor().getId());
@@ -770,6 +1026,7 @@ public class MyBidController {
         dto.setRemarks(b.getRemarks());
         dto.setStatus(b.getStatus() != null ? b.getStatus().name() : null);
         dto.setSubmittedAt(b.getSubmittedAt());
+        dto.setUpdatedAt(b.getUpdatedAt());
         dto.setRejectedAt(b.getRejectedAt());
         dto.setVisibleUntil(myBidService.getVisibleUntil(b));
         return dto;
@@ -817,5 +1074,26 @@ public class MyBidController {
     private boolean hasRole(MarketplaceBackendApplication.MarketplaceUser user, MarketplaceBackendApplication.Role role) {
         if (user == null || user.getRoles() == null) return false;
         return user.getRoles().contains(role);
+    }
+
+    private Double parseDoubleSafe(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Number) return ((Number) obj).doubleValue();
+        String str = obj.toString().replaceAll("[^0-9.]", "").trim();
+        if (str.isEmpty()) return null;
+        try {
+            return Double.parseDouble(str);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String formatListOrString(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof List) {
+            List<?> list = (List<?>) obj;
+            return list.stream().map(Object::toString).collect(Collectors.joining("\n"));
+        }
+        return obj.toString();
     }
 }

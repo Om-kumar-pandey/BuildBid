@@ -156,6 +156,74 @@ public class MyBidService {
         public void setRemarks(String remarks) { this.remarks = remarks; }
     }
 
+    /**
+     * DTO for updating an existing pending project bid.
+     */
+    public static class UpdateBidRequest {
+        private Double bidAmount;
+        private Double materialCost;
+        private Double labourCost;
+        private Double equipmentCost;
+        private Double transportCost;
+        private Double otherCharges;
+        private String estimatedDuration;
+        private String proposedTimeline;
+        private Integer workersCount;
+        private String scopeOfWork;
+        private String includedWork;
+        private String excludedWork;
+        private String paymentTerms;
+        private String warranty;
+        private String remarks;
+
+        public UpdateBidRequest() {}
+
+        public Double getBidAmount() { return bidAmount; }
+        public void setBidAmount(Double bidAmount) { this.bidAmount = bidAmount; }
+
+        public Double getMaterialCost() { return materialCost; }
+        public void setMaterialCost(Double materialCost) { this.materialCost = materialCost; }
+
+        public Double getLabourCost() { return labourCost; }
+        public void setLabourCost(Double labourCost) { this.labourCost = labourCost; }
+
+        public Double getEquipmentCost() { return equipmentCost; }
+        public void setEquipmentCost(Double equipmentCost) { this.equipmentCost = equipmentCost; }
+
+        public Double getTransportCost() { return transportCost; }
+        public void setTransportCost(Double transportCost) { this.transportCost = transportCost; }
+
+        public Double getOtherCharges() { return otherCharges; }
+        public void setOtherCharges(Double otherCharges) { this.otherCharges = otherCharges; }
+
+        public String getEstimatedDuration() { return estimatedDuration; }
+        public void setEstimatedDuration(String estimatedDuration) { this.estimatedDuration = estimatedDuration; }
+
+        public String getProposedTimeline() { return proposedTimeline; }
+        public void setProposedTimeline(String proposedTimeline) { this.proposedTimeline = proposedTimeline; }
+
+        public Integer getWorkersCount() { return workersCount; }
+        public void setWorkersCount(Integer workersCount) { this.workersCount = workersCount; }
+
+        public String getScopeOfWork() { return scopeOfWork; }
+        public void setScopeOfWork(String scopeOfWork) { this.scopeOfWork = scopeOfWork; }
+
+        public String getIncludedWork() { return includedWork; }
+        public void setIncludedWork(String includedWork) { this.includedWork = includedWork; }
+
+        public String getExcludedWork() { return excludedWork; }
+        public void setExcludedWork(String excludedWork) { this.excludedWork = excludedWork; }
+
+        public String getPaymentTerms() { return paymentTerms; }
+        public void setPaymentTerms(String paymentTerms) { this.paymentTerms = paymentTerms; }
+
+        public String getWarranty() { return warranty; }
+        public void setWarranty(String warranty) { this.warranty = warranty; }
+
+        public String getRemarks() { return remarks; }
+        public void setRemarks(String remarks) { this.remarks = remarks; }
+    }
+
     // =========================================================================
     // PROJECT-LEVEL CONCURRENCY LOCK MANAGEMENT (Phase 2.1)
     // =========================================================================
@@ -331,7 +399,9 @@ public class MyBidService {
 
         verifyCustomerProjectOwnership(project, customer);
 
-        return myBidRepository.findByProjectIdOrderBySubmittedAtDesc(projectId);
+        return myBidRepository.findByProjectIdOrderBySubmittedAtDesc(projectId).stream()
+                .filter(b -> b.getStatus() != MyBid.Status.WITHDRAWN)
+                .toList();
     }
 
     /**
@@ -784,8 +854,13 @@ public class MyBidService {
     public boolean isBidVisibleToContractor(MyBid bid) {
         if (bid == null) return false;
 
+        // Withdrawn bids are not visible on active contractor dashboard
+        if (bid.getStatus() == MyBid.Status.WITHDRAWN) {
+            return false;
+        }
+
         // Bids with pending, accepted, or declined status remain visible under their own rules
-        if (bid.getStatus() != MyBid.Status.NOT_SELECTED) {
+        if (bid.getStatus() != MyBid.Status.NOT_SELECTED && bid.getStatus() != MyBid.Status.REJECTED) {
             return true;
         }
 
@@ -822,7 +897,9 @@ public class MyBidService {
 
         List<MyBid> allBids = myBidRepository.findByContractorIdOrderBySubmittedAtDesc(contractor.getId());
         if (includeExpiredNotSelected) {
-            return allBids;
+            return allBids.stream()
+                    .filter(b -> b.getStatus() != MyBid.Status.WITHDRAWN)
+                    .toList();
         }
 
         return allBids.stream()
@@ -939,6 +1016,174 @@ public class MyBidService {
     public Optional<MyBidAssignment> getAssignmentById(Long assignmentId) {
         if (assignmentId == null) return Optional.empty();
         return myBidAssignmentRepository.findById(assignmentId);
+    }
+
+    /**
+     * Updates an existing pending contractor bid.
+     * Original submission timestamp (submittedAt) is strictly preserved.
+     */
+    @Transactional
+    public MyBid updateBid(
+            MarketplaceBackendApplication.MarketplaceUser contractor,
+            Long bidId,
+            UpdateBidRequest request
+    ) {
+        if (contractor == null || contractor.getId() == null) {
+            throw new SecurityException("Authentication required: Valid contractor identity required.");
+        }
+        if (!isContractor(contractor)) {
+            throw new SecurityException("Forbidden: User does not hold the CONTRACTOR role.");
+        }
+        if (bidId == null) {
+            throw new IllegalArgumentException("Bid ID cannot be null.");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Update request cannot be null.");
+        }
+
+        MyBid bid = myBidRepository.findById(bidId)
+                .orElseThrow(() -> new NoSuchElementException("Bid not found with ID: " + bidId));
+
+        if (bid.getContractor() == null || !bid.getContractor().getId().equals(contractor.getId())) {
+            throw new SecurityException("Forbidden: You are not authorized to edit this bid.");
+        }
+
+        if (bid.getStatus() != MyBid.Status.PENDING) {
+            throw new IllegalStateException("Only PENDING bids can be edited. Current status: " + bid.getStatus());
+        }
+
+        if (request.getBidAmount() != null) {
+            if (request.getBidAmount() <= 0) {
+                throw new IllegalArgumentException("Valid positive bid amount is required.");
+            }
+            bid.setBidAmount(request.getBidAmount());
+        }
+        if (request.getMaterialCost() != null) bid.setMaterialCost(request.getMaterialCost());
+        if (request.getLabourCost() != null) bid.setLabourCost(request.getLabourCost());
+        if (request.getEquipmentCost() != null) bid.setEquipmentCost(request.getEquipmentCost());
+        if (request.getTransportCost() != null) bid.setTransportCost(request.getTransportCost());
+        if (request.getOtherCharges() != null) bid.setOtherCharges(request.getOtherCharges());
+        if (request.getEstimatedDuration() != null) bid.setEstimatedDuration(request.getEstimatedDuration());
+        if (request.getProposedTimeline() != null) bid.setProposedTimeline(request.getProposedTimeline());
+        if (request.getWorkersCount() != null) bid.setWorkersCount(request.getWorkersCount());
+        if (request.getScopeOfWork() != null) bid.setScopeOfWork(request.getScopeOfWork());
+        if (request.getIncludedWork() != null) bid.setIncludedWork(request.getIncludedWork());
+        if (request.getExcludedWork() != null) bid.setExcludedWork(request.getExcludedWork());
+        if (request.getPaymentTerms() != null) bid.setPaymentTerms(request.getPaymentTerms());
+        if (request.getWarranty() != null) bid.setWarranty(request.getWarranty());
+        if (request.getRemarks() != null) bid.setRemarks(request.getRemarks());
+
+        // submittedAt MUST NEVER BE CHANGED - only updatedAt updates
+        bid.setUpdatedAt(LocalDateTime.now());
+
+        MyBid updatedBid = myBidRepository.save(bid);
+
+        recordAudit(
+                bid.getProject(),
+                updatedBid,
+                contractor,
+                "CONTRACTOR",
+                MyBidAuditHistory.EventType.BID_UPDATED,
+                "Contractor " + contractor.getName() + " updated Bid #" + bid.getId() + " to ₹" + updatedBid.getBidAmount()
+        );
+
+        return updatedBid;
+    }
+
+    /**
+     * Withdraws a contractor bid from active consideration.
+     */
+    @Transactional
+    public MyBid withdrawBid(
+            MarketplaceBackendApplication.MarketplaceUser contractor,
+            Long bidId
+    ) {
+        if (contractor == null || contractor.getId() == null) {
+            throw new SecurityException("Authentication required: Valid contractor identity required.");
+        }
+        if (!isContractor(contractor)) {
+            throw new SecurityException("Forbidden: User does not hold the CONTRACTOR role.");
+        }
+        if (bidId == null) {
+            throw new IllegalArgumentException("Bid ID cannot be null.");
+        }
+
+        MyBid bid = myBidRepository.findById(bidId)
+                .orElseThrow(() -> new NoSuchElementException("Bid not found with ID: " + bidId));
+
+        if (bid.getContractor() == null || !bid.getContractor().getId().equals(contractor.getId())) {
+            throw new SecurityException("Forbidden: You are not authorized to withdraw this bid.");
+        }
+
+        if (bid.getStatus() == MyBid.Status.ACCEPTED) {
+            throw new IllegalStateException("Cannot withdraw an ACCEPTED bid.");
+        }
+        if (bid.getStatus() == MyBid.Status.REJECTED) {
+            throw new IllegalStateException("Cannot withdraw a REJECTED bid.");
+        }
+        if (bid.getStatus() == MyBid.Status.WITHDRAWN) {
+            throw new IllegalStateException("Cannot withdraw a WITHDRAWN bid.");
+        }
+
+        bid.setStatus(MyBid.Status.WITHDRAWN);
+        bid.setUpdatedAt(LocalDateTime.now());
+
+        MyBid saved = myBidRepository.save(bid);
+
+        recordAudit(
+                bid.getProject(),
+                saved,
+                contractor,
+                "CONTRACTOR",
+                MyBidAuditHistory.EventType.BID_WITHDRAWN,
+                "Contractor " + contractor.getName() + " withdrew Bid #" + bid.getId()
+        );
+
+        return saved;
+    }
+
+    /**
+     * Customer explicitly rejects a contractor bid on their project.
+     * Retains the bid in history and sets rejectedAt.
+     */
+    @Transactional
+    public MyBid rejectBid(
+            MarketplaceBackendApplication.MarketplaceUser customer,
+            Long bidId
+    ) {
+        if (customer == null || customer.getId() == null) {
+            throw new SecurityException("Authentication required: Valid customer identity required.");
+        }
+        if (bidId == null) {
+            throw new IllegalArgumentException("Bid ID cannot be null.");
+        }
+
+        MyBid bid = myBidRepository.findById(bidId)
+                .orElseThrow(() -> new NoSuchElementException("Bid not found with ID: " + bidId));
+
+        verifyCustomerBidOwnership(bid, customer);
+
+        if (bid.getStatus() == MyBid.Status.ACCEPTED) {
+            throw new IllegalStateException("Cannot reject an already accepted bid.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        bid.setStatus(MyBid.Status.REJECTED);
+        bid.setRejectedAt(now);
+        bid.setUpdatedAt(now);
+
+        MyBid saved = myBidRepository.save(bid);
+
+        recordAudit(
+                bid.getProject(),
+                saved,
+                customer,
+                "CUSTOMER",
+                MyBidAuditHistory.EventType.BID_REJECTED,
+                "Customer rejected Bid #" + bid.getId()
+        );
+
+        return saved;
     }
 
     // =========================================================================

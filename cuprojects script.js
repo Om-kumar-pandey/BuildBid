@@ -1140,6 +1140,8 @@ function mapBidStatus(rawStatus) {
       return { label: "Accepted — स्वीकृत", badgeClass: "status-accepted" };
     case "NOT_SELECTED":
       return { label: "Not Selected — चयनित नहीं", badgeClass: "status-not-selected" };
+    case "REJECTED":
+      return { label: "Rejected — अस्वीकृत", badgeClass: "status-declined" };
     case "ASSIGNMENT_DECLINED":
       return { label: "Contractor Declined — ठेकेदार ने काम करने से मना किया", badgeClass: "status-declined" };
     case "WITHDRAWN":
@@ -1483,6 +1485,9 @@ function renderBidsModalContent(projectId, bids, activeAssignment, successMessag
               <button type="button" class="btn-accept-bid" onclick="openInlineAcceptModal('${bid.id}', '${projectId}')">
                 <i class="fa-solid fa-check"></i> Accept Bid — बोली स्वीकार करें
               </button>
+              <button type="button" class="btn-reject-bid" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:8px 14px;border-radius:6px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" onclick="rejectInlineBid('${bid.id}', '${projectId}')">
+                <i class="fa-solid fa-xmark"></i> Reject Bid — अस्वीकार करें
+              </button>
             ` : ''}
             ${canReassign ? `
               <button type="button" class="btn-reassign-bid" onclick="openInlineReassignModal('${bid.id}', '${projectId}')">
@@ -1791,6 +1796,26 @@ async function submitInlineAcceptBid() {
     if (confirmTextEl) confirmTextEl.innerHTML = '<i class="fa-solid fa-check"></i> Confirm &amp; Accept — पुष्टि करें और स्वीकार करें';
   }
 }
+
+async function rejectInlineBid(bidId, projectId) {
+  if (!confirm("Are you sure you want to reject this bid? — क्या आप वाकई इस बोली को अस्वीकार करना चाहते हैं?")) return;
+  const token = getCleanToken();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/customer/my-bids/bids/${encodeURIComponent(bidId)}/reject`, {
+      method: "POST",
+      headers: token ? { "Authorization": `Bearer ${token}` } : {}
+    });
+    if (res.ok) {
+      await loadProjectBidsInline(projectId, "Bid has been rejected. — बोली अस्वीकार कर दी गई है।");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed to reject bid.");
+    }
+  } catch (e) {
+    alert("Connection error: " + e.message);
+  }
+}
+window.rejectInlineBid = rejectInlineBid;
 
 // =========================================================
 // CUSTOMER REVOKE ACTIONS (POST /assignments/{id}/revoke)

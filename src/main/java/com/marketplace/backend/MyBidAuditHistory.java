@@ -38,7 +38,10 @@ public class MyBidAuditHistory {
         ASSIGNMENT_DECLINED,
         ACCEPTANCE_WITHDRAWN,
         PROJECT_REOPENED,
-        CONTRACTOR_REASSIGNED
+        CONTRACTOR_REASSIGNED,
+        BID_UPDATED,
+        BID_WITHDRAWN,
+        BID_REJECTED
     }
 
     @Id

@@ -1263,4 +1263,115 @@ public class MyBidServiceTest {
         assertFalse(myBidService.hasActiveAssignment(5002L));
         assertFalse(myBidService.hasActiveAssignment(null));
     }
+
+    // =========================================================================
+    // TEST 28 — SECURITY HARDENING: CONTRACTOR BID WITHDRAW LIFECYCLE & GUARDS
+    // =========================================================================
+    @Test
+    @DisplayName("Test 28: Security hardening: Contractor bid withdraw guards, IDOR protection, and lifecycle synchronization")
+    void test28_withdrawBid_securityHardeningAndLifecycle() {
+        // 1. Pending bid -> withdrawal succeeds
+        MyBid pendingBid = new MyBid();
+        ReflectionTestUtils.setField(pendingBid, "id", 301L);
+        pendingBid.setProject(projectX);
+        pendingBid.setCustomer(customerA);
+        pendingBid.setContractor(contractorA);
+        pendingBid.setStatus(MyBid.Status.PENDING);
+        pendingBid.setBidAmount(4500000.0);
+
+        when(myBidRepository.findById(301L)).thenReturn(Optional.of(pendingBid));
+        when(myBidRepository.save(any(MyBid.class))).thenAnswer(i -> i.getArgument(0));
+
+        MyBid withdrawn = myBidService.withdrawBid(contractorA, 301L);
+        assertEquals(MyBid.Status.WITHDRAWN, withdrawn.getStatus());
+        assertNotNull(withdrawn.getUpdatedAt());
+
+        ArgumentCaptor<MyBidAuditHistory> auditCaptor = ArgumentCaptor.forClass(MyBidAuditHistory.class);
+        verify(myBidAuditHistoryRepository, atLeastOnce()).save(auditCaptor.capture());
+        assertTrue(auditCaptor.getAllValues().stream().anyMatch(a -> a.getEventType() == MyBidAuditHistory.EventType.BID_WITHDRAWN));
+
+        // 2. Accepted bid -> withdrawal remains blocked
+        MyBid acceptedBid = new MyBid();
+        ReflectionTestUtils.setField(acceptedBid, "id", 302L);
+        acceptedBid.setProject(projectX);
+        acceptedBid.setCustomer(customerA);
+        acceptedBid.setContractor(contractorA);
+        acceptedBid.setStatus(MyBid.Status.ACCEPTED);
+
+        when(myBidRepository.findById(302L)).thenReturn(Optional.of(acceptedBid));
+        IllegalStateException exAccepted = assertThrows(IllegalStateException.class, () ->
+                myBidService.withdrawBid(contractorA, 302L)
+        );
+        assertEquals("Cannot withdraw an ACCEPTED bid.", exAccepted.getMessage());
+
+        // 3. Rejected bid -> withdrawal is blocked at service layer
+        LocalDateTime rejectedTimestamp = LocalDateTime.now().minusHours(2);
+        MyBid rejectedBid = new MyBid();
+        ReflectionTestUtils.setField(rejectedBid, "id", 303L);
+        rejectedBid.setProject(projectX);
+        rejectedBid.setCustomer(customerA);
+        rejectedBid.setContractor(contractorA);
+        rejectedBid.setStatus(MyBid.Status.REJECTED);
+        rejectedBid.setRejectedAt(rejectedTimestamp);
+
+        when(myBidRepository.findById(303L)).thenReturn(Optional.of(rejectedBid));
+        IllegalStateException exRejected = assertThrows(IllegalStateException.class, () ->
+                myBidService.withdrawBid(contractorA, 303L)
+        );
+        assertEquals("Cannot withdraw a REJECTED bid.", exRejected.getMessage());
+        // Verify rejection history remains intact (status not mutated, timestamp preserved)
+        assertEquals(MyBid.Status.REJECTED, rejectedBid.getStatus());
+        assertEquals(rejectedTimestamp, rejectedBid.getRejectedAt());
+
+        // 4. Withdrawn bid -> repeated withdrawal remains blocked
+        MyBid alreadyWithdrawnBid = new MyBid();
+        ReflectionTestUtils.setField(alreadyWithdrawnBid, "id", 304L);
+        alreadyWithdrawnBid.setProject(projectX);
+        alreadyWithdrawnBid.setCustomer(customerA);
+        alreadyWithdrawnBid.setContractor(contractorA);
+        alreadyWithdrawnBid.setStatus(MyBid.Status.WITHDRAWN);
+
+        when(myBidRepository.findById(304L)).thenReturn(Optional.of(alreadyWithdrawnBid));
+        IllegalStateException exWithdrawn = assertThrows(IllegalStateException.class, () ->
+                myBidService.withdrawBid(contractorA, 304L)
+        );
+        assertEquals("Cannot withdraw a WITHDRAWN bid.", exWithdrawn.getMessage());
+
+        // 5. Contractor ownership / IDOR protection remains intact
+        SecurityException exIdor = assertThrows(SecurityException.class, () ->
+                myBidService.withdrawBid(contractorB, 301L)
+        );
+        assertTrue(exIdor.getMessage().contains("You are not authorized to withdraw this bid"));
+
+        // Role restriction remains intact
+        SecurityException exRole = assertThrows(SecurityException.class, () ->
+                myBidService.withdrawBid(regularUser, 301L)
+        );
+        assertTrue(exRole.getMessage().contains("CONTRACTOR"));
+
+        // 6. Existing edit restriction remains intact for withdrawn bids
+        MyBidService.UpdateBidRequest updateReq = new MyBidService.UpdateBidRequest();
+        updateReq.setBidAmount(4000000.0);
+        IllegalStateException exEdit = assertThrows(IllegalStateException.class, () ->
+                myBidService.updateBid(contractorA, 304L, updateReq)
+        );
+        assertTrue(exEdit.getMessage().contains("Only PENDING bids can be edited"));
+
+        // 7. Existing customer-side synchronization remains intact
+        MyBid activePendingBid = new MyBid();
+        ReflectionTestUtils.setField(activePendingBid, "id", 305L);
+        activePendingBid.setProject(projectX);
+        activePendingBid.setCustomer(customerA);
+        activePendingBid.setContractor(contractorA);
+        activePendingBid.setStatus(MyBid.Status.PENDING);
+
+        when(myBidRepository.findByProjectIdOrderBySubmittedAtDesc(5001L))
+                .thenReturn(Arrays.asList(activePendingBid, rejectedBid, alreadyWithdrawnBid));
+
+        List<MyBid> visibleCustomerBids = myBidService.getCustomerProjectBids(customerA, 5001L);
+        assertEquals(2, visibleCustomerBids.size());
+        assertTrue(visibleCustomerBids.contains(activePendingBid));
+        assertTrue(visibleCustomerBids.contains(rejectedBid));
+        assertFalse(visibleCustomerBids.contains(alreadyWithdrawnBid));
+    }
 }

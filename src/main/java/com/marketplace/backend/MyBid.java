@@ -34,6 +34,7 @@ public class MyBid {
     public enum Status {
         PENDING,
         ACCEPTED,
+        REJECTED,
         NOT_SELECTED,
         ASSIGNMENT_DECLINED,
         WITHDRAWN
