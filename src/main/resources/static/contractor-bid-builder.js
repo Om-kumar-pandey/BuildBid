@@ -1,5 +1,6 @@
 /* =========================================================
    BUILDBID CONTRACTOR BID BUILDER - COMPLETELY DYNAMIC ENGINE
+   Project-Type-Aware, Zero-Pre-Fill, Bilingual Sequential Flow
    ========================================================= */
 
 function getApiBaseUrl() {
@@ -38,6 +39,7 @@ function getCleanToken() {
 let currentStep = 1;
 const totalSteps = 17;
 let activeProject = null;
+let projectMode = "NEW_CONSTRUCTION"; // NEW_CONSTRUCTION | RENOVATION | EXTENSION | INTERIOR | COMMERCIAL | INDUSTRIAL | OTHER
 
 // 1. DYNAMIC INITIALIZATION & DATA POPULATION
 document.addEventListener("DOMContentLoaded", async function() {
@@ -46,10 +48,14 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     const today = new Date();
     const startDateInp = document.getElementById("startDate");
-    if (startDateInp) startDateInp.value = today.toISOString().split("T")[0];
-    calculateCompletion();
+    if (startDateInp && !startDateInp.value) {
+        startDateInp.value = today.toISOString().split("T")[0];
+    }
 
     populateDefaultDynamicTables();
+
+    // Check if there is an existing draft saved by the contractor
+    loadDraftIfAvailable();
 
     calculateTotals();
     calculateMaterialTotal();
@@ -57,6 +63,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     calculateFinalBid();
     calculatePayments();
     updateProgress();
+    updateStepperUI();
     updateNavigation();
 });
 
@@ -91,7 +98,7 @@ async function initDynamicProjectData() {
     const projectIdFromUrl = urlParams.get("projectId");
 
     if (!projectIdFromUrl) {
-        alert("No Project ID provided. Please select a project from Contractor Projects or Dashboard.");
+        alert("No Project ID provided. Please select a project from Contractor Projects or Dashboard.\nकोई परियोजना आईडी नहीं दी गई। कृपया डैशबोर्ड से एक परियोजना चुनें।");
         const sideTitle = document.getElementById("sidebarProjectTitle");
         if (sideTitle) sideTitle.textContent = "No Project Selected";
         const sideId = document.getElementById("sidebarProjectId");
@@ -161,11 +168,11 @@ async function initDynamicProjectData() {
                 requirements: desc
             };
         } else if (res.status === 401) {
-            alert("Session expired or unauthorized. Please log in as a verified Contractor.");
+            alert("Session expired or unauthorized. Please log in as a verified Contractor.\nसत्र समाप्त। कृपया सत्यापित ठेकेदार के रूप में लॉगिन करें।");
             window.location.href = "index.html";
             return;
         } else if (res.status === 403) {
-            alert("Access restricted: Verified contractor account required.");
+            alert("Access restricted: Verified contractor account required.\nपहुंच प्रतिबंधित: सत्यापित ठेकेदार खाता आवश्यक है।");
             window.location.href = "index.html";
             return;
         } else {
@@ -184,7 +191,10 @@ async function initDynamicProjectData() {
         return;
     }
 
-    // Populate Sidebar & Step 1 Inputs dynamically
+    // Determine Project Mode
+    detectProjectMode(activeProject.projectType);
+
+    // Populate Sidebar & Step 1 Inputs dynamically (CUSTOMER REFERENCE DATA ONLY)
     const elSidebarTitle = document.getElementById("sidebarProjectTitle");
     if (elSidebarTitle) elSidebarTitle.textContent = activeProject.title || "Project";
     const elSidebarId = document.getElementById("sidebarProjectId");
@@ -215,99 +225,326 @@ async function initDynamicProjectData() {
     if (elDynReq) elDynReq.value = activeProject.requirements || "";
 
     const elBidTitle = document.getElementById("bidTitle");
-    if (elBidTitle) elBidTitle.value = `Quotation for ${activeProject.title}`;
+    if (elBidTitle && !elBidTitle.value) {
+        elBidTitle.value = `Quotation for ${activeProject.title}`;
+    }
+
+    // Apply Project-Type-Aware Step 3 Headers & Stepper Titles
+    applyProjectTypeCustomizations();
 }
 
-// 2. DEFAULT DYNAMIC TABLES SEEDING
+function detectProjectMode(projectTypeStr) {
+    const pt = (projectTypeStr || "").toLowerCase();
+    if (pt.includes("renovat") || pt.includes("remodel")) {
+        projectMode = "RENOVATION";
+    } else if (pt.includes("extension")) {
+        projectMode = "EXTENSION";
+    } else if (pt.includes("interior") || pt.includes("finishing")) {
+        projectMode = "INTERIOR";
+    } else if (pt.includes("commercial")) {
+        projectMode = "COMMERCIAL";
+    } else if (pt.includes("industrial") || pt.includes("warehouse")) {
+        projectMode = "INDUSTRIAL";
+    } else if (pt.includes("other")) {
+        projectMode = "OTHER";
+    } else {
+        projectMode = "NEW_CONSTRUCTION";
+    }
+}
+
+function applyProjectTypeCustomizations() {
+    const pill3Title = document.getElementById("pill-3") || document.getElementById("stepPill3Title");
+    const step3Title = document.getElementById("step3Title");
+    const step3Subtitle = document.getElementById("step3Subtitle");
+    const btnAddFloor = document.getElementById("btnAddFloor");
+
+    if (projectMode === "RENOVATION") {
+        if (pill3Title) pill3Title.innerHTML = `3. Renovation Scope — नवीनीकरण कार्यक्षेत्र`;
+        if (step3Title) step3Title.textContent = "Renovation Scope & Floor Cost — नवीनीकरण कार्यक्षेत्र एवं मंजिल लागत";
+        if (step3Subtitle) step3Subtitle.textContent = "Itemized quotation for client's renovation floors/rooms. Excludes structural new-construction items. — ग्राहक के नवीनीकरण मंजिलों/कमरों के लिए कार्य-वार कोटेशन। नई संरचनात्मक मदें शामिल नहीं हैं।";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Renovation Area / Floor — नवीनीकरण क्षेत्र / मंजिल जोड़ें`;
+    } else if (projectMode === "EXTENSION") {
+        if (pill3Title) pill3Title.innerHTML = `3. Extension Scope — विस्तार कार्यक्षेत्र`;
+        if (step3Title) step3Title.textContent = "Home Extension Cost Breakdown — होम एक्सटेंशन लागत विवरण";
+        if (step3Subtitle) step3Subtitle.textContent = "Cost breakdown for structural extension, additions, and connecting works. — संरचनात्मक विस्तार और अतिरिक्त निर्माण कार्यों की लागत का विवरण।";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Extension Section — विस्तार अनुभाग जोड़ें`;
+    } else if (projectMode === "INTERIOR") {
+        if (pill3Title) pill3Title.innerHTML = `3. Interior Scope — इंटीरियर कार्यक्षेत्र`;
+        if (step3Title) step3Title.textContent = "Interior & Finishing Breakdown — इंटीरियर एवं फिनिशिंग विवरण";
+        if (step3Subtitle) step3Subtitle.textContent = "Room-by-room quotation for false ceiling, woodwork, flooring, and finishes. — फॉल्स सीलिंग, वुडवर्क, फ्लोरिंग और फिनिशिंग का कमरा-वार कोटेशन।";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Interior Zone — इंटीरियर ज़ोन जोड़ें`;
+    } else if (projectMode === "COMMERCIAL") {
+        if (pill3Title) pill3Title.innerHTML = `3. Commercial Breakdown — वाणिज्यिक विवरण`;
+        if (step3Title) step3Title.textContent = "Commercial Construction Cost Breakdown — वाणिज्यिक निर्माण लागत विवरण";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Commercial Block/Floor — वाणिज्यिक ब्लॉक/मंजिल जोड़ें`;
+    } else if (projectMode === "INDUSTRIAL") {
+        if (pill3Title) pill3Title.innerHTML = `3. Industrial Breakdown — औद्योगिक विवरण`;
+        if (step3Title) step3Title.textContent = "Industrial / Warehouse Breakdown — औद्योगिक / शेड विवरण";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Bay / Shed Section — बे / शेड सेक्शन जोड़ें`;
+    } else if (projectMode === "OTHER") {
+        if (pill3Title) pill3Title.innerHTML = `3. Custom Scope — कस्टम कार्यक्षेत्र`;
+        if (step3Title) step3Title.textContent = "Custom Project Scope & Cost Breakdown — कस्टम परियोजना कार्यक्षेत्र एवं लागत विवरण";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Scope Section — कार्यक्षेत्र अनुभाग जोड़ें`;
+    } else {
+        // NEW_CONSTRUCTION
+        if (pill3Title) pill3Title.innerHTML = `3. Scope — कार्यक्षेत्र`;
+        if (step3Title) step3Title.textContent = "Floor-wise Cost Breakdown — मंजिल-वार लागत विवरण";
+        if (step3Subtitle) step3Subtitle.textContent = "Breakdown of estimated costs across different floors for this project. — इस परियोजना के लिए विभिन्न मंजिलों पर अनुमानित लागत का विवरण।";
+        if (btnAddFloor) btnAddFloor.innerHTML = `<i class="fa-solid fa-plus"></i> Add Floor Breakdown — नई मंजिल जोड़ें`;
+    }
+}
+
+// 2. DEFAULT DYNAMIC TABLES SEEDING (STRICT NO PRE-FILLED QUOTATION DATA)
 function populateDefaultDynamicTables() {
-    // Floors
     const floorContainer = document.getElementById("floorsContainer");
     floorContainer.innerHTML = "";
-    addFloor("Ground Floor", 1200, 180000, 250000, 120000, 60000, 70000, 50000, 40000, 50000, 30000);
-    addFloor("First Floor", 1200, 0, 220000, 110000, 60000, 70000, 50000, 40000, 50000, 30000);
 
-    // Materials
+    if (projectMode === "RENOVATION") {
+        // Floor/Room-specific renovation cards tailored to customer requirement
+        const rawFloors = (activeProject && activeProject.floors) ? String(activeProject.floors).toLowerCase() : "";
+        if (rawFloors.includes("first") && rawFloors.includes("ground")) {
+            addRenovationFloor("Ground Floor Renovation — भूतल नवीनीकरण");
+            addRenovationFloor("First Floor Renovation — प्रथम तल नवीनीकरण");
+        } else if (rawFloors.includes("first")) {
+            addRenovationFloor("First Floor Renovation — प्रथम तल नवीनीकरण");
+        } else if (rawFloors.includes("ground")) {
+            addRenovationFloor("Ground Floor Renovation — भूतल नवीनीकरण");
+        } else {
+            addRenovationFloor("Renovation Scope Area 1 — नवीनीकरण कार्यक्षेत्र 1");
+        }
+    } else if (projectMode === "EXTENSION") {
+        addExtensionFloor("Extension Work Section — विस्तार कार्य अनुभाग");
+    } else if (projectMode === "INTERIOR") {
+        addInteriorFloor("Interior & Finishing Zone 1 — इंटीरियर ज़ोन 1");
+    } else {
+        // NEW_CONSTRUCTION or default
+        addFloor("Ground Floor — भूतल");
+        addFloor("First Floor — प्रथम तल");
+    }
+
+    // Materials - Template rows with strictly EMPTY quantities and rates
     const matTable = document.querySelector("#materialsTable tbody");
     matTable.innerHTML = "";
-    addMaterialRowData("Cement (OPC/PPC 53 Grade)", "Cement", 500, "Bags", 420, "UltraTech / ACC", "IS 12269", "Contractor");
-    addMaterialRowData("TMT Reinforcement Steel (Fe 550D)", "TMT Steel", 4, "Tons", 62000, "Tata Tiscon / Jindal", "IS 1786", "Contractor");
-    addMaterialRowData("Red Clay Bricks / AAC Blocks", "Bricks", 18000, "Pcs", 9, "Standard Grade", "Class 1", "Contractor");
+    addMaterialRowData("Cement (OPC/PPC 53 Grade)", "Cement", "", "Bags", "", "UltraTech / ACC", "IS 12269", "Contractor");
+    addMaterialRowData("TMT Reinforcement Steel (Fe 550D)", "TMT Steel", "", "Tons", "", "Tata Tiscon / Jindal", "IS 1786", "Contractor");
+    addMaterialRowData("Red Clay Bricks / AAC Blocks", "Bricks", "", "Pcs", "", "Standard Grade", "Class 1", "Contractor");
 
-    // Labour
+    // Labour - Trade rows with strictly EMPTY workers, days, and rates
     const labTable = document.querySelector("#labourTable tbody");
     labTable.innerHTML = "";
-    addLabourRowData("Mason", 4, 45, 900, "Brickwork & RCC");
-    addLabourRowData("Helper / Unskilled Labour", 6, 45, 550, "Material handling & curing");
-    addLabourRowData("Bar Bender & Shuttering", 4, 25, 850, "Slab & column framework");
+    addLabourRowData("Mason — राजमिस्त्री", "", "", "", "Brickwork & plaster");
+    addLabourRowData("Helper / Labour — मजदूर", "", "", "", "Material handling & curing");
+    addLabourRowData("Bar Bender & Shuttering — शटरिंग कारीगर", "", "", "", "Framework & steel bending");
 
-    // Construction Work
+    // Construction Work - Category rows with strictly EMPTY quantities and rates
     const workTable = document.querySelector("#workTable tbody");
     workTable.innerHTML = "";
-    addWorkRowData("Excavation", "Site clearing and earth excavation for foundation", 1200, "sq.ft.", 25, "Up to 5ft depth");
-    addWorkRowData("RCC", "Slab casting and column shuttering work", 2400, "sq.ft.", 120, "M20 Grade Mix");
+    if (projectMode === "RENOVATION") {
+        addWorkRowData("Demolition & Prep", "Removal of existing fittings, debris clearance", "", "sq.ft.", "", "Site preparation");
+        addWorkRowData("Finishing Work", "Tiling, skim coat plastering and repainting", "", "sq.ft.", "", "Surface finishing");
+    } else {
+        addWorkRowData("Excavation", "Site clearing and earth excavation for foundation", "", "sq.ft.", "", "Up to 5ft depth");
+        addWorkRowData("RCC", "Slab casting and column shuttering work", "", "sq.ft.", "", "M20 Grade Mix");
+    }
 
-    // Equipment
+    // Equipment - Empty inputs
     const eqTable = document.querySelector("#equipmentTable tbody");
     eqTable.innerHTML = "";
-    addEquipmentRowData("Concrete Mixer & Vibrator", 1, 15, 2500, "On-site slab casting");
+    addEquipmentRowData("Concrete Mixer & Vibrator", "", "", "", "On-site slab casting");
 
-    // Transport
+    // Transport - Empty inputs
     const trTable = document.querySelector("#transportTable tbody");
     trTable.innerHTML = "";
-    addTransportRowData("Material Transportation", "Bulk delivery of aggregate, sand and cement", 12, "Trips", 2200, "Tipper Truck");
+    addTransportRowData("Material Transportation", "Bulk delivery of aggregate, sand and cement", "", "Trips", "", "Tipper Truck");
 
-    // Other
+    // Other - Empty inputs
     const otherTable = document.querySelector("#otherTable tbody");
     otherTable.innerHTML = "";
-    addOtherRowData("Site Setup & Storage", "Temporary shed, power arrangement and security", 18000, "Initial site preparation");
+    addOtherRowData("Site Setup & Storage", "Temporary shed, power arrangement and security", "", "Initial site preparation");
 
-    // Payments
+    // Payments - Percentage milestones start EMPTY so contractor enters their own schedule totaling 100%
     const payTable = document.querySelector("#paymentTable tbody");
     payTable.innerHTML = "";
-    addPaymentRowData("Advance on Agreement", 15, "Mobilization advance");
-    addPaymentRowData("Plinth Level Completion", 25, "After foundation & plinth beam");
-    addPaymentRowData("Roof Slab Casting", 30, "After structural frame completion");
-    addPaymentRowData("Brickwork & Plaster", 20, "After internal/external plaster");
-    addPaymentRowData("Final Finishing & Handover", 10, "Keys handover & clearance");
+    addPaymentRowData("Advance on Agreement — अनुबंध पर अग्रिम", "", "Mobilization advance");
+    addPaymentRowData("Foundation / Plinth / Initial Phase — प्रारंभिक चरण", "", "Milestone stage 1");
+    addPaymentRowData("Mid-stage Execution — मध्यवर्ती निर्माण", "", "Milestone stage 2");
+    addPaymentRowData("Finishing & Installations — फिनिशिंग कार्य", "", "Milestone stage 3");
+    addPaymentRowData("Final Handover & Clearance — अंतिम हैंडओवर", "", "Keys handover");
 
-    // Warranty
+    // Warranty - Durations start EMPTY
     const warTable = document.querySelector("#warrantyTable tbody");
     warTable.innerHTML = "";
-    addWarrantyRowData("Civil Work", 120, "Months", "10 Years Structural warranty on RCC frame");
-    addWarrantyRowData("Waterproofing", 60, "Months", "5 Years Terrace & toilet leakage guarantee");
+    addWarrantyRowData("Civil Work — सिविल कार्य", "", "Months", "Structural guarantee");
+    addWarrantyRowData("Waterproofing — वॉटरप्रूफिंग", "", "Months", "Leakage guarantee");
 
-    // Included Work
+    // Scope Inclusions & Exclusions - Default guideline items (contractor editable)
     const incList = document.getElementById("includedList");
     incList.innerHTML = "";
-    addIncludedRowData("Complete excavation and PCC foundation");
-    addIncludedRowData("RCC columns, beams and slab work");
-    addIncludedRowData("Internal and external double-coat plastering");
-    addIncludedRowData("Concealed electrical wiring with modular boxes");
-    addIncludedRowData("Concealed CPVC/UPVC plumbing lines");
+    addIncludedRowData("Execution strictly according to approved architectural drawings");
+    addIncludedRowData("Standard safety measures and site maintenance during work");
 
-    // Excluded Work
     const excList = document.getElementById("excludedList");
     excList.innerHTML = "";
-    addExcludedRowData("Government electricity meter & water connection charges");
-    addExcludedRowData("Loose furniture, curtains, modular wardrobes");
-    addExcludedRowData("Exterior landscaping & boundary wall decoration");
+    addExcludedRowData("Government electricity meter & permanent water connection official charges");
+    addExcludedRowData("Loose furniture, soft decor, and external municipal approvals");
 }
 
-// 3. NAVIGATION CONTROLS
+// 3. SEQUENTIAL STEP LOCKING & VALIDATION ENGINE
+function validateStep(stepNum) {
+    if (stepNum === 1) {
+        if (!activeProject || !activeProject.id) {
+            return {
+                valid: false,
+                messageEn: "Project reference data is not loaded. Please select a valid project.",
+                messageHi: "परियोजना संदर्भ डेटा लोड नहीं हुआ है। कृपया एक मान्य परियोजना चुनें।"
+            };
+        }
+        return { valid: true };
+    }
+
+    if (stepNum === 2) {
+        const title = (document.getElementById("bidTitle")?.value || "").trim();
+        if (!title) {
+            return {
+                valid: false,
+                messageEn: "Please enter Quotation Title in Proposal Details.",
+                messageHi: "कृपया प्रस्ताव विवरण में कोटेशन शीर्षक दर्ज करें।"
+            };
+        }
+        // NOTE: Descriptions (English & Hindi) and Bio are strictly OPTIONAL!
+        return { valid: true };
+    }
+
+    if (stepNum === 3) {
+        const cards = document.querySelectorAll("#floorsContainer .floor-card, #floorsContainer .renov-scope-card");
+        if (cards.length === 0) {
+            return {
+                valid: false,
+                messageEn: "Please configure at least one floor or renovation scope card.",
+                messageHi: "कृपया कम से कम एक मंजिल या नवीनीकरण कार्यक्षेत्र कार्ड जोड़ें।"
+            };
+        }
+        return { valid: true };
+    }
+
+    if (stepNum === 10) {
+        const finalAmount = getFinalBid();
+        if (finalAmount <= 0) {
+            return {
+                valid: false,
+                messageEn: "Total quotation amount must be greater than zero. Please enter your rates.",
+                messageHi: "कुल कोटेशन राशि शून्य से अधिक होनी चाहिए। कृपया अपनी दरें दर्ज करें।"
+            };
+        }
+        return { valid: true };
+    }
+
+    if (stepNum === 11) {
+        const start = document.getElementById("startDate")?.value;
+        const duration = Number(document.getElementById("duration")?.value);
+        if (!start) {
+            return {
+                valid: false,
+                messageEn: "Please select an estimated project start date.",
+                messageHi: "कृपया अनुमानित परियोजना प्रारंभ तिथि चुनें।"
+            };
+        }
+        if (!duration || duration <= 0) {
+            return {
+                valid: false,
+                messageEn: "Please enter a valid project duration in days.",
+                messageHi: "कृपया दिनों में मान्य परियोजना अवधि दर्ज करें।"
+            };
+        }
+        return { valid: true };
+    }
+
+    if (stepNum === 12) {
+        const totalPct = calculatePaymentPercentage();
+        if (totalPct !== 100) {
+            return {
+                valid: false,
+                messageEn: `Payment milestone schedule must total exactly 100%. (Current total: ${totalPct}%)`,
+                messageHi: `भुगतान मील का पत्थर अनुसूची का कुल योग ठीक 100% होना चाहिए। (वर्तमान कुल: ${totalPct}%)`
+            };
+        }
+        return { valid: true };
+    }
+
+    if (stepNum === 17) {
+        const confirmCb = document.getElementById("confirmTerms");
+        if (confirmCb && !confirmCb.checked) {
+            return {
+                valid: false,
+                messageEn: "Please confirm that the quotation information is accurate before submitting.",
+                messageHi: "कृपया जमा करने से पहले पुष्टि करें कि कोटेशन की जानकारी सटीक है।"
+            };
+        }
+        return { valid: true };
+    }
+
+    // Steps 4 to 9, 13 to 16 are optional or populated dynamically
+    return { valid: true };
+}
+
+function canAccessStep(targetStep) {
+    if (targetStep <= 1) return { allowed: true };
+
+    for (let s = 1; s < targetStep; s++) {
+        const check = validateStep(s);
+        if (!check.valid) {
+            return {
+                allowed: false,
+                blockingStep: s,
+                messageEn: check.messageEn,
+                messageHi: check.messageHi
+            };
+        }
+    }
+    return { allowed: true };
+}
+
+function showStepValidationBanner(stepNum, msgEn, msgHi) {
+    const banner = document.getElementById("stepValidationBanner");
+    if (!banner) return;
+    banner.innerHTML = `
+        <div class="banner-content">
+            <div class="banner-title"><i class="fa-solid fa-triangle-exclamation"></i> Step ${stepNum} Incomplete — चरण ${stepNum} अपूर्ण है</div>
+            <div class="banner-desc">${msgEn}<br><span class="label-hi">${msgHi}</span></div>
+        </div>
+        <button class="banner-close" type="button" onclick="hideStepValidationBanner()">&times;</button>
+    `;
+    banner.style.display = "flex";
+    banner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function hideStepValidationBanner() {
+    const banner = document.getElementById("stepValidationBanner");
+    if (banner) banner.style.display = "none";
+}
+
+// 4. NAVIGATION CONTROLS & STEPPER UI
 function goToStep(step) {
     if (step < 1 || step > totalSteps) return;
 
-    document.querySelectorAll(".bid-section").forEach(s => s.classList.remove("active"));
-    document.getElementById("step" + step).classList.add("active");
+    // Sequential Step Locking: Validate previous steps before jumping forward
+    if (step > currentStep) {
+        const check = canAccessStep(step);
+        if (!check.allowed) {
+            showStepValidationBanner(check.blockingStep, check.messageEn, check.messageHi);
+            return;
+        }
+    }
 
-    document.querySelectorAll(".step").forEach((item, index) => {
-        item.classList.remove("active");
-        if (index + 1 < step) item.classList.add("completed");
-        if (index + 1 === step) item.classList.add("active");
-    });
+    hideStepValidationBanner();
+
+    document.querySelectorAll(".bid-section").forEach(s => s.classList.remove("active"));
+    const targetSection = document.getElementById("step" + step);
+    if (targetSection) targetSection.classList.add("active");
 
     currentStep = step;
     updateProgress();
+    updateStepperUI();
     updateNavigation();
 
     if (step === 17) updateReview();
@@ -315,35 +552,65 @@ function goToStep(step) {
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function tryGoToStep(step) {
+    goToStep(step);
+}
+if (typeof window !== "undefined") {
+    window.tryGoToStep = goToStep;
+}
+
 function nextStep() {
-    if (currentStep === 12) {
-        const total = calculatePaymentPercentage();
-        if (total !== 100) {
-            alert(`Payment schedule must total exactly 100%. Current total: ${total}%`);
-            return;
-        }
+    const check = canAccessStep(currentStep + 1);
+    if (!check.allowed) {
+        showStepValidationBanner(check.blockingStep, check.messageEn, check.messageHi);
+        return;
     }
-    if (currentStep < totalSteps) goToStep(currentStep + 1);
+    if (currentStep < totalSteps) {
+        goToStep(currentStep + 1);
+    }
 }
 
 function previousStep() {
-    if (currentStep > 1) goToStep(currentStep - 1);
+    if (currentStep > 1) {
+        goToStep(currentStep - 1);
+    }
+}
+
+function updateStepperUI() {
+    const pills = document.querySelectorAll(".step-pill");
+    pills.forEach((item, index) => {
+        const stepNum = index + 1;
+        item.classList.remove("active", "completed", "locked");
+
+        if (stepNum < currentStep) {
+            item.classList.add("completed");
+        } else if (stepNum === currentStep) {
+            item.classList.add("active");
+        } else {
+            // Check if this upcoming step is locked
+            const access = canAccessStep(stepNum);
+            if (!access.allowed) {
+                item.classList.add("locked");
+            }
+        }
+    });
 }
 
 function updateProgress() {
     const percentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
-    document.getElementById("progressBar").style.width = percentage + "%";
+    const bar = document.getElementById("progressBar");
+    if (bar) bar.style.width = percentage + "%";
 }
 
 function updateNavigation() {
     const nextButton = document.getElementById("nextButton");
     const submitButton = document.getElementById("submitButton");
     if (currentStep === totalSteps) {
-        nextButton.style.display = "none";
-        submitButton.style.display = "block";
+        if (nextButton) nextButton.style.display = "none";
+        if (submitButton) submitButton.style.display = "block";
     } else {
-        nextButton.style.display = "block";
-        submitButton.style.display = "none";
+        if (nextButton) nextButton.style.display = "block";
+        if (submitButton) submitButton.style.display = "none";
     }
 }
 
@@ -361,52 +628,160 @@ function parseCurrency(val) {
 }
 
 function removeElement(button) {
-    const row = button.closest("tr") || button.closest(".floor-card") || button.closest(".form-group");
+    const row = button.closest("tr") || button.closest(".floor-card") || button.closest(".renov-scope-card") || button.closest(".form-group");
     if (row) row.remove();
     calculateTotals();
     calculatePayments();
 }
 
-// 4. FLOORS
+// 5. PROJECT-TYPE-AWARE FLOOR & SCOPE BUILDERS
 function addFloor(name, area, fnd, rcc, msn, pls, flr, elc, plm, pnt, wtp) {
     const container = document.getElementById("floorsContainer");
-    const count = container.querySelectorAll(".floor-card").length + 1;
+    const count = container.querySelectorAll(".floor-card, .renov-scope-card").length + 1;
     const div = document.createElement("div");
     div.className = "floor-card";
     div.innerHTML = `
         <div class="floor-header">
             <h4>${name || "Floor " + count}</h4>
-            <button class="btn btn-danger" onclick="removeElement(this)">Remove</button>
+            <button type="button" class="btn btn-danger" onclick="removeElement(this)">Remove — हटाएं</button>
+        </div>
+        <div class="ref-notice-badge">
+            <i class="fa-solid fa-circle-info"></i> Customer Reference: New Construction. Enter your competitive quotation rates below. — नई निर्माण परियोजना। नीचे अपनी दरें दर्ज करें।
         </div>
         <div class="grid-4">
-            <div class="form-group"><label>Area (sq.ft.)</label><input type="number" class="floor-area" value="${area || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Foundation</label><input type="number" class="floor-cost" value="${fnd || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>RCC</label><input type="number" class="floor-cost" value="${rcc || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Masonry</label><input type="number" class="floor-cost" value="${msn || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Plaster</label><input type="number" class="floor-cost" value="${pls || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Flooring</label><input type="number" class="floor-cost" value="${flr || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Electrical</label><input type="number" class="floor-cost" value="${elc || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Plumbing</label><input type="number" class="floor-cost" value="${plm || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Painting</label><input type="number" class="floor-cost" value="${pnt || 0}" oninput="calculateTotals()"></div>
-            <div class="form-group"><label>Waterproofing</label><input type="number" class="floor-cost" value="${wtp || 0}" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Area (sq.ft.) <span class="label-hi">क्षेत्रफल</span></label><input type="number" class="floor-area" value="${area || ''}" placeholder="e.g. 1000" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Foundation Cost <span class="label-hi">नींव लागत</span></label><input type="number" class="floor-cost" value="${fnd || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">RCC Framing <span class="label-hi">आरसीसी ढांचा</span></label><input type="number" class="floor-cost" value="${rcc || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Masonry / Brickwork <span class="label-hi">चिनाई कार्य</span></label><input type="number" class="floor-cost" value="${msn || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Plaster Work <span class="label-hi">प्लास्टर कार्य</span></label><input type="number" class="floor-cost" value="${pls || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Flooring Work <span class="label-hi">फ्लोरिंग कार्य</span></label><input type="number" class="floor-cost" value="${flr || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Electrical Work <span class="label-hi">विद्युत कार्य</span></label><input type="number" class="floor-cost" value="${elc || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Plumbing Work <span class="label-hi">प्लंबिंग कार्य</span></label><input type="number" class="floor-cost" value="${plm || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Painting Work <span class="label-hi">पेंटिंग कार्य</span></label><input type="number" class="floor-cost" value="${pnt || ''}" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Waterproofing <span class="label-hi">वॉटरप्रूफिंग</span></label><input type="number" class="floor-cost" value="${wtp || ''}" placeholder="0" oninput="calculateTotals()"></div>
         </div>
     `;
     container.appendChild(div);
     calculateTotals();
 }
 
+// Renovation & Remodeling Special Card Builder
+function addRenovationFloor(name, area) {
+    const container = document.getElementById("floorsContainer");
+    const count = container.querySelectorAll(".floor-card, .renov-scope-card").length + 1;
+    const div = document.createElement("div");
+    div.className = "renov-scope-card";
+    div.innerHTML = `
+        <div class="floor-header">
+            <h4>${name || "Renovation Scope " + count}</h4>
+            <span class="renov-scope-badge"><i class="fa-solid fa-screwdriver-wrench"></i> Renovation Scope</span>
+            <button type="button" class="btn btn-danger" onclick="removeElement(this)">Remove — हटाएं</button>
+        </div>
+        <div class="ref-notice-badge">
+            <i class="fa-solid fa-circle-info"></i> Customer Requirement Reference: Renovation work for this area. Enter your competitive quotation rates below. (No structural foundation items). — ग्राहक आवश्यकता संदर्भ: इस क्षेत्र के लिए नवीनीकरण कार्य। नीचे अपनी दरें दर्ज करें।
+        </div>
+        <div class="grid-4">
+            <div class="form-group"><label class="bilingual-label">Renovation Area (sq.ft.) <span class="label-hi">नवीनीकरण क्षेत्रफल</span></label><input type="number" class="floor-area" value="${area || ''}" placeholder="e.g. 800" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Demolition & Debris <span class="label-hi">तोड़फोड़ एवं मलबा</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Plaster & Wall Repair <span class="label-hi">प्लास्टर एवं दीवार मरम्मत</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Flooring Replacement <span class="label-hi">फ्लोरिंग कार्य</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Painting & Wall Finish <span class="label-hi">पेंटिंग एवं फिनिश</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Electrical & Fixtures <span class="label-hi">विद्युत कार्य</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Plumbing & Sanitary <span class="label-hi">प्लंबिंग एवं सेनेटरी</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Doors & Windows <span class="label-hi">दरवाजे एवं खिड़कियां</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">False Ceiling Work <span class="label-hi">फॉल्स सीलिंग</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Waterproofing Work <span class="label-hi">वॉटरप्रूफिंग</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Kitchen / Bath Remodel <span class="label-hi">रसोई / बाथरूम नवीनीकरण</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Other Renovation Work <span class="label-hi">अन्य नवीनीकरण कार्य</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+        </div>
+    `;
+    container.appendChild(div);
+    calculateTotals();
+}
+
+function addExtensionFloor(name) {
+    const container = document.getElementById("floorsContainer");
+    const count = container.querySelectorAll(".floor-card, .renov-scope-card").length + 1;
+    const div = document.createElement("div");
+    div.className = "renov-scope-card";
+    div.innerHTML = `
+        <div class="floor-header">
+            <h4>${name || "Extension Section " + count}</h4>
+            <button type="button" class="btn btn-danger" onclick="removeElement(this)">Remove — हटाएं</button>
+        </div>
+        <div class="ref-notice-badge">
+            <i class="fa-solid fa-circle-info"></i> Home Extension Scope: Specify extension structural & finishing rates. — विस्तार कार्यक्षेत्र: संरचनात्मक एवं फिनिशिंग दरें दर्ज करें।
+        </div>
+        <div class="grid-4">
+            <div class="form-group"><label class="bilingual-label">Extension Area (sq.ft.) <span class="label-hi">विस्तार क्षेत्रफल</span></label><input type="number" class="floor-area" value="" placeholder="e.g. 500" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Structural / Framing <span class="label-hi">ढांचा निर्माण</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Masonry & Walls <span class="label-hi">दीवार चिनाई</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Roofing / Slab <span class="label-hi">छत / स्लैब</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Flooring & Plaster <span class="label-hi">फ्लोरिंग एवं प्लास्टर</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Electrical & Plumbing <span class="label-hi">विद्युत एवं प्लंबिंग</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Painting & Waterproofing <span class="label-hi">पेंटिंग एवं वॉटरप्रूफिंग</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Integration & Other <span class="label-hi">अन्य एकीकरण कार्य</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+        </div>
+    `;
+    container.appendChild(div);
+    calculateTotals();
+}
+
+function addInteriorFloor(name) {
+    const container = document.getElementById("floorsContainer");
+    const count = container.querySelectorAll(".floor-card, .renov-scope-card").length + 1;
+    const div = document.createElement("div");
+    div.className = "renov-scope-card";
+    div.innerHTML = `
+        <div class="floor-header">
+            <h4>${name || "Interior Zone " + count}</h4>
+            <button type="button" class="btn btn-danger" onclick="removeElement(this)">Remove — हटाएं</button>
+        </div>
+        <div class="ref-notice-badge">
+            <i class="fa-solid fa-circle-info"></i> Interior & Finishing Scope: Enter quotation for interior woodwork, false ceiling & fittings. — इंटीरियर कार्यक्षेत्र: वुडवर्क, फॉल्स सीलिंग एवं फिटिंग्स दरें दर्ज करें।
+        </div>
+        <div class="grid-4">
+            <div class="form-group"><label class="bilingual-label">Zone Area (sq.ft.) <span class="label-hi">ज़ोन क्षेत्रफल</span></label><input type="number" class="floor-area" value="" placeholder="e.g. 400" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">False Ceiling & Lighting <span class="label-hi">फॉल्स सीलिंग एवं लाइटिंग</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Woodwork & Cabinetry <span class="label-hi">अलमारी एवं वुडवर्क</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Flooring / Paneling <span class="label-hi">फ्लोरिंग / वॉल पैनलिंग</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Wall Painting & Textures <span class="label-hi">पेंटिंग एवं वॉल टेक्सचर</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Electrical & Fixtures <span class="label-hi">विद्युत उपकरण एवं फिटिंग्स</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Hardware & Glass <span class="label-hi">हार्डवेयर एवं ग्लास</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+            <div class="form-group"><label class="bilingual-label">Other Finishing Work <span class="label-hi">अन्य फिनिशिंग कार्य</span></label><input type="number" class="floor-cost" value="" placeholder="0" oninput="calculateTotals()"></div>
+        </div>
+    `;
+    container.appendChild(div);
+    calculateTotals();
+}
+
+// Handler for the "Add Floor" button based on project type
+function handleAddFloorClick() {
+    if (projectMode === "RENOVATION") {
+        addRenovationFloor();
+    } else if (projectMode === "EXTENSION") {
+        addExtensionFloor();
+    } else if (projectMode === "INTERIOR") {
+        addInteriorFloor();
+    } else {
+        addFloor();
+    }
+}
+
 function calculateTotals() {
     let total = 0;
-    document.querySelectorAll(".floor-card .floor-cost").forEach(input => total += Number(input.value) || 0);
+    document.querySelectorAll(".floor-card .floor-cost, .renov-scope-card .floor-cost").forEach(input => {
+        total += Number(input.value) || 0;
+    });
     document.getElementById("floorTotal").textContent = formatCurrency(total);
     calculateFinalBid();
 }
 
-// 5. MATERIALS
+// 6. MATERIALS
 function addMaterialRowData(name, cat, qty, unit, rate, brand, spec, prov) {
     const tbody = document.querySelector("#materialsTable tbody");
     const row = document.createElement("tr");
-    const amount = (qty || 0) * (rate || 0);
+    const amount = ((qty !== "" && rate !== "") ? (Number(qty) * Number(rate)) : 0);
     row.innerHTML = `
         <td><input value="${name || ''}" placeholder="Material Name"></td>
         <td>
@@ -422,10 +797,10 @@ function addMaterialRowData(name, cat, qty, unit, rate, brand, spec, prov) {
                 <option ${cat === 'Other' ? 'selected' : ''}>Other</option>
             </select>
         </td>
-        <td><input type="number" class="material-qty" value="${qty || 0}" oninput="calculateMaterial(this)"></td>
+        <td><input type="number" class="material-qty" value="${qty !== undefined && qty !== null ? qty : ''}" placeholder="0" oninput="calculateMaterial(this)"></td>
         <td><input value="${unit || 'Units'}" placeholder="Unit"></td>
-        <td><input type="number" class="material-rate" value="${rate || 0}" oninput="calculateMaterial(this)"></td>
-        <td><input class="material-amount" value="${formatCurrency(amount)}" readonly></td>
+        <td><input type="number" class="material-rate" value="${rate !== undefined && rate !== null ? rate : ''}" placeholder="0" oninput="calculateMaterial(this)"></td>
+        <td><input class="material-amount" value="${amount > 0 ? formatCurrency(amount) : ''}" placeholder="₹0" readonly></td>
         <td><input value="${brand || ''}" placeholder="Brand"></td>
         <td><input value="${spec || ''}" placeholder="Specification"></td>
         <td>
@@ -434,7 +809,7 @@ function addMaterialRowData(name, cat, qty, unit, rate, brand, spec, prov) {
                 <option ${prov === 'Customer' ? 'selected' : ''}>Customer</option>
             </select>
         </td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -445,7 +820,8 @@ function calculateMaterial(input) {
     const row = input.closest("tr");
     const qty = Number(row.querySelector(".material-qty").value) || 0;
     const rate = Number(row.querySelector(".material-rate").value) || 0;
-    row.querySelector(".material-amount").value = formatCurrency(qty * rate);
+    const amtInp = row.querySelector(".material-amount");
+    amtInp.value = (qty && rate) ? formatCurrency(qty * rate) : "";
     calculateMaterialTotal();
 }
 
@@ -456,19 +832,19 @@ function calculateMaterialTotal() {
     calculateFinalBid();
 }
 
-// 6. LABOUR
+// 7. LABOUR
 function addLabourRowData(trade, workers, days, rate, notes) {
     const tbody = document.querySelector("#labourTable tbody");
     const row = document.createElement("tr");
-    const amount = (workers || 0) * (days || 0) * (rate || 0);
+    const amount = ((workers !== "" && days !== "" && rate !== "") ? (Number(workers) * Number(days) * Number(rate)) : 0);
     row.innerHTML = `
         <td><input value="${trade || ''}" placeholder="Trade"></td>
-        <td><input type="number" class="labour-workers" value="${workers || 0}" oninput="calculateLabour(this)"></td>
-        <td><input type="number" class="labour-days" value="${days || 0}" oninput="calculateLabour(this)"></td>
-        <td><input type="number" class="labour-rate" value="${rate || 0}" oninput="calculateLabour(this)"></td>
-        <td><input class="labour-amount" value="${formatCurrency(amount)}" readonly></td>
+        <td><input type="number" class="labour-workers" value="${workers !== undefined && workers !== null ? workers : ''}" placeholder="0" oninput="calculateLabour(this)"></td>
+        <td><input type="number" class="labour-days" value="${days !== undefined && days !== null ? days : ''}" placeholder="0" oninput="calculateLabour(this)"></td>
+        <td><input type="number" class="labour-rate" value="${rate !== undefined && rate !== null ? rate : ''}" placeholder="0" oninput="calculateLabour(this)"></td>
+        <td><input class="labour-amount" value="${amount > 0 ? formatCurrency(amount) : ''}" placeholder="₹0" readonly></td>
         <td><input value="${notes || ''}" placeholder="Notes"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -480,7 +856,8 @@ function calculateLabour(input) {
     const w = Number(row.querySelector(".labour-workers").value) || 0;
     const d = Number(row.querySelector(".labour-days").value) || 0;
     const r = Number(row.querySelector(".labour-rate").value) || 0;
-    row.querySelector(".labour-amount").value = formatCurrency(w * d * r);
+    const amtInp = row.querySelector(".labour-amount");
+    amtInp.value = (w && d && r) ? formatCurrency(w * d * r) : "";
     calculateLabourTotal();
 }
 
@@ -491,20 +868,20 @@ function calculateLabourTotal() {
     calculateFinalBid();
 }
 
-// 7. WORK, EQUIPMENT, TRANSPORT, OTHER
+// 8. WORK, EQUIPMENT, TRANSPORT, OTHER
 function addWorkRowData(cat, desc, qty, unit, rate, notes) {
     const tbody = document.querySelector("#workTable tbody");
     const row = document.createElement("tr");
-    const amount = (qty || 0) * (rate || 0);
+    const amount = ((qty !== "" && rate !== "") ? (Number(qty) * Number(rate)) : 0);
     row.innerHTML = `
         <td><input value="${cat || ''}" placeholder="Category"></td>
         <td><input value="${desc || ''}" placeholder="Work Description"></td>
-        <td><input type="number" class="work-qty" value="${qty || 0}" oninput="calculateWork(this)"></td>
+        <td><input type="number" class="work-qty" value="${qty !== undefined && qty !== null ? qty : ''}" placeholder="0" oninput="calculateWork(this)"></td>
         <td><input value="${unit || 'sq.ft.'}"></td>
-        <td><input type="number" class="work-rate" value="${rate || 0}" oninput="calculateWork(this)"></td>
-        <td><input class="work-amount" value="${formatCurrency(amount)}" readonly></td>
+        <td><input type="number" class="work-rate" value="${rate !== undefined && rate !== null ? rate : ''}" placeholder="0" oninput="calculateWork(this)"></td>
+        <td><input class="work-amount" value="${amount > 0 ? formatCurrency(amount) : ''}" placeholder="₹0" readonly></td>
         <td><input value="${notes || ''}" placeholder="Notes"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -515,7 +892,8 @@ function calculateWork(input) {
     const row = input.closest("tr");
     const q = Number(row.querySelector(".work-qty").value) || 0;
     const r = Number(row.querySelector(".work-rate").value) || 0;
-    row.querySelector(".work-amount").value = formatCurrency(q * r);
+    const amtInp = row.querySelector(".work-amount");
+    amtInp.value = (q && r) ? formatCurrency(q * r) : "";
     calculateFinalBid();
 }
 
@@ -528,15 +906,15 @@ function calculateWorkTotal() {
 function addEquipmentRowData(name, qty, days, rate, notes) {
     const tbody = document.querySelector("#equipmentTable tbody");
     const row = document.createElement("tr");
-    const amount = (qty || 0) * (days || 0) * (rate || 0);
+    const amount = ((qty !== "" && days !== "" && rate !== "") ? (Number(qty) * Number(days) * Number(rate)) : 0);
     row.innerHTML = `
         <td><input value="${name || ''}" placeholder="Equipment Name"></td>
-        <td><input type="number" class="equipment-qty" value="${qty || 0}" oninput="calculateEquipment(this)"></td>
-        <td><input type="number" class="equipment-days" value="${days || 0}" oninput="calculateEquipment(this)"></td>
-        <td><input type="number" class="equipment-rate" value="${rate || 0}" oninput="calculateEquipment(this)"></td>
-        <td><input class="equipment-amount" value="${formatCurrency(amount)}" readonly></td>
+        <td><input type="number" class="equipment-qty" value="${qty !== undefined && qty !== null ? qty : ''}" placeholder="0" oninput="calculateEquipment(this)"></td>
+        <td><input type="number" class="equipment-days" value="${days !== undefined && days !== null ? days : ''}" placeholder="0" oninput="calculateEquipment(this)"></td>
+        <td><input type="number" class="equipment-rate" value="${rate !== undefined && rate !== null ? rate : ''}" placeholder="0" oninput="calculateEquipment(this)"></td>
+        <td><input class="equipment-amount" value="${amount > 0 ? formatCurrency(amount) : ''}" placeholder="₹0" readonly></td>
         <td><input value="${notes || ''}" placeholder="Notes"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -548,7 +926,8 @@ function calculateEquipment(input) {
     const q = Number(row.querySelector(".equipment-qty").value) || 0;
     const d = Number(row.querySelector(".equipment-days").value) || 0;
     const r = Number(row.querySelector(".equipment-rate").value) || 0;
-    row.querySelector(".equipment-amount").value = formatCurrency(q * d * r);
+    const amtInp = row.querySelector(".equipment-amount");
+    amtInp.value = (q && d && r) ? formatCurrency(q * d * r) : "";
     calculateFinalBid();
 }
 
@@ -561,16 +940,16 @@ function calculateEquipmentTotal() {
 function addTransportRowData(type, desc, qty, unit, rate, notes) {
     const tbody = document.querySelector("#transportTable tbody");
     const row = document.createElement("tr");
-    const amount = (qty || 0) * (rate || 0);
+    const amount = ((qty !== "" && rate !== "") ? (Number(qty) * Number(rate)) : 0);
     row.innerHTML = `
         <td><input value="${type || ''}" placeholder="Type"></td>
         <td><input value="${desc || ''}" placeholder="Description"></td>
-        <td><input type="number" class="transport-qty" value="${qty || 0}" oninput="calculateTransport(this)"></td>
+        <td><input type="number" class="transport-qty" value="${qty !== undefined && qty !== null ? qty : ''}" placeholder="0" oninput="calculateTransport(this)"></td>
         <td><input value="${unit || 'Trips'}"></td>
-        <td><input type="number" class="transport-rate" value="${rate || 0}" oninput="calculateTransport(this)"></td>
-        <td><input class="transport-amount" value="${formatCurrency(amount)}" readonly></td>
+        <td><input type="number" class="transport-rate" value="${rate !== undefined && rate !== null ? rate : ''}" placeholder="0" oninput="calculateTransport(this)"></td>
+        <td><input class="transport-amount" value="${amount > 0 ? formatCurrency(amount) : ''}" placeholder="₹0" readonly></td>
         <td><input value="${notes || ''}" placeholder="Notes"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -581,7 +960,8 @@ function calculateTransport(input) {
     const row = input.closest("tr");
     const q = Number(row.querySelector(".transport-qty").value) || 0;
     const r = Number(row.querySelector(".transport-rate").value) || 0;
-    row.querySelector(".transport-amount").value = formatCurrency(q * r);
+    const amtInp = row.querySelector(".transport-amount");
+    amtInp.value = (q && r) ? formatCurrency(q * r) : "";
     calculateFinalBid();
 }
 
@@ -597,9 +977,9 @@ function addOtherRowData(name, desc, amt, notes) {
     row.innerHTML = `
         <td><input value="${name || ''}" placeholder="Cost Name"></td>
         <td><input value="${desc || ''}" placeholder="Description"></td>
-        <td><input type="number" class="other-amount-input" value="${amt || 0}" oninput="calculateOther()"></td>
+        <td><input type="number" class="other-amount-input" value="${amt !== undefined && amt !== null ? amt : ''}" placeholder="0" oninput="calculateOther()"></td>
         <td><input value="${notes || ''}" placeholder="Notes"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -614,7 +994,7 @@ function calculateOtherTotal() {
     return total;
 }
 
-// 8. FINAL BID CALCULATION
+// 9. FINAL BID CALCULATION
 function getFloorTotal() {
     return parseCurrency(document.getElementById("floorTotal").textContent);
 }
@@ -629,20 +1009,27 @@ function calculateFinalBid() {
     const other = calculateOtherTotal();
 
     const direct = floors + materials + labour + work + equipment + transport + other;
-    const commercial = Number(document.getElementById("commercialAdjustment").value) || 0;
-    const taxRate = Number(document.getElementById("taxRate").value) || 0;
+    const commercial = Number(document.getElementById("commercialAdjustment")?.value) || 0;
+    const taxRate = Number(document.getElementById("taxRate")?.value) || 0;
 
     const taxable = direct + commercial;
     const tax = taxable * taxRate / 100;
     const final = taxable + tax;
 
-    document.getElementById("priceFloor").textContent = formatCurrency(floors);
-    document.getElementById("priceMaterial").textContent = formatCurrency(materials);
-    document.getElementById("priceLabour").textContent = formatCurrency(labour);
-    document.getElementById("priceWork").textContent = formatCurrency(work);
-    document.getElementById("priceEquipment").textContent = formatCurrency(equipment);
-    document.getElementById("priceTransport").textContent = formatCurrency(transport);
-    document.getElementById("priceOther").textContent = formatCurrency(other);
+    const elPriceFloor = document.getElementById("priceFloor");
+    if (elPriceFloor) elPriceFloor.textContent = formatCurrency(floors);
+    const elPriceMat = document.getElementById("priceMaterial");
+    if (elPriceMat) elPriceMat.textContent = formatCurrency(materials);
+    const elPriceLab = document.getElementById("priceLabour");
+    if (elPriceLab) elPriceLab.textContent = formatCurrency(labour);
+    const elPriceWork = document.getElementById("priceWork");
+    if (elPriceWork) elPriceWork.textContent = formatCurrency(work);
+    const elPriceEq = document.getElementById("priceEquipment");
+    if (elPriceEq) elPriceEq.textContent = formatCurrency(equipment);
+    const elPriceTr = document.getElementById("priceTransport");
+    if (elPriceTr) elPriceTr.textContent = formatCurrency(transport);
+    const elPriceOth = document.getElementById("priceOther");
+    if (elPriceOth) elPriceOth.textContent = formatCurrency(other);
 
     const elDirect = document.getElementById("directCost");
     if (elDirect) elDirect.textContent = formatCurrency(direct);
@@ -660,14 +1047,18 @@ function getFinalBid() {
     return parseCurrency(document.getElementById("finalBid").textContent);
 }
 
-// 9. TIMELINE & PAYMENTS
+// 10. TIMELINE & PAYMENTS
 function calculateCompletion() {
-    const start = document.getElementById("startDate").value;
-    const duration = Number(document.getElementById("duration").value);
-    if (!start || !duration) return;
+    const start = document.getElementById("startDate")?.value;
+    const duration = Number(document.getElementById("duration")?.value);
+    const compEl = document.getElementById("completionDate");
+    if (!start || !duration) {
+        if (compEl) compEl.value = "";
+        return;
+    }
     const date = new Date(start);
     date.setDate(date.getDate() + duration);
-    document.getElementById("completionDate").value = date.toISOString().split("T")[0];
+    if (compEl) compEl.value = date.toISOString().split("T")[0];
 }
 
 function addPaymentRowData(name, pct, desc) {
@@ -675,10 +1066,10 @@ function addPaymentRowData(name, pct, desc) {
     const row = document.createElement("tr");
     row.innerHTML = `
         <td><input value="${name || ''}" placeholder="Milestone Name"></td>
-        <td><input type="number" value="${pct || 0}" class="payment-percent" oninput="calculatePayments()"></td>
-        <td><input class="payment-amount" readonly></td>
+        <td><input type="number" value="${pct !== undefined && pct !== null ? pct : ''}" class="payment-percent" placeholder="0" oninput="calculatePayments()"></td>
+        <td><input class="payment-amount" placeholder="₹0" readonly></td>
         <td><input value="${desc || ''}" placeholder="Description"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this);calculatePayments()">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this);calculatePayments()">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -695,26 +1086,32 @@ function calculatePayments() {
     const final = getFinalBid();
     let total = 0;
     document.querySelectorAll("#paymentTable tbody tr").forEach(row => {
-        const pct = Number(row.querySelector(".payment-percent").value) || 0;
-        row.querySelector(".payment-amount").value = formatCurrency(final * pct / 100);
+        const pctInp = row.querySelector(".payment-percent");
+        const pct = Number(pctInp?.value) || 0;
+        const amtInp = row.querySelector(".payment-amount");
+        if (amtInp) {
+            amtInp.value = (final > 0 && pct > 0) ? formatCurrency(final * pct / 100) : "";
+        }
         total += pct;
     });
 
     const box = document.getElementById("paymentTotalBox");
-    box.textContent = `Total Payment: ${total}%`;
-    box.className = total === 100 ? "payment-total valid" : "payment-total invalid";
+    if (box) {
+        box.textContent = `Total Payment Schedule: ${total}% — कुल भुगतान अनुसूची: ${total}%`;
+        box.className = total === 100 ? "payment-total valid" : "payment-total invalid";
+    }
 }
 
-// 10. WARRANTY, INCLUSIONS & EXCLUSIONS
+// 11. WARRANTY, INCLUSIONS & EXCLUSIONS
 function addWarrantyRowData(cat, dur, unit, desc) {
     const tbody = document.querySelector("#warrantyTable tbody");
     const row = document.createElement("tr");
     row.innerHTML = `
         <td><input value="${cat || 'Civil Work'}"></td>
-        <td><input type="number" value="${dur || 12}"></td>
+        <td><input type="number" value="${dur !== undefined && dur !== null ? dur : ''}" placeholder="0"></td>
         <td><input value="${unit || 'Months'}"></td>
         <td><input value="${desc || ''}" placeholder="Warranty Details"></td>
-        <td><button class="btn btn-danger" onclick="removeElement(this)">×</button></td>
+        <td><button type="button" class="btn btn-danger" onclick="removeElement(this)">×</button></td>
     `;
     tbody.appendChild(row);
 }
@@ -725,7 +1122,7 @@ function addIncludedRowData(text) {
     const list = document.getElementById("includedList");
     const div = document.createElement("div");
     div.className = "form-group";
-    div.innerHTML = `<input value="${text || ''}" placeholder="Included Work">`;
+    div.innerHTML = `<input value="${text || ''}" placeholder="Included Work Item">`;
     list.appendChild(div);
 }
 
@@ -735,60 +1132,134 @@ function addExcludedRowData(text) {
     const list = document.getElementById("excludedList");
     const div = document.createElement("div");
     div.className = "form-group";
-    div.innerHTML = `<input value="${text || ''}" placeholder="Excluded Work">`;
+    div.innerHTML = `<input value="${text || ''}" placeholder="Excluded Work Item">`;
     list.appendChild(div);
 }
 
 function addExcluded() { addExcludedRowData(); }
 
-// 11. REVIEW & SUBMISSION
+// 12. REVIEW & SUBMISSION
 function updateReview() {
     calculateFinalBid();
     document.getElementById("reviewProjectName").textContent = activeProject ? (activeProject.title || activeProject.id) : "Customer Project";
     const nameDisplay = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
     document.getElementById("reviewContractorName").textContent = nameDisplay ? nameDisplay.textContent : "Contractor";
-    document.getElementById("reviewBidTitle").textContent = document.getElementById("bidTitle").value || "Contractor Proposal";
-    document.getElementById("reviewDuration").textContent = (document.getElementById("duration").value || 0) + " Days";
+    document.getElementById("reviewBidTitle").textContent = document.getElementById("bidTitle")?.value || "Contractor Proposal";
+    const durVal = document.getElementById("duration")?.value;
+    document.getElementById("reviewDuration").textContent = durVal ? (durVal + " Days") : "--";
 
     document.getElementById("reviewFloor").textContent = formatCurrency(getFloorTotal());
-    document.getElementById("reviewMaterial").textContent = document.getElementById("materialTotal").textContent;
-    document.getElementById("reviewLabour").textContent = document.getElementById("labourTotal").textContent;
+    document.getElementById("reviewMaterial").textContent = document.getElementById("materialTotal")?.textContent || "₹0";
+    document.getElementById("reviewLabour").textContent = document.getElementById("labourTotal")?.textContent || "₹0";
     document.getElementById("reviewWork").textContent = formatCurrency(calculateWorkTotal());
     document.getElementById("reviewEquipment").textContent = formatCurrency(calculateEquipmentTotal());
     document.getElementById("reviewTransport").textContent = formatCurrency(calculateTransportTotal());
     document.getElementById("reviewOther").textContent = formatCurrency(calculateOtherTotal());
     document.getElementById("reviewFinal").textContent = formatCurrency(getFinalBid());
+
+    // Review descriptions
+    const descEn = (document.getElementById("bidDescEn")?.value || "").trim();
+    const descHi = (document.getElementById("bidDescHi")?.value || "").trim();
+    const rowEn = document.getElementById("reviewDescEnRow");
+    const valEn = document.getElementById("reviewDescEn");
+    if (rowEn && valEn) {
+        if (descEn) {
+            rowEn.style.display = "flex";
+            valEn.textContent = descEn;
+        } else {
+            rowEn.style.display = "none";
+        }
+    }
+    const rowHi = document.getElementById("reviewDescHiRow");
+    const valHi = document.getElementById("reviewDescHi");
+    if (rowHi && valHi) {
+        if (descHi) {
+            rowHi.style.display = "flex";
+            valHi.textContent = descHi;
+        } else {
+            rowHi.style.display = "none";
+        }
+    }
 }
 
 function saveDraft() {
     const bidData = {
         status: "DRAFT",
         projectId: activeProject ? activeProject.id : "PRJ-UNKNOWN",
-        bidTitle: document.getElementById("bidTitle").value,
+        bidTitle: document.getElementById("bidTitle")?.value || "",
+        descriptionEn: (document.getElementById("bidDescEn")?.value || "").trim(),
+        descriptionHi: (document.getElementById("bidDescHi")?.value || "").trim(),
+        duration: document.getElementById("duration")?.value || "",
+        startDate: document.getElementById("startDate")?.value || "",
+        commercialAdjustment: document.getElementById("commercialAdjustment")?.value || "",
         finalAmount: getFinalBid(),
         savedAt: new Date().toISOString()
     };
     localStorage.setItem("buildBidDraft_" + bidData.projectId, JSON.stringify(bidData));
-    alert("Draft saved successfully for this project.");
+    alert("Draft saved successfully for this project. — इस परियोजना के लिए ड्राफ्ट सफलतापूर्वक सहेजा गया।");
+}
+
+function loadDraftIfAvailable() {
+    if (!activeProject || !activeProject.id) return;
+    try {
+        const raw = localStorage.getItem("buildBidDraft_" + activeProject.id);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (draft.bidTitle) {
+            const el = document.getElementById("bidTitle");
+            if (el) el.value = draft.bidTitle;
+        }
+        if (draft.descriptionEn) {
+            const el = document.getElementById("bidDescEn");
+            if (el) el.value = draft.descriptionEn;
+        }
+        if (draft.descriptionHi) {
+            const el = document.getElementById("bidDescHi");
+            if (el) el.value = draft.descriptionHi;
+        }
+        if (draft.duration) {
+            const el = document.getElementById("duration");
+            if (el) el.value = draft.duration;
+            calculateCompletion();
+        }
+        if (draft.startDate) {
+            const el = document.getElementById("startDate");
+            if (el) el.value = draft.startDate;
+            calculateCompletion();
+        }
+        if (draft.commercialAdjustment) {
+            const el = document.getElementById("commercialAdjustment");
+            if (el) el.value = draft.commercialAdjustment;
+        }
+    } catch (e) {
+        console.warn("Draft restore ignored:", e);
+    }
 }
 
 async function submitBid() {
     const checkbox = document.getElementById("confirmTerms");
-    if (!checkbox.checked) {
-        alert("Please confirm that the quotation information is accurate.");
+    if (!checkbox || !checkbox.checked) {
+        alert("Please confirm that the quotation information is accurate before submitting.\nजमा करने से पहले कृपया पुष्टि करें कि कोटेशन की जानकारी सटीक है।");
         return;
     }
 
     if (calculatePaymentPercentage() !== 100) {
-        alert("Payment schedule must equal exactly 100%.");
+        alert("Payment milestone schedule must total exactly 100%.\nभुगतान मील का पत्थर अनुसूची का कुल योग ठीक 100% होना चाहिए।");
         goToStep(12);
         return;
     }
 
     const finalAmount = getFinalBid();
     if (finalAmount <= 0) {
-        alert("Final bid amount must be greater than zero.");
+        alert("Final bid quotation amount must be greater than zero.\nअंतिम बोली कोटेशन राशि शून्य से अधिक होनी चाहिए।");
         goToStep(10);
+        return;
+    }
+
+    const durationVal = document.getElementById("duration")?.value;
+    if (!durationVal || Number(durationVal) <= 0) {
+        alert("Please enter project duration in days.\nकृपया दिनों में परियोजना अवधि दर्ज करें।");
+        goToStep(11);
         return;
     }
 
@@ -796,19 +1267,32 @@ async function submitBid() {
     const contractorName = nameDisplay ? nameDisplay.textContent : "Contractor";
     const token = getCleanToken();
 
+    const descEn = (document.getElementById("bidDescEn")?.value || "").trim();
+    const descHi = (document.getElementById("bidDescHi")?.value || "").trim();
+
     const payload = {
         quotationId: "quot-" + Date.now(),
         projectId: activeProject ? activeProject.id : "PRJ-UNKNOWN",
         projectTitle: activeProject ? activeProject.title : "Project",
         contractorName: contractorName,
-        bidTitle: document.getElementById("bidTitle").value,
+        bidTitle: document.getElementById("bidTitle")?.value || "Contractor Quotation",
         finalAmount: formatCurrency(finalAmount),
-        duration: document.getElementById("duration").value + " Days",
+        bidAmount: finalAmount,
+        materialCost: parseCurrency(document.getElementById("materialTotal")?.textContent),
+        labourCost: parseCurrency(document.getElementById("labourTotal")?.textContent),
+        equipmentCost: calculateEquipmentTotal(),
+        transportCost: calculateTransportTotal(),
+        otherCharges: calculateOtherTotal(),
+        duration: durationVal + " Days",
+        estimatedDuration: durationVal + " Days",
+        descriptionEn: descEn,
+        descriptionHi: descHi,
+        scopeOfWork: descEn || descHi || document.getElementById("bidTitle")?.value,
         status: "UNDER_REVIEW",
-        submittedAt: new Date().toLocaleDateString("en-IN")
+        submittedAt: new Date().toISOString()
     };
 
-    // 1. Sync Locally
+    // 1. Sync Locally in Contractor Bids Cache
     let contractorBids = [];
     try {
         contractorBids = JSON.parse(localStorage.getItem("buildbid_contractor_bids") || "[]");
@@ -816,20 +1300,25 @@ async function submitBid() {
     contractorBids.unshift(payload);
     localStorage.setItem("buildbid_contractor_bids", JSON.stringify(contractorBids));
 
-    // 2. Increment project bid counter
+    // 2. Increment project bid counter in local storage cache
     let customerProjects = [];
     try {
         customerProjects = JSON.parse(localStorage.getItem("buildbid_customer_projects") || localStorage.getItem("customerProjects") || "[]");
-        const idx = customerProjects.findIndex(p => String(p.id) === String(payload.projectId));
+        const idx = customerProjects.findIndex(p => String(p.id) === String(payload.projectId) || String(p.projectId) === String(payload.projectId));
         if (idx !== -1) {
             customerProjects[idx].bidsCount = (customerProjects[idx].bidsCount || 0) + 1;
             localStorage.setItem("buildbid_customer_projects", JSON.stringify(customerProjects));
         }
     } catch (e) {}
 
-    // 3. Backend API Sync (Spring Boot)
+    // 3. Clear saved draft on successful submit
+    if (activeProject && activeProject.id) {
+        localStorage.removeItem("buildBidDraft_" + activeProject.id);
+    }
+
+    // 4. Backend API Sync (Spring Boot MyBid Subsystem)
     try {
-        await fetch(`${API_BASE_URL}/api/bids`, {
+        const resp = await fetch(`${API_BASE_URL}/api/bids`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -837,11 +1326,14 @@ async function submitBid() {
             },
             body: JSON.stringify(payload)
         });
+        if (!resp.ok) {
+            console.warn(`Backend responded with status ${resp.status}`);
+        }
     } catch (e) {
         console.warn("Backend API sync failed:", e);
     }
 
-    alert(`Quotation Submitted Successfully!\nProject: ${payload.projectTitle}\nFinal Bid: ${payload.finalAmount}\nStatus: UNDER REVIEW`);
+    alert(`Quotation Submitted Successfully! — कोटेशन सफलतापूर्वक जमा किया गया!\n\nProject / परियोजना: ${payload.projectTitle}\nFinal Bid / अंतिम बोली: ${payload.finalAmount}\nStatus / स्थिति: UNDER REVIEW — समीक्षा में`);
     window.location.href = "contractor-projects.html";
 }
 
@@ -863,8 +1355,6 @@ function logoutUser() {
     window.location.href = "index.html";
   });
 }
-
-
 
 function showLogoutToast(callback, customTitle, customMessage) {
   let toast = document.getElementById("custom-toast");

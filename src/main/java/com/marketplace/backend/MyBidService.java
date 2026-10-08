@@ -107,6 +107,8 @@ public class MyBidService {
         private String paymentTerms;
         private String warranty;
         private String remarks;
+        private String descriptionEn;
+        private String descriptionHi;
 
         public SubmitBidRequest() {}
 
@@ -154,6 +156,12 @@ public class MyBidService {
 
         public String getRemarks() { return remarks; }
         public void setRemarks(String remarks) { this.remarks = remarks; }
+
+        public String getDescriptionEn() { return descriptionEn; }
+        public void setDescriptionEn(String descriptionEn) { this.descriptionEn = descriptionEn; }
+
+        public String getDescriptionHi() { return descriptionHi; }
+        public void setDescriptionHi(String descriptionHi) { this.descriptionHi = descriptionHi; }
     }
 
     /**
@@ -175,6 +183,8 @@ public class MyBidService {
         private String paymentTerms;
         private String warranty;
         private String remarks;
+        private String descriptionEn;
+        private String descriptionHi;
 
         public UpdateBidRequest() {}
 
@@ -222,6 +232,12 @@ public class MyBidService {
 
         public String getRemarks() { return remarks; }
         public void setRemarks(String remarks) { this.remarks = remarks; }
+
+        public String getDescriptionEn() { return descriptionEn; }
+        public void setDescriptionEn(String descriptionEn) { this.descriptionEn = descriptionEn; }
+
+        public String getDescriptionHi() { return descriptionHi; }
+        public void setDescriptionHi(String descriptionHi) { this.descriptionHi = descriptionHi; }
     }
 
     // =========================================================================
@@ -326,6 +342,8 @@ public class MyBidService {
         bid.setPaymentTerms(request.getPaymentTerms());
         bid.setWarranty(request.getWarranty());
         bid.setRemarks(request.getRemarks());
+        bid.setDescriptionEn(request.getDescriptionEn());
+        bid.setDescriptionHi(request.getDescriptionHi());
         bid.setStatus(MyBid.Status.PENDING);
         bid.setSubmittedAt(LocalDateTime.now());
 
@@ -372,6 +390,8 @@ public class MyBidService {
         req.setPaymentTerms(bidEntity.getPaymentTerms());
         req.setWarranty(bidEntity.getWarranty());
         req.setRemarks(bidEntity.getRemarks());
+        req.setDescriptionEn(bidEntity.getDescriptionEn());
+        req.setDescriptionHi(bidEntity.getDescriptionHi());
         return submitBid(contractor, projectId, req);
     }
 
@@ -1072,6 +1092,8 @@ public class MyBidService {
         if (request.getPaymentTerms() != null) bid.setPaymentTerms(request.getPaymentTerms());
         if (request.getWarranty() != null) bid.setWarranty(request.getWarranty());
         if (request.getRemarks() != null) bid.setRemarks(request.getRemarks());
+        if (request.getDescriptionEn() != null) bid.setDescriptionEn(request.getDescriptionEn());
+        if (request.getDescriptionHi() != null) bid.setDescriptionHi(request.getDescriptionHi());
 
         // submittedAt MUST NEVER BE CHANGED - only updatedAt updates
         bid.setUpdatedAt(LocalDateTime.now());

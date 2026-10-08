@@ -493,6 +493,13 @@ function renderBidsList(container, bids, isHistory = false) {
                                 <span class="detail-cell-label">Excluded Work — शामिल नहीं किया गया काम</span>
                                 <span class="detail-cell-val">${safeText(bid.excludedWork)}</span>
                             </div>
+                            ${(bid.descriptionEn || bid.descriptionHi) ? `
+                            <div class="detail-cell full-width">
+                                <span class="detail-cell-label">Quotation Description — ठेकेदार का विवरण</span>
+                                ${bid.descriptionEn ? `<div style="margin-bottom: 4px; white-space: pre-wrap;"><strong>English:</strong> ${safeText(bid.descriptionEn)}</div>` : ''}
+                                ${bid.descriptionHi ? `<div style="white-space: pre-wrap;"><strong>Hindi:</strong> ${safeText(bid.descriptionHi)}</div>` : ''}
+                            </div>
+                            ` : ''}
                         </div>
                     </div>
 

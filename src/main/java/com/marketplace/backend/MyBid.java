@@ -101,6 +101,12 @@ public class MyBid {
     @Column(name = "remarks", columnDefinition = "TEXT")
     private String remarks;
 
+    @Column(name = "description_en", columnDefinition = "TEXT")
+    private String descriptionEn;
+
+    @Column(name = "description_hi", columnDefinition = "TEXT")
+    private String descriptionHi;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     private Status status = Status.PENDING;
@@ -188,6 +194,12 @@ public class MyBid {
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
+
+    public String getDescriptionEn() { return descriptionEn; }
+    public void setDescriptionEn(String descriptionEn) { this.descriptionEn = descriptionEn; }
+
+    public String getDescriptionHi() { return descriptionHi; }
+    public void setDescriptionHi(String descriptionHi) { this.descriptionHi = descriptionHi; }
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }

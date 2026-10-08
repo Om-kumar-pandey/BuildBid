@@ -140,6 +140,8 @@ public class MyBidController {
         private String paymentTerms;
         private String warranty;
         private String remarks;
+        private String descriptionEn;
+        private String descriptionHi;
         private String status;
         private LocalDateTime submittedAt;
         private LocalDateTime updatedAt;
@@ -195,6 +197,10 @@ public class MyBidController {
         public void setWarranty(String warranty) { this.warranty = warranty; }
         public String getRemarks() { return remarks; }
         public void setRemarks(String remarks) { this.remarks = remarks; }
+        public String getDescriptionEn() { return descriptionEn; }
+        public void setDescriptionEn(String descriptionEn) { this.descriptionEn = descriptionEn; }
+        public String getDescriptionHi() { return descriptionHi; }
+        public void setDescriptionHi(String descriptionHi) { this.descriptionHi = descriptionHi; }
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
         public LocalDateTime getSubmittedAt() { return submittedAt; }
@@ -783,11 +789,25 @@ public class MyBidController {
             }
             request.setBidAmount(amount);
 
-            if (payload.get("materialCost") != null) request.setMaterialCost(parseDoubleSafe(payload.get("materialCost")));
-            if (payload.get("labourCost") != null) request.setLabourCost(parseDoubleSafe(payload.get("labourCost")));
-            if (payload.get("equipmentCost") != null) request.setEquipmentCost(parseDoubleSafe(payload.get("equipmentCost")));
-            if (payload.get("transportCost") != null) request.setTransportCost(parseDoubleSafe(payload.get("transportCost")));
-            if (payload.get("otherCharges") != null) request.setOtherCharges(parseDoubleSafe(payload.get("otherCharges")));
+            Double matCost = parseDoubleSafe(payload.get("materialCost"));
+            if (matCost != null && matCost < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Material cost cannot be negative."));
+            request.setMaterialCost(matCost);
+
+            Double labCost = parseDoubleSafe(payload.get("labourCost"));
+            if (labCost != null && labCost < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Labour cost cannot be negative."));
+            request.setLabourCost(labCost);
+
+            Double eqCost = parseDoubleSafe(payload.get("equipmentCost"));
+            if (eqCost != null && eqCost < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Equipment cost cannot be negative."));
+            request.setEquipmentCost(eqCost);
+
+            Double trCost = parseDoubleSafe(payload.get("transportCost"));
+            if (trCost != null && trCost < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Transport cost cannot be negative."));
+            request.setTransportCost(trCost);
+
+            Double othCost = parseDoubleSafe(payload.get("otherCharges"));
+            if (othCost != null && othCost < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Other charges cannot be negative."));
+            request.setOtherCharges(othCost);
 
             if (payload.get("estimatedDuration") != null) request.setEstimatedDuration(payload.get("estimatedDuration").toString());
             else if (payload.get("duration") != null) request.setEstimatedDuration(payload.get("duration").toString());
@@ -798,8 +818,15 @@ public class MyBidController {
                 try { request.setWorkersCount(Integer.parseInt(payload.get("workersCount").toString())); } catch (Exception ignored) {}
             }
 
+            if (payload.get("descriptionEn") != null) request.setDescriptionEn(payload.get("descriptionEn").toString());
+            if (payload.get("descriptionHi") != null) request.setDescriptionHi(payload.get("descriptionHi").toString());
+            if (request.getDescriptionEn() == null && payload.get("description") != null) {
+                request.setDescriptionEn(payload.get("description").toString());
+            }
+
             if (payload.get("scopeOfWork") != null) request.setScopeOfWork(payload.get("scopeOfWork").toString());
             else if (payload.get("proposal") != null) request.setScopeOfWork(payload.get("proposal").toString());
+            else if (request.getDescriptionEn() != null) request.setScopeOfWork(request.getDescriptionEn());
 
             if (payload.get("includedWork") != null) {
                 request.setIncludedWork(formatListOrString(payload.get("includedWork")));
@@ -1024,6 +1051,8 @@ public class MyBidController {
         dto.setPaymentTerms(b.getPaymentTerms());
         dto.setWarranty(b.getWarranty());
         dto.setRemarks(b.getRemarks());
+        dto.setDescriptionEn(b.getDescriptionEn());
+        dto.setDescriptionHi(b.getDescriptionHi());
         dto.setStatus(b.getStatus() != null ? b.getStatus().name() : null);
         dto.setSubmittedAt(b.getSubmittedAt());
         dto.setUpdatedAt(b.getUpdatedAt());

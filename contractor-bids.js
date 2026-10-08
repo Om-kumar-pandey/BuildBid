@@ -488,6 +488,13 @@
           <div class="snippet-content">${escapeHtml(bid.scopeOfWork)}</div>
         </div>` : ''}
 
+        ${(bid.descriptionEn || bid.descriptionHi) ? `
+        <div class="bid-proposal-snippet">
+          <span class="snippet-label">Quotation Description — विवरण:</span>
+          ${bid.descriptionEn ? `<div class="snippet-content" style="margin-bottom: 4px;"><strong>English:</strong> ${escapeHtml(bid.descriptionEn)}</div>` : ''}
+          ${bid.descriptionHi ? `<div class="snippet-content"><strong>Hindi:</strong> ${escapeHtml(bid.descriptionHi)}</div>` : ''}
+        </div>` : ''}
+
         ${customerContactHtml}
 
         <!-- Authoritative Exact Submission & Update Timestamps -->

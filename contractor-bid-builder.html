@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BuildBid - Contractor Bid Builder</title>
+  <title>BuildBid - Contractor Bid Builder — ठेकेदार बोली निर्माता</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="contractor-dashboard.css" />
   <link rel="stylesheet" href="contractor-projects.css" />
@@ -22,15 +22,15 @@
       </div>
 
       <div class="panel-badge">
-        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel — ठेकेदार पैनल
       </div>
 
       <nav class="sidebar-nav">
-        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
-        <a href="contractor-projects.html" class="nav-item active"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
-        <a href="contractor-bids.html" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
-        <a href="#" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
-        <a href="buy-material-select.html" class="nav-item"><i class="fa-solid fa-cart-shopping"></i> Buy Material / सामग्री खरीदें</a>
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard — डैशबोर्ड</a>
+        <a href="contractor-projects.html" class="nav-item active"><i class="fa-solid fa-briefcase"></i> Projects — प्रोजेक्ट्स <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="contractor-bids.html" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids — बोलियाँ <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="contractor-my-bids.html" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts — मेरे अनुबंध <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="buy-material-select.html" class="nav-item"><i class="fa-solid fa-cart-shopping"></i> Buy Material — सामग्री खरीदें</a>
         <a href="#" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> Materials Orders</a>
         <a href="#" class="nav-item"><i class="fa-solid fa-users-gear"></i> Hire Professionals</a>
         <a href="direct-hire.html" class="nav-item"><i class="fa-solid fa-user-plus"></i> Direct Hire</a>
@@ -43,7 +43,7 @@
         <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
         <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help & Support</a>
         <a href="javascript:void(0)" class="nav-item nav-logout" onclick="logoutUser()">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout — लॉगआउट
         </a>
       </nav>
     </aside>
@@ -53,7 +53,7 @@
       <!-- Identical Top Navbar -->
       <header class="top-nav">
         <div class="nav-actions">
-          <button class="icon-btn" id="btn-notification-bell">
+          <button class="icon-btn" id="btn-notification-bell" aria-label="Notifications — सूचनाएं">
             <i class="fa-regular fa-bell"></i>
             <span class="dot" id="notif-indicator"></span>
           </button>
@@ -63,7 +63,7 @@
             </div>
             <div class="user-meta">
               <h4 id="top-nav-name">Loading...</h4>
-              <span id="top-nav-badge">Contractor</span>
+              <span id="top-nav-badge">Contractor — ठेकेदार</span>
             </div>
             <i class="fa-solid fa-chevron-down drop-icon"></i>
           </div>
@@ -75,34 +75,37 @@
         <!-- Back Navigation & Header -->
         <div class="builder-top-bar">
           <button type="button" class="btn-back-projects" onclick="window.location.href='contractor-projects.html'">
-            <i class="fa-solid fa-arrow-left"></i> Back to Live Projects
+            <i class="fa-solid fa-arrow-left"></i> Back to Live Projects — लाइव प्रोजेक्ट्स पर वापस जाएं
           </button>
           <div class="project-indicator">
-            <small>Bidding For Project:</small>
+            <small>Bidding For Project — परियोजना:</small>
             <strong id="sidebarProjectTitle">Loading...</strong>
             <span id="sidebarProjectId" class="badge-tag">--</span>
           </div>
         </div>
 
-        <!-- Horizontal Step Progress Bar -->
-        <div class="stepper-horizontal">
-          <div class="step-pill active" id="pill-1" onclick="goToStep(1)">1. Project</div>
-          <div class="step-pill" id="pill-2" onclick="goToStep(2)">2. Proposal</div>
-          <div class="step-pill" id="pill-3" onclick="goToStep(3)">3. Floors</div>
-          <div class="step-pill" id="pill-4" onclick="goToStep(4)">4. Materials</div>
-          <div class="step-pill" id="pill-5" onclick="goToStep(5)">5. Labour</div>
-          <div class="step-pill" id="pill-6" onclick="goToStep(6)">6. Work</div>
-          <div class="step-pill" id="pill-7" onclick="goToStep(7)">7. Equipment</div>
-          <div class="step-pill" id="pill-8" onclick="goToStep(8)">8. Transport</div>
-          <div class="step-pill" id="pill-9" onclick="goToStep(9)">9. Other</div>
-          <div class="step-pill" id="pill-10" onclick="goToStep(10)">10. Pricing</div>
-          <div class="step-pill" id="pill-11" onclick="goToStep(11)">11. Timeline</div>
-          <div class="step-pill" id="pill-12" onclick="goToStep(12)">12. Payment</div>
-          <div class="step-pill" id="pill-13" onclick="goToStep(13)">13. Warranty</div>
-          <div class="step-pill" id="pill-14" onclick="goToStep(14)">14. Inclusions</div>
-          <div class="step-pill" id="pill-15" onclick="goToStep(15)">15. Exclusions</div>
-          <div class="step-pill" id="pill-16" onclick="goToStep(16)">16. Notes</div>
-          <div class="step-pill" id="pill-17" onclick="goToStep(17)">17. Review</div>
+        <!-- Validation Banner for Step-by-Step Locking -->
+        <div id="stepValidationBanner" class="step-validation-banner" style="display: none;"></div>
+
+        <!-- Horizontal Step Progress Bar (Project-Type-Aware & Clickable for Completed Steps) -->
+        <div class="stepper-horizontal" id="stepperHorizontal">
+          <div class="step-pill active" id="pill-1" onclick="tryGoToStep(1)">1. Project — परियोजना</div>
+          <div class="step-pill" id="pill-2" onclick="tryGoToStep(2)">2. Proposal — प्रस्ताव</div>
+          <div class="step-pill" id="pill-3" onclick="tryGoToStep(3)">3. Scope — कार्यक्षेत्र</div>
+          <div class="step-pill" id="pill-4" onclick="tryGoToStep(4)">4. Materials — सामग्री</div>
+          <div class="step-pill" id="pill-5" onclick="tryGoToStep(5)">5. Labour — श्रम</div>
+          <div class="step-pill" id="pill-6" onclick="tryGoToStep(6)">6. Work — कार्य</div>
+          <div class="step-pill" id="pill-7" onclick="tryGoToStep(7)">7. Equipment — उपकरण</div>
+          <div class="step-pill" id="pill-8" onclick="tryGoToStep(8)">8. Transport — परिवहन</div>
+          <div class="step-pill" id="pill-9" onclick="tryGoToStep(9)">9. Other — अन्य खर्च</div>
+          <div class="step-pill" id="pill-10" onclick="tryGoToStep(10)">10. Pricing — मूल्य निर्धारण</div>
+          <div class="step-pill" id="pill-11" onclick="tryGoToStep(11)">11. Timeline — समय-सीमा</div>
+          <div class="step-pill" id="pill-12" onclick="tryGoToStep(12)">12. Payment — भुगतान चरण</div>
+          <div class="step-pill" id="pill-13" onclick="tryGoToStep(13)">13. Warranty — वारंटी</div>
+          <div class="step-pill" id="pill-14" onclick="tryGoToStep(14)">14. Inclusions — शामिल कार्य</div>
+          <div class="step-pill" id="pill-15" onclick="tryGoToStep(15)">15. Exclusions — बहिष्कृत कार्य</div>
+          <div class="step-pill" id="pill-16" onclick="tryGoToStep(16)">16. Notes — नियम व शर्तें</div>
+          <div class="step-pill" id="pill-17" onclick="tryGoToStep(17)">17. Review — समीक्षा</div>
         </div>
 
         <div class="progress-line-container">
@@ -110,78 +113,149 @@
         </div>
 
         <div class="builder-content-area">
-          <!-- STEP 1: DYNAMIC PROJECT SUMMARY -->
+          <!-- STEP 1: DYNAMIC PROJECT SUMMARY (REFERENCE ONLY - NOT COPIED TO CONTRACTOR QUOTE) -->
           <section class="bid-section active" id="step1">
             <div class="section-header">
-              <h1>Project & Bid Summary</h1>
-              <p>Review customer's construction specifications before filing quote.</p>
+              <h1>Project &amp; Specifications — परियोजना और विनिर्देश</h1>
+              <p>Review customer's verified project requirements before filing your quotation. — अपनी बोली लगाने से पहले ग्राहक के सत्यापित प्रोजेक्ट विवरण की समीक्षा करें।</p>
+            </div>
+
+            <div class="ref-notice-badge">
+              <i class="fa-solid fa-circle-info"></i> Customer Requirement Data (Reference Information Only) — ग्राहक आवश्यकता डेटा (केवल संदर्भ हेतु — ठेकेदार की दरों में स्वतः नहीं भरा जाएगा)
             </div>
 
             <div class="card">
               <div class="card-title">
-                <h3>Project Information</h3>
-                <span class="badge-status-pill">Active Requirement</span>
+                <h3>Project Information — परियोजना जानकारी</h3>
+                <span class="badge-status-pill">Active Requirement — सक्रिय आवश्यकता</span>
               </div>
               <div class="grid">
-                <div class="form-group"><label>Project ID</label><input id="dynProjectId" readonly /></div>
-                <div class="form-group"><label>Project Type</label><input id="dynProjectType" readonly /></div>
-                <div class="form-group"><label>Construction Area</label><input id="dynArea" readonly /></div>
-                <div class="form-group"><label>Number of Floors</label><input id="dynFloors" readonly /></div>
-                <div class="form-group"><label>Location</label><input id="dynLocation" readonly /></div>
-                <div class="form-group"><label>Customer Budget</label><input id="dynBudget" readonly /></div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Project ID</span><span class="label-hi">प्रोजेक्ट आईडी</span></label>
+                  <input id="dynProjectId" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Project Type</span><span class="label-hi">प्रोजेक्ट प्रकार</span></label>
+                  <input id="dynProjectType" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Construction Area</span><span class="label-hi">निर्माण क्षेत्र</span></label>
+                  <input id="dynArea" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Number of Floors</span><span class="label-hi">मंजिलों की संख्या</span></label>
+                  <input id="dynFloors" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Location</span><span class="label-hi">स्थान</span></label>
+                  <input id="dynLocation" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Customer Budget (Indicative)</span><span class="label-hi">ग्राहक बजट (संकेतात्मक संदर्भ)</span></label>
+                  <input id="dynBudget" readonly />
+                </div>
               </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="cardSpecificRequirements">
               <div class="card-title">
-                <h3>Specific Requirements</h3>
+                <h3 id="specificReqTitle">Specific Requirements — विशिष्ट आवश्यकताएँ</h3>
               </div>
-              <div class="grid">
-                <div class="form-group"><label>Bedrooms</label><input id="dynBedrooms" readonly /></div>
-                <div class="form-group"><label>Bathrooms</label><input id="dynBathrooms" readonly /></div>
-                <div class="form-group"><label>Kitchen</label><input id="dynKitchen" readonly /></div>
-                <div class="form-group"><label>Parking</label><input id="dynParking" readonly /></div>
+              <div class="grid" id="gridSpecificRooms">
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Bedrooms / Rooms</span><span class="label-hi">कमरे</span></label>
+                  <input id="dynBedrooms" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Bathrooms</span><span class="label-hi">बाथरूम</span></label>
+                  <input id="dynBathrooms" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Kitchen</span><span class="label-hi">रसोई</span></label>
+                  <input id="dynKitchen" readonly />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Parking</span><span class="label-hi">पार्किंग</span></label>
+                  <input id="dynParking" readonly />
+                </div>
               </div>
-              <div class="form-group">
-                <label>Customer Requirement Description</label>
+              <div id="dynamicProjectTypeSpecs" style="margin-top: 10px;"></div>
+              <div class="form-group" style="margin-top: 14px;">
+                <label class="bilingual-label"><span>Customer Requirement Description</span><span class="label-hi">ग्राहक की आवश्यकता का विवरण</span></label>
                 <textarea id="dynRequirementsDesc" readonly></textarea>
               </div>
             </div>
           </section>
 
-          <!-- STEP 2: PROPOSAL -->
+          <!-- STEP 2: CONTRACTOR PROPOSAL -->
           <section class="bid-section" id="step2">
             <div class="section-header">
-              <h1>Contractor Proposal</h1>
-              <p>State your approach, quality commitments and execution plan.</p>
+              <h1>Contractor Proposal — ठेकेदार का प्रस्ताव</h1>
+              <p>State your quotation title, approach and commitments. — अपना उद्धरण शीर्षक, दृष्टिकोण और प्रतिबद्धता बताएं।</p>
             </div>
             <div class="card">
               <div class="form-group">
-                <label>Quotation Title <span class="required">*</span></label>
-                <input id="bidTitle" placeholder="e.g. Complete Turnkey Construction Proposal" />
+                <label class="bilingual-label">
+                  <span>Quotation Title <span class="required" style="color:#dc2626;">*</span></span>
+                  <span class="label-hi">उद्धरण शीर्षक (अनिवार्य)</span>
+                </label>
+                <input id="bidTitle" placeholder="e.g. Quotation for Construction / निर्माण कार्य हेतु आधिकारिक उद्धरण" />
+              </div>
+
+              <!-- Dedicated Bilingual Contractor Description (Both Optional) -->
+              <div class="grid">
+                <div class="form-group">
+                  <label class="bilingual-label">
+                    <span>English Description (Optional)</span>
+                    <span class="label-hi">अंग्रेजी में विवरण (वैकल्पिक)</span>
+                  </label>
+                  <textarea id="bidDescEn" placeholder="Enter key highlights, scope notes or proposal details in English..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label">
+                    <span>Hindi Description (Optional)</span>
+                    <span class="label-hi">हिंदी में विवरण (वैकल्पिक)</span>
+                  </label>
+                  <textarea id="bidDescHi" placeholder="कार्य का दायरा, विशिष्टताएँ या मुख्य प्रस्ताव हिंदी में लिखें..."></textarea>
+                </div>
+              </div>
+
+              <!-- About Company and Approach (Strictly Optional) -->
+              <div class="form-group">
+                <label class="bilingual-label">
+                  <span>About Company / Team (Optional)</span>
+                  <span class="label-hi">कंपनी या टीम के बारे में (वैकल्पिक)</span>
+                </label>
+                <textarea id="bidCompanyDesc" placeholder="Describe your background and construction expertise... / अपनी पृष्ठभूमि और विशेषज्ञता का वर्णन करें..."></textarea>
               </div>
               <div class="form-group">
-                <label>About Company / Team <span class="required">*</span></label>
-                <textarea id="bidCompanyDesc" placeholder="Describe your background and construction expertise..."></textarea>
-              </div>
-              <div class="form-group">
-                <label>Project Execution Approach <span class="required">*</span></label>
-                <textarea id="bidApproach" placeholder="How will you manage this site step-by-step..."></textarea>
+                <label class="bilingual-label">
+                  <span>Project Execution Approach (Optional)</span>
+                  <span class="label-hi">कार्य निष्पादन दृष्टिकोण (वैकल्पिक)</span>
+                </label>
+                <textarea id="bidApproach" placeholder="How will you manage this site step-by-step... / आप इस साइट का चरणबद्ध प्रबंधन कैसे करेंगे..."></textarea>
               </div>
             </div>
           </section>
 
-          <!-- STEP 3: FLOORS -->
+          <!-- STEP 3: SCOPE & BREAKDOWN (PROJECT-TYPE-AWARE) -->
           <section class="bid-section" id="step3">
             <div class="section-header">
-              <h1>Floor-Wise Breakdown</h1>
-              <p>Add component costs for individual floors.</p>
+              <h1 id="step3Title">Floor-Wise Breakdown — तल-वार लागत विवरण</h1>
+              <p id="step3Subtitle">Itemize component costs for applicable areas. — लागू क्षेत्रों के लिए घटक लागत दर्ज करें।</p>
             </div>
+
+            <!-- Reference info block for renovation/extensions if applicable -->
+            <div id="step3RefBox" style="display: none;"></div>
+
             <div id="floorsContainer"></div>
-            <button type="button" class="btn btn-primary" onclick="addFloor()">+ Add Floor</button>
+            <button type="button" class="btn btn-primary" id="btnAddFloor" onclick="handleAddFloorClick()">+ Add Floor — + तल जोड़ें</button>
             <div class="card" style="margin-top: 15px;">
               <div class="summary-box">
-                <div class="summary-row"><span>Total Floor Cost</span><strong id="floorTotal">₹0</strong></div>
+                <div class="summary-row">
+                  <span id="step3TotalLabel">Total Floor Cost — कुल तल लागत</span>
+                  <strong id="floorTotal">₹0</strong>
+                </div>
               </div>
             </div>
           </section>
@@ -189,25 +263,37 @@
           <!-- STEP 4: MATERIALS -->
           <section class="bid-section" id="step4">
             <div class="section-header">
-              <h1>Material Breakdown</h1>
-              <p>Itemize major construction materials with quantities and rates.</p>
+              <h1>Material Breakdown — निर्माण सामग्री विवरण</h1>
+              <p>Itemize major construction materials with quantities and rates. — मात्रा और दरों के साथ प्रमुख निर्माण सामग्रियों की सूची बनाएं।</p>
             </div>
             <div class="card">
               <div class="table-wrapper">
                 <table id="materialsTable">
                   <thead>
                     <tr>
-                      <th>Material</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Rate</th><th>Amount</th><th>Brand</th><th>Spec</th><th>By</th><th></th>
+                      <th>Material — सामग्री</th>
+                      <th>Category — श्रेणी</th>
+                      <th>Quantity — मात्रा</th>
+                      <th>Unit — इकाई</th>
+                      <th>Rate (₹) — दर</th>
+                      <th>Amount (₹) — राशि</th>
+                      <th>Brand — ब्रांड</th>
+                      <th>Spec — विनिर्देश</th>
+                      <th>Provided By — प्रदाता</th>
+                      <th>Action — हटाएँ</th>
                     </tr>
                   </thead>
                   <tbody></tbody>
                 </table>
               </div>
-              <button type="button" class="btn btn-primary add-row" onclick="addMaterial()">+ Add Material</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addMaterial()">+ Add Material — + सामग्री जोड़ें</button>
             </div>
             <div class="card">
               <div class="summary-box">
-                <div class="summary-row total"><span>Total Material Cost</span><span id="materialTotal">₹0</span></div>
+                <div class="summary-row total">
+                  <span>Total Material Cost — कुल सामग्री लागत</span>
+                  <span id="materialTotal">₹0</span>
+                </div>
               </div>
             </div>
           </section>
@@ -215,119 +301,179 @@
           <!-- STEP 5: LABOUR -->
           <section class="bid-section" id="step5">
             <div class="section-header">
-              <h1>Labour Breakdown</h1>
-              <p>Plan work trades, crew sizes and daily wages.</p>
+              <h1>Labour Breakdown — श्रम एवं कारीगर विवरण</h1>
+              <p>Plan work trades, crew sizes and daily wages. — कार्य कौशल, कामगारों की संख्या और दैनिक मजदूरी की योजना बनाएं।</p>
             </div>
             <div class="card">
               <div class="table-wrapper">
                 <table id="labourTable">
                   <thead>
-                    <tr><th>Trade</th><th>Workers</th><th>Days</th><th>Rate/Day</th><th>Amount</th><th>Notes</th><th></th></tr>
+                    <tr>
+                      <th>Trade — कार्य कौशल</th>
+                      <th>Workers — कामगार</th>
+                      <th>Days — दिन</th>
+                      <th>Rate/Day (₹) — दैनिक दर</th>
+                      <th>Amount (₹) — राशि</th>
+                      <th>Notes — नोट्स</th>
+                      <th>Action — हटाएँ</th>
+                    </tr>
                   </thead>
                   <tbody></tbody>
                 </table>
               </div>
-              <button type="button" class="btn btn-primary add-row" onclick="addLabour()">+ Add Labour</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addLabour()">+ Add Labour — + श्रम जोड़ें</button>
             </div>
             <div class="card">
               <div class="summary-box">
-                <div class="summary-row total"><span>Total Labour Cost</span><span id="labourTotal">₹0</span></div>
+                <div class="summary-row total">
+                  <span>Total Labour Cost — कुल श्रम लागत</span>
+                  <span id="labourTotal">₹0</span>
+                </div>
               </div>
             </div>
           </section>
 
-          <!-- STEP 6: WORK -->
+          <!-- STEP 6: WORK ACTIVITIES -->
           <section class="bid-section" id="step6">
             <div class="section-header">
-              <h1>Construction Work</h1>
-              <p>Itemize activities like excavation, plaster, brickwork etc.</p>
+              <h1 id="step6Title">Construction Work / Activities — कार्य गतिविधियाँ</h1>
+              <p id="step6Subtitle">Itemize construction activities and rates. — निर्माण कार्य गतिविधियों की दर और मात्रा दर्ज करें।</p>
             </div>
             <div class="card">
               <div class="table-wrapper">
                 <table id="workTable">
-                  <thead><tr><th>Category</th><th>Description</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Category — श्रेणी</th>
+                      <th>Description — विवरण</th>
+                      <th>Qty — मात्रा</th>
+                      <th>Unit — इकाई</th>
+                      <th>Rate (₹) — दर</th>
+                      <th>Amount (₹) — राशि</th>
+                      <th>Notes — नोट्स</th>
+                      <th>Action — हटाएँ</th>
+                    </tr>
+                  </thead>
                   <tbody></tbody>
                 </table>
               </div>
-              <button type="button" class="btn btn-primary add-row" onclick="addWork()">+ Add Construction Activity</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addWork()">+ Add Work Activity — + कार्य गतिविधि जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 7: EQUIPMENT -->
           <section class="bid-section" id="step7">
             <div class="section-header">
-              <h1>Machinery & Equipment</h1>
-              <p>Plan mixers, JCB, scaffolding and cranes.</p>
+              <h1>Machinery &amp; Equipment — मशीनरी एवं उपकरण</h1>
+              <p>Plan mixers, scaffolding, cranes and tools. — मिक्सर, मचान, कटर और औजारों की लागत जोड़ें।</p>
             </div>
             <div class="card">
               <table id="equipmentTable">
-                <thead><tr><th>Equipment</th><th>Qty</th><th>Days</th><th>Daily Rate</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Equipment — उपकरण</th>
+                    <th>Qty — मात्रा</th>
+                    <th>Days — दिन</th>
+                    <th>Daily Rate (₹) — दैनिक दर</th>
+                    <th>Amount (₹) — राशि</th>
+                    <th>Notes — नोट्स</th>
+                    <th>Action — हटाएँ</th>
+                  </tr>
+                </thead>
                 <tbody></tbody>
               </table>
-              <button type="button" class="btn btn-primary add-row" onclick="addEquipment()">+ Add Equipment</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addEquipment()">+ Add Equipment — + उपकरण जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 8: TRANSPORTATION -->
           <section class="bid-section" id="step8">
             <div class="section-header">
-              <h1>Transportation & Logistics</h1>
-              <p>Loading, freight trips and debris disposal.</p>
+              <h1>Transportation &amp; Logistics — परिवहन एवं रसद</h1>
+              <p>Loading, freight trips and debris disposal. — सामग्री ढुलाई, लोडिंग और मलबा निष्कासन।</p>
             </div>
             <div class="card">
               <table id="transportTable">
-                <thead><tr><th>Type</th><th>Description</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Type — प्रकार</th>
+                    <th>Description — विवरण</th>
+                    <th>Qty — फेरे / मात्रा</th>
+                    <th>Unit — इकाई</th>
+                    <th>Rate (₹) — दर</th>
+                    <th>Amount (₹) — राशि</th>
+                    <th>Notes — नोट्स</th>
+                    <th>Action — हटाएँ</th>
+                  </tr>
+                </thead>
                 <tbody></tbody>
               </table>
-              <button type="button" class="btn btn-primary add-row" onclick="addTransport()">+ Add Transport</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addTransport()">+ Add Transport — + परिवहन जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 9: OTHER COSTS -->
           <section class="bid-section" id="step9">
             <div class="section-header">
-              <h1>Other Costs</h1>
-              <p>Site setup, safety kits and inspections.</p>
+              <h1>Other Costs — अन्य खर्च</h1>
+              <p>Site setup, safety kits and inspections. — साइट व्यवस्था, सुरक्षा किट और निरीक्षण खर्च।</p>
             </div>
             <div class="card">
               <table id="otherTable">
-                <thead><tr><th>Cost Head</th><th>Description</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Cost Head — खर्च का मद</th>
+                    <th>Description — विवरण</th>
+                    <th>Amount (₹) — राशि</th>
+                    <th>Notes — नोट्स</th>
+                    <th>Action — हटाएँ</th>
+                  </tr>
+                </thead>
                 <tbody></tbody>
               </table>
-              <button type="button" class="btn btn-primary add-row" onclick="addOther()">+ Add Other Cost</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addOther()">+ Add Other Cost — + अन्य खर्च जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 10: PRICING -->
           <section class="bid-section" id="step10">
             <div class="section-header">
-              <h1>Commercial Pricing</h1>
-              <p>Contractor margin adjustment (Kept completely private).</p>
+              <h1>Commercial Pricing — वाणिज्यिक मूल्य निर्धारण</h1>
+              <p>Contractor margin adjustment (Kept completely private). — ठेकेदार का लाभ मार्जिन (पूरी तरह गोपनीय रखा जाता है)।</p>
             </div>
             <div class="card">
               <div class="summary-box">
-                <div class="summary-row"><span>Floor Cost</span><strong id="priceFloor">₹0</strong></div>
-                <div class="summary-row"><span>Material Cost</span><strong id="priceMaterial">₹0</strong></div>
-                <div class="summary-row"><span>Labour Cost</span><strong id="priceLabour">₹0</strong></div>
-                <div class="summary-row"><span>Construction Work</span><strong id="priceWork">₹0</strong></div>
-                <div class="summary-row"><span>Equipment</span><strong id="priceEquipment">₹0</strong></div>
-                <div class="summary-row"><span>Transportation</span><strong id="priceTransport">₹0</strong></div>
-                <div class="summary-row"><span>Other Costs</span><strong id="priceOther">₹0</strong></div>
-                <div class="summary-row total"><span>Direct Construction Cost</span><strong id="directCost">₹0</strong></div>
+                <div class="summary-row"><span id="priceLabelFloor">Scope / Floor Cost — कार्यक्षेत्र / तल लागत</span><strong id="priceFloor">₹0</strong></div>
+                <div class="summary-row"><span>Material Cost — सामग्री लागत</span><strong id="priceMaterial">₹0</strong></div>
+                <div class="summary-row"><span>Labour Cost — श्रम लागत</span><strong id="priceLabour">₹0</strong></div>
+                <div class="summary-row"><span>Construction Work — कार्य गतिविधियाँ</span><strong id="priceWork">₹0</strong></div>
+                <div class="summary-row"><span>Equipment — उपकरण</span><strong id="priceEquipment">₹0</strong></div>
+                <div class="summary-row"><span>Transportation — परिवहन</span><strong id="priceTransport">₹0</strong></div>
+                <div class="summary-row"><span>Other Costs — अन्य खर्च</span><strong id="priceOther">₹0</strong></div>
+                <div class="summary-row total"><span>Direct Construction Cost — प्रत्यक्ष निर्माण लागत</span><strong id="directCost">₹0</strong></div>
               </div>
             </div>
             <div class="card">
               <div class="form-group">
-                <label>Private Contractor Margin / Risk Markup (₹)</label>
-                <input type="number" id="commercialAdjustment" value="0" oninput="calculateFinalBid()" />
-                <small style="color:#64748b;">This value is strictly confidential and never displayed to customers.</small>
+                <label class="bilingual-label">
+                  <span>Private Contractor Margin / Risk Markup (₹)</span>
+                  <span class="label-hi">निजी ठेकेदार मार्जिन / जोखिम मार्कअप (₹)</span>
+                </label>
+                <input type="number" id="commercialAdjustment" placeholder="0" oninput="calculateFinalBid()" />
+                <small style="color:#64748b;">This value is strictly confidential and never displayed to customers. — यह मान पूरी तरह गोपनीय है और ग्राहक को कभी नहीं दिखाया जाता।</small>
               </div>
               <div class="form-group">
-                <label>Tax Rate (%)</label>
-                <input type="number" id="taxRate" value="0" oninput="calculateFinalBid()" />
+                <label class="bilingual-label">
+                  <span>Tax Rate (%)</span>
+                  <span class="label-hi">कर दर (%)</span>
+                </label>
+                <input type="number" id="taxRate" placeholder="0" oninput="calculateFinalBid()" />
               </div>
               <div class="summary-box">
-                <div class="summary-row total"><span>Final Bid Amount</span><strong id="finalBid">₹0</strong></div>
+                <div class="summary-row total">
+                  <span>Final Bid Amount — अंतिम बोली राशि</span>
+                  <strong id="finalBid">₹0</strong>
+                </div>
               </div>
             </div>
           </section>
@@ -335,13 +481,25 @@
           <!-- STEP 11: TIMELINE -->
           <section class="bid-section" id="step11">
             <div class="section-header">
-              <h1>Timeline & Schedule</h1>
+              <h1>Timeline &amp; Schedule — कार्य समय-सीमा एवं अनुसूची</h1>
             </div>
             <div class="card">
               <div class="grid">
-                <div class="form-group"><label>Expected Start Date</label><input type="date" id="startDate" /></div>
-                <div class="form-group"><label>Duration (Days)</label><input type="number" id="duration" value="120" oninput="calculateCompletion()" /></div>
-                <div class="form-group"><label>Calculated Completion Date</label><input type="date" id="completionDate" readonly /></div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Expected Start Date</span><span class="label-hi">अनुमानित शुरुआत तिथि</span></label>
+                  <input type="date" id="startDate" />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label">
+                    <span>Duration (Days) <span class="required" style="color:#dc2626;">*</span></span>
+                    <span class="label-hi">कार्य अवधि (दिन) (अनिवार्य)</span>
+                  </label>
+                  <input type="number" id="duration" placeholder="e.g. 90" oninput="calculateCompletion()" />
+                </div>
+                <div class="form-group">
+                  <label class="bilingual-label"><span>Calculated Completion Date</span><span class="label-hi">अनुमानित समापन तिथि</span></label>
+                  <input type="date" id="completionDate" readonly />
+                </div>
               </div>
             </div>
           </section>
@@ -349,88 +507,118 @@
           <!-- STEP 12: PAYMENT SCHEDULE -->
           <section class="bid-section" id="step12">
             <div class="section-header">
-              <h1>Payment Milestones</h1>
-              <p>Milestone percentages must total exactly 100%.</p>
+              <h1>Payment Milestones — भुगतान के चरण</h1>
+              <p>Milestone percentages must total exactly 100%. — मील के पत्थर का प्रतिशत कुल 100% होना चाहिए।</p>
             </div>
             <div class="card">
               <table id="paymentTable">
-                <thead><tr><th>Milestone</th><th>Percentage (%)</th><th>Amount (₹)</th><th>Description</th><th></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Milestone — चरण</th>
+                    <th>Percentage (%) — प्रतिशत</th>
+                    <th>Amount (₹) — राशि</th>
+                    <th>Description — विवरण</th>
+                    <th>Action — हटाएँ</th>
+                  </tr>
+                </thead>
                 <tbody></tbody>
               </table>
-              <button type="button" class="btn btn-primary add-row" onclick="addPayment()">+ Add Milestone</button>
-              <div id="paymentTotalBox" class="payment-total valid">Total Payment: 100%</div>
+              <button type="button" class="btn btn-primary add-row" onclick="addPayment()">+ Add Milestone — + भुगतान चरण जोड़ें</button>
+              <div id="paymentTotalBox" class="payment-total valid">Total Payment: 100% — कुल भुगतान: 100%</div>
             </div>
           </section>
 
           <!-- STEP 13: WARRANTY -->
           <section class="bid-section" id="step13">
             <div class="section-header">
-              <h1>Warranty Commitment</h1>
+              <h1>Warranty Commitment — वारंटी प्रतिबद्धता</h1>
             </div>
             <div class="card">
               <table id="warrantyTable">
-                <thead><tr><th>Category</th><th>Duration</th><th>Unit</th><th>Description</th><th></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Category — श्रेणी</th>
+                    <th>Duration — अवधि</th>
+                    <th>Unit — इकाई</th>
+                    <th>Description — विवरण</th>
+                    <th>Action — हटाएँ</th>
+                  </tr>
+                </thead>
                 <tbody></tbody>
               </table>
-              <button type="button" class="btn btn-primary add-row" onclick="addWarranty()">+ Add Warranty</button>
+              <button type="button" class="btn btn-primary add-row" onclick="addWarranty()">+ Add Warranty — + वारंटी जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 14: INCLUSIONS -->
           <section class="bid-section" id="step14">
             <div class="section-header">
-              <h1>Included Scope</h1>
+              <h1>Included Scope — शामिल कार्यक्षेत्र</h1>
             </div>
             <div class="card">
               <div id="includedList"></div>
-              <button type="button" class="btn btn-primary" onclick="addIncluded()">+ Add Included Item</button>
+              <button type="button" class="btn btn-primary" onclick="addIncluded()">+ Add Included Item — + शामिल मद जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 15: EXCLUSIONS -->
           <section class="bid-section" id="step15">
             <div class="section-header">
-              <h1>Excluded Scope</h1>
+              <h1>Excluded Scope — बहिष्कृत कार्यक्षेत्र</h1>
             </div>
             <div class="card">
               <div id="excludedList"></div>
-              <button type="button" class="btn btn-primary" onclick="addExcluded()">+ Add Excluded Item</button>
+              <button type="button" class="btn btn-primary" onclick="addExcluded()">+ Add Excluded Item — + बहिष्कृत मद जोड़ें</button>
             </div>
           </section>
 
           <!-- STEP 16: NOTES -->
           <section class="bid-section" id="step16">
             <div class="section-header">
-              <h1>Notes & Validity</h1>
+              <h1>Notes &amp; Validity — नियम व वैधता</h1>
             </div>
             <div class="card">
-              <div class="form-group"><label>Quotation Validity</label><input id="noteValidity" placeholder="e.g. Valid for 30 days" /></div>
-              <div class="form-group"><label>Working Condition Notes</label><textarea id="noteSite" placeholder="Site accessibility, electricity and water conditions..."></textarea></div>
+              <div class="form-group">
+                <label class="bilingual-label"><span>Quotation Validity</span><span class="label-hi">उद्धरण की वैधता</span></label>
+                <input id="noteValidity" placeholder="e.g. Valid for 30 days / 30 दिनों के लिए मान्य" />
+              </div>
+              <div class="form-group">
+                <label class="bilingual-label"><span>Working Condition Notes</span><span class="label-hi">साइट कार्य स्थितियाँ व शर्तें</span></label>
+                <textarea id="noteSite" placeholder="Site accessibility, electricity and water conditions... / साइट पहुँच, बिजली और पानी की स्थिति..."></textarea>
+              </div>
             </div>
           </section>
 
           <!-- STEP 17: REVIEW -->
           <section class="bid-section" id="step17">
             <div class="section-header">
-              <h1>Final Quotation Review</h1>
+              <h1>Final Quotation Review — अंतिम उद्धरण समीक्षा</h1>
             </div>
             <div class="card">
-              <div class="review-item"><span>Project</span><strong id="reviewProjectName">--</strong></div>
-              <div class="review-item"><span>Contractor</span><strong id="reviewContractorName">--</strong></div>
-              <div class="review-item"><span>Bid Title</span><strong id="reviewBidTitle">--</strong></div>
-              <div class="review-item"><span>Duration</span><strong id="reviewDuration">--</strong></div>
+              <div class="review-item"><span>Project — परियोजना</span><strong id="reviewProjectName">--</strong></div>
+              <div class="review-item"><span>Contractor — ठेकेदार</span><strong id="reviewContractorName">--</strong></div>
+              <div class="review-item"><span>Bid Title — उद्धरण शीर्षक</span><strong id="reviewBidTitle">--</strong></div>
+              <div class="review-item"><span>Duration — कार्य अवधि</span><strong id="reviewDuration">--</strong></div>
+              <div class="review-item" id="reviewDescEnRow" style="display: none;">
+                <span>Description (English) — विवरण (अंग्रेजी)</span>
+                <span id="reviewDescEn" style="max-width:60%; text-align:right; font-weight:500;">--</span>
+              </div>
+              <div class="review-item" id="reviewDescHiRow" style="display: none;">
+                <span>Description (Hindi) — विवरण (हिंदी)</span>
+                <span id="reviewDescHi" style="max-width:60%; text-align:right; font-weight:500;">--</span>
+              </div>
             </div>
             <div class="card">
-              <div class="review-item"><span>Floors Cost</span><strong id="reviewFloor">₹0</strong></div>
-              <div class="review-item"><span>Materials Cost</span><strong id="reviewMaterial">₹0</strong></div>
-              <div class="review-item"><span>Labour Cost</span><strong id="reviewLabour">₹0</strong></div>
-              <div class="review-item"><span>Work & Others</span><strong id="reviewWork">₹0</strong></div>
-              <div class="review-item total"><span>Final Quoted Amount</span><strong class="review-total" id="reviewFinal">₹0</strong></div>
+              <div class="review-item"><span id="reviewScopeLabel">Scope / Floors Cost — कार्यक्षेत्र / तल लागत</span><strong id="reviewFloor">₹0</strong></div>
+              <div class="review-item"><span>Materials Cost — सामग्री लागत</span><strong id="reviewMaterial">₹0</strong></div>
+              <div class="review-item"><span>Labour Cost — श्रम लागत</span><strong id="reviewLabour">₹0</strong></div>
+              <div class="review-item"><span>Work &amp; Others — कार्य एवं अन्य खर्च</span><strong id="reviewWork">₹0</strong></div>
+              <div class="review-item total"><span>Final Quoted Amount — अंतिम उद्धृत राशि</span><strong class="review-total" id="reviewFinal">₹0</strong></div>
             </div>
             <div class="card">
-              <label>
-                <input type="checkbox" id="confirmTerms" style="width:auto;" />
-                I confirm that all quotation specs and rates are authentic and ready for customer review.
+              <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                <input type="checkbox" id="confirmTerms" style="width:auto; margin-top: 3px;" />
+                <span>I confirm that all quotation specs and rates are authentic and ready for customer review. — मैं पुष्टि करता हूँ कि सभी विनिर्देश और दरें प्रामाणिक हैं और ग्राहक समीक्षा के लिए तैयार हैं।</span>
               </label>
             </div>
           </section>
@@ -438,12 +626,12 @@
 
         <!-- Sticky Footer Stepper Actions -->
         <div class="bottom-nav-actions">
-          <button type="button" class="btn btn-secondary" onclick="previousStep()">← Previous</button>
+          <button type="button" class="btn btn-secondary" onclick="previousStep()">← Previous — ← पिछला</button>
           <div class="bottom-right">
-            <button type="button" class="btn btn-outline" onclick="saveDraft()">Save Draft</button>
-            <button type="button" class="btn btn-primary" id="nextButton" onclick="nextStep()">Next Step →</button>
+            <button type="button" class="btn btn-outline" onclick="saveDraft()">Save Draft — ड्राफ्ट सहेजें</button>
+            <button type="button" class="btn btn-primary" id="nextButton" onclick="nextStep()">Next Step → — अगला चरण →</button>
             <button type="button" class="btn btn-success" id="submitButton" style="display:none;" onclick="submitBid()">
-              <i class="fa-solid fa-paper-plane"></i> Submit Official Bid
+              <i class="fa-solid fa-paper-plane"></i> Submit Official Bid — आधिकारिक बोली जमा करें
             </button>
           </div>
         </div>

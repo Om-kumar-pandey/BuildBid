@@ -1573,6 +1573,26 @@ function renderBidsModalContent(projectId, bids, activeAssignment, successMessag
             </div>
           </div>
 
+          ${(bid.descriptionEn || bid.descriptionHi) ? `
+          <!-- Contractor Description / ठेकेदार का विवरण -->
+          <div class="bid-details-section">
+            <div class="details-section-title">
+              <i class="fa-solid fa-align-left"></i> Description — विवरण
+            </div>
+            <div class="details-grid-2col">
+              ${bid.descriptionEn ? `
+              <div class="detail-item full-width">
+                <span class="detail-label">English Description</span>
+                <span class="detail-val" style="white-space: pre-wrap;">${safeBidText(bid.descriptionEn)}</span>
+              </div>` : ''}
+              ${bid.descriptionHi ? `
+              <div class="detail-item full-width">
+                <span class="detail-label">Hindi Description / हिंदी विवरण</span>
+                <span class="detail-val" style="white-space: pre-wrap;">${safeBidText(bid.descriptionHi)}</span>
+              </div>` : ''}
+            </div>
+          </div>` : ''}
+
           <!-- Commercial Terms -->
           <div class="bid-details-section">
             <div class="details-section-title">
