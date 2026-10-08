@@ -83,17 +83,25 @@
         <!-- Hero Contractor Card -->
         <section class="contractor-banner">
           <div class="banner-left">
-            <div class="company-logo" id="banner-company-logo">
-              <i class="fa-solid fa-building"></i>
-              <span id="banner-logo-text">BB</span>
-              <small>CONSTRUCTION</small>
+            <div class="hero-avatar-box">
+              <img src="https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=Contractor" alt="Contractor Profile Photo" class="hero-avatar" id="banner-avatar-img" />
+              <button type="button" class="avatar-camera-btn" id="avatarCameraBtn" title="Change Profile Photo" aria-label="Change Profile Photo">
+                <i class="fa-solid fa-camera"></i>
+              </button>
+              <input type="file" id="contractorPhotoInput" accept="image/*" style="display: none;" />
+              <span id="banner-logo-text" style="display: none;"></span>
             </div>
             <div class="contractor-details">
-              <h3 id="banner-contractor-name">
-                Loading...
-                <i class="fa-solid fa-circle-check verified-icon" id="banner-verified-icon"></i>
-              </h3>
-              <p class="subtitle" id="banner-contractor-tagline">Civil Contractor</p>
+              <div class="banner-title-row">
+                <h3 id="banner-contractor-name">
+                  Loading...
+                  <i class="fa-solid fa-circle-check verified-icon" id="banner-verified-icon"></i>
+                </h3>
+              </div>
+              <div class="contractor-role-badge">
+                <i class="fa-solid fa-helmet-safety"></i>
+                <span id="banner-contractor-tagline">Civil Contractor</span>
+              </div>
               <div class="contact-inline">
                 <span><i class="fa-solid fa-location-dot"></i> <span id="banner-location">-</span></span>
                 <span><i class="fa-solid fa-phone"></i> <span id="banner-phone">-</span></span>
@@ -109,16 +117,18 @@
               <span id="banner-reviews-count">(0 Reviews)</span>
             </div>
             <div class="stats-mini">
-              <div>
+              <div class="stat-mini-item">
                 <span>Projects Completed</span>
                 <strong id="banner-completed-projects">0</strong>
               </div>
-              <div>
+              <div class="stat-mini-item">
                 <span>Total Earnings</span>
                 <strong id="banner-total-earnings">₹0</strong>
               </div>
             </div>
-            <button class="btn-edit-profile" onclick="openEditProfile()"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+            <button type="button" class="btn-edit-profile" id="bannerEditProfileBtn" onclick="openEditProfile()">
+              <i class="fa-solid fa-pen"></i> Edit Profile
+            </button>
           </div>
         </section>
 
@@ -180,17 +190,7 @@
               <!-- Rendered via contractor-dashboard.js -->
             </div>
 
-            <!-- Bottom Promotion Banner -->
-            <div class="promo-banner">
-              <div class="promo-left">
-                <i class="fa-solid fa-star star-box"></i>
-                <div>
-                  <h4>Get More Projects & Grow Your Business</h4>
-                  <p>Upgrade to Premium to get more leads, higher visibility and priority support.</p>
-                </div>
-              </div>
-              <button class="btn-upgrade-dark"><i class="fa-solid fa-crown"></i> Upgrade Now</button>
-            </div>
+
           </div>
 
           <!-- Right Column Performance & Notifications -->

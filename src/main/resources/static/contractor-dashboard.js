@@ -94,7 +94,7 @@ function renderContractorDashboard(user) {
 
   const bannerTagline = document.getElementById("banner-contractor-tagline");
   if (bannerTagline) {
-    bannerTagline.textContent = "Contractor";
+    bannerTagline.textContent = user.contractorType || user.specialization || "Civil Contractor";
   }
 
   const bannerLocation = document.getElementById("banner-location");
@@ -114,6 +114,22 @@ function renderContractorDashboard(user) {
 
   const logoText = document.getElementById("banner-logo-text");
   if (logoText) logoText.textContent = initials;
+
+  // Profile Photo Dynamic Display
+  const bannerAvatarImg = document.getElementById("banner-avatar-img");
+  if (bannerAvatarImg) {
+    const savedPreview = sessionStorage.getItem("contractorProfilePhotoPreview") || localStorage.getItem("contractorProfilePhotoPreview");
+    const customPhoto = savedPreview || user.profilePhoto || user.avatarUrl || user.profilePhotoUrl || user.photo || user.image;
+    if (customPhoto && String(customPhoto).trim() !== "") {
+      bannerAvatarImg.src = String(customPhoto).trim();
+    } else {
+      bannerAvatarImg.src = `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(displayName)}`;
+    }
+    bannerAvatarImg.onerror = function() {
+      this.onerror = null;
+      this.src = "hero-building.jpg";
+    };
+  }
 
   // Real Dynamic Stats
   const stats = user.stats || {};
@@ -560,6 +576,57 @@ window.addEventListener('click', (e) => {
   }
 });
 
+// Profile Photo Editing Interaction (UI affordance & local preview only)
+function setupProfilePhotoEditor() {
+  const fileInput = document.getElementById("contractorPhotoInput") || document.getElementById("contractor-photo-input");
+  const editBtn = document.getElementById("avatarCameraBtn") || document.getElementById("btn-change-photo");
+  const avatarImg = document.getElementById("banner-avatar-img");
+
+  if (editBtn && fileInput) {
+    editBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
+
+  if (avatarImg && fileInput) {
+    avatarImg.style.cursor = "pointer";
+    avatarImg.addEventListener("click", () => {
+      fileInput.click();
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const previewUrl = event.target.result;
+          if (avatarImg) {
+            avatarImg.src = previewUrl;
+          }
+          try {
+            sessionStorage.setItem("contractorProfilePhotoPreview", previewUrl);
+          } catch (err) {
+            console.warn("Could not cache profile photo preview in session storage", err);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+}
+
+function openEditProfile() {
+  const fileInput = document.getElementById("contractorPhotoInput") || document.getElementById("contractor-photo-input");
+  if (fileInput) {
+    fileInput.click();
+  }
+}
+window.openEditProfile = openEditProfile;
+
 // Bootstrapping
 document.addEventListener("DOMContentLoaded", () => {
   localStorage.removeItem("buildbid_current_user");
@@ -569,6 +636,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderContractorDashboard(contractor);
     loadContractorProjects();
   }
+  setupProfilePhotoEditor();
   loadContractorNotifications();
 });
 
