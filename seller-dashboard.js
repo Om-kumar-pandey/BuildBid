@@ -220,6 +220,50 @@ function bindSellerProfile(profile) {
 
 window.cachedMaterialRequests = window.cachedMaterialRequests || {};
 
+function isQuotationSubmittedForRequest(mr) {
+    if (!mr) return false;
+    if (mr.quotationSubmitted === true || mr.hasSubmittedQuotation === true) return true;
+    const reqDbId = mr.id;
+    const businessId = mr.requestId || ('MR-' + mr.id);
+    if (Array.isArray(sellerQuotationsCache) && sellerQuotationsCache.length > 0) {
+        return sellerQuotationsCache.some(q => {
+            const matchesId = (reqDbId && q.materialRequestId == reqDbId) ||
+                              (businessId && (q.businessRequestId === businessId || q.requestId === businessId));
+            if (!matchesId) return false;
+            const s = (q.status || '').toUpperCase();
+            return ['SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED'].includes(s);
+        });
+    }
+    return false;
+}
+
+function getExistingQuoteIdForRequest(mr) {
+    if (!mr) return null;
+    if (mr.existingQuotationId) return mr.existingQuotationId;
+    const reqDbId = mr.id;
+    const businessId = mr.requestId || ('MR-' + mr.id);
+    if (Array.isArray(sellerQuotationsCache)) {
+        const found = sellerQuotationsCache.find(q => {
+            const matchesId = (reqDbId && q.materialRequestId == reqDbId) ||
+                              (businessId && (q.businessRequestId === businessId || q.requestId === businessId));
+            if (!matchesId) return false;
+            const s = (q.status || '').toUpperCase();
+            return ['SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED'].includes(s);
+        });
+        if (found) return found.quotationId || found.id;
+    }
+    return null;
+}
+
+function viewExistingQuotation(quoteId) {
+    switchTab('quotations');
+    if (quoteId) {
+        setTimeout(() => {
+            openQuotationDetailModal(quoteId);
+        }, 150);
+    }
+}
+
 function renderIncomingRequirements(projects = [], materialRequests = []) {
     // Cache material requests by business requestId or database id
     if (Array.isArray(materialRequests)) {
@@ -325,10 +369,23 @@ function createMaterialRequestCard(mr) {
             </button>
         `;
     } else {
-        actionButtons = `
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
-            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
-        `;
+        const isSubmitted = isQuotationSubmittedForRequest(mr);
+        const existingQuoteId = getExistingQuoteIdForRequest(mr);
+        if (isSubmitted) {
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+                <span class="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                    <span>Quotation Submitted</span>
+                </span>
+                ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
+            `;
+        } else {
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
+                <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+            `;
+        }
     }
 
     let financialSnippet = "";
@@ -420,10 +477,23 @@ function createMaterialRequestRow(mr) {
             <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">Review Order</button>
         `;
     } else {
-        actionButtons = `
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
-            <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
-        `;
+        const isSubmitted = isQuotationSubmittedForRequest(mr);
+        const existingQuoteId = getExistingQuoteIdForRequest(mr);
+        if (isSubmitted) {
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+                <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                    <span>Quotation Submitted</span>
+                </span>
+                ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
+            `;
+        } else {
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
+                <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+            `;
+        }
     }
 
     tr.innerHTML = `
@@ -600,18 +670,33 @@ function openMaterialRequestModal(requestId) {
         if (declineBtn) declineBtn.classList.add('hidden');
         if (quoteBtn) {
             quoteBtn.classList.remove('hidden');
-            quoteBtn.onclick = function() {
-                closeModal('materialRequestDetailModal');
-                const items = mr.items || [];
-                const firstItem = items[0] || {};
-                openQuotationModal(
-                    mr.requestId || ('MR-' + mr.id),
-                    firstItem.materialName || mr.materialSummary || 'Requested Material',
-                    firstItem.quantity || 1,
-                    firstItem.unit || 'Units',
-                    mr.id
-                );
-            };
+            const isSubmitted = isQuotationSubmittedForRequest(mr);
+            const existingQuoteId = getExistingQuoteIdForRequest(mr);
+            if (isSubmitted) {
+                quoteBtn.className = "px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold transition-all flex items-center space-x-1.5 cursor-pointer";
+                quoteBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i><span>Quotation Submitted</span>`;
+                quoteBtn.onclick = function() {
+                    closeModal('materialRequestDetailModal');
+                    if (existingQuoteId) {
+                        viewExistingQuotation(existingQuoteId);
+                    }
+                };
+            } else {
+                quoteBtn.className = "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5";
+                quoteBtn.innerHTML = `<i class="fa-solid fa-paper-plane text-xs"></i><span>Send Quotation</span>`;
+                quoteBtn.onclick = function() {
+                    closeModal('materialRequestDetailModal');
+                    const items = mr.items || [];
+                    const firstItem = items[0] || {};
+                    openQuotationModal(
+                        mr.requestId || ('MR-' + mr.id),
+                        firstItem.materialName || mr.materialSummary || 'Requested Material',
+                        firstItem.quantity || 1,
+                        firstItem.unit || 'Units',
+                        mr.id
+                    );
+                };
+            }
         }
     }
 
@@ -843,6 +928,11 @@ async function initSellerDashboard() {
 
     // 5b. Fetch dynamic seller orders
     await loadSellerOrders();
+
+    // 5c. Fetch dynamic seller quotations
+    if (typeof loadSellerQuotations === 'function') {
+        await loadSellerQuotations();
+    }
 
     // 6. Check URL hash or query params (e.g. #invoices, ?from=invoice)
     const urlParams = new URLSearchParams(window.location.search);
@@ -1703,6 +1793,9 @@ function switchTab(tabId) {
     if (tabId === 'orders' && typeof loadSellerOrders === 'function') {
         loadSellerOrders();
     }
+    if (tabId === 'quotations' && typeof loadSellerQuotations === 'function') {
+        loadSellerQuotations();
+    }
 }
 
 /**
@@ -2052,9 +2145,6 @@ function onQuotationSkuChanged(selectElem) {
 }
 
 async function openQuotationModal(reqId, material, qty, unit, materialReqDbId) {
-    const reqIdElem = document.getElementById('quoteModalReqId');
-    const tbody = document.getElementById('qItemsTbody');
-
     // Resolve material request object if available
     let mr = null;
     if (window.cachedMaterialRequests) {
@@ -2063,6 +2153,25 @@ async function openQuotationModal(reqId, material, qty, unit, materialReqDbId) {
              window.cachedMaterialRequests[String(materialReqDbId)] || 
              null;
     }
+
+    if (mr && isQuotationSubmittedForRequest(mr)) {
+        showToast(`An active quotation already exists for this material request from your account. Resubmission is not permitted while an active quotation is pending.`);
+        return;
+    }
+
+    editingQuotationTarget = null;
+    const modalTitle = document.querySelector('#quotationModal h3');
+    if (modalTitle) modalTitle.innerText = "Create B2B Multi-Material Quotation";
+
+    const sendBtn = document.getElementById('sendQuotationBtn');
+    if (sendBtn) {
+        sendBtn.className = "px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-2";
+        sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1.5"></i><span>Send Quotation Now</span>`;
+        sendBtn.onclick = submitSellerQuotation;
+    }
+
+    const reqIdElem = document.getElementById('quoteModalReqId');
+    const tbody = document.getElementById('qItemsTbody');
 
     const dbId = materialReqDbId || (mr && mr.id) || (typeof reqId === 'number' ? reqId : (parseInt(String(reqId).replace(/[^0-9]/g, '')) || null));
 
@@ -2304,8 +2413,24 @@ async function submitSellerQuotation() {
         if (res.status === 201) {
             showToast(`Quotation ${data.quotationId || ''} submitted successfully! — कोटेशन सफलतापूर्वक भेज दिया गया!`);
             closeModal('quotationModal');
-            if (typeof loadRequestsData === 'function') {
-                loadRequestsData();
+            if (currentQuotationTarget) {
+                const targetId = currentQuotationTarget.dbId || currentQuotationTarget.reqId;
+                if (targetId && window.cachedMaterialRequests) {
+                    const cached = window.cachedMaterialRequests[targetId] ||
+                                   window.cachedMaterialRequests[currentQuotationTarget.reqId] ||
+                                   window.cachedMaterialRequests[currentQuotationTarget.dbId];
+                    if (cached) {
+                        cached.quotationSubmitted = true;
+                        cached.hasSubmittedQuotation = true;
+                        cached.existingQuotationId = data.quotationId;
+                    }
+                }
+            }
+            if (typeof loadSellerQuotations === 'function') {
+                await loadSellerQuotations();
+            }
+            if (typeof refreshSellerRequests === 'function') {
+                await refreshSellerRequests();
             }
         } else if (res.status === 409) {
             showToast(data.error || 'An active quotation already exists for this request from your account.');
@@ -2365,6 +2490,924 @@ function calculateQuote() {
     if (totalElem) totalElem.innerText = '₹' + total.toLocaleString('en-IN');
 }
 
+/* ==========================================================================
+   DYNAMIC SELLER QUOTATIONS MANAGEMENT (Phase 2)
+   ========================================================================== */
+
+let sellerQuotationsCache = [];
+let currentQuotationFilter = 'ALL';
+let _isQuotationsLoading = false;
+
+function createNewQuotationRedirect() {
+    switchTab('requests');
+    showToast('Please select an active material requirement below to create and send a quotation.');
+}
+
+function formatQuotationDate(dateStr) {
+    if (!dateStr) return '—';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return String(dateStr);
+        return d.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return String(dateStr);
+    }
+}
+
+function formatQuotationValidity(validityStr, createdAtStr) {
+    if (!validityStr && !createdAtStr) return '—';
+    if (!validityStr) return formatQuotationDate(createdAtStr);
+    if (/\d{4}-\d{2}-\d{2}/.test(validityStr)) {
+        return formatQuotationDate(validityStr);
+    }
+    if (/^\d+\s*day/i.test(String(validityStr).trim()) && createdAtStr) {
+        try {
+            const days = parseInt(validityStr) || 7;
+            const cd = new Date(createdAtStr);
+            if (!isNaN(cd.getTime())) {
+                const target = new Date(cd.getTime() + days * 86400000);
+                return formatQuotationDate(target);
+            }
+        } catch (e) {}
+    }
+    return escapeHtml(String(validityStr));
+}
+
+function getQuotationStatusBadge(status) {
+    const s = (status || 'SUBMITTED').toUpperCase();
+    if (s === 'ACCEPTED') {
+        return '<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Accepted</span>';
+    } else if (s === 'UNDER_REVIEW') {
+        return '<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Under Review</span>';
+    } else if (s === 'SUBMITTED') {
+        return '<span class="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Submitted</span>';
+    } else if (s === 'REJECTED') {
+        return '<span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Rejected</span>';
+    } else if (s === 'EXPIRED') {
+        return '<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Expired</span>';
+    } else if (s === 'WITHDRAWN') {
+        return '<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Withdrawn</span>';
+    }
+    return `<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold">${escapeHtml(s)}</span>`;
+}
+
+function updateQuotationTabBadges() {
+    const allCount = sellerQuotationsCache.length;
+    const draftCount = 0; // Draft persistence is not supported by backend
+    const pendingCount = sellerQuotationsCache.filter(q => {
+        const s = (q.status || '').toUpperCase();
+        return s === 'SUBMITTED' || s === 'UNDER_REVIEW';
+    }).length;
+    const acceptedCount = sellerQuotationsCache.filter(q => (q.status || '').toUpperCase() === 'ACCEPTED').length;
+    const rejectedCount = sellerQuotationsCache.filter(q => {
+        const s = (q.status || '').toUpperCase();
+        return s === 'REJECTED' || s === 'EXPIRED' || s === 'WITHDRAWN';
+    }).length;
+
+    const btnAll = document.getElementById('quote-tab-all');
+    const btnDraft = document.getElementById('quote-tab-draft');
+    const btnPending = document.getElementById('quote-tab-pending');
+    const btnAccepted = document.getElementById('quote-tab-accepted');
+    const btnRejected = document.getElementById('quote-tab-rejected');
+
+    if (btnAll) btnAll.innerText = `All (${allCount})`;
+    if (btnDraft) btnDraft.innerText = `Draft (${draftCount})`;
+    if (btnPending) btnPending.innerText = `Sent & Pending (${pendingCount})`;
+    if (btnAccepted) btnAccepted.innerText = `Accepted (${acceptedCount})`;
+    if (btnRejected) btnRejected.innerText = `Rejected (${rejectedCount})`;
+
+    // Sidebar badge
+    const navQuoteBadge = document.getElementById('nav-quotations-badge');
+    if (navQuoteBadge) {
+        navQuoteBadge.innerText = `${pendingCount} Pending`;
+    }
+}
+
+function filterQuotationsTab(filterName) {
+    currentQuotationFilter = filterName || 'ALL';
+
+    const tabMap = {
+        'ALL': 'quote-tab-all',
+        'DRAFT': 'quote-tab-draft',
+        'PENDING': 'quote-tab-pending',
+        'ACCEPTED': 'quote-tab-accepted',
+        'REJECTED': 'quote-tab-rejected'
+    };
+
+    Object.entries(tabMap).forEach(([f, id]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        if (f === currentQuotationFilter) {
+            btn.className = 'px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm';
+        } else {
+            btn.className = 'px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200';
+        }
+    });
+
+    renderSellerQuotationsTable(currentQuotationFilter);
+}
+
+function renderSellerQuotationsTable(filter = 'ALL') {
+    const tbody = document.getElementById('quotations-tbody');
+    const emptyState = document.getElementById('quotations-empty-state');
+    const emptyTitle = document.getElementById('quotations-empty-title');
+    const emptyDesc = document.getElementById('quotations-empty-desc');
+    const emptyAction = document.getElementById('quotations-empty-action');
+
+    if (!tbody) return;
+
+    let filtered = [];
+    if (filter === 'ALL') {
+        filtered = sellerQuotationsCache;
+    } else if (filter === 'DRAFT') {
+        filtered = []; // Persistence of drafts is unsupported
+    } else if (filter === 'PENDING') {
+        filtered = sellerQuotationsCache.filter(q => {
+            const s = (q.status || '').toUpperCase();
+            return s === 'SUBMITTED' || s === 'UNDER_REVIEW';
+        });
+    } else if (filter === 'ACCEPTED') {
+        filtered = sellerQuotationsCache.filter(q => (q.status || '').toUpperCase() === 'ACCEPTED');
+    } else if (filter === 'REJECTED') {
+        filtered = sellerQuotationsCache.filter(q => {
+            const s = (q.status || '').toUpperCase();
+            return s === 'REJECTED' || s === 'EXPIRED' || s === 'WITHDRAWN';
+        });
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) {
+            emptyState.classList.remove('hidden');
+            if (filter === 'DRAFT') {
+                if (emptyTitle) emptyTitle.innerText = 'Draft Quotations (0)';
+                if (emptyDesc) emptyDesc.innerText = 'Draft saving is not currently supported. All quotations created through BuildBid are submitted directly to buyers for live review.';
+                if (emptyAction) emptyAction.classList.add('hidden');
+            } else if (filter === 'PENDING') {
+                if (emptyTitle) emptyTitle.innerText = 'No Pending Quotations';
+                if (emptyDesc) emptyDesc.innerText = 'You currently have no quotations awaiting customer review.';
+                if (emptyAction) emptyAction.classList.remove('hidden');
+            } else if (filter === 'ACCEPTED') {
+                if (emptyTitle) emptyTitle.innerText = 'No Accepted Quotations';
+                if (emptyDesc) emptyDesc.innerText = 'None of your quotations have been accepted yet.';
+                if (emptyAction) emptyAction.classList.remove('hidden');
+            } else if (filter === 'REJECTED') {
+                if (emptyTitle) emptyTitle.innerText = 'No Rejected Quotations';
+                if (emptyDesc) emptyDesc.innerText = 'You have no rejected, expired, or withdrawn quotations.';
+                if (emptyAction) emptyAction.classList.add('hidden');
+            } else {
+                if (emptyTitle) emptyTitle.innerText = 'No Quotations Found';
+                if (emptyDesc) emptyDesc.innerText = 'You have not submitted any quotations yet. Browse active customer requirements to submit your first quotation.';
+                if (emptyAction) emptyAction.classList.remove('hidden');
+            }
+        }
+        return;
+    }
+
+    if (emptyState) {
+        emptyState.classList.add('hidden');
+    }
+
+    tbody.innerHTML = '';
+
+    filtered.forEach(q => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-all';
+
+        const quoteRef = escapeHtml(q.quotationId || q.id || 'QT-NEW');
+        const reqRef = escapeHtml(q.businessRequestId || (q.materialRequestId ? 'REQ-' + q.materialRequestId : 'REQ'));
+        const projectTitle = escapeHtml(q.projectName || 'Material Requirement');
+        const customerName = escapeHtml(q.customerName || '');
+        const location = escapeHtml(q.customerLocation || '');
+
+        let projectHtml = `<div class="font-medium text-slate-800">${reqRef} — ${projectTitle}</div>`;
+        if (customerName || location) {
+            const sub = [customerName, location].filter(Boolean).join(' · ');
+            projectHtml += `<div class="text-[11px] text-slate-400">${sub}</div>`;
+        }
+
+        // Materials summary
+        let materialsText = 'Materials';
+        if (Array.isArray(q.items) && q.items.length > 0) {
+            const first = q.items[0];
+            const name = escapeHtml(first.materialName || 'Material');
+            const qty = escapeHtml(String(first.quotedQuantity != null ? first.quotedQuantity : (first.quantity != null ? first.quantity : '')));
+            const unit = escapeHtml(first.quotedUnit || first.unit || 'Units');
+            materialsText = `${name} (${qty} ${unit})`;
+            if (q.items.length > 1) {
+                materialsText += ` + ${q.items.length - 1} more`;
+            }
+        } else if (q.includedItems) {
+            materialsText = escapeHtml(q.includedItems);
+        }
+
+        const totalAmount = Number(q.totalAmount != null ? q.totalAmount : (q.quotedAmount != null ? q.quotedAmount : 0)).toLocaleString('en-IN');
+        const validUntil = formatQuotationValidity(q.validity, q.createdAt);
+        const statusBadge = getQuotationStatusBadge(q.status);
+
+        // Actions
+        const rawStatus = (q.status || '').toUpperCase();
+        let actionButtons = '';
+
+        if (rawStatus === 'ACCEPTED') {
+            const linkedOrder = (sellerOrdersCache || []).find(o =>
+                (o.quotationId && o.quotationId === q.backendId) ||
+                (o.quotationCode && (o.quotationCode === q.quotationId || o.quotationCode === q.id))
+            );
+
+            actionButtons += `<button onclick="downloadQuotationPdf('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download</button> `;
+            if (linkedOrder) {
+                actionButtons += `<button onclick="viewQuotationOrder('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">View Order</button> `;
+            }
+            actionButtons += `<button onclick="openQuotationDetailModal('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-semibold transition-all">View</button>`;
+        } else if (rawStatus === 'SUBMITTED' || rawStatus === 'UNDER_REVIEW') {
+            actionButtons += `<button onclick="openUpdateQuotationModal('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow-sm transition-all">Update</button> `;
+            actionButtons += `<button onclick="duplicateQuotation('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Duplicate</button> `;
+            actionButtons += `<button onclick="openQuotationDetailModal('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-semibold transition-all">View</button>`;
+        } else {
+            actionButtons += `<button onclick="duplicateQuotation('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Duplicate</button> `;
+            actionButtons += `<button onclick="openQuotationDetailModal('${escapeJs(q.quotationId || String(q.id))}')" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-semibold transition-all">View</button>`;
+        }
+
+        tr.innerHTML = `
+            <td class="p-4 font-bold text-blue-600">${quoteRef}</td>
+            <td class="p-4">${projectHtml}</td>
+            <td class="p-4">${materialsText}</td>
+            <td class="p-4 font-bold text-slate-900">₹${totalAmount}</td>
+            <td class="p-4 text-slate-500">${validUntil}</td>
+            <td class="p-4">${statusBadge}</td>
+            <td class="p-4 text-right space-x-2">${actionButtons}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function loadSellerQuotations() {
+    if (_isQuotationsLoading) return;
+    _isQuotationsLoading = true;
+
+    const tbody = document.getElementById('quotations-tbody');
+    const emptyState = document.getElementById('quotations-empty-state');
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    if (!token) {
+        _isQuotationsLoading = false;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">Please log in as a Material Seller to view quotations.</td></tr>`;
+        }
+        return;
+    }
+
+    if (tbody && (!sellerQuotationsCache || sellerQuotationsCache.length === 0)) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-8 text-center text-slate-400 text-xs">
+                    <i class="fa-solid fa-spinner fa-spin mr-2 text-blue-600"></i>
+                    Loading quotations from BuildBid network...
+                </td>
+            </tr>
+        `;
+        if (emptyState) emptyState.classList.add('hidden');
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/provider/quotations`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+            console.warn('loadSellerQuotations: session unauthorized or expired.');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-500 text-xs">Session expired. Please log in again.</td></tr>`;
+            }
+            return;
+        }
+
+        if (!res.ok) {
+            throw new Error(`Server returned HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        sellerQuotationsCache = Array.isArray(data) ? data : [];
+        updateQuotationTabBadges();
+        renderSellerQuotationsTable(currentQuotationFilter);
+    } catch (err) {
+        console.error('loadSellerQuotations error:', err);
+        if (tbody && (!sellerQuotationsCache || sellerQuotationsCache.length === 0)) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="p-8 text-center text-xs">
+                        <p class="text-red-500 mb-2">Unable to load quotations. Network or server error.</p>
+                        <button onclick="loadSellerQuotations()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Retry</button>
+                    </td>
+                </tr>
+            `;
+        }
+    } finally {
+        _isQuotationsLoading = false;
+    }
+}
+
+function openQuotationDetailModal(quoteId) {
+    const q = (sellerQuotationsCache || []).find(item =>
+        String(item.quotationId) === String(quoteId) ||
+        String(item.id) === String(quoteId) ||
+        String(item.backendId) === String(quoteId)
+    );
+
+    if (!q) {
+        showToast('Quotation details not found.');
+        return;
+    }
+
+    const idElem = document.getElementById('qDetailModalId');
+    const statusElem = document.getElementById('qDetailModalStatus');
+    const reqRefElem = document.getElementById('qDetailReqRef');
+    const projElem = document.getElementById('qDetailProject');
+    const custElem = document.getElementById('qDetailCustomer');
+    const dateElem = document.getElementById('qDetailDate');
+    const locCont = document.getElementById('qDetailLocationContainer');
+    const locElem = document.getElementById('qDetailLocation');
+    const itemsTbody = document.getElementById('qDetailItemsTbody');
+    const countElem = document.getElementById('qDetailItemCount');
+    const subtotalElem = document.getElementById('qDetailSubtotal');
+    const transElem = document.getElementById('qDetailTransport');
+    const gstElem = document.getElementById('qDetailGst');
+    const grandElem = document.getElementById('qDetailGrandTotal');
+    const valElem = document.getElementById('qDetailValidity');
+    const timeElem = document.getElementById('qDetailTimeline');
+    const termsElem = document.getElementById('qDetailPaymentTerms');
+    const warElem = document.getElementById('qDetailWarranty');
+    const orderBtnCont = document.getElementById('qDetailOrderBtnContainer');
+
+    if (idElem) idElem.innerText = `Quotation ${q.quotationId || q.id || ''}`;
+    if (statusElem) {
+        const rawStatus = (q.status || 'SUBMITTED').toUpperCase();
+        statusElem.innerText = rawStatus;
+        if (rawStatus === 'ACCEPTED') {
+            statusElem.className = 'bg-emerald-500/20 text-emerald-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold';
+        } else if (rawStatus === 'UNDER_REVIEW') {
+            statusElem.className = 'bg-amber-500/20 text-amber-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold';
+        } else if (rawStatus === 'REJECTED') {
+            statusElem.className = 'bg-red-500/20 text-red-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold';
+        } else {
+            statusElem.className = 'bg-blue-500/20 text-blue-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold';
+        }
+    }
+
+    if (reqRefElem) reqRefElem.innerText = q.businessRequestId || (q.materialRequestId ? 'REQ-' + q.materialRequestId : 'REQ');
+    if (projElem) projElem.innerText = q.projectName || 'Material Requirement';
+    if (custElem) custElem.innerText = q.customerName || 'Verified Customer';
+    if (dateElem) dateElem.innerText = formatQuotationDate(q.createdAt);
+
+    if (locCont && locElem) {
+        const locParts = [q.deliveryAddress, q.customerLocation].filter(Boolean);
+        if (locParts.length > 0) {
+            locCont.classList.remove('hidden');
+            locElem.innerText = locParts.join(' · ');
+        } else {
+            locCont.classList.add('hidden');
+        }
+    }
+
+    // Render items
+    const items = Array.isArray(q.items) ? q.items : [];
+    if (countElem) countElem.innerText = `${items.length} ${items.length === 1 ? 'Item' : 'Items'}`;
+    if (itemsTbody) {
+        itemsTbody.innerHTML = '';
+        if (items.length === 0) {
+            itemsTbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400 text-xs">${escapeHtml(q.includedItems || 'Standard catalog materials')}</td></tr>`;
+        } else {
+            items.forEach(it => {
+                const tr = document.createElement('tr');
+                const lineTotal = Number(it.lineTotal != null ? it.lineTotal : (Number(it.quantity != null ? it.quantity : (it.quotedQuantity != null ? it.quotedQuantity : 0)) * Number(it.unitPrice || 0))).toLocaleString('en-IN');
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${escapeHtml(it.materialName || 'Material')}</td>
+                    <td class="p-3 text-slate-600">${escapeHtml(String(it.quantity != null ? it.quantity : (it.quotedQuantity != null ? it.quotedQuantity : 1)))} ${escapeHtml(it.unit || it.quotedUnit || 'Units')}</td>
+                    <td class="p-3 text-slate-600">₹${Number(it.unitPrice || 0).toLocaleString('en-IN')}</td>
+                    <td class="p-3 text-right font-bold text-slate-900">₹${lineTotal}</td>
+                `;
+                itemsTbody.appendChild(tr);
+            });
+        }
+    }
+
+    const matCost = Number(q.materialCost != null ? q.materialCost : (q.materialAmount || 0));
+    const transport = Number(q.transportationCost != null ? q.transportationCost : (q.transportation || 0));
+    const gst = Number(q.taxGst != null ? q.taxGst : (q.taxes || 0));
+    const grand = Number(q.totalAmount != null ? q.totalAmount : (q.quotedAmount || 0));
+
+    if (subtotalElem) subtotalElem.innerText = '₹' + matCost.toLocaleString('en-IN');
+    if (transElem) transElem.innerText = '₹' + transport.toLocaleString('en-IN');
+    if (gstElem) gstElem.innerText = '₹' + gst.toLocaleString('en-IN');
+    if (grandElem) grandElem.innerText = '₹' + grand.toLocaleString('en-IN');
+
+    if (valElem) valElem.innerText = formatQuotationValidity(q.validity, q.createdAt);
+    if (timeElem) timeElem.innerText = q.timeline || '2-3 Days';
+    if (termsElem) termsElem.innerText = q.paymentTerms || '100% on Site Delivery';
+    if (warElem) warElem.innerText = q.warranty || 'Standard Manufacturer / BIS Batch Certified';
+
+    // Action buttons inside detail modal
+    if (orderBtnCont) {
+        orderBtnCont.innerHTML = '';
+        const rawStatus = (q.status || '').toUpperCase();
+        if (rawStatus === 'ACCEPTED') {
+            const linkedOrder = (sellerOrdersCache || []).find(o =>
+                (o.quotationId && o.quotationId === q.backendId) ||
+                (o.quotationCode && (o.quotationCode === q.quotationId || o.quotationCode === q.id))
+            );
+            if (linkedOrder) {
+                orderBtnCont.innerHTML = `
+                    <button type="button" onclick="closeModal('quotationDetailModal'); viewQuotationOrder('${escapeJs(q.quotationId || String(q.id))}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span>View Linked Order (${escapeHtml(linkedOrder.orderCode || ('ORD-' + linkedOrder.id))})</span>
+                    </button>
+                `;
+            } else {
+                orderBtnCont.innerHTML = `
+                    <span class="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>Accepted Quotation</span>
+                    </span>
+                `;
+            }
+        } else if (rawStatus === 'SUBMITTED' || rawStatus === 'UNDER_REVIEW') {
+            orderBtnCont.innerHTML = `
+                <button type="button" onclick="closeModal('quotationDetailModal'); openUpdateQuotationModal('${escapeJs(q.quotationId || String(q.id))}')" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Update Quotation</span>
+                </button>
+            `;
+        }
+    }
+
+    openModal('quotationDetailModal');
+}
+
+/**
+ * Open Quotation Modal configured for Updating an Existing Quotation
+ */
+async function openUpdateQuotationModal(quoteId) {
+    const q = (sellerQuotationsCache || []).find(item =>
+        String(item.quotationId) === String(quoteId) ||
+        String(item.id) === String(quoteId) ||
+        String(item.backendId) === String(quoteId)
+    );
+
+    if (!q) {
+        showToast('Quotation not found.');
+        return;
+    }
+
+    const rawStatus = (q.status || '').toUpperCase();
+    if (rawStatus === 'ACCEPTED') {
+        showToast('Quotation is already been accepted. Now it cannot be updated.');
+        return;
+    }
+
+    if (rawStatus === 'REJECTED' || rawStatus === 'EXPIRED' || rawStatus === 'WITHDRAWN') {
+        showToast(`This quotation is ${rawStatus.toLowerCase()} and cannot be updated. You may duplicate it to submit a new quotation if permitted.`);
+        return;
+    }
+
+    editingQuotationTarget = q;
+    const reqId = q.businessRequestId || (q.materialRequestId ? 'REQ-' + q.materialRequestId : 'REQ');
+    const dbId = q.materialRequestId || null;
+
+    const modalTitle = document.querySelector('#quotationModal h3');
+    if (modalTitle) modalTitle.innerText = `Update Quotation — ${q.quotationId || q.id}`;
+
+    const reqIdElem = document.getElementById('quoteModalReqId');
+    if (reqIdElem) {
+        reqIdElem.innerText = `Updating active quotation ${q.quotationId || q.id} for ${reqId}`;
+    }
+
+    const sendBtn = document.getElementById('sendQuotationBtn');
+    if (sendBtn) {
+        sendBtn.className = "px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-2";
+        sendBtn.innerHTML = `<i class="fa-solid fa-pen-to-square mr-1.5"></i><span>Update Quotation Now</span>`;
+        sendBtn.onclick = submitQuotationUpdate;
+    }
+
+    // Pre-populate commercial inputs
+    const transInp = document.getElementById('qTransport');
+    const timelineInp = document.getElementById('qTimeline');
+    const termsInp = document.getElementById('qPaymentTerms');
+    const validityInp = document.getElementById('qValidity');
+    const warrantyInp = document.getElementById('qWarranty');
+
+    if (transInp) transInp.value = q.transportationCost != null ? q.transportationCost : (q.transportation || 0);
+    if (timelineInp) timelineInp.value = q.timeline || '2-3 Days';
+    if (termsInp) termsInp.value = q.paymentTerms || '100% on Site Delivery';
+    if (validityInp) validityInp.value = q.validity || '7 Days';
+    if (warrantyInp) warrantyInp.value = q.warranty || 'Standard Manufacturer / BIS Batch Certified';
+
+    // Fetch seller catalog
+    const catalog = await getSellerCatalogMaterials();
+    const tbody = document.getElementById('qItemsTbody');
+
+    const quoteItems = Array.isArray(q.items) && q.items.length > 0 ? q.items : [
+        {
+            materialName: q.materialSummary || 'Catalog Material',
+            quantity: q.quotedQuantity || 1,
+            unit: q.quotedUnit || 'Units',
+            unitPrice: q.materialCost || 0
+        }
+    ];
+
+    currentQuotationTarget = {
+        reqId: reqId,
+        dbId: dbId,
+        items: quoteItems
+    };
+
+    if (tbody) {
+        tbody.innerHTML = "";
+        quoteItems.forEach((it, idx) => {
+            const reqItemName = it.materialName || 'Material';
+            const reqQty = it.quantity != null ? it.quantity : (it.quotedQuantity != null ? it.quotedQuantity : 1);
+            const reqUnit = it.unit || it.quotedUnit || 'Units';
+            const reqItemId = it.materialRequestItemId || it.requestItemId || '';
+            const unitPrice = it.unitPrice != null ? it.unitPrice : 0;
+            const targetMatId = it.materialId || it.catalogMaterialId;
+
+            let matchingMat = catalog.find(m => targetMatId && m.id === targetMatId) ||
+                              catalog.find(m => m.materialName && reqItemName && (
+                                  m.materialName.toLowerCase().includes(reqItemName.toLowerCase()) ||
+                                  reqItemName.toLowerCase().includes(m.materialName.toLowerCase())
+                              ));
+
+            const defaultPrice = unitPrice > 0 ? unitPrice : (matchingMat ? (matchingMat.unitPrice || 0) : 0);
+            const defaultUnit = reqUnit || (matchingMat ? matchingMat.unit : 'Units');
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-all';
+            tr.dataset.reqItemId = reqItemId;
+            tr.dataset.itemIndex = idx;
+
+            let optionsHtml = '<option value="">-- Select Your Catalog SKU --</option>';
+            catalog.forEach(catMat => {
+                const isSelected = (targetMatId && catMat.id === targetMatId) || (!targetMatId && matchingMat && matchingMat.id === catMat.id) ? 'selected' : '';
+                const brand = catMat.brand ? ` (${catMat.brand})` : '';
+                optionsHtml += `<option value="${catMat.id}" data-price="${catMat.unitPrice || 0}" data-unit="${escapeHtml(catMat.unit || '')}" ${isSelected}>${escapeHtml(catMat.materialName)}${brand} - ₹${catMat.unitPrice || 0}/${catMat.unit || 'unit'}</option>`;
+            });
+
+            tr.innerHTML = `
+                <td class="p-3">
+                    <label class="flex items-center space-x-2 cursor-pointer mb-1">
+                        <input type="checkbox" class="q-item-include w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked onchange="toggleQuoteRow(this)">
+                        <span class="font-bold text-slate-800 text-xs">${escapeHtml(reqItemName)}</span>
+                    </label>
+                    <span class="text-[10px] text-slate-500 font-medium ml-6 block">Req: ${escapeHtml(String(reqQty))} ${escapeHtml(reqUnit)}</span>
+                </td>
+                <td class="p-3">
+                    <select class="q-sku-select w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:bg-white" onchange="onQuotationSkuChanged(this)">
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="p-3">
+                    <input type="number" min="0.01" step="any" class="q-item-qty w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs" value="${reqQty}" oninput="calculateQuote()">
+                </td>
+                <td class="p-3">
+                    <input type="text" class="q-item-unit w-full px-2 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs" value="${escapeHtml(defaultUnit)}">
+                </td>
+                <td class="p-3">
+                    <input type="number" min="0" step="any" class="q-item-price w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs" value="${defaultPrice}" oninput="calculateQuote()">
+                </td>
+                <td class="p-3 text-right">
+                    <span class="q-item-total font-bold text-slate-800">₹0</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    calculateQuote();
+    openModal('quotationModal');
+}
+
+/**
+ * Submit updated quotation data to backend (PUT /api/quotations/{id})
+ */
+async function submitQuotationUpdate() {
+    if (!editingQuotationTarget) {
+        showToast('Error: No active quotation selected for update.');
+        return;
+    }
+
+    if ((editingQuotationTarget.status || '').toUpperCase() === 'ACCEPTED') {
+        showToast('Quotation is already been accepted. Now it cannot be updated.');
+        closeModal('quotationModal');
+        return;
+    }
+
+    const submitBtn = document.getElementById('sendQuotationBtn');
+    const transportInput = document.getElementById('qTransport');
+    const timelineInput = document.getElementById('qTimeline');
+    const paymentTermsInput = document.getElementById('qPaymentTerms');
+    const validityInput = document.getElementById('qValidity');
+    const warrantyInput = document.getElementById('qWarranty');
+
+    const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
+    const timeline = timelineInput ? timelineInput.value.trim() : "2-3 Days";
+    const paymentTerms = paymentTermsInput ? paymentTermsInput.value.trim() : "100% on Site Delivery";
+    const validity = validityInput ? validityInput.value.trim() : "7 Days";
+    const warranty = warrantyInput ? warrantyInput.value.trim() : "Standard Manufacturer / BIS Batch Certified";
+
+    const rows = document.querySelectorAll('#qItemsTbody tr');
+    const items = [];
+    const seenReqItemIds = new Set();
+    let subtotal = 0;
+    const itemSummaries = [];
+
+    for (const tr of rows) {
+        const isIncluded = tr.querySelector('.q-item-include')?.checked;
+        if (!isIncluded) continue;
+
+        const skuSelect = tr.querySelector('.q-sku-select');
+        const materialId = parseInt(skuSelect?.value) || null;
+        const reqItemId = tr.dataset.reqItemId ? parseInt(tr.dataset.reqItemId) : null;
+        const qty = parseFloat(tr.querySelector('.q-item-qty')?.value || 0) || 0;
+        const unit = tr.querySelector('.q-item-unit')?.value?.trim() || 'Units';
+        const unitPrice = parseFloat(tr.querySelector('.q-item-price')?.value || 0) || 0;
+
+        if (!materialId) {
+            showToast('Please select a catalog SKU for all included items. — कृपया सभी शामिल वस्तुओं के लिए सामग्री SKU चुनें।');
+            return;
+        }
+        if (qty <= 0) {
+            showToast('Quoted quantity must be greater than zero. — मात्रा शून्य से अधिक होनी चाहिए।');
+            return;
+        }
+        if (unitPrice < 0) {
+            showToast('Unit price cannot be negative. — दर शून्य से कम नहीं हो सकती।');
+            return;
+        }
+        if (reqItemId) {
+            if (seenReqItemIds.has(reqItemId)) {
+                showToast('Duplicate mapping for requested item rejected. — दोहरा मैपिंग अमान्य है।');
+                return;
+            }
+            seenReqItemIds.add(reqItemId);
+        }
+
+        const lineTotal = Math.round(qty * unitPrice * 100) / 100;
+        subtotal += lineTotal;
+
+        const selectedOpt = skuSelect.options[skuSelect.selectedIndex];
+        const matName = selectedOpt ? selectedOpt.text.split(' - ')[0] : 'Catalog SKU';
+        itemSummaries.push(`${matName} (${qty} ${unit})`);
+
+        items.push({
+            materialRequestItemId: reqItemId,
+            materialId: materialId,
+            quantity: qty,
+            unit: unit,
+            unitPrice: unitPrice
+        });
+    }
+
+    if (items.length === 0) {
+        showToast('Please include at least one material to quote. — कम से कम एक सामग्री का चयन करें।');
+        return;
+    }
+
+    const gst = Math.round(subtotal * 0.18);
+    const total = subtotal + gst + transport;
+
+    const token = getCleanToken();
+    if (!token) {
+        showToast('Authentication required. Please log in as a Material Seller.');
+        return;
+    }
+
+    const targetQuoteId = editingQuotationTarget.backendId || editingQuotationTarget.quotationId || editingQuotationTarget.id;
+    if (!targetQuoteId) {
+        showToast('Error: Target quotation ID could not be identified.');
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Updating...';
+    }
+
+    const payload = {
+        requestType: editingQuotationTarget.requestType || "MATERIAL_REQUIREMENT",
+        materialRequestId: editingQuotationTarget.materialRequestId || null,
+        requestId: editingQuotationTarget.businessRequestId || (editingQuotationTarget.materialRequestId ? 'REQ-' + editingQuotationTarget.materialRequestId : null),
+        quotedAmount: total,
+        materialCost: subtotal,
+        labourCost: 0,
+        transportationCost: transport,
+        taxGst: gst,
+        timeline: timeline,
+        validity: validity,
+        warranty: warranty,
+        paymentTerms: paymentTerms,
+        includedItems: itemSummaries.join(', ') + " with direct site delivery",
+        excludedItems: "Unloading to upper floors",
+        message: `Quotation updated with ${items.length} structured catalog items. Total: ₹${total.toLocaleString('en-IN')}.`,
+        items: items
+    };
+
+    const API_BASE_URL = getApiBaseUrl();
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/quotations/${targetQuoteId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 200 || res.ok) {
+            showToast(`Quotation ${data.quotationId || targetQuoteId} updated successfully! — कोटेशन सफलतापूर्वक अपडेट किया गया!`);
+            closeModal('quotationModal');
+            editingQuotationTarget = null;
+            if (typeof loadSellerQuotations === 'function') {
+                await loadSellerQuotations();
+            }
+        } else if (res.status === 409) {
+            const errorMsg = (data.error || '').toLowerCase();
+            if (errorMsg.includes('already been accepted') || data.code === 'QUOTATION_ALREADY_ACCEPTED') {
+                showToast('Quotation is already been accepted. Now it cannot be updated.');
+            } else {
+                showToast(data.error || 'Conflict: Quotation cannot be updated.');
+            }
+            closeModal('quotationModal');
+            if (typeof loadSellerQuotations === 'function') {
+                await loadSellerQuotations();
+            }
+        } else if (res.status === 403) {
+            showToast(data.error || 'Unauthorized: You can only update your own quotations.');
+        } else if (res.status === 401) {
+            showToast('Session expired. Please log in again.');
+        } else if (res.status === 400) {
+            showToast(data.error || 'Invalid quotation update data.');
+        } else {
+            showToast(data.error || 'Failed to update quotation. Server error.');
+        }
+    } catch (err) {
+        console.error('Quotation update network error:', err);
+        showToast('Network error. Unable to reach server. Please check your connection.');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = submitBtn.dataset.originalText || '<i class="fa-solid fa-pen-to-square mr-1.5"></i><span>Update Quotation Now</span>';
+        }
+    }
+}
+
+async function deleteSellerQuotation(quoteId) {
+    const q = (sellerQuotationsCache || []).find(item =>
+        String(item.quotationId) === String(quoteId) ||
+        String(item.id) === String(quoteId) ||
+        String(item.backendId) === String(quoteId)
+    );
+    if (q && (q.status || '').toUpperCase() === 'ACCEPTED') {
+        showToast('Quotation is already been accepted. Now it cannot be modified or deleted.');
+        return;
+    }
+    const token = getCleanToken();
+    if (!token) { showToast('Authentication required.'); return; }
+    const API_BASE_URL = getApiBaseUrl();
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/quotations/${quoteId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            showToast('Quotation deleted successfully.');
+            if (typeof loadSellerQuotations === 'function') await loadSellerQuotations();
+        } else if (res.status === 409) {
+            showToast(data.error || 'Quotation is already been accepted. Now it cannot be modified or deleted.');
+        } else {
+            showToast(data.error || 'Failed to delete quotation.');
+        }
+    } catch (e) {
+        showToast('Network error.');
+    }
+}
+
+async function withdrawSellerQuotation(quoteId) {
+    const q = (sellerQuotationsCache || []).find(item =>
+        String(item.quotationId) === String(quoteId) ||
+        String(item.id) === String(quoteId) ||
+        String(item.backendId) === String(quoteId)
+    );
+    if (q && (q.status || '').toUpperCase() === 'ACCEPTED') {
+        showToast('Quotation is already been accepted. Now it cannot be modified or withdrawn.');
+        return;
+    }
+    const token = getCleanToken();
+    if (!token) { showToast('Authentication required.'); return; }
+    const API_BASE_URL = getApiBaseUrl();
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/quotations/${quoteId}/withdraw`, {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            showToast('Quotation withdrawn successfully.');
+            if (typeof loadSellerQuotations === 'function') await loadSellerQuotations();
+        } else if (res.status === 409) {
+            showToast(data.error || 'Quotation is already been accepted. Now it cannot be modified or withdrawn.');
+        } else {
+            showToast(data.error || 'Failed to withdraw quotation.');
+        }
+    } catch (e) {
+        showToast('Network error.');
+    }
+}
+
+window.openUpdateQuotationModal = openUpdateQuotationModal;
+window.submitQuotationUpdate = submitQuotationUpdate;
+window.deleteSellerQuotation = deleteSellerQuotation;
+window.withdrawSellerQuotation = withdrawSellerQuotation;
+window.viewExistingQuotation = viewExistingQuotation;
+window.isQuotationSubmittedForRequest = isQuotationSubmittedForRequest;
+
+function duplicateQuotation(quoteId) {
+    const q = (sellerQuotationsCache || []).find(item =>
+        String(item.quotationId) === String(quoteId) ||
+        String(item.id) === String(quoteId) ||
+        String(item.backendId) === String(quoteId)
+    );
+
+    if (!q) {
+        showToast('Quotation not found.');
+        return;
+    }
+
+    const rawStatus = (q.status || '').toUpperCase();
+    if (rawStatus === 'SUBMITTED' || rawStatus === 'UNDER_REVIEW' || rawStatus === 'ACCEPTED') {
+        showToast(`An active quotation (${q.quotationId || q.id}) already exists for this requirement. Resubmission is not permitted while an active quotation is pending.`);
+        return;
+    }
+
+    const reqId = q.businessRequestId || (q.materialRequestId ? 'REQ-' + q.materialRequestId : null);
+    const dbId = q.materialRequestId || null;
+    const firstItem = (Array.isArray(q.items) && q.items[0]) || {};
+
+    openQuotationModal(
+        reqId,
+        firstItem.materialName || 'Material',
+        firstItem.quantity || firstItem.quotedQuantity || 1,
+        firstItem.unit || firstItem.quotedUnit || 'Units',
+        dbId
+    );
+
+    setTimeout(() => {
+        const transInp = document.getElementById('qTransport');
+        const timelineInp = document.getElementById('qTimeline');
+        const termsInp = document.getElementById('qPaymentTerms');
+        const validityInp = document.getElementById('qValidity');
+        const warrantyInp = document.getElementById('qWarranty');
+
+        if (transInp && q.transportationCost != null) transInp.value = q.transportationCost;
+        if (timelineInp && q.timeline) timelineInp.value = q.timeline;
+        if (termsInp && q.paymentTerms) termsInp.value = q.paymentTerms;
+        if (validityInp && q.validity) validityInp.value = q.validity;
+        if (warrantyInp && q.warranty) warrantyInp.value = q.warranty;
+
+        if (typeof calculateQuote === 'function') {
+            calculateQuote();
+        }
+    }, 250);
+}
+
+function downloadQuotationPdf(quoteId) {
+    showToast('PDF download is currently unavailable. This feature will be enabled in an upcoming release.');
+}
+
+function viewQuotationOrder(quoteId) {
+    switchTab('orders');
+    const linkedOrder = (sellerOrdersCache || []).find(o =>
+        (o.quotationId && o.quotationId === quoteId) ||
+        (o.quotationCode && o.quotationCode === quoteId)
+    );
+    if (linkedOrder) {
+        showToast(`Navigated to order ${linkedOrder.orderCode || ('ORD-' + linkedOrder.id)}.`);
+    }
+}
+
 /**
  * Live Seller Orders Management (Flow B & Order Fulfillment)
  */
@@ -2372,8 +3415,6 @@ let sellerOrdersCache = [];
 
 async function loadSellerOrders() {
     const tbody = document.getElementById('sellerOrdersTbody');
-    if (!tbody) return;
-
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
     if (!token) return;
@@ -2389,9 +3430,23 @@ async function loadSellerOrders() {
 
         if (res.ok) {
             const orders = await res.json();
-            if (Array.isArray(orders) && orders.length > 0) {
+            if (Array.isArray(orders)) {
                 sellerOrdersCache = orders;
-                renderSellerOrders(orders);
+                if (tbody) {
+                    if (orders.length > 0) {
+                        renderSellerOrders(orders);
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">No customer orders assigned yet.</td></tr>`;
+                    }
+                }
+                const activeOrders = orders.filter(o => {
+                    const s = (o.orderStatus || o.status || '').toUpperCase();
+                    return ['WAITING_FOR_ACCEPTANCE', 'ORDER_ACCEPTED', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(s);
+                });
+                const ordersBadge = document.getElementById('nav-orders-badge');
+                if (ordersBadge) {
+                    ordersBadge.innerText = `${activeOrders.length} Active`;
+                }
             }
         }
     } catch (e) {

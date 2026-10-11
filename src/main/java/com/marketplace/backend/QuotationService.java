@@ -174,8 +174,9 @@ public class QuotationService {
             }
 
             final Long targetMaterialReqId = materialRequestId;
-            MaterialRequest matReq = materialRequestRepository.findById(targetMaterialReqId)
-                    .orElseThrow(() -> new NoSuchElementException("Material Request not found with ID: " + targetMaterialReqId));
+            MaterialRequest matReq = materialRequestRepository.findByIdForUpdate(targetMaterialReqId)
+                    .orElseGet(() -> materialRequestRepository.findById(targetMaterialReqId)
+                            .orElseThrow(() -> new NoSuchElementException("Material Request not found with ID: " + targetMaterialReqId)));
 
             // Strictly reject Direct Buy material requests
             if ("DIRECT_MATERIAL".equalsIgnoreCase(matReq.getRequestType())) {
@@ -307,8 +308,9 @@ public class QuotationService {
             }
 
             final Long targetServiceReqId = serviceRequestId;
-            ClientServiceRequest csr = clientServiceRequestRepository.findById(targetServiceReqId)
-                    .orElseThrow(() -> new NoSuchElementException("Client Service Request not found with ID: " + targetServiceReqId));
+            ClientServiceRequest csr = clientServiceRequestRepository.findByIdForUpdate(targetServiceReqId)
+                    .orElseGet(() -> clientServiceRequestRepository.findById(targetServiceReqId)
+                            .orElseThrow(() -> new NoSuchElementException("Client Service Request not found with ID: " + targetServiceReqId)));
 
             // Check lifecycle
             String status = csr.getStatus() != null ? csr.getStatus().trim() : "New";
@@ -566,10 +568,11 @@ public class QuotationService {
             throw new IllegalArgumentException("Customer authentication required.");
         }
 
-        Quotation quotation = findQuotationByIdOrCode(idOrCode);
-        if (quotation == null) {
+        Quotation foundQuote = findQuotationByIdOrCode(idOrCode);
+        if (foundQuote == null) {
             throw new NoSuchElementException("Quotation not found with ID: " + idOrCode);
         }
+        Quotation quotation = quotationRepository.findByIdForUpdate(foundQuote.getId()).orElse(foundQuote);
 
         // Only customers can accept quotations
         if (!hasAnyRole(customer, MarketplaceBackendApplication.Role.CUSTOMER)) {
@@ -888,6 +891,308 @@ public class QuotationService {
     }
 
     /**
+     * Provider updates an eligible persistent quotation.
+     * Transactional and atomic:
+     * - Enforces authenticated provider ownership.
+     * - Immutability lock: Strictly rejects modification if quotation is ACCEPTED.
+     * - Status lock: Strictly rejects modification if quotation is in terminal status (REJECTED, EXPIRED, WITHDRAWN).
+     * - Lifecycle lock: Rejects modification if parent request is ACCEPTED, ALLOCATED, CLOSED, DECLINED, CANCELLED.
+     * - Validates item ownership, positive quantities, non-negative prices, authoritative line totals.
+     * - Updates existing record without creating a second active quotation.
+     */
+    @Transactional
+    public Quotation updateQuotation(String idOrCode, Map<String, Object> payload, MarketplaceBackendApplication.MarketplaceUser provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("Provider authentication required.");
+        }
+
+        boolean isMaterialSeller = hasAnyRole(provider, MarketplaceBackendApplication.Role.MATERIAL_SELLER, MarketplaceBackendApplication.Role.SELLER);
+        boolean isProfessional = hasAnyRole(provider, MarketplaceBackendApplication.Role.PROFESSIONAL, MarketplaceBackendApplication.Role.SERVICE_PROVIDER);
+
+        if (!isMaterialSeller && !isProfessional) {
+            throw new SecurityException("Unauthorized role. Customers and Contractors cannot modify quotations.");
+        }
+
+        Quotation found = findQuotationByIdOrCode(idOrCode);
+        if (found == null) {
+            throw new NoSuchElementException("Quotation not found with ID: " + idOrCode);
+        }
+
+        // Pessimistic lock on quotation row
+        Quotation lockedQuotation = quotationRepository.findByIdForUpdate(found.getId())
+                .orElse(found);
+
+        // Strict Ownership Validation
+        if (lockedQuotation.getProvider() == null || !lockedQuotation.getProvider().getId().equals(provider.getId())) {
+            throw new SecurityException("Unauthorized. You do not own this quotation.");
+        }
+
+        // 1. Authoritative Persisted Immutability Guard
+        String currentStatus = lockedQuotation.getStatus() != null ? lockedQuotation.getStatus().toUpperCase() : "SUBMITTED";
+        if ("ACCEPTED".equals(currentStatus)) {
+            throw new IllegalStateException("Quotation is already been accepted. Now it cannot be updated.");
+        }
+        if ("REJECTED".equals(currentStatus)) {
+            throw new IllegalStateException("Cannot update a rejected quotation.");
+        }
+        if ("EXPIRED".equals(currentStatus)) {
+            throw new IllegalStateException("Cannot update an expired quotation.");
+        }
+        if ("WITHDRAWN".equals(currentStatus)) {
+            throw new IllegalStateException("Cannot update a withdrawn quotation.");
+        }
+        if (!"SUBMITTED".equals(currentStatus) && !"UNDER_REVIEW".equals(currentStatus)) {
+            throw new IllegalStateException("Quotation cannot be updated from status: " + currentStatus);
+        }
+
+        // 2. Parent Request Lifecycle Guard
+        if (lockedQuotation.getMaterialRequest() != null) {
+            MaterialRequest mr = lockedQuotation.getMaterialRequest();
+            String mrStatus = mr.getStatus() != null ? mr.getStatus().toUpperCase() : "NEW";
+            if ("ACCEPTED".equals(mrStatus) || "ALLOCATED".equals(mrStatus) || "ORDER_ACCEPTED".equals(mrStatus)) {
+                throw new IllegalStateException("Quotation is already been accepted. Now it cannot be updated.");
+            }
+            if ("CLOSED".equals(mrStatus) || "DECLINED".equals(mrStatus) || "CANCELLED".equals(mrStatus)) {
+                throw new IllegalStateException("Material Request is " + mrStatus + " and cannot be modified.");
+            }
+        } else if (lockedQuotation.getServiceRequest() != null) {
+            ClientServiceRequest csr = lockedQuotation.getServiceRequest();
+            String csrStatus = csr.getStatus() != null ? csr.getStatus().trim() : "New";
+            if ("Accepted".equalsIgnoreCase(csrStatus)) {
+                throw new IllegalStateException("Quotation is already been accepted. Now it cannot be updated.");
+            }
+            if ("Declined".equalsIgnoreCase(csrStatus) || "Cancelled".equalsIgnoreCase(csrStatus) || "Completed".equalsIgnoreCase(csrStatus)) {
+                throw new IllegalStateException("Service Request is " + csrStatus + " and cannot be modified.");
+            }
+        }
+
+        // 3. Update Material Items (for MATERIAL_REQUIREMENT)
+        if ("MATERIAL_REQUIREMENT".equalsIgnoreCase(lockedQuotation.getRequestType())) {
+            Object itemsObj = payload.get("items");
+            if (itemsObj instanceof List<?>) {
+                List<?> rawList = (List<?>) itemsObj;
+                if (!rawList.isEmpty()) {
+                    MaterialRequest matReq = lockedQuotation.getMaterialRequest();
+                    Set<Long> seenRequestItemIds = new HashSet<>();
+                    List<QuotationItem> newItems = new ArrayList<>();
+
+                    for (Object itemRaw : rawList) {
+                        if (!(itemRaw instanceof Map<?, ?>)) continue;
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> itemMap = (Map<String, Object>) itemRaw;
+
+                        Long materialId = getLongSafe(itemMap.get("materialId") != null ? itemMap.get("materialId") : itemMap.get("catalogMaterialId"));
+                        if (materialId == null || materialId <= 0) {
+                            throw new IllegalArgumentException("Valid catalog materialId is required for each quotation item.");
+                        }
+
+                        Material catalogMaterial = null;
+                        if (materialRepository != null) {
+                            catalogMaterial = materialRepository.findById(materialId).orElse(null);
+                        }
+                        if (catalogMaterial == null) {
+                            throw new IllegalArgumentException("Material catalog item not found with ID: " + materialId);
+                        }
+
+                        if (catalogMaterial.getSeller() == null || !catalogMaterial.getSeller().getId().equals(provider.getId())) {
+                            throw new SecurityException("Unauthorized. Material " + materialId + " does not belong to your catalog.");
+                        }
+
+                        Long reqItemId = getLongSafe(itemMap.get("materialRequestItemId") != null ? itemMap.get("materialRequestItemId") : itemMap.get("requestItemId"));
+                        MaterialRequestItem reqItem = null;
+                        if (reqItemId != null) {
+                            if (!seenRequestItemIds.add(reqItemId)) {
+                                throw new IllegalArgumentException("Duplicate quotation item mapping for material request item ID: " + reqItemId);
+                            }
+                            if (materialRequestItemRepository != null) {
+                                reqItem = materialRequestItemRepository.findById(reqItemId).orElse(null);
+                            }
+                            if (reqItem == null && matReq != null && matReq.getItems() != null) {
+                                reqItem = matReq.getItems().stream()
+                                        .filter(i -> reqItemId.equals(i.getId()))
+                                        .findFirst()
+                                        .orElse(null);
+                            }
+                            if (reqItem == null) {
+                                throw new IllegalArgumentException("Material request item not found with ID: " + reqItemId);
+                            }
+                            if (matReq != null && reqItem.getMaterialRequest() != null && !reqItem.getMaterialRequest().getId().equals(matReq.getId())) {
+                                throw new IllegalArgumentException("Material request item " + reqItemId + " does not belong to material request " + matReq.getId());
+                            }
+                        }
+
+                        Double qty = getDoubleSafe(itemMap.get("quantity") != null ? itemMap.get("quantity") : itemMap.get("quotedQuantity"));
+                        if (qty == null || qty <= 0) {
+                            throw new IllegalArgumentException("Quoted quantity must be greater than zero.");
+                        }
+
+                        Double unitPrice = getDoubleSafe(itemMap.get("unitPrice") != null ? itemMap.get("unitPrice") : itemMap.get("price"));
+                        if (unitPrice == null || unitPrice < 0) {
+                            throw new IllegalArgumentException("Quoted unit price must be non-negative.");
+                        }
+
+                        String unit = getString(itemMap, "unit");
+                        if (unit == null || unit.isBlank()) unit = getString(itemMap, "quotedUnit");
+                        if (unit == null || unit.isBlank() && reqItem != null) unit = reqItem.getUnit();
+                        if (unit == null || unit.isBlank()) unit = catalogMaterial.getUnit();
+                        if (unit == null || unit.isBlank()) unit = "Unit";
+
+                        double lineTotal = Math.round(qty * unitPrice * 100.0) / 100.0;
+
+                        QuotationItem qi = new QuotationItem();
+                        qi.setQuotation(lockedQuotation);
+                        qi.setMaterialRequestItem(reqItem);
+                        qi.setMaterial(catalogMaterial);
+                        qi.setMaterialName(catalogMaterial.getMaterialName());
+                        qi.setQuotedQuantity(qty);
+                        qi.setQuotedUnit(unit);
+                        qi.setUnitPrice(unitPrice);
+                        qi.setLineTotal(lineTotal);
+                        newItems.add(qi);
+                    }
+
+                    if (!newItems.isEmpty()) {
+                        lockedQuotation.getItems().clear();
+                        for (QuotationItem qi : newItems) {
+                            lockedQuotation.addItem(qi);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Commercial Breakdown Recalculation
+        double itemsSum = 0.0;
+        if (!lockedQuotation.getItems().isEmpty()) {
+            for (QuotationItem qi : lockedQuotation.getItems()) {
+                itemsSum += qi.getLineTotal() != null ? qi.getLineTotal() : 0.0;
+            }
+            itemsSum = Math.round(itemsSum * 100.0) / 100.0;
+        }
+
+        Double materialCost = getDoubleSafe(payload.get("materialCost"));
+        if (materialCost == null) materialCost = getDoubleSafe(payload.get("materialAmount"));
+        if (!lockedQuotation.getItems().isEmpty() && (materialCost == null || materialCost == 0.0)) {
+            materialCost = itemsSum;
+        }
+        if (materialCost != null) {
+            lockedQuotation.setMaterialCost(materialCost);
+        }
+
+        Double labourCost = getDoubleSafe(payload.get("labourCost"));
+        if (labourCost == null) labourCost = getDoubleSafe(payload.get("labourAmount"));
+        if (labourCost != null) {
+            lockedQuotation.setLabourCost(labourCost);
+        }
+
+        Double transportationCost = getDoubleSafe(payload.get("transportationCost"));
+        if (transportationCost == null) transportationCost = getDoubleSafe(payload.get("transportation"));
+        if (transportationCost == null) transportationCost = getDoubleSafe(payload.get("freight"));
+        if (transportationCost != null) {
+            lockedQuotation.setTransportationCost(transportationCost);
+        }
+
+        Double taxGst = getDoubleSafe(payload.get("taxGst"));
+        if (taxGst == null) taxGst = getDoubleSafe(payload.get("taxes"));
+        if (taxGst != null) {
+            lockedQuotation.setTaxGst(taxGst);
+        }
+
+        Double quotedAmount = getDoubleSafe(payload.get("quotedAmount"));
+        if (quotedAmount == null || quotedAmount <= 0) {
+            quotedAmount = getDoubleSafe(payload.get("totalAmount"));
+        }
+        if ((quotedAmount == null || quotedAmount <= 0) && !lockedQuotation.getItems().isEmpty()) {
+            quotedAmount = Math.round((lockedQuotation.getMaterialCost() + lockedQuotation.getLabourCost() + lockedQuotation.getTransportationCost() + lockedQuotation.getTaxGst()) * 100.0) / 100.0;
+        }
+        if (quotedAmount != null && quotedAmount > 0) {
+            lockedQuotation.setQuotedAmount(quotedAmount);
+        } else if (lockedQuotation.getQuotedAmount() == null || lockedQuotation.getQuotedAmount() <= 0) {
+            throw new IllegalArgumentException("Valid quotedAmount (> 0) is required.");
+        }
+
+        // 5. Terms & Content
+        if (payload.containsKey("timeline")) lockedQuotation.setTimeline(getString(payload, "timeline"));
+        if (payload.containsKey("validity")) lockedQuotation.setValidity(getString(payload, "validity"));
+        if (payload.containsKey("warranty")) lockedQuotation.setWarranty(getString(payload, "warranty"));
+        if (payload.containsKey("paymentTerms")) lockedQuotation.setPaymentTerms(getString(payload, "paymentTerms"));
+
+        if (payload.containsKey("includedItems")) lockedQuotation.setIncludedItems(getString(payload, "includedItems"));
+        if (payload.containsKey("excludedItems")) lockedQuotation.setExcludedItems(getString(payload, "excludedItems"));
+        if (payload.containsKey("message")) lockedQuotation.setMessage(getString(payload, "message"));
+
+        lockedQuotation.setUpdatedAt(LocalDateTime.now());
+        Quotation saved = quotationRepository.save(lockedQuotation);
+        if (quotationItemRepository != null && saved.getItems() != null && !saved.getItems().isEmpty()) {
+            for (QuotationItem qi : saved.getItems()) {
+                quotationItemRepository.save(qi);
+            }
+        }
+        return saved;
+    }
+
+    /**
+     * Provider deletes an eligible quotation.
+     * Immutability lock: Strictly rejects if quotation is ACCEPTED.
+     */
+    @Transactional
+    public void deleteQuotation(String idOrCode, MarketplaceBackendApplication.MarketplaceUser provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("Provider authentication required.");
+        }
+        Quotation quotation = findQuotationByIdOrCode(idOrCode);
+        if (quotation == null) {
+            throw new NoSuchElementException("Quotation not found with ID: " + idOrCode);
+        }
+        Quotation locked = quotationRepository.findByIdForUpdate(quotation.getId())
+                .orElse(quotation);
+        if (locked.getProvider() == null || !locked.getProvider().getId().equals(provider.getId())) {
+            throw new SecurityException("Unauthorized. You do not own this quotation.");
+        }
+        String status = locked.getStatus() != null ? locked.getStatus().toUpperCase() : "SUBMITTED";
+        if ("ACCEPTED".equals(status)) {
+            throw new IllegalStateException("Quotation is already been accepted. Now it cannot be modified or deleted.");
+        }
+        if (!"SUBMITTED".equals(status) && !"UNDER_REVIEW".equals(status)) {
+            throw new IllegalStateException("Quotation cannot be deleted from status: " + status);
+        }
+        quotationRepository.delete(locked);
+    }
+
+    /**
+     * Provider withdraws an eligible quotation.
+     * Immutability lock: Strictly rejects if quotation is ACCEPTED.
+     */
+    @Transactional
+    public Quotation withdrawQuotation(String idOrCode, MarketplaceBackendApplication.MarketplaceUser provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("Provider authentication required.");
+        }
+        Quotation quotation = findQuotationByIdOrCode(idOrCode);
+        if (quotation == null) {
+            throw new NoSuchElementException("Quotation not found with ID: " + idOrCode);
+        }
+        Quotation locked = quotationRepository.findByIdForUpdate(quotation.getId())
+                .orElse(quotation);
+        if (locked.getProvider() == null || !locked.getProvider().getId().equals(provider.getId())) {
+            throw new SecurityException("Unauthorized. You do not own this quotation.");
+        }
+        String status = locked.getStatus() != null ? locked.getStatus().toUpperCase() : "SUBMITTED";
+        if ("ACCEPTED".equals(status)) {
+            throw new IllegalStateException("Quotation is already been accepted. Now it cannot be modified or withdrawn.");
+        }
+        if ("WITHDRAWN".equals(status)) {
+            throw new IllegalStateException("Quotation is already withdrawn.");
+        }
+        if (!"SUBMITTED".equals(status) && !"UNDER_REVIEW".equals(status)) {
+            throw new IllegalStateException("Quotation cannot be withdrawn from status: " + status);
+        }
+        locked.setStatus("WITHDRAWN");
+        locked.setUpdatedAt(LocalDateTime.now());
+        return quotationRepository.save(locked);
+    }
+
+    /**
      * Isolated inventory reservation release primitive for future cancellation lifecycle (Phase 4D).
      * Does NOT modify order status or expose a public customer/seller cancellation endpoint.
      */
@@ -1068,11 +1373,32 @@ public class QuotationService {
         map.put("requestType", q.getRequestType());
 
         if (q.getMaterialRequest() != null) {
-            map.put("materialRequestId", q.getMaterialRequest().getId());
-            map.put("businessRequestId", q.getMaterialRequest().getRequestId());
+            MaterialRequest mr = q.getMaterialRequest();
+            map.put("materialRequestId", mr.getId());
+            map.put("businessRequestId", mr.getRequestId());
+            map.put("projectName", mr.getProjectName() != null ? mr.getProjectName() : "Material Requirement");
+            if (mr.getBuyer() != null && mr.getBuyer().getName() != null) {
+                map.put("customerName", mr.getBuyer().getName());
+            } else if (mr.getContactPerson() != null) {
+                map.put("customerName", mr.getContactPerson());
+            } else {
+                map.put("customerName", "Customer");
+            }
+            if (mr.getCity() != null) {
+                map.put("customerLocation", mr.getState() != null ? mr.getCity() + ", " + mr.getState() : mr.getCity());
+            } else if (mr.getState() != null) {
+                map.put("customerLocation", mr.getState());
+            }
+            if (mr.getDeliveryAddress() != null) {
+                map.put("deliveryAddress", mr.getDeliveryAddress());
+            }
         } else if (q.getServiceRequest() != null) {
-            map.put("serviceRequestId", q.getServiceRequest().getId());
-            map.put("businessRequestId", q.getServiceRequest().getRequestId());
+            ClientServiceRequest sr = q.getServiceRequest();
+            map.put("serviceRequestId", sr.getId());
+            map.put("businessRequestId", sr.getRequestId());
+            map.put("projectName", sr.getProjectName() != null ? sr.getProjectName() : "Service Request");
+            map.put("customerName", sr.getClientName() != null ? sr.getClientName() : "Client");
+            map.put("customerLocation", sr.getLocation());
         }
 
         // Provider Details

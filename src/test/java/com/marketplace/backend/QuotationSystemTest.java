@@ -932,4 +932,341 @@ public class QuotationSystemTest {
         assertEquals("REJECTED", qPro.getStatus());
         assertEquals("New", serviceReq.getStatus());
     }
+
+    // 41. Provider retrieves own submitted quotations with enriched project & customer metadata
+    @Test
+    public void test41_ProviderRetrievesOwnQuotationsWithEnrichedMetadata() {
+        materialReq.setProjectName("Expressway Commercial");
+        materialReq.setDeliveryAddress("Plot 42, Sector 128, Noida");
+        Quotation q1 = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findByProviderIdOrderByCreatedAtDesc(101L)).thenReturn(List.of(q1));
+
+        ResponseEntity<?> response = quotationController.getMySubmittedQuotations(authSeller1);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertNotNull(list);
+        assertEquals(1, list.size());
+
+        Map<?, ?> qMap = (Map<?, ?>) list.get(0);
+        assertEquals("QT-1001", qMap.get("quotationId"));
+        assertEquals("Expressway Commercial", qMap.get("projectName"));
+        assertEquals("Ramesh Kumar (Customer A)", qMap.get("customerName"));
+        assertEquals("Noida, Uttar Pradesh", qMap.get("customerLocation"));
+        assertEquals("Plot 42, Sector 128, Noida", qMap.get("deliveryAddress"));
+        assertEquals("SUBMITTED", qMap.get("status"));
+    }
+
+    // 42. Tenant Isolation: Seller A cannot see Seller B quotations
+    @Test
+    public void test42_ProviderIsolation_SellerACannotSeeSellerBQuotations() {
+        Quotation qSeller1 = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        Quotation qSeller2 = createMockQuotation(1002L, "QT-1002", "MATERIAL_REQUIREMENT", materialReq, null, seller2, "SUBMITTED");
+
+        when(quotationRepository.findByProviderIdOrderByCreatedAtDesc(101L)).thenReturn(List.of(qSeller1));
+        when(quotationRepository.findByProviderIdOrderByCreatedAtDesc(102L)).thenReturn(List.of(qSeller2));
+
+        ResponseEntity<?> responseSeller1 = quotationController.getMySubmittedQuotations(authSeller1);
+        ResponseEntity<?> responseSeller2 = quotationController.getMySubmittedQuotations(authSeller2);
+
+        List<?> list1 = (List<?>) responseSeller1.getBody();
+        List<?> list2 = (List<?>) responseSeller2.getBody();
+
+        assertEquals(1, list1.size());
+        assertEquals("QT-1001", ((Map<?, ?>) list1.get(0)).get("quotationId"));
+
+        assertEquals(1, list2.size());
+        assertEquals("QT-1002", ((Map<?, ?>) list2.get(0)).get("quotationId"));
+    }
+
+    // 43. Unauthenticated caller cannot access provider quotations
+    @Test
+    public void test43_UnauthenticatedCannotAccessProviderQuotations() {
+        ResponseEntity<?> response = quotationController.getMySubmittedQuotations(null);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    // 44. Provider with zero quotations receives empty list
+    @Test
+    public void test44_ProviderWithZeroQuotationsReceivesEmptyList() {
+        when(quotationRepository.findByProviderIdOrderByCreatedAtDesc(101L)).thenReturn(Collections.emptyList());
+
+        ResponseEntity<?> response = quotationController.getMySubmittedQuotations(authSeller1);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> list = (List<?>) response.getBody();
+        assertNotNull(list);
+        assertEquals(0, list.size());
+    }
+
+    // =========================================================================
+    // PHASE 3 — DUPLICATE PREVENTION, UPDATE WORKFLOW & ACCEPTED IMMUTABILITY
+    // =========================================================================
+
+    // 45. Provider updates own eligible SUBMITTED quotation successfully
+    @Test
+    public void test45_ProviderUpdatesOwnEligibleSubmittedQuotation_Success() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> updatePayload = new LinkedHashMap<>();
+        updatePayload.put("materialCost", 55000.0);
+        updatePayload.put("transportationCost", 2500.0);
+        updatePayload.put("taxGst", 9900.0);
+        updatePayload.put("quotedAmount", 67400.0);
+        updatePayload.put("timeline", "4-5 Days");
+        updatePayload.put("validity", "10 Days");
+        updatePayload.put("paymentTerms", "50% Advance, 50% on Delivery");
+        updatePayload.put("warranty", "1 Year Manufacturer Guarantee");
+
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", updatePayload, authSeller1);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
+        assertEquals("QT-1001", body.get("quotationId"));
+        assertEquals(67400.0, ((Number) body.get("quotedAmount")).doubleValue(), 0.001);
+        assertEquals(55000.0, ((Number) body.get("materialCost")).doubleValue(), 0.001);
+        assertEquals(2500.0, ((Number) body.get("transportationCost")).doubleValue(), 0.001);
+        assertEquals("4-5 Days", body.get("timeline"));
+        assertEquals("10 Days", body.get("validity"));
+        assertEquals("50% Advance, 50% on Delivery", body.get("paymentTerms"));
+
+        // Verify entity in place
+        assertEquals(67400.0, q.getQuotedAmount(), 0.001);
+        assertEquals("4-5 Days", q.getTimeline());
+        assertEquals("SUBMITTED", q.getStatus());
+    }
+
+    // 46. Provider updates UNDER_REVIEW quotation successfully
+    @Test
+    public void test46_ProviderUpdatesUnderReviewQuotation_Success() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "UNDER_REVIEW");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> updatePayload = new LinkedHashMap<>();
+        updatePayload.put("quotedAmount", 72000.0);
+        updatePayload.put("timeline", "1 Week");
+
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", updatePayload, authSeller1);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("UNDER_REVIEW", body.get("status"));
+        assertEquals(72000.0, ((Number) body.get("quotedAmount")).doubleValue(), 0.001);
+        assertEquals("1 Week", q.getTimeline());
+    }
+
+    // 47. Provider A cannot update Provider B's quotation (403 FORBIDDEN)
+    @Test
+    public void test47_ProviderCannotUpdateAnotherProvidersQuotation_403Forbidden() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        Map<String, Object> updatePayload = Map.of("quotedAmount", 40000.0);
+
+        // Seller 2 attempts to update Seller 1's quotation
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", updatePayload, authSeller2);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertTrue(body.get("error").toString().contains("You do not own this quotation"));
+    }
+
+    // 48. Unauthenticated caller cannot update quotation (401 UNAUTHORIZED)
+    @Test
+    public void test48_UnauthenticatedCannotUpdateQuotation_401Unauthorized() {
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", Map.of("quotedAmount", 40000.0), null);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    // 49. Accepted quotation CANNOT be updated (409 CONFLICT with exact message)
+    @Test
+    public void test49_AcceptedQuotationCannotBeUpdated_409Conflict_ExactMessage() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "ACCEPTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        Map<String, Object> updatePayload = Map.of(
+                "quotedAmount", 80000.0,
+                "timeline", "10 Days"
+        );
+
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", updatePayload, authSeller1);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Quotation is already been accepted. Now it cannot be updated.", body.get("error"));
+        assertEquals("QUOTATION_ALREADY_ACCEPTED", body.get("code"));
+
+        // Status remains ACCEPTED, amount unmodified
+        assertEquals("ACCEPTED", q.getStatus());
+        assertEquals(50000.0, q.getQuotedAmount(), 0.001);
+    }
+
+    // 50. Accepted quotation CANNOT be deleted (409 CONFLICT)
+    @Test
+    public void test50_AcceptedQuotationCannotBeDeleted_409Conflict() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "ACCEPTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        ResponseEntity<?> response = quotationController.deleteQuotation("1001", authSeller1);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertTrue(body.get("error").toString().contains("already been accepted"));
+        verify(quotationRepository, never()).delete(any());
+    }
+
+    // 51. Accepted quotation CANNOT be withdrawn (409 CONFLICT)
+    @Test
+    public void test51_AcceptedQuotationCannotBeWithdrawn_409Conflict() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "ACCEPTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        ResponseEntity<?> response = quotationController.withdrawQuotation("1001", authSeller1);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertTrue(body.get("error").toString().contains("already been accepted"));
+        assertEquals("ACCEPTED", q.getStatus());
+    }
+
+    // 52. Forged client status cannot bypass accepted lock
+    @Test
+    public void test52_ForgedClientStatusCannotBypassAcceptedLock() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "ACCEPTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        // Malicious client sends status="SUBMITTED" to try to unlock
+        Map<String, Object> updatePayload = new LinkedHashMap<>();
+        updatePayload.put("status", "SUBMITTED");
+        updatePayload.put("quotedAmount", 99999.0);
+
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", updatePayload, authSeller1);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Quotation is already been accepted. Now it cannot be updated.", body.get("error"));
+        assertEquals("ACCEPTED", q.getStatus());
+    }
+
+    // 53. Duplicate active quotation submission is rejected with 409 CONFLICT
+    @Test
+    public void test53_DuplicateActiveQuotationSubmissionRejectedWith409() {
+        Quotation existingActive = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(materialRequestRepository.findByIdForUpdate(501L)).thenReturn(Optional.of(materialReq));
+        when(quotationRepository.findByMaterialRequestIdAndProviderIdAndStatusIn(
+                eq(501L), eq(101L), anyCollection()
+        )).thenReturn(List.of(existingActive));
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 501L);
+        payload.put("quotedAmount", 45000.0);
+
+        ResponseEntity<?> response = quotationController.submitQuotation(payload, authSeller1);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertTrue(body.get("error").toString().contains("already exists"));
+    }
+
+    // 54. Resubmission allowed when existing quotation is REJECTED or WITHDRAWN
+    @Test
+    public void test54_ResubmissionAllowedWhenExistingQuotationIsRejectedOrWithdrawn() {
+        when(materialRequestRepository.findByIdForUpdate(501L)).thenReturn(Optional.of(materialReq));
+        // Active check returns empty list because historical record is REJECTED
+        when(quotationRepository.findByMaterialRequestIdAndProviderIdAndStatusIn(
+                eq(501L), eq(101L), anyCollection()
+        )).thenReturn(Collections.emptyList());
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 501L);
+        payload.put("quotedAmount", 48000.0);
+
+        ResponseEntity<?> response = quotationController.submitQuotation(payload, authSeller1);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body.get("quotationId"));
+    }
+
+    // 55. Seller cannot update quotation when parent material request is already ACCEPTED
+    @Test
+    public void test55_SellerCannotUpdateWhenParentRequestIsAlreadyAccepted() {
+        materialReq.setStatus("ACCEPTED");
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        Map<String, Object> updatePayload = Map.of("quotedAmount", 60000.0);
+
+        ResponseEntity<?> response = quotationController.updateQuotation("1001", updatePayload, authSeller1);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Quotation is already been accepted. Now it cannot be updated.", body.get("error"));
+    }
+
+    // 56. Customer acceptance locks quotation from subsequent updates
+    @Test
+    public void test56_CustomerAcceptanceLocksQuotationFromSubsequentUpdates() {
+        materialReq.setStatus("NEW");
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+        when(materialRequestRepository.findByIdForUpdate(501L)).thenReturn(Optional.of(materialReq));
+        when(quotationRepository.findByMaterialRequestIdAndStatusIn(eq(501L), any())).thenReturn(List.of(q));
+
+        // Customer accepts quotation
+        ResponseEntity<?> acceptRes = quotationController.acceptQuotation("1001", authCustomerA);
+        assertEquals(HttpStatus.OK, acceptRes.getStatusCode());
+        assertEquals("ACCEPTED", q.getStatus());
+
+        // Subsequent update attempt by seller is blocked
+        ResponseEntity<?> updateRes = quotationController.updateQuotation("1001", Map.of("quotedAmount", 99999.0), authSeller1);
+        assertEquals(HttpStatus.CONFLICT, updateRes.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) updateRes.getBody();
+        assertEquals("Quotation is already been accepted. Now it cannot be updated.", body.get("error"));
+    }
+
+    // 57. Seller can delete eligible SUBMITTED quotation
+    @Test
+    public void test57_SellerCanDeleteEligibleSubmittedQuotation() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        ResponseEntity<?> response = quotationController.deleteQuotation("1001", authSeller1);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals(true, body.get("success"));
+        verify(quotationRepository, times(1)).delete(q);
+    }
+
+    // 58. Seller can withdraw eligible quotation
+    @Test
+    public void test58_SellerCanWithdrawEligibleQuotation() {
+        Quotation q = createMockQuotation(1001L, "QT-1001", "MATERIAL_REQUIREMENT", materialReq, null, seller1, "SUBMITTED");
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> response = quotationController.withdrawQuotation("1001", authSeller1);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
+        assertEquals("WITHDRAWN", body.get("status"));
+        assertEquals("WITHDRAWN", q.getStatus());
+    }
 }

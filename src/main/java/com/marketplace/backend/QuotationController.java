@@ -288,4 +288,137 @@ public class QuotationController {
                     .body(Map.of("error", "An error occurred while rejecting quotation: " + e.getMessage()));
         }
     }
+
+    /**
+     * Provider updates their own eligible quotation.
+     * PUT /api/quotations/{id}
+     * Authentication required. Provider identity derived strictly from JWT.
+     */
+    @PutMapping("/api/quotations/{id}")
+    public ResponseEntity<?> updateQuotation(
+            @PathVariable("id") String id,
+            @RequestBody Map<String, Object> payload,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in to update quotation."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "User account not found. Please log in again."));
+        }
+
+        try {
+            Quotation updated = quotationService.updateQuotation(id, payload, userOpt.get());
+            Map<String, Object> response = quotationService.toResponseMap(updated);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            if (e.getMessage() != null && e.getMessage().contains("already been accepted")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("error", e.getMessage(), "code", "QUOTATION_ALREADY_ACCEPTED"));
+            }
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred while updating quotation: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Provider deletes an eligible quotation.
+     * DELETE /api/quotations/{id}
+     */
+    @DeleteMapping("/api/quotations/{id}")
+    public ResponseEntity<?> deleteQuotation(
+            @PathVariable("id") String id,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "User account not found."));
+        }
+
+        try {
+            quotationService.deleteQuotation(id, userOpt.get());
+            return ResponseEntity.ok(Map.of("success", true, "message", "Quotation deleted successfully."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to delete quotation: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Provider withdraws an eligible quotation.
+     * PUT/POST /api/quotations/{id}/withdraw
+     */
+    @RequestMapping(value = "/api/quotations/{id}/withdraw", method = {RequestMethod.PUT, RequestMethod.POST})
+    public ResponseEntity<?> withdrawQuotation(
+            @PathVariable("id") String id,
+            Authentication authentication
+    ) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in."));
+        }
+
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> userOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "User account not found."));
+        }
+
+        try {
+            Quotation withdrawn = quotationService.withdrawQuotation(id, userOpt.get());
+            return ResponseEntity.ok(quotationService.toResponseMap(withdrawn));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to withdraw quotation: " + e.getMessage()));
+        }
+    }
 }

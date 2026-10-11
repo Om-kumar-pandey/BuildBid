@@ -17,6 +17,7 @@ public class MaterialRequestController {
     private final MarketplaceBackendApplication.UserRepository userRepository;
     private final GeoLocationService geoLocationService;
     private final NotificationService notificationService;
+    private final QuotationRepository quotationRepository;
 
     private static final java.time.ZoneId IST_ZONE = java.time.ZoneId.of("Asia/Kolkata");
     private static final java.time.format.DateTimeFormatter DISPLAY_DATE_FORMATTER =
@@ -27,12 +28,23 @@ public class MaterialRequestController {
             MaterialRequestRepository materialRequestRepository,
             MarketplaceBackendApplication.UserRepository userRepository,
             GeoLocationService geoLocationService,
-            @Autowired(required = false) NotificationService notificationService
+            @Autowired(required = false) NotificationService notificationService,
+            @Autowired(required = false) QuotationRepository quotationRepository
     ) {
         this.materialRequestRepository = materialRequestRepository;
         this.userRepository = userRepository;
         this.geoLocationService = geoLocationService;
         this.notificationService = notificationService;
+        this.quotationRepository = quotationRepository;
+    }
+
+    public MaterialRequestController(
+            MaterialRequestRepository materialRequestRepository,
+            MarketplaceBackendApplication.UserRepository userRepository,
+            GeoLocationService geoLocationService,
+            NotificationService notificationService
+    ) {
+        this(materialRequestRepository, userRepository, geoLocationService, notificationService, null);
     }
 
     public MaterialRequestController(
@@ -40,7 +52,7 @@ public class MaterialRequestController {
             MarketplaceBackendApplication.UserRepository userRepository,
             GeoLocationService geoLocationService
     ) {
-        this(materialRequestRepository, userRepository, geoLocationService, null);
+        this(materialRequestRepository, userRepository, geoLocationService, null, null);
     }
 
     /**
@@ -779,6 +791,30 @@ public class MaterialRequestController {
             if (req.getContactPhone() != null) {
                 map.put("contactPhone", req.getContactPhone());
             }
+        }
+
+        // Persistent quotation submission state for seller callers (Phase 3)
+        if (caller != null && hasSellerRole(caller) && quotationRepository != null && req.getId() != null) {
+            List<Quotation> activeQuotes = quotationRepository.findByMaterialRequestIdAndProviderIdAndStatusIn(
+                    req.getId(), caller.getId(), List.of("SUBMITTED", "UNDER_REVIEW", "ACCEPTED")
+            );
+            if (!activeQuotes.isEmpty()) {
+                Quotation aq = activeQuotes.get(0);
+                map.put("quotationSubmitted", true);
+                map.put("hasSubmittedQuotation", true);
+                map.put("existingQuotationId", aq.getQuotationId());
+                map.put("existingQuotationStatus", aq.getStatus());
+            } else {
+                map.put("quotationSubmitted", false);
+                map.put("hasSubmittedQuotation", false);
+                map.put("existingQuotationId", null);
+                map.put("existingQuotationStatus", null);
+            }
+        } else {
+            map.put("quotationSubmitted", false);
+            map.put("hasSubmittedQuotation", false);
+            map.put("existingQuotationId", null);
+            map.put("existingQuotationStatus", null);
         }
 
         // Build brief summary of items for table listings

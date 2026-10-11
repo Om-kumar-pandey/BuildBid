@@ -24,9 +24,7 @@
             <!-- Logo area -->
             <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
                 <div class="flex items-center space-x-3">
-                    <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
-                        <i class="fa-solid fa-helmet-safety"></i>
-                    </div>
+                    <img src="logo.png" alt="BuildBid Logo" class="w-9 h-9 object-contain rounded-lg">
                     <div>
                         <span class="text-white font-bold text-lg tracking-tight">Build<span class="text-blue-500">Bid</span></span>
                         <p class="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Build Smarter. Together.</p>
@@ -50,7 +48,7 @@
                         <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
                         <span>Material Requests</span>
                     </div>
-                    <span id="nav-requests-badge" class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">12</span>
+                    <span id="nav-requests-badge" class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                 </a>
 
                 <a href="#quotations" onclick="switchTab('quotations')" id="nav-quotations" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
@@ -58,7 +56,7 @@
                         <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
                         <span>My Quotations</span>
                     </div>
-                    <span class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">5 Pending</span>
+                    <span id="nav-quotations-badge" class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">0 Pending</span>
                 </a>
 
                 <a href="#orders" onclick="switchTab('orders')" id="nav-orders" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
@@ -66,7 +64,7 @@
                         <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
                         <span>Orders</span>
                     </div>
-                    <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-medium">8 Active</span>
+                    <span id="nav-orders-badge" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-medium">0 Active</span>
                 </a>
 
                 <a href="#inventory" onclick="switchTab('inventory')" id="nav-inventory" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
@@ -119,7 +117,7 @@
                         <i class="fa-solid fa-comments w-5 text-center"></i>
                         <span>Messages</span>
                     </div>
-                    <span class="bg-emerald-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">3</span>
+                    <span id="nav-messages-badge" class="bg-emerald-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
                 </a>
 
                 <a href="#analytics" onclick="switchTab('analytics')" id="nav-analytics" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
@@ -578,7 +576,7 @@
                             <h1 class="text-xl font-bold text-slate-800">My Quotations</h1>
                             <p class="text-xs text-slate-500">Track and manage all B2B quotations submitted to BuildBid customers and project contractors.</p>
                         </div>
-                        <button onclick="openQuotationModal('REQ-NEW', 'General Material', 1, 'Units')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
+                        <button onclick="createNewQuotationRedirect()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center space-x-2">
                             <i class="fa-solid fa-plus"></i>
                             <span>Create New Quotation</span>
                         </button>
@@ -586,11 +584,11 @@
 
                     <!-- Quotation Filter Tabs -->
                     <div class="flex items-center space-x-2 border-b border-slate-200 pb-3 text-xs font-semibold">
-                        <button class="px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm">All (18)</button>
-                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Draft (3)</button>
-                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Sent & Pending (5)</button>
-                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Accepted (8)</button>
-                        <button class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Rejected (2)</button>
+                        <button id="quote-tab-all" onclick="filterQuotationsTab('ALL')" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm">All (0)</button>
+                        <button id="quote-tab-draft" onclick="filterQuotationsTab('DRAFT')" class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Draft (0)</button>
+                        <button id="quote-tab-pending" onclick="filterQuotationsTab('PENDING')" class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Sent & Pending (0)</button>
+                        <button id="quote-tab-accepted" onclick="filterQuotationsTab('ACCEPTED')" class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Accepted (0)</button>
+                        <button id="quote-tab-rejected" onclick="filterQuotationsTab('REJECTED')" class="px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">Rejected (0)</button>
                     </div>
 
                     <!-- Quotations Table -->
@@ -608,45 +606,22 @@
                                         <th class="p-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 text-slate-700">
-                                    <tr class="hover:bg-slate-50 transition-all">
-                                        <td class="p-4 font-bold text-blue-600">QT-8842</td>
-                                        <td class="p-4 font-medium text-slate-800">REQ-1025 — Expressway Commercial</td>
-                                        <td class="p-4">AAC Blocks (1,200 Nos)</td>
-                                        <td class="p-4 font-bold text-slate-900">₹78,500</td>
-                                        <td class="p-4 text-slate-500">12 Oct 2026</td>
-                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Accepted (Order Created)</span></td>
-                                        <td class="p-4 text-right space-x-2">
-                                            <button onclick="showToast('Downloading Quotation PDF...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download</button>
-                                            <button onclick="switchTab('orders')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">View Order</button>
-                                        </td>
-                                    </tr>
-                                    <tr class="hover:bg-slate-50 transition-all">
-                                        <td class="p-4 font-bold text-blue-600">QT-8840</td>
-                                        <td class="p-4 font-medium text-slate-800">REQ-1022 — Alpha Corp Towers</td>
-                                        <td class="p-4">TMT Steel Fe 500 (10 Tons)</td>
-                                        <td class="p-4 font-bold text-slate-900">₹5,40,000</td>
-                                        <td class="p-4 text-amber-600 font-semibold">10 Oct 2026</td>
-                                        <td class="p-4"><span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Under Review</span></td>
-                                        <td class="p-4 text-right space-x-2">
-                                            <button onclick="showToast('Quotation duplicated successfully')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Duplicate</button>
-                                            <button onclick="showToast('Opening Quotation preview')" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-semibold transition-all">View</button>
-                                        </td>
-                                    </tr>
-                                    <tr class="hover:bg-slate-50 transition-all">
-                                        <td class="p-4 font-bold text-blue-600">QT-8835</td>
-                                        <td class="p-4 font-medium text-slate-800">REQ-1018 — Greenwoods Residency</td>
-                                        <td class="p-4">OPC Cement 53 Grade (300 Bags)</td>
-                                        <td class="p-4 font-bold text-slate-900">₹1,12,500</td>
-                                        <td class="p-4 text-slate-500">5 Oct 2026</td>
-                                        <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Accepted</span></td>
-                                        <td class="p-4 text-right space-x-2">
-                                            <button onclick="showToast('Downloading Quotation PDF...')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Download</button>
-                                            <button onclick="switchTab('orders')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">View Order</button>
-                                        </td>
-                                    </tr>
+                                <tbody id="quotations-tbody" class="divide-y divide-slate-100 text-slate-700">
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Empty State Container -->
+                        <div id="quotations-empty-state" class="hidden p-12 text-center">
+                            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-2xl">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                            </div>
+                            <h3 id="quotations-empty-title" class="text-sm font-bold text-slate-800 mb-1">No Quotations Found</h3>
+                            <p id="quotations-empty-desc" class="text-xs text-slate-500 max-w-md mx-auto mb-4">You have not submitted any quotations yet. Browse active customer requirements to submit your first quotation.</p>
+                            <button id="quotations-empty-action" onclick="switchTab('requests')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all inline-flex items-center space-x-2">
+                                <i class="fa-solid fa-clipboard-list"></i>
+                                <span>Browse Material Requests</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1486,6 +1461,121 @@
                         <i class="fa-solid fa-paper-plane mr-1.5"></i>
                         <span>Send Quotation Now</span>
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2B: VIEW QUOTATION DETAIL MODAL -->
+    <div id="quotationDetailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <h3 class="font-bold text-sm" id="qDetailModalId">Quotation Details</h3>
+                    <span id="qDetailModalStatus" class="bg-blue-500/20 text-blue-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold">SUBMITTED</span>
+                </div>
+                <button onclick="closeModal('quotationDetailModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+                <!-- Meta Grid -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-slate-600">
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Requirement Ref</span>
+                        <span id="qDetailReqRef" class="font-bold text-blue-600 text-xs">REQ-1025</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Customer Project</span>
+                        <span id="qDetailProject" class="font-bold text-slate-800 text-xs truncate block">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Customer / Client</span>
+                        <span id="qDetailCustomer" class="font-bold text-slate-800 text-xs truncate block">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Submission Date</span>
+                        <span id="qDetailDate" class="font-bold text-slate-800 text-xs">—</span>
+                    </div>
+                </div>
+
+                <!-- Delivery & Location -->
+                <div id="qDetailLocationContainer" class="p-3 bg-blue-50/60 border border-blue-200 rounded-xl hidden">
+                    <span class="block text-[10px] font-semibold uppercase text-blue-600 mb-0.5">Delivery Site Location</span>
+                    <p id="qDetailLocation" class="text-slate-700 font-medium"></p>
+                </div>
+
+                <!-- Itemized Materials Table -->
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center justify-between">
+                        <span>Quoted Materials & Catalog SKUs</span>
+                        <span id="qDetailItemCount" class="text-[11px] text-slate-500 font-normal">0 Items</span>
+                    </h4>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-[11px] font-semibold border-b border-slate-200">
+                                    <th class="p-3">Material Name</th>
+                                    <th class="p-3 w-28">Quantity</th>
+                                    <th class="p-3 w-28">Unit Price</th>
+                                    <th class="p-3 w-32 text-right">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qDetailItemsTbody" class="divide-y divide-slate-200 bg-white text-slate-700">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Financial Breakdown -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div class="flex justify-between text-slate-600">
+                        <span>Materials Subtotal:</span>
+                        <span id="qDetailSubtotal" class="font-semibold text-slate-800">₹0</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>Transportation & Logistics:</span>
+                        <span id="qDetailTransport" class="font-semibold text-slate-800">₹0</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>GST (18%):</span>
+                        <span id="qDetailGst" class="font-semibold text-slate-800">₹0</span>
+                    </div>
+                    <div class="border-t border-slate-200 pt-2 flex justify-between items-center text-sm">
+                        <span class="font-bold text-slate-800">Total Quotation Value:</span>
+                        <span id="qDetailGrandTotal" class="text-lg font-extrabold text-blue-600">₹0</span>
+                    </div>
+                </div>
+
+                <!-- Commercial Terms -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-slate-600">
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Validity</span>
+                        <span id="qDetailValidity" class="font-bold text-slate-800">—</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Delivery Timeline</span>
+                        <span id="qDetailTimeline" class="font-bold text-slate-800">—</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Payment Terms</span>
+                        <span id="qDetailPaymentTerms" class="font-bold text-slate-800">—</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <span class="block text-[10px] font-semibold uppercase text-slate-400">Warranty</span>
+                        <span id="qDetailWarranty" class="font-bold text-slate-800">—</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-between">
+                    <div id="qDetailOrderBtnContainer">
+                        <!-- Populated if accepted and order exists -->
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button type="button" onclick="showToast('PDF download is currently unavailable. This feature will be enabled in an upcoming release.')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-pdf text-red-500"></i>
+                            <span>Download PDF</span>
+                        </button>
+                        <button type="button" onclick="closeModal('quotationDetailModal')" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all">Close</button>
+                    </div>
                 </div>
             </div>
         </div>

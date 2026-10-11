@@ -4,6 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,10 @@ import java.util.Optional;
 public interface QuotationRepository extends JpaRepository<Quotation, Long> {
 
     Optional<Quotation> findByQuotationId(String quotationId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Quotation q WHERE q.id = :id")
+    Optional<Quotation> findByIdForUpdate(@Param("id") Long id);
 
     List<Quotation> findByMaterialRequestIdOrderByCreatedAtDesc(Long materialRequestId);
 
