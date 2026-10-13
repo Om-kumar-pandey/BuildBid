@@ -2741,7 +2741,7 @@
 
       // Update pills
       if (statePill) {
-        if (data.status === "ACTIVE") {
+        if (data.status === "ACTIVE" || (!data.status && data.canDeactivate)) {
           statePill.className = "status-strip-pill active";
           statePill.innerHTML = '<i class="fa-solid fa-circle-check"></i> Active';
         } else if (data.status === "DEACTIVATED") {
@@ -2814,7 +2814,7 @@
     }
 
     if (btnProceed) {
-      if (data && data.eligibleForDeletion) {
+      if (data && (data.canDelete || data.eligibleForDeletion)) {
         btnProceed.disabled = false;
         if (s1Feedback) {
           s1Feedback.classList.add("hidden");
@@ -2823,7 +2823,7 @@
       } else {
         btnProceed.disabled = true;
         if (s1Feedback) {
-          s1Feedback.textContent = "Permanent deletion requires having BOTH a verified email and a verified mobile number. Please complete verification in Step 2 before initiating deletion.";
+          s1Feedback.textContent = (data && data.verificationRequiredMessage) || "Permanent deletion requires having BOTH a verified email and a verified mobile number. Please complete verification in Step 2 before initiating deletion.";
           s1Feedback.className = "security-feedback-box error";
           s1Feedback.classList.remove("hidden");
         }
@@ -2886,13 +2886,16 @@
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ currentPassword: password })
+        body: JSON.stringify({
+          currentPassword: password,
+          confirmation: "DEACTIVATE"
+        })
       });
 
       const data = await resp.json();
 
       if (!resp.ok) {
-        const errorMsg = data && data.message ? data.message : "Failed to deactivate account.";
+        const errorMsg = data && (data.error || data.message) ? (data.error || data.message) : "Failed to deactivate account.";
         if (fbBox) {
           fbBox.textContent = errorMsg;
           fbBox.className = "security-feedback-box error";
@@ -3140,15 +3143,15 @@
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          confirmText: word,
-          currentPassword: password
+          currentPassword: password,
+          confirmation: word
         })
       });
 
       const data = await resp.json();
 
       if (!resp.ok) {
-        const errorMsg = data && data.message ? data.message : "Failed to initiate deletion verification.";
+        const errorMsg = data && (data.error || data.message) ? (data.error || data.message) : "Failed to initiate deletion verification.";
         if (fbBox) {
           fbBox.textContent = errorMsg;
           fbBox.className = "security-feedback-box error";
@@ -3225,7 +3228,7 @@
       const data = await resp.json();
 
       if (!resp.ok) {
-        const errorMsg = data && data.message ? data.message : "Failed to resend OTP.";
+        const errorMsg = data && (data.error || data.message) ? (data.error || data.message) : "Failed to resend OTP.";
         if (fbBox) {
           fbBox.textContent = errorMsg;
           fbBox.className = "security-feedback-box error";
@@ -3304,7 +3307,7 @@
       const data = await resp.json();
 
       if (!resp.ok) {
-        const errorMsg = data && data.message ? data.message : "Invalid or expired verification code.";
+        const errorMsg = data && (data.error || data.message) ? (data.error || data.message) : "Invalid or expired verification code.";
         if (fbBox) {
           fbBox.textContent = errorMsg;
           fbBox.className = "security-feedback-box error";
@@ -3317,8 +3320,23 @@
         return;
       }
 
+      // Read returned deletionTicket as primary ticket value with fallback if present
+      const ticket = data ? (data.deletionTicket || data.authorizationTicket) : null;
+      if (!ticket) {
+        if (fbBox) {
+          fbBox.textContent = "Deletion authorization ticket was not received. Please try again.";
+          fbBox.className = "security-feedback-box error";
+          fbBox.classList.remove("hidden");
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-shield-check"></i> Verify OTP &amp; Authorize';
+        }
+        return;
+      }
+
       // Success: store ticket and advance to Screen 4
-      deletionAuthTicket = data.authorizationTicket;
+      deletionAuthTicket = ticket;
       stopDeletionTimers();
 
       setDeleteModalStep(4);
@@ -3370,15 +3388,15 @@
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          confirmText: "DELETE",
-          authorizationTicket: deletionAuthTicket
+          deletionTicket: deletionAuthTicket,
+          confirmation: "DELETE"
         })
       });
 
       const data = await resp.json();
 
       if (!resp.ok) {
-        const errorMsg = data && data.message ? data.message : "Permanent deletion could not be executed.";
+        const errorMsg = data && (data.error || data.message) ? (data.error || data.message) : "Permanent deletion could not be executed.";
         if (fbBox) {
           fbBox.textContent = errorMsg;
           fbBox.className = "security-feedback-box error";
