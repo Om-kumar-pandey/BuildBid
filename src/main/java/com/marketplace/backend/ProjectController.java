@@ -27,31 +27,46 @@ public class ProjectController {
     private final MarketplaceBackendApplication.UserRepository userRepository;
     private final CostEstimatorService costEstimatorService;
     private ProjectApplicationService projectApplicationService;
+    @Autowired(required = false)
+    private MyBidAssignmentRepository myBidAssignmentRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ProjectController(ProjectRepository projectRepository, MarketplaceBackendApplication.UserRepository userRepository) {
-        this(projectRepository, userRepository, null, null);
+        this(projectRepository, userRepository, null, null, null);
     }
 
     public ProjectController(ProjectRepository projectRepository,
                              MarketplaceBackendApplication.UserRepository userRepository,
                              CostEstimatorService costEstimatorService) {
-        this(projectRepository, userRepository, costEstimatorService, null);
+        this(projectRepository, userRepository, costEstimatorService, null, null);
+    }
+
+    public ProjectController(ProjectRepository projectRepository,
+                             MarketplaceBackendApplication.UserRepository userRepository,
+                             CostEstimatorService costEstimatorService,
+                             ProjectApplicationService projectApplicationService) {
+        this(projectRepository, userRepository, costEstimatorService, projectApplicationService, null);
     }
 
     @Autowired
     public ProjectController(ProjectRepository projectRepository,
                              MarketplaceBackendApplication.UserRepository userRepository,
                              @Autowired(required = false) CostEstimatorService costEstimatorService,
-                             @Autowired(required = false) ProjectApplicationService projectApplicationService) {
+                             @Autowired(required = false) ProjectApplicationService projectApplicationService,
+                             @Autowired(required = false) MyBidAssignmentRepository myBidAssignmentRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.costEstimatorService = costEstimatorService;
         this.projectApplicationService = projectApplicationService;
+        this.myBidAssignmentRepository = myBidAssignmentRepository;
     }
 
     public void setProjectApplicationService(ProjectApplicationService projectApplicationService) {
         this.projectApplicationService = projectApplicationService;
+    }
+
+    public void setMyBidAssignmentRepository(MyBidAssignmentRepository myBidAssignmentRepository) {
+        this.myBidAssignmentRepository = myBidAssignmentRepository;
     }
 
     @Transactional
@@ -640,7 +655,7 @@ public class ProjectController {
         // Direct lookup by business project ID (e.g. PRJ-...)
         Optional<Project> byProjectId = projectRepository.findByProjectId(id);
         if (byProjectId.isPresent()) {
-            return ResponseEntity.ok(mapToContractorResponse(byProjectId.get()));
+            return checkAndReturnContractorProject(byProjectId.get(), authentication);
         }
 
         // Numeric database ID lookup fallback
@@ -648,7 +663,7 @@ public class ProjectController {
             Long numericId = Long.parseLong(id);
             Optional<Project> byId = projectRepository.findById(numericId);
             if (byId.isPresent()) {
-                return ResponseEntity.ok(mapToContractorResponse(byId.get()));
+                return checkAndReturnContractorProject(byId.get(), authentication);
             }
         } catch (NumberFormatException ignored) {}
 
@@ -657,12 +672,30 @@ public class ProjectController {
         if (all != null) {
             for (Project p : all) {
                 if (id.equalsIgnoreCase(p.getProjectId())) {
-                    return ResponseEntity.ok(mapToContractorResponse(p));
+                    return checkAndReturnContractorProject(p, authentication);
                 }
             }
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+    }
+
+    private ResponseEntity<?> checkAndReturnContractorProject(Project p, Authentication authentication) {
+        if (myBidAssignmentRepository != null) {
+            Optional<MyBidAssignment> activeAssignment = myBidAssignmentRepository.findByProjectIdAndIsCurrentTrue(p.getId());
+            if (activeAssignment.isPresent() && activeAssignment.get().isCurrent() &&
+                    activeAssignment.get().getAssignmentStatus() == MyBidAssignment.Status.ACTIVE) {
+                MarketplaceBackendApplication.MarketplaceUser actingContractor = userRepository.findByEmail(authentication.getName())
+                        .or(() -> userRepository.findByUsername(authentication.getName()))
+                        .orElse(null);
+                if (actingContractor != null && activeAssignment.get().getContractor() != null &&
+                        !activeAssignment.get().getContractor().getId().equals(actingContractor.getId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "Access denied: This project is actively assigned to another contractor."));
+                }
+            }
+        }
+        return ResponseEntity.ok(mapToContractorResponse(p));
     }
 
     @SuppressWarnings("unchecked")

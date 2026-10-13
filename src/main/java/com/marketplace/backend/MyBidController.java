@@ -247,6 +247,41 @@ public class MyBidController {
         private ContactInfoDto contractor;
         private ContactInfoDto customer;
 
+        // Project Information
+        private String projectCustomId;
+        private String projectType;
+        private String description;
+        private String siteAddress;
+        private String city;
+        private String state;
+        private String pincode;
+        private String location;
+        private Double plotArea;
+        private Double builtUpArea;
+        private Double totalArea;
+        private String floors;
+        private String qualityTier;
+        private String timeline;
+        private String targetStartDate;
+        private String completeDataJson;
+
+        // Bid, Scope & Terms
+        private String scopeOfWork;
+        private String includedWork;
+        private String excludedWork;
+        private String paymentTerms;
+        private String warranty;
+        private String remarks;
+        private String estimatedDuration;
+        private String proposedTimeline;
+        private Integer workersCount;
+        private Double materialCost;
+        private Double labourCost;
+        private Double equipmentCost;
+        private Double transportCost;
+        private Double otherCharges;
+        private LocalDateTime submittedAt;
+
         public AssignmentResponseDto() {}
 
         public Long getId() { return id; }
@@ -273,6 +308,70 @@ public class MyBidController {
         public void setContractor(ContactInfoDto contractor) { this.contractor = contractor; }
         public ContactInfoDto getCustomer() { return customer; }
         public void setCustomer(ContactInfoDto customer) { this.customer = customer; }
+
+        public String getProjectCustomId() { return projectCustomId; }
+        public void setProjectCustomId(String projectCustomId) { this.projectCustomId = projectCustomId; }
+        public String getProjectType() { return projectType; }
+        public void setProjectType(String projectType) { this.projectType = projectType; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getSiteAddress() { return siteAddress; }
+        public void setSiteAddress(String siteAddress) { this.siteAddress = siteAddress; }
+        public String getCity() { return city; }
+        public void setCity(String city) { this.city = city; }
+        public String getState() { return state; }
+        public void setState(String state) { this.state = state; }
+        public String getPincode() { return pincode; }
+        public void setPincode(String pincode) { this.pincode = pincode; }
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+        public Double getPlotArea() { return plotArea; }
+        public void setPlotArea(Double plotArea) { this.plotArea = plotArea; }
+        public Double getBuiltUpArea() { return builtUpArea; }
+        public void setBuiltUpArea(Double builtUpArea) { this.builtUpArea = builtUpArea; }
+        public Double getTotalArea() { return totalArea; }
+        public void setTotalArea(Double totalArea) { this.totalArea = totalArea; }
+        public String getFloors() { return floors; }
+        public void setFloors(String floors) { this.floors = floors; }
+        public String getQualityTier() { return qualityTier; }
+        public void setQualityTier(String qualityTier) { this.qualityTier = qualityTier; }
+        public String getTimeline() { return timeline; }
+        public void setTimeline(String timeline) { this.timeline = timeline; }
+        public String getTargetStartDate() { return targetStartDate; }
+        public void setTargetStartDate(String targetStartDate) { this.targetStartDate = targetStartDate; }
+        public String getCompleteDataJson() { return completeDataJson; }
+        public void setCompleteDataJson(String completeDataJson) { this.completeDataJson = completeDataJson; }
+
+        public String getScopeOfWork() { return scopeOfWork; }
+        public void setScopeOfWork(String scopeOfWork) { this.scopeOfWork = scopeOfWork; }
+        public String getIncludedWork() { return includedWork; }
+        public void setIncludedWork(String includedWork) { this.includedWork = includedWork; }
+        public String getExcludedWork() { return excludedWork; }
+        public void setExcludedWork(String excludedWork) { this.excludedWork = excludedWork; }
+        public String getPaymentTerms() { return paymentTerms; }
+        public void setPaymentTerms(String paymentTerms) { this.paymentTerms = paymentTerms; }
+        public String getWarranty() { return warranty; }
+        public void setWarranty(String warranty) { this.warranty = warranty; }
+        public String getRemarks() { return remarks; }
+        public void setRemarks(String remarks) { this.remarks = remarks; }
+        public String getEstimatedDuration() { return estimatedDuration; }
+        public void setEstimatedDuration(String estimatedDuration) { this.estimatedDuration = estimatedDuration; }
+        public String getProposedTimeline() { return proposedTimeline; }
+        public void setProposedTimeline(String proposedTimeline) { this.proposedTimeline = proposedTimeline; }
+        public Integer getWorkersCount() { return workersCount; }
+        public void setWorkersCount(Integer workersCount) { this.workersCount = workersCount; }
+        public Double getMaterialCost() { return materialCost; }
+        public void setMaterialCost(Double materialCost) { this.materialCost = materialCost; }
+        public Double getLabourCost() { return labourCost; }
+        public void setLabourCost(Double labourCost) { this.labourCost = labourCost; }
+        public Double getEquipmentCost() { return equipmentCost; }
+        public void setEquipmentCost(Double equipmentCost) { this.equipmentCost = equipmentCost; }
+        public Double getTransportCost() { return transportCost; }
+        public void setTransportCost(Double transportCost) { this.transportCost = transportCost; }
+        public Double getOtherCharges() { return otherCharges; }
+        public void setOtherCharges(Double otherCharges) { this.otherCharges = otherCharges; }
+        public LocalDateTime getSubmittedAt() { return submittedAt; }
+        public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
     }
 
     public static class AuditHistoryDto {
@@ -1065,12 +1164,48 @@ public class MyBidController {
         AssignmentResponseDto dto = new AssignmentResponseDto();
         dto.setId(a.getId());
         if (a.getProject() != null) {
-            dto.setProjectId(a.getProject().getId());
-            dto.setProjectTitle(a.getProject().getProjectTitle() != null ? a.getProject().getProjectTitle() : a.getProject().getTitle());
+            Project p = a.getProject();
+            dto.setProjectId(p.getId());
+            dto.setProjectCustomId(p.getProjectId());
+            dto.setProjectTitle(p.getProjectTitle() != null ? p.getProjectTitle() : p.getTitle());
+            dto.setProjectType(p.getProjectType() != null ? p.getProjectType() : p.getType());
+            dto.setDescription(p.getDescription());
+            dto.setSiteAddress(p.getAddress());
+            dto.setCity(p.getCity());
+            dto.setState(p.getState());
+            dto.setPincode(p.getPincode());
+            dto.setLocation(p.getLocation());
+            dto.setPlotArea(p.getPlotArea());
+            dto.setBuiltUpArea(p.getBuiltUpArea());
+            dto.setTotalArea(p.getTotalArea());
+            dto.setFloors(p.getFloors());
+            dto.setQualityTier(p.getQualityTier());
+            dto.setTimeline(p.getTimeline());
+            dto.setTargetStartDate(p.getTargetStartDate());
+            // Privacy protection: do not leak raw unrestricted completeDataJson; all necessary specs are typed above
+            dto.setCompleteDataJson(null);
         }
         if (a.getAcceptedBid() != null) {
-            dto.setBidId(a.getAcceptedBid().getId());
-            dto.setBidAmount(a.getAcceptedBid().getBidAmount());
+            MyBid b = a.getAcceptedBid();
+            dto.setBidId(b.getId());
+            dto.setBidAmount(b.getBidAmount());
+            dto.setScopeOfWork(b.getScopeOfWork() != null ? b.getScopeOfWork() : (a.getProject() != null ? a.getProject().getScopeOfWork() : null));
+            dto.setIncludedWork(b.getIncludedWork());
+            dto.setExcludedWork(b.getExcludedWork());
+            dto.setPaymentTerms(b.getPaymentTerms());
+            dto.setWarranty(b.getWarranty());
+            dto.setRemarks(b.getRemarks());
+            dto.setEstimatedDuration(b.getEstimatedDuration());
+            dto.setProposedTimeline(b.getProposedTimeline());
+            dto.setWorkersCount(b.getWorkersCount());
+            dto.setMaterialCost(b.getMaterialCost());
+            dto.setLabourCost(b.getLabourCost());
+            dto.setEquipmentCost(b.getEquipmentCost());
+            dto.setTransportCost(b.getTransportCost());
+            dto.setOtherCharges(b.getOtherCharges());
+            dto.setSubmittedAt(b.getSubmittedAt());
+        } else if (a.getProject() != null) {
+            dto.setScopeOfWork(a.getProject().getScopeOfWork());
         }
         dto.setAssignmentStatus(a.getAssignmentStatus() != null ? a.getAssignmentStatus().name() : null);
         dto.setCurrent(a.isCurrent());

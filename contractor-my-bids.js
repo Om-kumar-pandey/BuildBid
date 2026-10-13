@@ -1,8 +1,8 @@
 /**
  * =========================================================
- * BUILDBID - CONTRACTOR MY BIDS & CONTRACTS ENGINE (Phase 4.6B)
+ * BUILDBID — DEDICATED CONTRACTOR MY CONTRACTS MODULE
+ * Displays only officially awarded projects & allocated contracts
  * Bilingual English + Simple Hindi Terminology
- * State-Changing Contractor Decline Workflow
  * =========================================================
  */
 
@@ -42,14 +42,10 @@ function getCleanToken() {
     return token;
 }
 
-// Global cached states
-let cachedActiveBids = [];
+// Global cached state
 let cachedContracts = [];
-let cachedHistoryBids = [];
-let currentActiveTab = 'active'; // 'active' | 'contracts' | 'history'
 let pendingDeclineAssignmentId = null;
 let isSubmittingDecline = false;
-let currentViewingAssignment = null;
 
 // Safe helper functions
 function safeText(val, fallback = 'Not specified — निर्दिष्ट नहीं') {
@@ -94,32 +90,6 @@ function formatDateTime(dateStr) {
     }
 }
 
-/**
- * Maps backend MyBid statuses to customer/contractor friendly bilingual labels
- * PENDING -> Under Review — समीक्षा में
- * ACCEPTED -> Accepted — स्वीकृत
- * NOT_SELECTED -> Not Selected — चयनित नहीं
- * ASSIGNMENT_DECLINED -> Contractor Declined — ठेकेदार ने काम करने से मना किया
- * WITHDRAWN -> Withdrawn — वापस ली गई
- */
-function mapBidStatus(rawStatus) {
-    const s = String(rawStatus || '').toUpperCase().trim();
-    switch (s) {
-        case 'PENDING':
-            return { label: 'Under Review — समीक्षा में', badgeClass: 'status-pending' };
-        case 'ACCEPTED':
-            return { label: 'Accepted — स्वीकृत', badgeClass: 'status-accepted' };
-        case 'NOT_SELECTED':
-            return { label: 'Not Selected — चयनित नहीं', badgeClass: 'status-not-selected' };
-        case 'ASSIGNMENT_DECLINED':
-            return { label: 'Contractor Declined — ठेकेदार ने काम करने से मना किया', badgeClass: 'status-declined' };
-        case 'WITHDRAWN':
-            return { label: 'Withdrawn — वापस ली गई', badgeClass: 'status-withdrawn' };
-        default:
-            return { label: rawStatus || 'Under Review — समीक्षा में', badgeClass: 'status-pending' };
-    }
-}
-
 // User session initialization
 function initUserSession() {
     const userNameEl = document.getElementById('top-nav-name');
@@ -141,7 +111,7 @@ function initUserSession() {
                 userInitialsEl.textContent = initials.toUpperCase();
             }
         }
-        if (userBadgeEl) userBadgeEl.textContent = 'Verified Contractor';
+        if (userBadgeEl) userBadgeEl.textContent = 'Contractor';
     } catch (err) {
         console.warn('Session init warning:', err);
     }
@@ -150,10 +120,9 @@ function initUserSession() {
 }
 
 function syncContractorBadges() {
-    // 1. Immediately restore cached counts from sessionStorage (prevents 0 flicker during navigation)
     const cachedProjects = sessionStorage.getItem('contractor_badge_projects');
     const cachedBids = sessionStorage.getItem('contractor_badge_bids');
-    const cachedContracts = sessionStorage.getItem('contractor_badge_contracts');
+    const cachedContractsCount = sessionStorage.getItem('contractor_badge_contracts');
     const cachedNotifs = sessionStorage.getItem('contractor_badge_notifications');
 
     const elProjects = document.getElementById('nav-badge-projects');
@@ -163,7 +132,7 @@ function syncContractorBadges() {
 
     if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
     if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
-    if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+    if (elContracts && cachedContractsCount !== null) elContracts.textContent = cachedContractsCount;
     if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
 
     const token = getCleanToken();
@@ -174,7 +143,6 @@ function syncContractorBadges() {
         'Accept': 'application/json'
     };
 
-    // 2. Fetch authoritative Projects count from existing backend endpoint
     fetch(`${API_BASE_URL}/api/contractor/projects`, { headers: authHeaders })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
@@ -185,7 +153,6 @@ function syncContractorBadges() {
         })
         .catch(() => {});
 
-    // 3. Fetch authoritative Bids count if not already loaded
     fetch(`${API_BASE_URL}/api/contractor/my-bids?history=true`, { headers: authHeaders })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
@@ -196,19 +163,17 @@ function syncContractorBadges() {
         })
         .catch(() => {});
 
-    // 4. Fetch authoritative Contracts count if not already loaded
     fetch(`${API_BASE_URL}/api/contractor/my-bids/contracts`, { headers: authHeaders })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
             if (Array.isArray(data)) {
-                const activeContracts = data.filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
+                const activeContracts = data.filter(c => c && c.assignmentStatus === 'ACTIVE' && c.isCurrent);
                 if (elContracts) elContracts.textContent = activeContracts.length;
                 sessionStorage.setItem('contractor_badge_contracts', activeContracts.length);
             }
         })
         .catch(() => {});
 
-    // 5. Fetch authoritative Notifications count from existing endpoint
     fetch(`${API_BASE_URL}/api/notifications`, { headers: authHeaders })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
@@ -222,114 +187,22 @@ function syncContractorBadges() {
         .catch(() => {});
 }
 
-// Tab Switching
-function switchTab(tabKey) {
-    currentActiveTab = tabKey;
-
-    const tabBtnActive = document.getElementById('tabBtnActive');
-    const tabBtnContracts = document.getElementById('tabBtnContracts');
-    const tabBtnHistory = document.getElementById('tabBtnHistory');
-
-    const viewActive = document.getElementById('viewActiveBids');
-    const viewContracts = document.getElementById('viewContracts');
-    const viewHistory = document.getElementById('viewHistory');
-
-    if (tabBtnActive) tabBtnActive.classList.toggle('active', tabKey === 'active');
-    if (tabBtnContracts) tabBtnContracts.classList.toggle('active', tabKey === 'contracts');
-    if (tabBtnHistory) tabBtnHistory.classList.toggle('active', tabKey === 'history');
-
-    if (viewActive) viewActive.style.display = (tabKey === 'active') ? 'block' : 'none';
-    if (viewContracts) viewContracts.style.display = (tabKey === 'contracts') ? 'block' : 'none';
-    if (viewHistory) viewHistory.style.display = (tabKey === 'history') ? 'block' : 'none';
-
-    // Clear search filter when switching tabs
-    const searchInput = document.getElementById('bidsSearchInput');
-    if (searchInput) searchInput.value = '';
-
-    if (tabKey === 'active' && cachedActiveBids.length === 0) {
-        loadActiveBids();
-    } else if (tabKey === 'contracts' && cachedContracts.length === 0) {
-        loadContracts();
-    } else if (tabKey === 'history' && cachedHistoryBids.length === 0) {
-        loadBidHistory();
-    }
-}
-
-function refreshCurrentTab() {
-    if (currentActiveTab === 'active') {
-        loadActiveBids();
-    } else if (currentActiveTab === 'contracts') {
-        loadContracts();
-    } else if (currentActiveTab === 'history') {
-        loadBidHistory();
-    }
-}
-
 // =========================================================================
-// 1. CONTRACTOR MY BIDS API (GET /api/contractor/my-bids)
-// =========================================================================
-
-async function loadActiveBids() {
-    const container = document.getElementById('activeBidsContainer');
-    if (!container) return;
-
-    renderLoading(container, 'Loading your bids... — आपकी बोलियाँ लोड हो रही हैं...');
-
-    try {
-        const token = getCleanToken();
-        const response = await fetch(`${API_BASE_URL}/api/contractor/my-bids`, {
-            method: 'GET',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-
-        if (response.status === 401) {
-            renderError(container, 401);
-            return;
-        }
-        if (response.status === 403) {
-            renderError(container, 403);
-            return;
-        }
-        if (!response.ok) {
-            renderError(container, response.status);
-            return;
-        }
-
-        const data = await response.json();
-        cachedActiveBids = Array.isArray(data) ? data : [];
-
-        // Update badge and KPI stats
-        const badge = document.getElementById('badgeActiveBids');
-        if (badge) badge.textContent = cachedActiveBids.length;
-
-        const statActive = document.getElementById('statActiveBids');
-        if (statActive) statActive.textContent = cachedActiveBids.length;
-
-        const underReviewCount = cachedActiveBids.filter(b => b.status === 'PENDING').length;
-        const statUnderReview = document.getElementById('statUnderReview');
-        if (statUnderReview) statUnderReview.textContent = underReviewCount;
-
-        if (cachedActiveBids.length === 0) {
-            renderEmpty(container, 'No Bids Found — कोई बोली नहीं मिली', 'You have not submitted any My Bids yet. — आपने अभी तक कोई बोली जमा नहीं की है।', 'fa-gavel');
-        } else {
-            renderBidsList(container, cachedActiveBids);
-        }
-
-    } catch (err) {
-        console.error('Load active bids error:', err);
-        renderError(container, 'network');
-    }
-}
-
-// =========================================================================
-// 2. CONTRACTOR MY CONTRACTS API (GET /api/contractor/my-bids/contracts)
+// AUTHORITATIVE CONTRACTS LOADING & DATA INTEGRATION
 // =========================================================================
 
 async function loadContracts() {
     const container = document.getElementById('contractsContainer');
     if (!container) return;
 
-    renderLoading(container, 'Loading your contracts... — आपके अनुबंध लोड हो रहे हैं...');
+    // Distinct Loading State
+    container.innerHTML = `
+        <div class="state-box" style="padding: 40px; text-align: center; color: #64748b;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: #0284c7; margin-bottom: 12px;"></i>
+            <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Loading awarded contracts... — आवंटित अनुबंध लोड हो रहे हैं...</h4>
+            <p style="font-size: 13px; margin: 0;">Retrieving officially awarded projects from BuildBid backend.</p>
+        </div>
+    `;
 
     try {
         const token = getCleanToken();
@@ -352,176 +225,292 @@ async function loadContracts() {
         }
 
         const data = await response.json();
-        // Authoritative active assignment filter: assignmentStatus === 'ACTIVE' && isCurrent === true
-        const contracts = (Array.isArray(data) ? data : []).filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
-        cachedContracts = contracts;
+        const rawList = Array.isArray(data) ? data : [];
 
-        // Update badge and stats
-        const badge = document.getElementById('badgeContracts');
-        if (badge) badge.textContent = cachedContracts.length;
+        // STRICT CORE RULE: Only projects where backend confirms project was actually awarded/assigned
+        // (assignmentStatus === 'ACTIVE' && isCurrent === true).
+        // Pending bids, rejected bids, under review bids NEVER appear as contracts.
+        const activeContracts = rawList.filter(c => c && c.assignmentStatus === 'ACTIVE' && c.isCurrent === true);
 
-        const navBadgeContracts = document.getElementById('nav-badge-contracts');
-        if (navBadgeContracts) navBadgeContracts.textContent = cachedContracts.length;
+        // Prevent duplicate contract cards for the same awarded project
+        const seenIds = new Set();
+        cachedContracts = [];
+        for (const item of activeContracts) {
+            const key = item.id ? String(item.id) : (item.projectId ? `prj_${item.projectId}` : null);
+            if (key && !seenIds.has(key)) {
+                seenIds.add(key);
+                cachedContracts.push(item);
+            }
+        }
+
+        // Update KPI statistics on top strip
+        updateContractMetrics(cachedContracts);
+
+        // Update sidebar badge
+        const elContracts = document.getElementById('nav-badge-contracts');
+        if (elContracts) elContracts.textContent = cachedContracts.length;
         sessionStorage.setItem('contractor_badge_contracts', cachedContracts.length);
 
-        const statContracts = document.getElementById('statContracts');
-        if (statContracts) statContracts.textContent = cachedContracts.length;
-
         if (cachedContracts.length === 0) {
-            renderEmpty(container, 'No Active Contracts — कोई सक्रिय अनुबंध नहीं है', 'You currently have no active contracts. — आपके पास अभी कोई सक्रिय अनुबंध नहीं है।', 'fa-file-lines');
+            renderEmptyState(container);
         } else {
             renderContractsList(container, cachedContracts);
         }
 
     } catch (err) {
-        console.error('Load contracts error:', err);
+        console.error('Failed to load contracts:', err);
         renderError(container, 'network');
     }
 }
 
-// =========================================================================
-// 3. CONTRACTOR BID HISTORY API (GET /api/contractor/my-bids/history)
-// =========================================================================
+function refreshContracts() {
+    loadContracts();
+}
 
-async function loadBidHistory() {
-    const container = document.getElementById('historyContainer');
-    if (!container) return;
+function updateContractMetrics(contracts) {
+    const elCount = document.getElementById('statAwardedContracts');
+    const elValue = document.getElementById('statTotalContractValue');
+    const elActive = document.getElementById('statActiveAllocations');
 
-    renderLoading(container, 'Loading history... — इतिहास लोड हो रहा है...');
+    if (elCount) elCount.textContent = contracts.length;
+    if (elActive) elActive.textContent = contracts.length;
 
-    try {
-        const token = getCleanToken();
-        const response = await fetch(`${API_BASE_URL}/api/contractor/my-bids/history`, {
-            method: 'GET',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-
-        if (response.status === 401) {
-            renderError(container, 401);
-            return;
-        }
-        if (response.status === 403) {
-            renderError(container, 403);
-            return;
-        }
-        if (!response.ok) {
-            renderError(container, response.status);
-            return;
-        }
-
-        const data = await response.json();
-        cachedHistoryBids = Array.isArray(data) ? data : [];
-
-        // Update badge and total submission stats
-        const badge = document.getElementById('badgeHistory');
-        if (badge) badge.textContent = cachedHistoryBids.length;
-
-        const statTotal = document.getElementById('statTotalSubmissions');
-        if (statTotal) statTotal.textContent = cachedHistoryBids.length;
-
-        if (cachedHistoryBids.length === 0) {
-            renderEmpty(container, 'No Bid History Found — बोली का कोई इतिहास नहीं मिला', 'No My Bid history is available. — My Bid का कोई इतिहास उपलब्ध नहीं है।', 'fa-clock-rotate-left');
-        } else {
-            renderBidsList(container, cachedHistoryBids, true);
-        }
-
-    } catch (err) {
-        console.error('Load history error:', err);
-        renderError(container, 'network');
+    if (elValue) {
+        const totalVal = contracts.reduce((sum, c) => {
+            const val = (c && typeof c.bidAmount === 'number') ? c.bidAmount : 0;
+            return sum + val;
+        }, 0);
+        elValue.textContent = '₹ ' + totalVal.toLocaleString('en-IN');
     }
 }
 
 // =========================================================================
-// 4. RENDERING LISTS & CARDS
+// RENDERING AWARDED CONTRACT CARDS & EMPTY STATE
 // =========================================================================
 
-function renderBidsList(container, bids, isHistory = false) {
-    container.innerHTML = bids.map(bid => {
-        const statusInfo = mapBidStatus(bid.status);
-        const projectTitle = safeText(bid.projectTitle, 'Project / प्रोजेक्ट #' + (bid.projectId || bid.id));
+function renderEmptyState(container) {
+    container.innerHTML = `
+        <div class="contract-empty-state-box">
+            <div class="contract-empty-icon">
+                <i class="fa-solid fa-file-signature"></i>
+            </div>
+            <h3>No Contracts Found — कोई अनुबंध नहीं मिला</h3>
+            <p>
+                You don't have any awarded projects yet. When a customer accepts your bid and the project is officially allocated to you, the complete project and customer details will appear here.
+            </p>
+            <p style="font-size: 12.5px; color: #94a3b8; margin-top: -6px;">
+                जब कोई ग्राहक आपकी बोली स्वीकार कर लेगा और प्रोजेक्ट आपको आधिकारिक रूप से सौंप दिया जाएगा, तो प्रोजेक्ट और ग्राहक का पूरा विवरण यहाँ दिखाई देगा।
+            </p>
+            <a href="contractor-projects.html" class="btn-view-projects" id="btnEmptyViewProjects">
+                <i class="fa-solid fa-briefcase"></i> View Projects — प्रोजेक्ट्स देखें
+            </a>
+        </div>
+    `;
+}
 
-        // Security check: Only render customer contact if backend explicitly supplied it
-        let customerContactMarkup = '';
-        if (bid.customerContact && (bid.customerContact.phone || bid.customerContact.email || bid.customerContact.name)) {
-            customerContactMarkup = `
-                <div class="contact-authorized-card">
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-user-check"></i> Customer Name — ग्राहक का नाम</span>
-                        <span class="detail-cell-val">${safeText(bid.customerContact.name)}</span>
-                    </div>
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-phone"></i> Contact Phone — संपर्क फोन</span>
-                        <span class="detail-cell-val">${safeText(bid.customerContact.phone)}</span>
-                    </div>
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-envelope"></i> Email Address — ईमेल पता</span>
-                        <span class="detail-cell-val">${safeText(bid.customerContact.email)}</span>
-                    </div>
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-location-dot"></i> Customer Location — ग्राहक का स्थान</span>
-                        <span class="detail-cell-val">${safeText(bid.customerContact.location)}</span>
-                    </div>
-                </div>
-            `;
-        } else {
-            customerContactMarkup = `
-                <div class="contact-locked-banner">
-                    <i class="fa-solid fa-lock"></i>
-                    <span>Customer contact unavailable — ग्राहक की संपर्क जानकारी उपलब्ध नहीं है</span>
-                </div>
-            `;
+function renderContractsList(container, contracts) {
+    container.innerHTML = contracts.map(c => {
+        const projectTitle = safeText(c.projectTitle, 'Awarded Project #' + (c.projectCustomId || c.projectId || c.id));
+        const contractRefId = 'CTR-' + (c.id || 'N/A');
+        const projectDisplayId = c.projectCustomId || (c.projectId ? ('PRJ-' + c.projectId) : 'N/A');
+        const awardedDate = formatDate(c.acceptedAt);
+
+        // Site address compilation
+        let siteAddress = c.siteAddress || '';
+        const locationParts = [c.city, c.state, c.pincode].filter(Boolean);
+        if (locationParts.length > 0) {
+            const locStr = locationParts.join(', ');
+            siteAddress = siteAddress ? `${siteAddress}, ${locStr}` : locStr;
         }
+        if (!siteAddress) siteAddress = safeText(c.location, 'Project Site Location Provided Upon Inspection');
 
-        const workersLabel = bid.workersCount ? `${bid.workersCount} workers / कामगार` : 'Not specified — निर्दिष्ट नहीं';
+        // Customer details
+        const custName = safeText(c.customer?.name, 'Authorized Client');
+        const custPhoneRaw = (c.customer?.phone || '').trim();
+        const isPlaceholder = ['n/a', 'na', 'none', 'null', 'undefined', 'not specified'].includes(custPhoneRaw.toLowerCase());
+        const cleanDigits = custPhoneRaw.replace(/[^0-9]/g, '');
+        const isValidPhone = !isPlaceholder && cleanDigits.length >= 7 && cleanDigits.length <= 15;
+        const cleanPhone = isValidPhone ? encodeURIComponent(custPhoneRaw.replace(/[^0-9+]/g, '')) : '';
+        const custPhone = isValidPhone ? custPhoneRaw : (isPlaceholder ? '' : custPhoneRaw);
+        const custEmail = (c.customer?.email || '').trim();
+        const custInitials = custName.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'C';
+
+        // Area formatting
+        const areaVal = c.builtUpArea || c.plotArea || c.totalArea;
+        const areaLabel = areaVal ? `${areaVal} sq.ft.` : 'Not specified — निर्दिष्ट नहीं';
+
+        // Search attribute
+        const searchTerms = [
+            projectTitle,
+            contractRefId,
+            projectDisplayId,
+            custName,
+            custPhone,
+            custEmail,
+            siteAddress,
+            c.projectType
+        ].filter(Boolean).join(' ').toLowerCase();
 
         return `
-            <div class="contractor-card" id="bidCard-${bid.id}" data-search="${(projectTitle).toLowerCase()}">
-                <div class="card-main-body">
-                    <div class="card-top-row">
-                        <div class="card-project-info">
-                            <div class="card-icon-avatar"><i class="fa-solid fa-briefcase"></i></div>
-                            <div class="card-title-meta">
-                                <h3>${projectTitle}</h3>
-                                <div class="card-submeta">
-                                    <span>Bid — बोली #${bid.id}</span>
-                                    <span>•</span>
-                                    <span>Project — प्रोजेक्ट #${bid.projectId || 'N/A'}</span>
-                                    <span>•</span>
-                                    <span>Submitted on — जमा करने की तारीख: ${formatDate(bid.submittedAt)}</span>
+            <div class="contract-card-awarded" id="contractCard-${c.id}" data-search="${searchTerms}">
+                <!-- Card Header -->
+                <div class="contract-header-row">
+                    <div class="contract-project-heading">
+                        <div class="contract-avatar-icon">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                        <div class="contract-title-group">
+                            <h3>${projectTitle}</h3>
+                            <div class="contract-meta-pills">
+                                <span>Contract: <strong>${contractRefId}</strong></span>
+                                <span>•</span>
+                                <span>Project ID: <strong>${projectDisplayId}</strong></span>
+                                <span>•</span>
+                                <span>Awarded on: <strong>${awardedDate}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="contract-status-badge">
+                        <i class="fa-solid fa-circle-check"></i> Awarded & Active — आधिकारिक आवंटित
+                    </span>
+                </div>
+
+                <!-- Main Body Grid: Specifications & Scope vs Customer Info & Actions -->
+                <div class="contract-body-grid">
+                    <!-- Left: Technical Project Specifications & Scope -->
+                    <div class="contract-main-specs">
+                        <!-- Financial Ribbon -->
+                        <div class="contract-metrics-row">
+                            <div class="contract-metric-item">
+                                <span class="contract-metric-label">Awarded Contract Value — अनुबंध राशि</span>
+                                <strong class="contract-metric-value highlight-value">${formatCurrency(c.bidAmount)}</strong>
+                            </div>
+                            <div class="contract-metric-item">
+                                <span class="contract-metric-label">Target Completion — प्रस्तावित समय-सीमा</span>
+                                <strong class="contract-metric-value">${safeText(c.estimatedDuration || c.proposedTimeline || c.timeline)}</strong>
+                            </div>
+                            <div class="contract-metric-item">
+                                <span class="contract-metric-label">Target Start Date — प्रारंभ तिथि</span>
+                                <strong class="contract-metric-value">${safeText(c.targetStartDate)}</strong>
+                            </div>
+                            <div class="contract-metric-item">
+                                <span class="contract-metric-label">Workers Count — कामगारों की संख्या</span>
+                                <strong class="contract-metric-value">${c.workersCount ? c.workersCount + ' Workers / कामगार' : 'As per requirement'}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Technical Specs Grid -->
+                        <div class="contract-specs-grid">
+                            <div class="spec-cell">
+                                <span class="spec-cell-label"><i class="fa-solid fa-layer-group"></i> Project Type — प्रोजेक्ट प्रकार</span>
+                                <span class="spec-cell-val">${safeText(c.projectType)}</span>
+                            </div>
+                            <div class="spec-cell">
+                                <span class="spec-cell-label"><i class="fa-solid fa-ruler-combined"></i> Plot / Built-up Area — क्षेत्रफल</span>
+                                <span class="spec-cell-val">${areaLabel}</span>
+                            </div>
+                            <div class="spec-cell">
+                                <span class="spec-cell-label"><i class="fa-solid fa-building"></i> Number of Floors — मंजिलों की संख्या</span>
+                                <span class="spec-cell-val">${safeText(c.floors)}</span>
+                            </div>
+                            <div class="spec-cell">
+                                <span class="spec-cell-label"><i class="fa-solid fa-award"></i> Quality Tier — गुणवत्ता स्तर</span>
+                                <span class="spec-cell-val">${safeText(c.qualityTier)}</span>
+                            </div>
+                        </div>
+
+                        <!-- Site Location Details -->
+                        <div class="spec-cell full-width">
+                            <span class="spec-cell-label"><i class="fa-solid fa-location-dot"></i> Construction Location & Address — निर्माण स्थल पता</span>
+                            <span class="spec-cell-val" style="color: #0f172a;">${siteAddress}</span>
+                        </div>
+
+                        <!-- Agreed Scope of Work Preview -->
+                        <div class="contract-desc-box">
+                            <div class="contract-desc-label">
+                                <i class="fa-solid fa-list-check"></i> Agreed Scope of Work — सहमत कार्य का दायरा
+                            </div>
+                            <p class="contract-desc-text">${safeText(c.scopeOfWork || c.description, 'Complete civil construction and structural work as per agreed contract specifications.')}</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Customer Contact Information & Prominent Actions -->
+                    <div class="customer-sidebar-card">
+                        <div class="customer-card-header">
+                            <div class="customer-avatar">${custInitials}</div>
+                            <div class="customer-identity">
+                                <h4>${custName}</h4>
+                                <span><i class="fa-solid fa-shield-check"></i> Project Owner / ग्राहक</span>
+                            </div>
+                        </div>
+
+                        <div class="customer-contact-list">
+                            <div class="contact-row-item">
+                                <i class="fa-solid fa-phone"></i>
+                                <div class="contact-row-content">
+                                    <span class="contact-row-label">Contact Phone — संपर्क फोन</span>
+                                    <span class="contact-row-value">${isValidPhone ? custPhone : '<span style="color:#94a3b8; font-weight:normal;">' + (custPhone ? 'Invalid format (' + custPhone + ')' : 'Not available') + '</span>'}</span>
+                                </div>
+                            </div>
+                            <div class="contact-row-item">
+                                <i class="fa-solid fa-envelope"></i>
+                                <div class="contact-row-content">
+                                    <span class="contact-row-label">Email Address — ईमेल</span>
+                                    <span class="contact-row-value">${custEmail ? custEmail : '<span style="color:#94a3b8; font-weight:normal;">Not available</span>'}</span>
+                                </div>
+                            </div>
+                            <div class="contact-row-item">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <div class="contact-row-content">
+                                    <span class="contact-row-label">Client Site Address — स्थल पता</span>
+                                    <span class="contact-row-value" style="font-size: 11.5px;">${siteAddress}</span>
+                                </div>
+                            </div>
+                            <div class="contact-row-item">
+                                <i class="fa-solid fa-headset"></i>
+                                <div class="contact-row-content">
+                                    <span class="contact-row-label">Preferred Contact — संपर्क का माध्यम</span>
+                                    <span class="contact-row-value">Direct Phone / Call</span>
                                 </div>
                             </div>
                         </div>
-                        <span class="status-pill ${statusInfo.badgeClass}">${statusInfo.label}</span>
-                    </div>
 
-                    <div class="card-kpis-grid">
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">My Bid Amount — बोली राशि</span>
-                            <span class="kpi-col-val highlight-price">${formatCurrency(bid.bidAmount)}</span>
-                        </div>
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Estimated Duration — अनुमानित अवधि</span>
-                            <span class="kpi-col-val">${safeText(bid.estimatedDuration)}</span>
-                        </div>
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Proposed Timeline — प्रस्तावित समय-सीमा</span>
-                            <span class="kpi-col-val">${safeText(bid.proposedTimeline)}</span>
-                        </div>
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Workers Count — कामगारों की संख्या</span>
-                            <span class="kpi-col-val">${workersLabel}</span>
-                        </div>
-                    </div>
+                        <!-- Prominent Contractor Action Buttons -->
+                        <div class="customer-actions-group">
+                            ${isValidPhone ? `
+                                <a href="tel:${cleanPhone}" class="btn-action-call" id="btnCallCustomer-${c.id}" title="Call ${custName} directly: ${custPhone}">
+                                    <i class="fa-solid fa-phone"></i> Call Customer — कॉल करें
+                                </a>
+                            ` : `
+                                <button type="button" class="btn-action-call btn-disabled" title="${custPhone ? 'Invalid phone number format provided in client profile' : 'Phone number not provided in client profile'}" disabled>
+                                    <i class="fa-solid fa-phone-slash"></i> Phone Unavailable — फोन उपलब्ध नहीं
+                                </button>
+                            `}
 
-                    <div class="card-actions-bar">
-                        <button type="button" class="btn-secondary" id="toggleDrawerBtn-${bid.id}" onclick="toggleBidDrawer('${bid.id}')">
-                            <i class="fa-solid fa-chevron-down"></i> View Bid Details — बोली विवरण देखें
-                        </button>
+                            <button type="button" class="btn-action-message" id="btnMessageCustomer-${c.id}" onclick="openMessageCustomerModal('${c.id}')">
+                                <i class="fa-regular fa-comment-dots"></i> Message Customer — संदेश भेजें
+                            </button>
+
+                            <a href="contractor-project-details.html?id=${c.projectId}" class="btn-action-view-details" id="btnViewProject-${c.id}" title="View complete awarded project details">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> View Project Details — पूरा विवरण देखें
+                            </a>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Footer Bar with Breakdown Toggle & Decline Option -->
+                <div class="contract-footer-bar">
+                    <button type="button" class="btn-secondary" id="toggleDrawerBtn-${c.id}" onclick="toggleContractDrawer('${c.id}')">
+                        <i class="fa-solid fa-chevron-down"></i> Contract Terms & Financial Breakdown — शर्तें और लागत विवरण
+                    </button>
+
+                    <button type="button" class="btn-danger-outline" onclick="openDeclineModal('${c.id}')">
+                        <i class="fa-solid fa-ban"></i> Decline Assignment — कार्य आवंटन अस्वीकार करें
+                    </button>
+                </div>
+
                 <!-- Collapsible Detailed Breakdown Drawer -->
-                <div class="card-details-drawer" id="bidDrawer-${bid.id}" style="display: none;">
+                <div class="card-details-drawer" id="contractDrawer-${c.id}" style="display: none; padding: 20px 22px; background: #fafbfc; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 16px;">
                     <!-- Financial Cost Breakdown -->
                     <div class="detail-section-block">
                         <div class="detail-section-title">
@@ -529,108 +518,82 @@ function renderBidsList(container, bids, isHistory = false) {
                         </div>
                         <div class="detail-grid-3col">
                             <div class="detail-cell">
-                                <span class="detail-cell-label">Total Bid Amount — कुल बोली राशि</span>
-                                <span class="detail-cell-val" style="font-weight: 700; color: #0284c7;">${formatCurrency(bid.bidAmount)}</span>
+                                <span class="detail-cell-label">Total Contract Value — कुल अनुबंध मूल्य</span>
+                                <span class="detail-cell-val" style="font-weight: 700; color: #0284c7;">${formatCurrency(c.bidAmount)}</span>
                             </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Material Cost — सामग्री लागत</span>
-                                <span class="detail-cell-val">${formatCurrency(bid.materialCost)}</span>
+                                <span class="detail-cell-val">${formatCurrency(c.materialCost)}</span>
                             </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Labour Cost — श्रम लागत</span>
-                                <span class="detail-cell-val">${formatCurrency(bid.labourCost)}</span>
+                                <span class="detail-cell-val">${formatCurrency(c.labourCost)}</span>
                             </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Equipment Cost — उपकरण लागत</span>
-                                <span class="detail-cell-val">${formatCurrency(bid.equipmentCost)}</span>
+                                <span class="detail-cell-val">${formatCurrency(c.equipmentCost)}</span>
                             </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Transport Cost — परिवहन लागत</span>
-                                <span class="detail-cell-val">${formatCurrency(bid.transportCost)}</span>
+                                <span class="detail-cell-val">${formatCurrency(c.transportCost)}</span>
                             </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Other Charges — अन्य शुल्क</span>
-                                <span class="detail-cell-val">${formatCurrency(bid.otherCharges)}</span>
+                                <span class="detail-cell-val">${formatCurrency(c.otherCharges)}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Scope and Execution Details -->
+                    <!-- Work Inclusions and Exclusions -->
                     <div class="detail-section-block">
                         <div class="detail-section-title">
-                            <i class="fa-solid fa-list-check"></i> Scope & Execution Details — काम का दायरा और विवरण
+                            <i class="fa-solid fa-clipboard-check"></i> Execution Terms & Inclusions — काम का दायरा और शर्तें
                         </div>
                         <div class="detail-grid-2col">
-                            <div class="detail-cell full-width">
-                                <span class="detail-cell-label">Scope of Work — काम का दायरा</span>
-                                <span class="detail-cell-val">${safeText(bid.scopeOfWork)}</span>
-                            </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Included Work — शामिल काम</span>
-                                <span class="detail-cell-val">${safeText(bid.includedWork)}</span>
+                                <span class="detail-cell-val">${safeText(c.includedWork, 'As per agreed civil construction standards')}</span>
                             </div>
                             <div class="detail-cell">
                                 <span class="detail-cell-label">Excluded Work — शामिल नहीं किया गया काम</span>
-                                <span class="detail-cell-val">${safeText(bid.excludedWork)}</span>
+                                <span class="detail-cell-val">${safeText(c.excludedWork, 'None specified')}</span>
                             </div>
-                            ${(bid.descriptionEn || bid.descriptionHi) ? `
+                            <div class="detail-cell">
+                                <span class="detail-cell-label">Payment Terms — भुगतान की शर्तें</span>
+                                <span class="detail-cell-val">${safeText(c.paymentTerms, 'Milestone-based progress billing')}</span>
+                            </div>
+                            <div class="detail-cell">
+                                <span class="detail-cell-label">Warranty / Guarantee — वारंटी</span>
+                                <span class="detail-cell-val">${safeText(c.warranty, 'Standard 1-year structural warranty')}</span>
+                            </div>
+                            ${c.remarks ? `
                             <div class="detail-cell full-width">
-                                <span class="detail-cell-label">Quotation Description — ठेकेदार का विवरण</span>
-                                ${bid.descriptionEn ? `<div style="margin-bottom: 4px; white-space: pre-wrap;"><strong>English:</strong> ${safeText(bid.descriptionEn)}</div>` : ''}
-                                ${bid.descriptionHi ? `<div style="white-space: pre-wrap;"><strong>Hindi:</strong> ${safeText(bid.descriptionHi)}</div>` : ''}
+                                <span class="detail-cell-label">Remarks / Special Terms — अतिरिक्त विवरण</span>
+                                <span class="detail-cell-val">${safeText(c.remarks)}</span>
                             </div>
                             ` : ''}
                         </div>
                     </div>
 
-                    <!-- Commercial Terms & Warranty -->
+                    <!-- Contract Timestamps & History -->
                     <div class="detail-section-block">
                         <div class="detail-section-title">
-                            <i class="fa-solid fa-file-contract"></i> Commercial Terms & Warranty — व्यावसायिक शर्तें और वारंटी
-                        </div>
-                        <div class="detail-grid-2col">
-                            <div class="detail-cell">
-                                <span class="detail-cell-label">Payment Terms — भुगतान की शर्तें</span>
-                                <span class="detail-cell-val">${safeText(bid.paymentTerms)}</span>
-                            </div>
-                            <div class="detail-cell">
-                                <span class="detail-cell-label">Warranty — वारंटी</span>
-                                <span class="detail-cell-val">${safeText(bid.warranty)}</span>
-                            </div>
-                            <div class="detail-cell full-width">
-                                <span class="detail-cell-label">Remarks — अतिरिक्त जानकारी</span>
-                                <span class="detail-cell-val">${safeText(bid.remarks)}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Key Timestamps -->
-                    <div class="detail-section-block">
-                        <div class="detail-section-title">
-                            <i class="fa-solid fa-calendar-days"></i> Key Timestamps — मुख्य समय रिकॉर्ड
+                            <i class="fa-solid fa-clock-rotate-left"></i> Contract Audit & History — अनुबंध का रिकॉर्ड
                         </div>
                         <div class="detail-grid-3col">
                             <div class="detail-cell">
-                                <span class="detail-cell-label">Submitted At — जमा करने की तारीख</span>
-                                <span class="detail-cell-val">${formatDateTime(bid.submittedAt)}</span>
+                                <span class="detail-cell-label">Bid Submitted At — बोली जमा की गई</span>
+                                <span class="detail-cell-val">${c.submittedAt ? formatDateTime(c.submittedAt) : 'N/A'}</span>
                             </div>
                             <div class="detail-cell">
-                                <span class="detail-cell-label">Rejected At — अस्वीकृति की तारीख</span>
-                                <span class="detail-cell-val">${bid.rejectedAt ? formatDateTime(bid.rejectedAt) : 'N/A — लागू नहीं'}</span>
+                                <span class="detail-cell-label">Contract Officially Awarded — अनुबंध स्वीकृत हुआ</span>
+                                <span class="detail-cell-val" style="color: #16a34a; font-weight: 700;">${formatDateTime(c.acceptedAt)}</span>
                             </div>
                             <div class="detail-cell">
-                                <span class="detail-cell-label">Visible Until — तब तक दृश्यमान</span>
-                                <span class="detail-cell-val">${bid.visibleUntil ? formatDateTime(bid.visibleUntil) : 'Active — सक्रिय'}</span>
+                                <span class="detail-cell-label">Current Contract State — वर्तमान स्थिति</span>
+                                <span class="detail-cell-val" style="color: #16a34a; font-weight: 700;">Active Allocation — सक्रिय आवंटन</span>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Customer Contact Section (Protected) -->
-                    <div class="detail-section-block">
-                        <div class="detail-section-title">
-                            <i class="fa-solid fa-address-card"></i> Customer Contact — ग्राहक संपर्क
-                        </div>
-                        ${customerContactMarkup}
                     </div>
                 </div>
             </div>
@@ -638,616 +601,420 @@ function renderBidsList(container, bids, isHistory = false) {
     }).join('');
 }
 
-function renderContractsList(container, contracts) {
-    container.innerHTML = contracts.map(c => {
-        const projectTitle = safeText(c.projectTitle, 'Project / प्रोजेक्ट #' + (c.projectId || 'N/A'));
-        const isEligibleToDecline = (c.assignmentStatus === 'ACTIVE' && c.isCurrent === true);
-
-        return `
-            <div class="contractor-card" id="contractCard-${c.id}" data-search="${(projectTitle).toLowerCase()}">
-                <div class="card-main-body">
-                    <div class="card-top-row">
-                        <div class="card-project-info">
-                            <div class="card-icon-avatar" style="background:#dcfce7; color:#16a34a; border-color:#bbf7d0;">
-                                <i class="fa-solid fa-file-contract"></i>
-                            </div>
-                            <div class="card-title-meta">
-                                <h3>${projectTitle}</h3>
-                                <div class="card-submeta">
-                                    <span>Contract — अनुबंध #${c.id}</span>
-                                    <span>•</span>
-                                    <span>Accepted Bid — स्वीकृत बोली #${c.bidId || 'N/A'}</span>
-                                    <span>•</span>
-                                    <span>Accepted on — स्वीकृति की तारीख: ${formatDate(c.acceptedAt)}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <span class="status-pill status-accepted">
-                            <i class="fa-solid fa-circle-check"></i> Active Contract — सक्रिय अनुबंध
-                        </span>
-                    </div>
-
-                    <div class="card-kpis-grid">
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Contract Amount — अनुबंध राशि</span>
-                            <span class="kpi-col-val highlight-price">${formatCurrency(c.bidAmount)}</span>
-                        </div>
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Assignment Status — आवंटन स्थिति</span>
-                            <span class="kpi-col-val" style="color: #16a34a;">Active — सक्रिय</span>
-                        </div>
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Accepted At — स्वीकृति की तारीख</span>
-                            <span class="kpi-col-val">${formatDateTime(c.acceptedAt)}</span>
-                        </div>
-                        <div class="kpi-col">
-                            <span class="kpi-col-label">Current State — वर्तमान स्थिति</span>
-                            <span class="kpi-col-val">Active Assignment — सक्रिय आवंटन</span>
-                        </div>
-                    </div>
-
-                    <div class="card-actions-bar">
-                        ${isEligibleToDecline ? `
-                            <button type="button" class="btn-danger-outline" onclick="openDeclineModal('${c.id}')">
-                                <i class="fa-solid fa-ban"></i> Decline Assignment — काम करने से मना करें
-                            </button>
-                        ` : ''}
-                        <button type="button" class="btn-primary" onclick="openAssignmentDetailsModal('${c.id}')">
-                            <i class="fa-regular fa-file-lines"></i> View Assignment Details — कार्य आवंटन विवरण देखें
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function toggleBidDrawer(bidId) {
-    const drawer = document.getElementById(`bidDrawer-${bidId}`);
-    const toggleBtn = document.getElementById(`toggleDrawerBtn-${bidId}`);
+function toggleContractDrawer(contractId) {
+    const drawer = document.getElementById(`contractDrawer-${contractId}`);
+    const toggleBtn = document.getElementById(`toggleDrawerBtn-${contractId}`);
     if (!drawer || !toggleBtn) return;
 
     const isHidden = drawer.style.display === 'none';
     if (isHidden) {
         drawer.style.display = 'flex';
-        toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> Hide Bid Details — विवरण छिपाएं';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> Hide Terms & Financial Breakdown — विवरण छिपाएं';
     } else {
         drawer.style.display = 'none';
-        toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i> View Bid Details — बोली विवरण देखें';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i> Contract Terms & Financial Breakdown — शर्तें और लागत विवरण';
     }
 }
 
 // =========================================================================
-// 5. ASSIGNMENT DETAILS MODAL & PROJECT HISTORY
+// CUSTOMER MESSAGING MODAL
 // =========================================================================
 
-/**
- * Loads assignment details via GET /api/contractor/my-bids/assignments/{assignmentId}
- * Displays details and Decline Assignment action if eligible
- */
-async function openAssignmentDetailsModal(assignmentId) {
-    if (!assignmentId) return;
+function openMessageCustomerModal(contractId) {
+    const contract = cachedContracts.find(c => String(c.id) === String(contractId));
+    const overlay = document.getElementById('messageCustomerModalOverlay');
+    const modalBody = document.getElementById('messageCustomerModalBody');
+    const titleEl = document.getElementById('messageCustomerTitle');
 
-    const overlay = document.getElementById('assignmentDetailsModalOverlay');
-    const modalBody = document.getElementById('assignmentModalBody');
-    const titleEl = document.getElementById('assignmentModalTitle');
-    const assignIdEl = document.getElementById('modalAssignmentId');
-    const bidIdEl = document.getElementById('modalBidId');
-    const modalFooter = document.getElementById('assignmentModalFooter');
+    if (!overlay || !modalBody) return;
+
+    const custName = safeText(contract?.customer?.name, 'Customer');
+    const custPhoneRaw = (contract?.customer?.phone || '').trim();
+    const isPlaceholder = ['n/a', 'na', 'none', 'null', 'undefined', 'not specified'].includes(custPhoneRaw.toLowerCase());
+    const cleanDigits = custPhoneRaw.replace(/[^0-9]/g, '');
+    const isValidPhone = !isPlaceholder && cleanDigits.length >= 7 && cleanDigits.length <= 15;
+    const cleanPhone = isValidPhone ? encodeURIComponent(custPhoneRaw.replace(/[^0-9+]/g, '')) : '';
+    const custPhone = isValidPhone ? custPhoneRaw : (isPlaceholder ? '' : custPhoneRaw);
+    const custEmail = (contract?.customer?.email || '').trim();
+
+    if (titleEl) {
+        titleEl.textContent = `Connect with ${custName}`;
+    }
+
+    modalBody.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: grid; place-items: center; font-weight: 700;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 15px; color: #0f172a;">${custName}</h4>
+                        <span style="font-size: 12px; color: #64748b;">Project Owner • Contract #${contract?.id || ''}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Direct Contact Options -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <h5 style="margin: 0; font-size: 13px; color: #475569; font-weight: 600;">Authorized Contact Channels:</h5>
+
+                ${isValidPhone ? `
+                    <a href="tel:${cleanPhone}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-decoration: none; color: #166534; font-weight: 600; font-size: 13.5px;">
+                        <span><i class="fa-solid fa-phone" style="margin-right: 8px;"></i> Call on ${custPhone}</span>
+                        <span style="font-size: 12px; background: #16a34a; color: #ffffff; padding: 3px 8px; border-radius: 6px;">Dial</span>
+                    </a>
+                ` : `
+                    <div style="padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; color: #64748b; font-size: 12.5px;">
+                        <i class="fa-solid fa-phone-slash" style="margin-right: 6px;"></i> ${custPhone ? 'Invalid phone number format provided in customer profile' : 'Phone number is not provided in customer profile'}
+                    </div>
+                `}
+
+                ${custEmail ? `
+                    <a href="mailto:${custEmail}?subject=${encodeURIComponent('BuildBid Contract #' + (contract?.id || '') + ' - ' + (contract?.projectTitle || ''))}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 13.5px;">
+                        <span><i class="fa-solid fa-envelope" style="margin-right: 8px;"></i> Email: ${custEmail}</span>
+                        <span style="font-size: 12px; background: #0284c7; color: #ffffff; padding: 3px 8px; border-radius: 6px;">Write</span>
+                    </a>
+                ` : ''}
+            </div>
+
+            <!-- Status Notice regarding In-App Direct Chat -->
+            <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start;">
+                <i class="fa-solid fa-circle-info" style="color: #d97706; margin-top: 2px;"></i>
+                <div style="font-size: 12px; color: #92400e; line-height: 1.4;">
+                    <strong>In-App Chat Integration:</strong>
+                    <br />
+                    Direct in-app instant chat is currently under deployment. For active communication on this awarded contract, please connect with the client directly via phone or email above.
+                </div>
+            </div>
+        </div>
+    `;
+
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMessageCustomerModal() {
+    const overlay = document.getElementById('messageCustomerModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// =========================================================================
+// CONTRACT DETAILS MODAL & PROJECT AUDIT TRAIL
+// =========================================================================
+
+function closeContractDetailsModal() {
+    const overlay = document.getElementById('contractDetailsModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// =========================================================================
+// STATE-CHANGING CONTRACT DECLINE WORKFLOW
+// =========================================================================
+
+function openDeclineModal(assignmentId) {
+    if (!assignmentId) return;
+    pendingDeclineAssignmentId = assignmentId;
+
+    const overlay = document.getElementById('declineConfirmModalOverlay');
+    const projTitleEl = document.getElementById('declineProjectTitle');
+    const bidAmountEl = document.getElementById('declineBidAmount');
+    const assignIdEl = document.getElementById('declineAssignmentId');
+    const errorBox = document.getElementById('declineModalError');
+
+    const contract = cachedContracts.find(c => String(c.id) === String(assignmentId));
+
+    if (projTitleEl) {
+        projTitleEl.textContent = contract ? safeText(contract.projectTitle, 'Project #' + contract.projectId) : `Assignment #${assignmentId}`;
+    }
+    if (bidAmountEl) {
+        bidAmountEl.textContent = contract ? formatCurrency(contract.bidAmount) : '—';
+    }
+    if (assignIdEl) {
+        assignIdEl.textContent = '#' + assignmentId;
+    }
+    if (errorBox) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
 
     if (overlay) {
         overlay.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
-
-    if (modalBody) {
-        modalBody.innerHTML = `
-            <div class="state-box">
-                <i class="fa-solid fa-spinner fa-spin"></i>
-                <h4>Loading assignment details... — कार्य आवंटन का विवरण लोड हो रहा है...</h4>
-            </div>
-        `;
-    }
-
-    try {
-        const token = getCleanToken();
-        const response = await fetch(`${API_BASE_URL}/api/contractor/my-bids/assignments/${encodeURIComponent(assignmentId)}`, {
-            method: 'GET',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-
-        if (response.status === 401) {
-            renderModalError('Session Expired — सत्र समाप्त हो गया', 'Your session has expired or is invalid. Please log in again. — आपका सत्र समाप्त हो गया है या मान्य नहीं है। कृपया फिर से लॉगिन करें।');
-            return;
-        }
-        if (response.status === 403) {
-            renderModalError('Access Denied — अनुमति नहीं है', 'You do not have permission to view this information. — आपको यह जानकारी देखने की अनुमति नहीं है।');
-            return;
-        }
-        if (response.status === 404) {
-            renderModalError('Information Not Found — जानकारी नहीं मिली', 'The requested My Bid information could not be found. — मांगी गई My Bid जानकारी नहीं मिली।');
-            return;
-        }
-        if (!response.ok) {
-            renderModalError('Server Error — सर्वर में समस्या', 'Server error occurred. Please try again later. — सर्वर में समस्या हुई। कृपया बाद में फिर प्रयास करें।');
-            return;
-        }
-
-        const assignment = await response.json();
-        currentViewingAssignment = assignment;
-
-        if (titleEl) titleEl.textContent = safeText(assignment.projectTitle, 'Project / प्रोजेक्ट #' + (assignment.projectId || 'N/A'));
-        if (assignIdEl) assignIdEl.textContent = '#' + assignment.id;
-        if (bidIdEl) bidIdEl.textContent = '#' + (assignment.bidId || 'N/A');
-
-        // Customer contact security: Display only if explicitly returned
-        let customerContactHtml = '';
-        if (assignment.customer && (assignment.customer.phone || assignment.customer.email || assignment.customer.name)) {
-            customerContactHtml = `
-                <div class="contact-authorized-card">
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-user-check"></i> Customer Name — ग्राहक का नाम</span>
-                        <span class="detail-cell-val">${safeText(assignment.customer.name)}</span>
-                    </div>
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-phone"></i> Contact Phone — संपर्क फोन</span>
-                        <span class="detail-cell-val">${safeText(assignment.customer.phone)}</span>
-                    </div>
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-envelope"></i> Email Address — ईमेल पता</span>
-                        <span class="detail-cell-val">${safeText(assignment.customer.email)}</span>
-                    </div>
-                    <div class="detail-cell">
-                        <span class="detail-cell-label"><i class="fa-solid fa-location-dot"></i> Customer Location — ग्राहक का स्थान</span>
-                        <span class="detail-cell-val">${safeText(assignment.customer.location)}</span>
-                    </div>
-                </div>
-            `;
-        } else {
-            customerContactHtml = `
-                <div class="contact-locked-banner">
-                    <i class="fa-solid fa-lock"></i>
-                    <span>Customer contact unavailable — ग्राहक की संपर्क जानकारी उपलब्ध नहीं है</span>
-                </div>
-            `;
-        }
-
-        const isEligibleToDecline = (assignment.assignmentStatus === 'ACTIVE' && assignment.isCurrent === true);
-
-        if (modalBody) {
-            modalBody.innerHTML = `
-                <!-- Assignment Overview -->
-                <div class="detail-section-block">
-                    <div class="detail-section-title">
-                        <i class="fa-solid fa-file-contract"></i> Contract Overview — अनुबंध अवलोकन
-                    </div>
-                    <div class="detail-grid-3col">
-                        <div class="detail-cell">
-                            <span class="detail-cell-label">Contract Amount — अनुबंध राशि</span>
-                            <span class="detail-cell-val" style="font-weight: 700; color: #0284c7;">${formatCurrency(assignment.bidAmount)}</span>
-                        </div>
-                        <div class="detail-cell">
-                            <span class="detail-cell-label">Assignment Status — आवंटन स्थिति</span>
-                            <span class="detail-cell-val" style="color: #16a34a; font-weight: 600;">Active — सक्रिय</span>
-                        </div>
-                        <div class="detail-cell">
-                            <span class="detail-cell-label">Accepted At — स्वीकृति की तारीख</span>
-                            <span class="detail-cell-val">${formatDateTime(assignment.acceptedAt)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Authorized Customer Contact -->
-                <div class="detail-section-block">
-                    <div class="detail-section-title">
-                        <i class="fa-solid fa-address-card"></i> Customer Contact Information — ग्राहक संपर्क विवरण
-                    </div>
-                    ${customerContactHtml}
-                </div>
-
-                <!-- Project Audit Trail Section -->
-                <div class="detail-section-block" id="projectAuditSection">
-                    <div class="detail-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                        <span><i class="fa-solid fa-timeline"></i> Project Audit History — प्रोजेक्ट रिकॉर्ड इतिहास</span>
-                        <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 11.5px;" onclick="loadProjectAuditHistory('${assignment.projectId}')">
-                            <i class="fa-solid fa-arrows-rotate"></i> Load History — इतिहास देखें
-                        </button>
-                    </div>
-                    <div id="projectAuditContainer">
-                        <p style="font-size: 12.5px; color: #64748b; margin: 4px 0;">Click "Load History" to view immutable audit events for this project. — इस प्रोजेक्ट के रिकॉर्ड देखने के लिए "इतिहास देखें" पर क्लिक करें।</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Render modal footer with Decline Assignment button if eligible
-        if (modalFooter) {
-            modalFooter.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <div>
-                        ${isEligibleToDecline ? `
-                            <button type="button" class="btn-danger-outline" onclick="openDeclineModal('${assignment.id}')">
-                                <i class="fa-solid fa-ban"></i> Decline Assignment — काम करने से मना करें
-                            </button>
-                        ` : ''}
-                    </div>
-                    <button type="button" class="btn-modal-close" onclick="closeAssignmentModal()">Close — बंद करें</button>
-                </div>
-            `;
-        }
-
-    } catch (err) {
-        console.error('Fetch assignment error:', err);
-        renderModalError('Connection Failed — कनेक्शन नहीं हो पाया', 'Unable to reach the server. Please check your network connection. — सर्वर से कनेक्ट नहीं हो पाया। कृपया अपना इंटरनेट कनेक्शन जांचें।');
-    }
 }
 
-async function loadProjectAuditHistory(projectId) {
-    const container = document.getElementById('projectAuditContainer');
-    if (!container || !projectId) return;
-
-    container.innerHTML = '<p style="font-size: 12.5px; color: #64748b;"><i class="fa-solid fa-spinner fa-spin"></i> Loading audit history... — रिकॉर्ड इतिहास लोड हो रहा है...</p>';
-
-    try {
-        const token = getCleanToken();
-        const response = await fetch(`${API_BASE_URL}/api/contractor/my-bids/projects/${encodeURIComponent(projectId)}/history`, {
-            method: 'GET',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-
-        if (!response.ok) {
-            container.innerHTML = '<p style="font-size: 12.5px; color: #ef4444;">Unable to load project history. — प्रोजेक्ट इतिहास लोड नहीं हो पाया।</p>';
-            return;
-        }
-
-        const events = await response.json();
-        if (!Array.isArray(events) || events.length === 0) {
-            container.innerHTML = '<p style="font-size: 12.5px; color: #64748b;">No project history recorded yet. — अभी तक कोई प्रोजेक्ट इतिहास दर्ज नहीं है।</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="audit-trail-timeline">
-                ${events.map(ev => `
-                    <div class="audit-trail-item">
-                        <div class="audit-dot"></div>
-                        <div class="audit-info">
-                            <span class="audit-event-type">${safeText(ev.eventType)} (${safeText(ev.actorRole)})</span>
-                            <span class="audit-event-desc">${safeText(ev.eventDescription)}</span>
-                            <span class="audit-event-time">${formatDateTime(ev.createdAt)}</span>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
-    } catch (err) {
-        console.error('Load audit history error:', err);
-        container.innerHTML = '<p style="font-size: 12.5px; color: #ef4444;">Network error while loading history. — इतिहास लोड करने में नेटवर्क त्रुटि हुई।</p>';
-    }
-}
-
-function closeAssignmentModal() {
-    const overlay = document.getElementById('assignmentDetailsModalOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-    document.body.style.overflow = '';
-    currentViewingAssignment = null;
-}
-
-// =========================================================================
-// PHASE 4.6B: CONTRACTOR DECLINE ASSIGNMENT WORKFLOW
-// =========================================================================
-
-/**
- * Opens confirmation modal before declining an active assignment.
- * Only active and current assignments belonging to contractor are eligible.
- */
-function openDeclineModal(assignmentId) {
-    if (!assignmentId || isSubmittingDecline) return;
-
-    let assignment = cachedContracts.find(c => String(c.id) === String(assignmentId));
-    if (!assignment && currentViewingAssignment && String(currentViewingAssignment.id) === String(assignmentId)) {
-        assignment = currentViewingAssignment;
-    }
-
-    if (!assignment || assignment.assignmentStatus !== 'ACTIVE' || !assignment.isCurrent) {
-        console.warn('Assignment not eligible for decline:', assignmentId);
-        return;
-    }
-
-    pendingDeclineAssignmentId = assignmentId;
-
-    const titleEl = document.getElementById('declineProjectTitle');
-    const amountEl = document.getElementById('declineBidAmount');
-    const assignIdEl = document.getElementById('declineAssignmentId');
-    const errorEl = document.getElementById('declineModalError');
-    const confirmBtn = document.getElementById('btnConfirmDecline');
-    const cancelBtn = document.getElementById('btnCancelDecline');
-    const closeXBtn = document.getElementById('btnCancelDeclineX');
-    const confirmTextEl = document.getElementById('btnConfirmDeclineText');
-    const overlay = document.getElementById('declineConfirmModalOverlay');
-
-    // Customer-generated text protection: project title is displayed raw, untranslated
-    if (titleEl) titleEl.textContent = safeText(assignment.projectTitle, 'Project / प्रोजेक्ट #' + (assignment.projectId || 'N/A'));
-    if (amountEl) amountEl.textContent = formatCurrency(assignment.bidAmount);
-    if (assignIdEl) assignIdEl.textContent = '#' + assignment.id;
-
-    if (errorEl) {
-        errorEl.textContent = '';
-        errorEl.style.display = 'none';
-    }
-
-    if (confirmBtn) confirmBtn.disabled = false;
-    if (cancelBtn) cancelBtn.disabled = false;
-    if (closeXBtn) closeXBtn.disabled = false;
-    if (confirmTextEl) {
-        confirmTextEl.innerHTML = '<i class="fa-solid fa-ban"></i> Confirm Decline — मना करने की पुष्टि करें';
-    }
-
-    if (overlay) {
-        overlay.style.display = 'flex';
-    }
-}
-
-/**
- * Closes the Decline confirmation modal without calling API.
- */
 function closeDeclineModal() {
     if (isSubmittingDecline) return;
-
     const overlay = document.getElementById('declineConfirmModalOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-    const errorEl = document.getElementById('declineModalError');
-    if (errorEl) {
-        errorEl.textContent = '';
-        errorEl.style.display = 'none';
-    }
+    if (overlay) overlay.style.display = 'none';
     pendingDeclineAssignmentId = null;
+    document.body.style.overflow = '';
 }
 
-/**
- * Submits decline request to POST /api/contractor/my-bids/assignments/{assignmentId}/decline
- * Exactly one state-changing API call.
- * No request body sent. Identity resolved from JWT.
- */
 async function submitDeclineAssignment() {
     if (!pendingDeclineAssignmentId || isSubmittingDecline) return;
 
-    const assignmentIdToDecline = pendingDeclineAssignmentId;
-    isSubmittingDecline = true;
-
     const confirmBtn = document.getElementById('btnConfirmDecline');
-    const confirmTextEl = document.getElementById('btnConfirmDeclineText');
     const cancelBtn = document.getElementById('btnCancelDecline');
-    const closeXBtn = document.getElementById('btnCancelDeclineX');
-    const errorEl = document.getElementById('declineModalError');
+    const confirmBtnText = document.getElementById('btnConfirmDeclineText');
+    const errorBox = document.getElementById('declineModalError');
 
+    isSubmittingDecline = true;
     if (confirmBtn) confirmBtn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
-    if (closeXBtn) closeXBtn.disabled = true;
-
-    if (confirmTextEl) {
-        confirmTextEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Declining Assignment... — काम करने से मना किया जा रहा है...';
+    if (confirmBtnText) {
+        confirmBtnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Declining... — प्रक्रिया जारी है...';
     }
-    if (errorEl) {
-        errorEl.textContent = '';
-        errorEl.style.display = 'none';
+    if (errorBox) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
     }
 
     try {
         const token = getCleanToken();
-        const response = await fetch(`${API_BASE_URL}/api/contractor/my-bids/assignments/${encodeURIComponent(assignmentIdToDecline)}/decline`, {
+        const response = await fetch(`${API_BASE_URL}/api/contractor/my-bids/assignments/${encodeURIComponent(pendingDeclineAssignmentId)}/decline`, {
             method: 'POST',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            }
         });
 
         if (response.ok) {
-            isSubmittingDecline = false;
             closeDeclineModal();
-
-            // Close assignment modal if open so stale active state is not displayed
-            closeAssignmentModal();
-
-            // Show bilingual success banner
             showDeclineSuccessBanner();
-
-            // Re-fetch latest backend state (Source of truth)
-            await loadContracts();
-            await loadActiveBids();
-
+            loadContracts();
             return;
         }
 
-        // Handle specific error status codes (Section 19)
-        let errorMsg = '';
-        if (response.status === 400) {
-            errorMsg = 'Unable to decline assignment — कार्य आवंटन को रद्द नहीं किया जा सका\n\nThe assignment cannot be declined in its current state. — इस कार्य आवंटन को इसकी वर्तमान स्थिति में समाप्त नहीं किया जा सकता।';
-        } else if (response.status === 401) {
-            errorMsg = 'Session Expired — सत्र समाप्त हो गया\n\nYour session has expired or is invalid. Please log in again. — आपका सत्र समाप्त हो गया है या मान्य नहीं है। कृपया फिर से लॉगिन करें।';
-        } else if (response.status === 403) {
-            errorMsg = 'Access Denied — अनुमति नहीं है\n\nYou are not authorized to decline this assignment. — आपको इस कार्य आवंटन को समाप्त करने की अनुमति नहीं है।';
-        } else if (response.status === 404) {
-            errorMsg = 'Assignment Not Found — कार्य आवंटन नहीं मिला\n\nThe assignment could not be found. — कार्य आवंटन नहीं मिला।';
-        } else if (response.status === 409) {
-            errorMsg = 'Assignment Changed — कार्य आवंटन बदल गया है\n\nThis assignment has already changed. Refreshing the latest data. — यह कार्य आवंटन पहले ही बदल चुका है। नवीनतम जानकारी लोड की जा रही है।';
-            // Re-fetch latest data on conflict; do NOT retry POST
-            loadContracts();
-            loadActiveBids();
-        } else if (response.status >= 500) {
-            errorMsg = 'Server Error — सर्वर में समस्या\n\nServer error occurred. Please try again later. — सर्वर में समस्या हुई। कृपया बाद में फिर प्रयास करें।';
-        } else {
-            errorMsg = 'Unable to decline assignment — कार्य आवंटन को रद्द नहीं किया जा सका\n\nPlease try again later. — कृपया बाद में फिर प्रयास करें।';
-        }
+        let errMessage = 'Unable to decline assignment. Please try again. — कार्य आवंटन अस्वीकार नहीं हो पाया।';
+        try {
+            const errData = await response.json();
+            if (errData && errData.error) errMessage = errData.error;
+        } catch (_) {}
 
-        if (errorEl) {
-            errorEl.textContent = errorMsg;
-            errorEl.style.display = 'block';
+        if (errorBox) {
+            errorBox.textContent = errMessage;
+            errorBox.style.display = 'block';
         }
-
     } catch (err) {
-        console.error('Decline assignment error:', err);
-        if (errorEl) {
-            errorEl.textContent = 'Connection Failed — कनेक्शन नहीं हो पाया\n\nUnable to reach the server. Please check your network connection. — सर्वर से कनेक्ट नहीं हो पाया। कृपया अपना इंटरनेट कनेक्शन जांचें।';
-            errorEl.style.display = 'block';
+        console.error('Decline error:', err);
+        if (errorBox) {
+            errorBox.textContent = 'Connection error. Please check your network. — कनेक्शन त्रुटि। कृपया इंटरनेट जांचें।';
+            errorBox.style.display = 'block';
         }
     } finally {
         isSubmittingDecline = false;
         if (confirmBtn) confirmBtn.disabled = false;
         if (cancelBtn) cancelBtn.disabled = false;
-        if (closeXBtn) closeXBtn.disabled = false;
-        if (confirmTextEl) {
-            confirmTextEl.innerHTML = '<i class="fa-solid fa-ban"></i> Confirm Decline — मना करने की पुष्टि करें';
+        if (confirmBtnText) {
+            confirmBtnText.innerHTML = '<i class="fa-solid fa-ban"></i> Confirm Decline — मना करने की पुष्टि करें';
         }
     }
 }
 
 function showDeclineSuccessBanner() {
     const banner = document.getElementById('declineSuccessBanner');
-    if (banner) {
-        banner.style.display = 'flex';
-        setTimeout(() => {
-            hideDeclineSuccessBanner();
-        }, 8000);
-    }
+    if (!banner) return;
+    banner.style.display = 'flex';
+    setTimeout(() => {
+        hideDeclineSuccessBanner();
+    }, 6000);
 }
 
 function hideDeclineSuccessBanner() {
     const banner = document.getElementById('declineSuccessBanner');
-    if (banner) {
-        banner.style.display = 'none';
-    }
+    if (banner) banner.style.display = 'none';
 }
 
-function renderModalError(title, msg) {
-    const modalBody = document.getElementById('assignmentModalBody');
-    if (modalBody) {
-        modalBody.innerHTML = `
-            <div class="state-box state-error">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <h4>${title}</h4>
-                <p>${msg}</p>
-            </div>
-        `;
-    }
-}
+// =========================================================================
+// ERROR AND STATE RENDERING
+// =========================================================================
 
-// Helpers for state rendering
-function renderLoading(container, text) {
-    container.innerHTML = `
-        <div class="state-box">
-            <i class="fa-solid fa-spinner fa-spin"></i>
-            <h4>${text}</h4>
-        </div>
-    `;
-}
+function renderError(container, status) {
+    let title = 'Unable to Load Contracts — अनुबंध लोड नहीं हो पाए';
+    let message = 'An unexpected server error occurred. Please try again. — सर्वर में समस्या हुई। कृपया बाद में प्रयास करें।';
+    let icon = 'fa-triangle-exclamation';
 
-function renderEmpty(container, title, text, icon = 'fa-folder-open') {
-    container.innerHTML = `
-        <div class="state-box">
-            <i class="fa-solid ${icon}"></i>
-            <h4>${title}</h4>
-            <p>${text}</p>
-        </div>
-    `;
-}
-
-function renderError(container, errorTypeOrStatus) {
-    let title = 'Server Error — सर्वर में समस्या';
-    let friendly = 'Server error occurred. Please try again later. — सर्वर में समस्या हुई। कृपया बाद में फिर प्रयास करें।';
-
-    if (errorTypeOrStatus === 401) {
+    if (status === 401) {
         title = 'Session Expired — सत्र समाप्त हो गया';
-        friendly = 'Your session has expired or is invalid. Please log in again. — आपका सत्र समाप्त हो गया है या मान्य नहीं है। कृपया फिर से लॉगिन करें।';
-    } else if (errorTypeOrStatus === 403) {
+        message = 'Your session has expired. Please log in again to view your contracts. — आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।';
+        icon = 'fa-lock';
+    } else if (status === 403) {
         title = 'Access Denied — अनुमति नहीं है';
-        friendly = 'You do not have permission to view this information. — आपको यह जानकारी देखने की अनुमति नहीं है।';
-    } else if (errorTypeOrStatus === 404) {
-        title = 'Information Not Found — जानकारी नहीं मिली';
-        friendly = 'The requested My Bid information could not be found. — मांगी गई My Bid जानकारी नहीं मिली।';
-    } else if (errorTypeOrStatus === 409) {
-        title = 'Information Changed — जानकारी बदल गई है';
-        friendly = 'This information has changed. Refreshing the latest data. — यह जानकारी बदल गई है। नवीनतम जानकारी लोड की जा रही है।';
-    } else if (errorTypeOrStatus === 'network') {
-        title = 'Connection Failed — कनेक्शन नहीं हो पाया';
-        friendly = 'Unable to reach the server. Please check your network connection. — सर्वर से कनेक्ट नहीं हो पाया। कृपया अपना इंटरनेट कनेक्शन जांचें।';
+        message = 'Contractor privileges are required to view this page. — इस पृष्ठ को देखने के लिए ठेकेदार की अनुमति आवश्यक है।';
+        icon = 'fa-ban';
+    } else if (status === 'network') {
+        title = 'Connection Failed — नेटवर्क त्रुटि';
+        message = 'Unable to connect to BuildBid server. Please check your internet connection. — सर्वर से कनेक्शन नहीं हो पाया।';
+        icon = 'fa-wifi';
     }
 
     container.innerHTML = `
-        <div class="state-box state-error">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <h4>${title}</h4>
-            <p>${friendly}</p>
+        <div class="state-box" style="padding: 50px 20px; text-align: center;">
+            <i class="fa-solid ${icon}" style="font-size: 36px; color: #ef4444; margin-bottom: 14px;"></i>
+            <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 8px 0;">${title}</h3>
+            <p style="font-size: 13.5px; color: #64748b; max-width: 460px; margin: 0 auto 16px auto;">${message}</p>
+            <button type="button" class="btn-refresh-data" onclick="loadContracts()" style="margin: 0 auto;">
+                <i class="fa-solid fa-arrows-rotate"></i> Retry — पुनः प्रयास करें
+            </button>
         </div>
     `;
 }
 
-// Real-time search filter
+// Live Search Filter
 function setupSearchFilter() {
-    const searchInput = document.getElementById('bidsSearchInput');
+    const searchInput = document.getElementById('contractsSearchInput');
     if (!searchInput) return;
 
     searchInput.addEventListener('input', (e) => {
         const query = (e.target.value || '').trim().toLowerCase();
-        const activeContainer = currentActiveTab === 'active' 
-            ? document.getElementById('activeBidsContainer')
-            : currentActiveTab === 'contracts'
-                ? document.getElementById('contractsContainer')
-                : document.getElementById('historyContainer');
+        const container = document.getElementById('contractsContainer');
+        if (!container) return;
 
-        if (!activeContainer) return;
-        const cards = activeContainer.querySelectorAll('.contractor-card');
+        const cards = container.querySelectorAll('.contract-card-awarded');
+        let matchedCount = 0;
+
         cards.forEach(card => {
             const searchData = (card.getAttribute('data-search') || '').toLowerCase();
             const textContent = (card.textContent || '').toLowerCase();
             const match = !query || searchData.includes(query) || textContent.includes(query);
             card.style.display = match ? 'block' : 'none';
+            if (match) matchedCount++;
         });
+
+        // If filtering leaves 0 matches, show inline helper
+        let noMatchEl = document.getElementById('noSearchMatchHelper');
+        if (cards.length > 0 && matchedCount === 0) {
+            if (!noMatchEl) {
+                noMatchEl = document.createElement('div');
+                noMatchEl.id = 'noSearchMatchHelper';
+                noMatchEl.style.cssText = 'padding: 40px; text-align: center; color: #64748b;';
+                noMatchEl.innerHTML = `
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 26px; color: #94a3b8; margin-bottom: 10px;"></i>
+                    <h4 style="margin: 0 0 4px 0; color: #1e293b;">No matching contracts found</h4>
+                    <p style="margin: 0; font-size: 13px;">No awarded contract matched "${safeText(query)}". Try another search keyword.</p>
+                `;
+                container.appendChild(noMatchEl);
+            } else {
+                noMatchEl.style.display = 'block';
+            }
+        } else if (noMatchEl) {
+            noMatchEl.style.display = 'none';
+        }
     });
 }
 
 // Global Logout
 function logoutUser() {
-  localStorage.removeItem("currentUser");
-  localStorage.removeItem("marketplaceToken");
-  localStorage.removeItem("marketplaceUser");
-  localStorage.removeItem("token");
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("customerUser");
-  localStorage.removeItem("buildbid_user");
-  localStorage.removeItem("buildbid_current_user");
-  sessionStorage.removeItem("currentUser");
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("pendingRedirect");
-  sessionStorage.removeItem("userData");
-  sessionStorage.clear();
-  showLogoutToast(() => {
-    window.location.href = "index.html";
-  });
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("marketplaceToken");
+    localStorage.removeItem("marketplaceUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("customerUser");
+    localStorage.removeItem("buildbid_user");
+    localStorage.removeItem("buildbid_current_user");
+    sessionStorage.removeItem("currentUser");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("pendingRedirect");
+    sessionStorage.removeItem("userData");
+    sessionStorage.clear();
+    showLogoutToast(() => {
+        window.location.href = "index.html";
+    });
 }
 
-// DOM ready bootstrapping
+function showLogoutToast(callback, customTitle, customMessage) {
+    let toast = document.getElementById("custom-toast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "custom-toast";
+        toast.className = "toast-card";
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+            </div>
+            <div class="toast-body">
+                <h4 id="toast-title" class="toast-title">Logout Successful</h4>
+                <p id="toast-message" class="toast-message">You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।</p>
+            </div>
+            <button class="toast-close" type="button" aria-label="Close notification">&times;</button>
+        `;
+        toast.style.cssText = "position:fixed;top:25px;right:25px;z-index:999999;min-width:280px;max-width:380px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:13px;box-shadow:0 18px 40px rgba(15,23,42,0.13),0 3px 9px rgba(15,23,42,0.05);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateY(-20px);pointer-events:none;font-family:'Inter',system-ui,sans-serif;";
+        const iconEl = toast.querySelector(".toast-icon");
+        if (iconEl) iconEl.style.cssText = "width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#10b981;border-radius:8px;";
+        const titleEl = toast.querySelector(".toast-title");
+        if (titleEl) titleEl.style.cssText = "margin:0;color:#1e293b;font-size:14px;font-weight:700;";
+        const msgEl = toast.querySelector(".toast-message");
+        if (msgEl) msgEl.style.cssText = "margin:2px 0 0 0;color:#64748b;font-size:12px;";
+        const closeEl = toast.querySelector(".toast-close");
+        if (closeEl) closeEl.style.cssText = "background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;";
+        document.body.appendChild(toast);
+    }
+
+    const titleEl = document.getElementById("toast-title");
+    if (titleEl) titleEl.innerText = customTitle || "Logout Successful";
+    const msgEl = document.getElementById("toast-message");
+    if (msgEl) msgEl.innerText = customMessage || "You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।";
+
+    void toast.offsetHeight;
+    toast.classList.add("show");
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+    toast.style.pointerEvents = "auto";
+
+    let navigated = false;
+    const navigateOnce = () => {
+        if (navigated) return;
+        navigated = true;
+        toast.classList.remove("show");
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-20px)";
+        toast.style.pointerEvents = "none";
+        if (typeof callback === "function") callback();
+        else window.location.href = "index.html";
+    };
+
+    const closeBtn = toast.querySelector(".toast-close");
+    if (closeBtn) {
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            navigateOnce();
+        };
+    }
+
+    setTimeout(navigateOnce, 1200);
+}
+
+// DOM Ready initialization
 document.addEventListener('DOMContentLoaded', () => {
     initUserSession();
     setupSearchFilter();
 
-    // Default: Load active bids tab
-    loadActiveBids();
+    // Load Authoritative Contracts
+    loadContracts();
 
-    // Assignment Details Modal background click
-    const overlay = document.getElementById('assignmentDetailsModalOverlay');
-    if (overlay) {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                closeAssignmentModal();
-            }
+    // Modal Background Click Handlers
+    const msgOverlay = document.getElementById('messageCustomerModalOverlay');
+    if (msgOverlay) {
+        msgOverlay.addEventListener('click', (e) => {
+            if (e.target === msgOverlay) closeMessageCustomerModal();
         });
     }
 
-    // Decline Confirmation Modal background click
+    const contractModalOverlay = document.getElementById('contractDetailsModalOverlay');
+    if (contractModalOverlay) {
+        contractModalOverlay.addEventListener('click', (e) => {
+            if (e.target === contractModalOverlay) closeContractDetailsModal();
+        });
+    }
+
     const declineOverlay = document.getElementById('declineConfirmModalOverlay');
     if (declineOverlay) {
         declineOverlay.addEventListener('click', (e) => {
@@ -1257,96 +1024,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modal Escape key listener
+    // Escape Key Listener
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const declineModal = document.getElementById('declineConfirmModalOverlay');
-            if (declineModal && declineModal.style.display !== 'none' && !isSubmittingDecline) {
-                closeDeclineModal();
-                return;
-            }
-            closeAssignmentModal();
+            closeMessageCustomerModal();
+            closeContractDetailsModal();
+            if (!isSubmittingDecline) closeDeclineModal();
         }
     });
 });
 
-// Window bindings
+// Window Bindings
 if (typeof window !== 'undefined') {
-    window.switchTab = switchTab;
-    window.refreshCurrentTab = refreshCurrentTab;
-    window.toggleBidDrawer = toggleBidDrawer;
-    window.openAssignmentDetailsModal = openAssignmentDetailsModal;
-    window.loadProjectAuditHistory = loadProjectAuditHistory;
-    window.closeAssignmentModal = closeAssignmentModal;
+    window.loadContracts = loadContracts;
+    window.refreshContracts = refreshContracts;
+    window.toggleContractDrawer = toggleContractDrawer;
+    window.openMessageCustomerModal = openMessageCustomerModal;
+    window.closeMessageCustomerModal = closeMessageCustomerModal;
+    window.closeContractDetailsModal = closeContractDetailsModal;
     window.openDeclineModal = openDeclineModal;
     window.closeDeclineModal = closeDeclineModal;
     window.submitDeclineAssignment = submitDeclineAssignment;
     window.hideDeclineSuccessBanner = hideDeclineSuccessBanner;
     window.logoutUser = logoutUser;
-}
-
-
-
-function showLogoutToast(callback, customTitle, customMessage) {
-  let toast = document.getElementById("custom-toast");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "custom-toast";
-    toast.className = "toast-card";
-    toast.innerHTML = `
-      <div class="toast-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 6L9 17l-5-5"></path>
-        </svg>
-      </div>
-      <div class="toast-body">
-        <h4 id="toast-title" class="toast-title">Logout Successful</h4>
-        <p id="toast-message" class="toast-message">You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।</p>
-      </div>
-      <button class="toast-close" type="button" aria-label="Close notification">&times;</button>
-    `;
-    toast.style.cssText = "position:fixed;top:25px;right:25px;z-index:999999;min-width:280px;max-width:380px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:13px;box-shadow:0 18px 40px rgba(15,23,42,0.13),0 3px 9px rgba(15,23,42,0.05);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateY(-20px);pointer-events:none;font-family:'Inter',system-ui,sans-serif;";
-    const iconEl = toast.querySelector(".toast-icon");
-    if (iconEl) iconEl.style.cssText = "width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#10b981;border-radius:8px;";
-    const titleEl = toast.querySelector(".toast-title");
-    if (titleEl) titleEl.style.cssText = "margin:0;color:#1e293b;font-size:14px;font-weight:700;";
-    const msgEl = toast.querySelector(".toast-message");
-    if (msgEl) msgEl.style.cssText = "margin:2px 0 0 0;color:#64748b;font-size:12px;";
-    const closeEl = toast.querySelector(".toast-close");
-    if (closeEl) closeEl.style.cssText = "background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;";
-    document.body.appendChild(toast);
-  }
-
-  const titleEl = document.getElementById("toast-title");
-  if (titleEl) titleEl.innerText = customTitle || "Logout Successful";
-  const msgEl = document.getElementById("toast-message");
-  if (msgEl) msgEl.innerText = customMessage || "You have logged out successfully. — सफलतापूर्वक लॉगआउट किया गया।";
-
-  void toast.offsetHeight;
-  toast.classList.add("show");
-  toast.style.opacity = "1";
-  toast.style.transform = "translateY(0)";
-  toast.style.pointerEvents = "auto";
-
-  let navigated = false;
-  const navigateOnce = () => {
-    if (navigated) return;
-    navigated = true;
-    toast.classList.remove("show");
-    toast.style.opacity = "0";
-    toast.style.transform = "translateY(-20px)";
-    toast.style.pointerEvents = "none";
-    if (typeof callback === "function") callback();
-    else window.location.href = "index.html";
-  };
-
-  const closeBtn = toast.querySelector(".toast-close");
-  if (closeBtn) {
-    closeBtn.onclick = (e) => {
-      e.stopPropagation();
-      navigateOnce();
-    };
-  }
-
-  setTimeout(navigateOnce, 1200);
 }
