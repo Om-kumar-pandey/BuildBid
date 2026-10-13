@@ -152,33 +152,199 @@
   // Initialize UI Profile
   function initProfileUI(contractor) {
     if (!contractor) return;
-    const nameEl = document.getElementById('contractorNameDisplay');
-    const roleEl = document.getElementById('contractorRoleDisplay');
-    const avatarEl = document.getElementById('contractorAvatar');
+    const displayName = (contractor.name || contractor.companyName || contractor.username || 'Contractor').trim();
+    const words = displayName.split(' ').filter(Boolean);
+    const initials = words.length > 1 ? (words[0][0] + words[words.length - 1][0]) : words[0][0];
 
-    if (nameEl) nameEl.textContent = contractor.name || contractor.username || 'Contractor';
-    if (roleEl) roleEl.textContent = 'Registered Contractor';
-    if (avatarEl) {
-      const initial = (contractor.name || contractor.username || 'C').charAt(0).toUpperCase();
-      avatarEl.textContent = initial;
-    }
+    const nameEl = document.getElementById('top-nav-name') || document.getElementById('contractorNameDisplay');
+    const roleEl = document.getElementById('top-nav-badge') || document.getElementById('contractorRoleDisplay');
+    const avatarEl = document.getElementById('top-nav-avatar-text') || document.getElementById('contractorAvatar');
+
+    if (nameEl) nameEl.textContent = displayName;
+    if (roleEl) roleEl.textContent = 'Verified Contractor';
+    if (avatarEl) avatarEl.textContent = initials.toUpperCase();
 
     // Logout button handler
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
+    const logoutBtn = document.getElementById('logoutBtn') || document.querySelector('.nav-logout');
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = 'true';
       logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        if (confirm('Are you sure you want to log out?')) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('marketplaceToken');
-          sessionStorage.clear();
-          window.location.href = 'index.html';
-        }
+        logoutUser();
       });
     }
+
+    syncContractorBadges();
   }
+
+  function syncContractorBadges() {
+    const cachedProjects = sessionStorage.getItem('contractor_badge_projects');
+    const cachedBids = sessionStorage.getItem('contractor_badge_bids');
+    const cachedContracts = sessionStorage.getItem('contractor_badge_contracts');
+    const cachedNotifs = sessionStorage.getItem('contractor_badge_notifications');
+
+    const elProjects = document.getElementById('nav-badge-projects');
+    const elBids = document.getElementById('nav-badge-bids');
+    const elContracts = document.getElementById('nav-badge-contracts');
+    const elNotifs = document.getElementById('nav-badge-notifications');
+
+    if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
+    if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
+    if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+    if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
+
+    const token = getCleanToken();
+    if (!token) return;
+
+    const authHeaders = {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/json'
+    };
+
+    fetch(`${API_BASE_URL}/api/contractor/projects`, { headers: authHeaders })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data)) {
+          if (elProjects) elProjects.textContent = data.length;
+          sessionStorage.setItem('contractor_badge_projects', data.length);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`${API_BASE_URL}/api/contractor/my-bids/contracts`, { headers: authHeaders })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data)) {
+          const activeContracts = data.filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
+          if (elContracts) elContracts.textContent = activeContracts.length;
+          sessionStorage.setItem('contractor_badge_contracts', activeContracts.length);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`${API_BASE_URL}/api/notifications`, { headers: authHeaders })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && typeof data.unreadCount === 'number') {
+          if (elNotifs) elNotifs.textContent = data.unreadCount;
+          sessionStorage.setItem('contractor_badge_notifications', data.unreadCount);
+          const dot = document.getElementById('notif-indicator');
+          if (dot) dot.style.display = data.unreadCount > 0 ? 'inline-block' : 'none';
+        }
+      })
+      .catch(() => {});
+  }
+
+  function logoutUser() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('marketplaceToken');
+    localStorage.removeItem('customerUser');
+    localStorage.removeItem('buildbid_user');
+    localStorage.removeItem('buildbid_current_user');
+    sessionStorage.clear();
+    window.location.href = 'index.html';
+  }
+  window.logoutUser = logoutUser;
+
+  // Notification system
+  window.toggleContractorNotifications = function () {
+    const dropdown = document.getElementById('contractor-notif-dropdown');
+    if (!dropdown) return;
+    const isHidden = dropdown.style.display === 'none' || dropdown.classList.contains('hidden');
+    if (isHidden) {
+      dropdown.style.display = 'block';
+      dropdown.classList.remove('hidden');
+      loadContractorNotifications();
+    } else {
+      dropdown.style.display = 'none';
+      dropdown.classList.add('hidden');
+    }
+  };
+
+  async function loadContractorNotifications() {
+    const token = getCleanToken();
+    const listEl = document.getElementById('contractor-notifications-list');
+    const dotEl = document.getElementById('notif-indicator');
+    const badgeEl = document.getElementById('nav-badge-notifications');
+    const titleEl = document.getElementById('contractor-notif-title');
+
+    if (!token) {
+      if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Please log in to view notifications</div>';
+      if (dotEl) dotEl.style.display = 'none';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/notifications`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Unable to load notifications</div>';
+        return;
+      }
+      const data = await res.json();
+      const notifs = data.notifications || [];
+      const unreadCount = data.unreadCount || 0;
+
+      if (dotEl) dotEl.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+      if (badgeEl) badgeEl.textContent = unreadCount;
+      sessionStorage.setItem('contractor_badge_notifications', unreadCount);
+      if (titleEl) titleEl.textContent = `Notifications / सूचनाएं ${unreadCount > 0 ? '(' + unreadCount + ' New)' : ''}`;
+
+      if (!listEl) return;
+      if (notifs.length === 0) {
+        listEl.innerHTML = '<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12px;"><i class="fa-regular fa-bell-slash" style="font-size: 20px; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>No notifications yet / अभी कोई सूचना नहीं है</div>';
+        return;
+      }
+      listEl.innerHTML = notifs.map(n => {
+        const isUnread = !n.isRead;
+        return `
+          <div onclick="handleContractorNotificationClick(${n.id}, '${escapeHtml(n.type || '')}', '${escapeHtml(n.referenceId || '')}', ${isUnread})"
+               style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; ${isUnread ? 'background: #eff6ff;' : ''}">
+            <div style="font-size: 12px; font-weight: 600; color: #1e293b;">${escapeHtml(n.title || '')}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${escapeHtml(n.message || '')}</div>
+          </div>
+        `;
+      }).join('');
+    } catch (e) {
+      if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Error loading notifications</div>';
+    }
+  }
+
+  window.handleContractorNotificationClick = async function (notifId, type, refId, isUnread) {
+    const dropdown = document.getElementById('contractor-notif-dropdown');
+    if (dropdown) { dropdown.style.display = 'none'; dropdown.classList.add('hidden'); }
+    if (isUnread && notifId) {
+      try {
+        const token = getCleanToken();
+        await fetch(`${API_BASE_URL}/api/notifications/${notifId}/read`, {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+        });
+        loadContractorNotifications();
+      } catch (e) {}
+    }
+    const t = (type || '').toUpperCase();
+    if (t.includes('ORDER') || t.includes('DIRECT_BUY')) {
+      window.location.href = 'my-orders.html';
+    } else if (t.includes('BID') || t.includes('PROJECT')) {
+      window.location.href = 'contractor-projects.html';
+    }
+  };
+
+  window.markAllContractorNotificationsRead = async function () {
+    const token = getCleanToken();
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/notifications/mark-all-read`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      });
+      loadContractorNotifications();
+    } catch (e) {}
+  };
 
   // Fetch Real Bids from Backend API
   async function loadContractorBids() {
@@ -269,6 +435,7 @@
 
     const navBidsBadge = document.getElementById('nav-badge-bids');
     if (navBidsBadge) navBidsBadge.textContent = total;
+    sessionStorage.setItem('contractor_badge_bids', total);
   }
 
   // Filtering, Searching, and Sorting

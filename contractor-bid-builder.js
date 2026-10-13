@@ -67,16 +67,85 @@ document.addEventListener("DOMContentLoaded", async function() {
     updateNavigation();
 });
 
+function syncContractorBadges() {
+  const cachedProjects = sessionStorage.getItem('contractor_badge_projects');
+  const cachedBids = sessionStorage.getItem('contractor_badge_bids');
+  const cachedContracts = sessionStorage.getItem('contractor_badge_contracts');
+  const cachedNotifs = sessionStorage.getItem('contractor_badge_notifications');
+
+  const elProjects = document.getElementById('nav-badge-projects');
+  const elBids = document.getElementById('nav-badge-bids');
+  const elContracts = document.getElementById('nav-badge-contracts');
+  const elNotifs = document.getElementById('nav-badge-notifications');
+
+  if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
+  if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
+  if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+  if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
+
+  const token = getCleanToken();
+  if (!token) return;
+
+  const authHeaders = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  };
+
+  fetch(`${API_BASE_URL}/api/contractor/projects`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elProjects) elProjects.textContent = data.length;
+        sessionStorage.setItem('contractor_badge_projects', data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/contractor/my-bids?history=true`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elBids) elBids.textContent = data.length;
+        sessionStorage.setItem('contractor_badge_bids', data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/contractor/my-bids/contracts`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        const activeContracts = data.filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
+        if (elContracts) elContracts.textContent = activeContracts.length;
+        sessionStorage.setItem('contractor_badge_contracts', activeContracts.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/notifications`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && typeof data.unreadCount === 'number') {
+        if (elNotifs) elNotifs.textContent = data.unreadCount;
+        sessionStorage.setItem('contractor_badge_notifications', data.unreadCount);
+        const dot = document.getElementById('notif-indicator');
+        if (dot) dot.style.display = data.unreadCount > 0 ? 'inline-block' : 'none';
+      }
+    })
+    .catch(() => {});
+}
+
 function initDynamicContractor() {
-    const rawUser = localStorage.getItem("currentUser") || localStorage.getItem("loggedInUser");
-    let name = "Verified Contractor";
-    let initials = "BC";
+    const rawUser = localStorage.getItem("currentUser") || localStorage.getItem("loggedInUser") || sessionStorage.getItem("currentUser");
+    let name = "Contractor";
+    let initials = "C";
 
     if (rawUser) {
         try {
             const user = JSON.parse(rawUser);
-            name = user.name || user.username || user.companyName || name;
-            initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+            name = (user.name || user.fullName || user.username || user.companyName || name).trim();
+            const words = name.split(" ").filter(Boolean);
+            initials = words.length > 1 ? (words[0][0] + words[words.length - 1][0]) : (words[0] ? words[0][0] : "C");
         } catch (e) {
             console.warn("User parse error:", e);
         }
@@ -84,13 +153,17 @@ function initDynamicContractor() {
 
     const nameElem = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
     if (nameElem) nameElem.textContent = name;
+    const roleElem = document.getElementById("top-nav-badge");
+    if (roleElem) roleElem.textContent = "Verified Contractor";
     const avatarText = document.getElementById("top-nav-avatar-text");
     if (avatarText) {
-        avatarText.textContent = initials;
+        avatarText.textContent = initials.toUpperCase();
     } else {
         const avatarElem = document.getElementById("top-nav-avatar") || document.getElementById("contractorAvatar");
-        if (avatarElem) avatarElem.textContent = initials;
+        if (avatarElem) avatarElem.textContent = initials.toUpperCase();
     }
+
+    syncContractorBadges();
 }
 
 async function initDynamicProjectData() {

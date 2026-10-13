@@ -163,12 +163,7 @@ function renderContractorDashboard(user) {
   const sTotEarn = document.getElementById("stat-total-earnings");
   if (sTotEarn) sTotEarn.textContent = totalEarnings;
 
-  // Sidebar Badges
-  const badgeBids = document.getElementById("nav-badge-bids");
-  if (badgeBids) badgeBids.textContent = activeBids;
-
-  const badgeContracts = document.getElementById("nav-badge-contracts");
-  if (badgeContracts) badgeContracts.textContent = projectsWon;
+  // Sidebar badges are managed authoritatively by syncContractorBadges()
 
   // Performance Column
   const pResp = document.getElementById("perf-response-rate");
@@ -265,7 +260,10 @@ function renderCustomerProjects(filterType = "all") {
   if (!container) return;
 
   const badgeProjects = document.getElementById("nav-badge-projects");
-  if (badgeProjects) badgeProjects.textContent = cachedContractorProjects.length;
+  if (badgeProjects) {
+    badgeProjects.textContent = cachedContractorProjects.length;
+    sessionStorage.setItem('contractor_badge_projects', cachedContractorProjects.length);
+  }
 
   let projects = [...cachedContractorProjects];
 
@@ -434,12 +432,14 @@ function formatContractorNotifTime(dateStr) {
 async function loadContractorNotifications() {
   const token = getCleanToken();
   const listEl = document.getElementById('contractor-notifications-list');
+  const recentListEl = document.getElementById('contractor-recent-notifications-list');
   const dotEl = document.getElementById('notif-indicator');
   const badgeEl = document.getElementById('nav-badge-notifications');
   const titleEl = document.getElementById('contractor-notif-title');
 
   if (!token) {
     if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Please log in to view notifications</div>';
+    if (recentListEl) recentListEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Please log in to view notifications</div>';
     if (dotEl) dotEl.style.display = 'none';
     return;
   }
@@ -456,6 +456,7 @@ async function loadContractorNotifications() {
 
     if (!res.ok) {
       if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Unable to load notifications</div>';
+      if (recentListEl) recentListEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Unable to load notifications</div>';
       return;
     }
 
@@ -468,49 +469,81 @@ async function loadContractorNotifications() {
     if (badgeEl) badgeEl.textContent = unreadCount;
     if (titleEl) titleEl.textContent = `Notifications / सूचनाएं ${unreadCount > 0 ? '(' + unreadCount + ' New)' : ''}`;
 
-    if (!listEl) return;
-
     if (notifs.length === 0) {
-      listEl.innerHTML = `
-        <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12px;">
-          <i class="fa-regular fa-bell-slash" style="font-size: 20px; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>
-          No notifications yet / अभी कोई सूचना नहीं है
-        </div>
-      `;
+      if (listEl) {
+        listEl.innerHTML = `
+          <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12px;">
+            <i class="fa-regular fa-bell-slash" style="font-size: 20px; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>
+            No notifications yet / अभी कोई सूचना नहीं है
+          </div>
+        `;
+      }
+      if (recentListEl) {
+        recentListEl.innerHTML = `
+          <div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">
+            <i class="fa-regular fa-bell-slash" style="font-size: 16px; margin-bottom: 4px; display: block; color: #cbd5e1;"></i>
+            No notifications yet
+          </div>
+        `;
+      }
       return;
     }
 
-    listEl.innerHTML = notifs.map(n => {
-      const isUnread = !n.isRead;
-      const type = (n.type || "").toUpperCase();
-      let iconColor = "#2563eb";
-      if (type.includes("ORDER") || type.includes("DIRECT_BUY")) iconColor = "#10b981";
-      else if (type.includes("BID") || type.includes("PROJECT")) iconColor = "#f59e0b";
+    if (listEl) {
+      listEl.innerHTML = notifs.map(n => {
+        const isUnread = !n.isRead;
+        const type = (n.type || "").toUpperCase();
+        let iconColor = "#2563eb";
+        if (type.includes("ORDER") || type.includes("DIRECT_BUY")) iconColor = "#10b981";
+        else if (type.includes("BID") || type.includes("PROJECT")) iconColor = "#f59e0b";
 
-      return `
-        <div onclick="handleContractorNotificationClick(${n.id}, '${escapeHTML(n.type || '')}', '${escapeHTML(n.referenceId || '')}', ${isUnread})"
-             style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; ${isUnread ? 'background: #eff6ff;' : ''}"
-             onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='${isUnread ? '#eff6ff' : '#ffffff'}'">
-          <div style="display: flex; align-items: flex-start; gap: 10px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${iconColor}; margin-top: 5px; flex-shrink: 0;"></div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p style="margin: 0; font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(n.title || '')}</p>
-                ${isUnread ? '<span style="width: 6px; height: 6px; border-radius: 50%; background: #2563eb; margin-left: 4px; flex-shrink: 0;"></span>' : ''}
+        return `
+          <div onclick="handleContractorNotificationClick(${n.id}, '${escapeHTML(n.type || '')}', '${escapeHTML(n.referenceId || '')}', ${isUnread})"
+               style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; ${isUnread ? 'background: #eff6ff;' : ''}"
+               onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='${isUnread ? '#eff6ff' : '#ffffff'}'">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: ${iconColor}; margin-top: 5px; flex-shrink: 0;"></div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <p style="margin: 0; font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(n.title || '')}</p>
+                  ${isUnread ? '<span style="width: 6px; height: 6px; border-radius: 50%; background: #2563eb; margin-left: 4px; flex-shrink: 0;"></span>' : ''}
+                </div>
+                ${n.titleHi ? `<p style="margin: 2px 0 0; font-size: 11px; font-weight: 500; color: #475569;">${escapeHTML(n.titleHi)}</p>` : ''}
+                <p style="margin: 4px 0 0; font-size: 11px; color: #64748b; line-height: 1.4;">${escapeHTML(n.message || '')}</p>
+                ${n.messageHi ? `<p style="margin: 2px 0 0; font-size: 10px; color: #94a3b8; line-height: 1.4;">${escapeHTML(n.messageHi)}</p>` : ''}
+                <span style="display: block; margin-top: 4px; font-size: 10px; color: #94a3b8;"><i class="fa-regular fa-clock" style="margin-right: 3px;"></i>${formatContractorNotifTime(n.createdAt)}</span>
               </div>
-              ${n.titleHi ? `<p style="margin: 2px 0 0; font-size: 11px; font-weight: 500; color: #475569;">${escapeHTML(n.titleHi)}</p>` : ''}
-              <p style="margin: 4px 0 0; font-size: 11px; color: #64748b; line-height: 1.4;">${escapeHTML(n.message || '')}</p>
-              ${n.messageHi ? `<p style="margin: 2px 0 0; font-size: 10px; color: #94a3b8; line-height: 1.4;">${escapeHTML(n.messageHi)}</p>` : ''}
-              <span style="display: block; margin-top: 4px; font-size: 10px; color: #94a3b8;"><i class="fa-regular fa-clock" style="margin-right: 3px;"></i>${formatContractorNotifTime(n.createdAt)}</span>
             </div>
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
+    }
+
+    if (recentListEl) {
+      const recent = notifs.slice(0, 5);
+      recentListEl.innerHTML = recent.map(n => {
+        const isUnread = !n.isRead;
+        const type = (n.type || "").toUpperCase();
+        let iconClass = "blue";
+        if (type.includes("ORDER") || type.includes("DIRECT_BUY")) iconClass = "green";
+        else if (type.includes("BID") || type.includes("PROJECT")) iconClass = "orange";
+
+        return `
+          <div class="notif-row" onclick="handleContractorNotificationClick(${n.id}, '${escapeHTML(n.type || '')}', '${escapeHTML(n.referenceId || '')}', ${isUnread})" style="cursor: pointer;">
+            <i class="fa-solid fa-circle notif-icon ${iconClass}"></i>
+            <div class="notif-content" style="flex: 1; min-width: 0;">
+              <p style="margin: 0; font-size: 0.78rem; font-weight: ${isUnread ? '600' : '400'}; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(n.title || '')}</p>
+              <small style="color: #94a3b8; font-size: 0.7rem;">${formatContractorNotifTime(n.createdAt)}</small>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
   } catch (err) {
     console.error("Contractor notification load error:", err);
     if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Error loading notifications</div>';
+    if (recentListEl) recentListEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Error loading notifications</div>';
   }
 }
 
@@ -627,9 +660,79 @@ function openEditProfile() {
 }
 window.openEditProfile = openEditProfile;
 
+function syncContractorBadges() {
+  const cachedProjects = sessionStorage.getItem('contractor_badge_projects');
+  const cachedBids = sessionStorage.getItem('contractor_badge_bids');
+  const cachedContracts = sessionStorage.getItem('contractor_badge_contracts');
+  const cachedNotifs = sessionStorage.getItem('contractor_badge_notifications');
+
+  const elProjects = document.getElementById('nav-badge-projects');
+  const elBids = document.getElementById('nav-badge-bids');
+  const elContracts = document.getElementById('nav-badge-contracts');
+  const elNotifs = document.getElementById('nav-badge-notifications');
+
+  if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
+  if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
+  if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+  if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
+
+  const token = getCleanToken();
+  if (!token) return;
+
+  const authHeaders = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  };
+
+  fetch(`${API_BASE_URL}/api/contractor/projects`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elProjects) elProjects.textContent = data.length;
+        sessionStorage.setItem('contractor_badge_projects', data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/contractor/my-bids?history=true`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elBids) elBids.textContent = data.length;
+        sessionStorage.setItem('contractor_badge_bids', data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/contractor/my-bids/contracts`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        const activeContracts = data.filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
+        if (elContracts) elContracts.textContent = activeContracts.length;
+        sessionStorage.setItem('contractor_badge_contracts', activeContracts.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/notifications`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && typeof data.unreadCount === 'number') {
+        if (elNotifs) elNotifs.textContent = data.unreadCount;
+        sessionStorage.setItem('contractor_badge_notifications', data.unreadCount);
+        const dot = document.getElementById('notif-indicator');
+        if (dot) dot.style.display = data.unreadCount > 0 ? 'inline-block' : 'none';
+      }
+    })
+    .catch(() => {});
+}
+
 // Bootstrapping
 document.addEventListener("DOMContentLoaded", () => {
   localStorage.removeItem("buildbid_current_user");
+
+  syncContractorBadges();
 
   const contractor = getLoggedInContractor();
   if (contractor) {

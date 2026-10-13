@@ -124,6 +124,7 @@ function mapBidStatus(rawStatus) {
 function initUserSession() {
     const userNameEl = document.getElementById('top-nav-name');
     const userInitialsEl = document.getElementById('top-nav-avatar-text');
+    const userBadgeEl = document.getElementById('top-nav-badge');
 
     try {
         let user = JSON.parse(
@@ -133,17 +134,92 @@ function initUserSession() {
         );
         const displayName = (user.name || user.companyName || user.username || '').trim();
         if (displayName) {
-            const firstName = displayName.split(' ')[0];
-            if (userNameEl) userNameEl.textContent = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+            if (userNameEl) userNameEl.textContent = displayName;
             if (userInitialsEl) {
                 const words = displayName.split(' ').filter(Boolean);
                 const initials = words.length > 1 ? (words[0][0] + words[words.length - 1][0]) : words[0][0];
                 userInitialsEl.textContent = initials.toUpperCase();
             }
         }
+        if (userBadgeEl) userBadgeEl.textContent = 'Verified Contractor';
     } catch (err) {
         console.warn('Session init warning:', err);
     }
+
+    syncContractorBadges();
+}
+
+function syncContractorBadges() {
+    // 1. Immediately restore cached counts from sessionStorage (prevents 0 flicker during navigation)
+    const cachedProjects = sessionStorage.getItem('contractor_badge_projects');
+    const cachedBids = sessionStorage.getItem('contractor_badge_bids');
+    const cachedContracts = sessionStorage.getItem('contractor_badge_contracts');
+    const cachedNotifs = sessionStorage.getItem('contractor_badge_notifications');
+
+    const elProjects = document.getElementById('nav-badge-projects');
+    const elBids = document.getElementById('nav-badge-bids');
+    const elContracts = document.getElementById('nav-badge-contracts');
+    const elNotifs = document.getElementById('nav-badge-notifications');
+
+    if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
+    if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
+    if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+    if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
+
+    const token = getCleanToken();
+    if (!token) return;
+
+    const authHeaders = {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json'
+    };
+
+    // 2. Fetch authoritative Projects count from existing backend endpoint
+    fetch(`${API_BASE_URL}/api/contractor/projects`, { headers: authHeaders })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (Array.isArray(data)) {
+                if (elProjects) elProjects.textContent = data.length;
+                sessionStorage.setItem('contractor_badge_projects', data.length);
+            }
+        })
+        .catch(() => {});
+
+    // 3. Fetch authoritative Bids count if not already loaded
+    fetch(`${API_BASE_URL}/api/contractor/my-bids?history=true`, { headers: authHeaders })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (Array.isArray(data)) {
+                if (elBids) elBids.textContent = data.length;
+                sessionStorage.setItem('contractor_badge_bids', data.length);
+            }
+        })
+        .catch(() => {});
+
+    // 4. Fetch authoritative Contracts count if not already loaded
+    fetch(`${API_BASE_URL}/api/contractor/my-bids/contracts`, { headers: authHeaders })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (Array.isArray(data)) {
+                const activeContracts = data.filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
+                if (elContracts) elContracts.textContent = activeContracts.length;
+                sessionStorage.setItem('contractor_badge_contracts', activeContracts.length);
+            }
+        })
+        .catch(() => {});
+
+    // 5. Fetch authoritative Notifications count from existing endpoint
+    fetch(`${API_BASE_URL}/api/notifications`, { headers: authHeaders })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (data && typeof data.unreadCount === 'number') {
+                if (elNotifs) elNotifs.textContent = data.unreadCount;
+                sessionStorage.setItem('contractor_badge_notifications', data.unreadCount);
+                const dot = document.getElementById('notif-indicator');
+                if (dot) dot.style.display = data.unreadCount > 0 ? 'inline-block' : 'none';
+            }
+        })
+        .catch(() => {});
 }
 
 // Tab Switching
@@ -283,6 +359,10 @@ async function loadContracts() {
         // Update badge and stats
         const badge = document.getElementById('badgeContracts');
         if (badge) badge.textContent = cachedContracts.length;
+
+        const navBadgeContracts = document.getElementById('nav-badge-contracts');
+        if (navBadgeContracts) navBadgeContracts.textContent = cachedContracts.length;
+        sessionStorage.setItem('contractor_badge_contracts', cachedContracts.length);
 
         const statContracts = document.getElementById('statContracts');
         if (statContracts) statContracts.textContent = cachedContracts.length;

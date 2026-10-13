@@ -12,6 +12,107 @@ document.addEventListener("DOMContentLoaded", function() {
   calculateGlobalCosts();
 });
 
+function getApiBaseUrl() {
+  if (typeof window !== 'undefined' && window.location) {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+  }
+  return 'https://buildbid-ap3j.onrender.com';
+}
+
+function getCleanToken() {
+  let token = localStorage.getItem('token') ||
+              localStorage.getItem('authToken') ||
+              localStorage.getItem('marketplaceToken') ||
+              sessionStorage.getItem('token') || '';
+  if (!token) return '';
+  token = String(token).trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+      token = token.slice(1, -1).trim();
+      changed = true;
+    }
+    if (token.startsWith('Bearer ')) {
+      token = token.substring(7).trim();
+      changed = true;
+    }
+  }
+  return token;
+}
+
+function syncContractorBadges() {
+  const cachedProjects = sessionStorage.getItem('contractor_badge_projects');
+  const cachedBids = sessionStorage.getItem('contractor_badge_bids');
+  const cachedContracts = sessionStorage.getItem('contractor_badge_contracts');
+  const cachedNotifs = sessionStorage.getItem('contractor_badge_notifications');
+
+  const elProjects = document.getElementById('nav-badge-projects');
+  const elBids = document.getElementById('nav-badge-bids');
+  const elContracts = document.getElementById('nav-badge-contracts');
+  const elNotifs = document.getElementById('nav-badge-notifications');
+
+  if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
+  if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
+  if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+  if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
+
+  const token = getCleanToken();
+  if (!token) return;
+
+  const authHeaders = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  };
+
+  const baseUrl = getApiBaseUrl();
+
+  fetch(`${baseUrl}/api/contractor/projects`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elProjects) elProjects.textContent = data.length;
+        sessionStorage.setItem('contractor_badge_projects', data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${baseUrl}/api/contractor/my-bids?history=true`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elBids) elBids.textContent = data.length;
+        sessionStorage.setItem('contractor_badge_bids', data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${baseUrl}/api/contractor/my-bids/contracts`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        const activeContracts = data.filter(c => c.assignmentStatus === 'ACTIVE' && c.isCurrent);
+        if (elContracts) elContracts.textContent = activeContracts.length;
+        sessionStorage.setItem('contractor_badge_contracts', activeContracts.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${baseUrl}/api/notifications`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && typeof data.unreadCount === 'number') {
+        if (elNotifs) elNotifs.textContent = data.unreadCount;
+        sessionStorage.setItem('contractor_badge_notifications', data.unreadCount);
+        const dot = document.getElementById('notif-indicator');
+        if (dot) dot.style.display = data.unreadCount > 0 ? 'inline-block' : 'none';
+      }
+    })
+    .catch(() => {});
+}
+
 function setupContractorHeader() {
   const rawUser = localStorage.getItem("currentUser") || localStorage.getItem("loggedInUser") || sessionStorage.getItem("currentUser");
   let name = "Contractor";
@@ -19,19 +120,24 @@ function setupContractorHeader() {
   if (rawUser) {
     try {
       const user = JSON.parse(rawUser);
-      name = user.name || user.username || user.companyName || name;
-      initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || initials;
+      name = (user.name || user.fullName || user.username || user.companyName || name).trim();
+      const words = name.split(" ").filter(Boolean);
+      initials = words.length > 1 ? (words[0][0] + words[words.length - 1][0]) : (words[0] ? words[0][0] : "C");
     } catch(e) {}
   }
   const nameElem = document.getElementById("top-nav-name") || document.getElementById("contractorNameDisplay");
   if (nameElem) nameElem.textContent = name;
+  const roleEl = document.getElementById("top-nav-badge");
+  if (roleEl) roleEl.textContent = "Verified Contractor";
   const avatarText = document.getElementById("top-nav-avatar-text");
   if (avatarText) {
-    avatarText.textContent = initials;
+    avatarText.textContent = initials.toUpperCase();
   } else {
     const avatarElem = document.getElementById("top-nav-avatar") || document.getElementById("contractorAvatar");
-    if (avatarElem) avatarElem.textContent = initials;
+    if (avatarElem) avatarElem.textContent = initials.toUpperCase();
   }
+
+  syncContractorBadges();
 }
 
 function initDefaultDates() {
