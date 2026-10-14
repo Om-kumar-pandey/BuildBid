@@ -144,6 +144,103 @@ function formatTimeAgo(dateStr) {
 }
 
 /* ==========================================================================
+   CONCURRENCY SEQUENCE TRACKERS & STANDARD UI STATE HELPERS
+   ========================================================================== */
+
+let _inventoryReqSeq = 0;
+let _ordersReqSeq = 0;
+let _requestsReqSeq = 0;
+let _quotationsReqSeq = 0;
+
+/**
+ * Standard rotating circular loading spinner for tables (valid <tbody> row)
+ */
+function renderSellerTableLoading(tbody, colspan = 7) {
+    if (!tbody) return;
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="${colspan}" class="p-8 text-center text-slate-500" role="status" aria-live="polite">
+                <div class="flex flex-col items-center justify-center space-y-2 py-4">
+                    <i class="fa-solid fa-circle-notch fa-spin seller-spinner-icon text-blue-600 text-3xl" aria-hidden="true"></i>
+                    <div class="space-y-0.5 text-center">
+                        <p class="font-semibold text-slate-700 text-sm">Please wait…</p>
+                        <p class="text-xs text-slate-400">Data loading…</p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+/**
+ * Standard rotating circular loading spinner for card or list containers
+ */
+function renderSellerCardLoading(container) {
+    if (!container) return;
+    container.innerHTML = `
+        <div class="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-100" role="status" aria-live="polite">
+            <div class="flex flex-col items-center justify-center space-y-2 py-2">
+                <i class="fa-solid fa-circle-notch fa-spin seller-spinner-icon text-blue-600 text-3xl" aria-hidden="true"></i>
+                <div class="space-y-0.5 text-center">
+                    <p class="font-semibold text-slate-700 text-sm">Please wait…</p>
+                    <p class="text-xs text-slate-400">Data loading…</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Standard error state for tables with Retry action
+ */
+function renderSellerTableError(tbody, colspan = 7, retryFnCall = "") {
+    if (!tbody) return;
+    const retryBtnHtml = retryFnCall
+        ? `<button type="button" onclick="${retryFnCall}" class="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-sm transition-all inline-flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Retry loading data">
+             <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
+             <span>Retry</span>
+           </button>`
+        : "";
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="${colspan}" class="p-8 text-center text-xs" role="alert">
+                <div class="flex flex-col items-center justify-center space-y-1.5 py-2 max-w-md mx-auto">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-2xl mb-1" aria-hidden="true"></i>
+                    <p class="font-bold text-slate-700 text-sm">Unable to load data</p>
+                    <p class="text-xs text-slate-500">The server may be starting or temporarily unavailable.</p>
+                    ${retryBtnHtml}
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+/**
+ * Standard error state for card or list containers with Retry action
+ */
+function renderSellerCardError(container, retryFnCall = "") {
+    if (!container) return;
+    const retryBtnHtml = retryFnCall
+        ? `<button type="button" onclick="${retryFnCall}" class="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-sm transition-all inline-flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Retry loading data">
+             <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
+             <span>Retry</span>
+           </button>`
+        : "";
+
+    container.innerHTML = `
+        <div class="p-6 text-center text-xs bg-slate-50 border border-slate-200 rounded-xl" role="alert">
+            <div class="flex flex-col items-center justify-center space-y-1.5 py-2 max-w-md mx-auto">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-2xl mb-1" aria-hidden="true"></i>
+                <p class="font-bold text-slate-700 text-sm">Unable to load data</p>
+                <p class="text-xs text-slate-500">The server may be starting or temporarily unavailable.</p>
+                ${retryBtnHtml}
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================================
    DYNAMIC DATA BINDING: SELLER IDENTITY & PROFILE
    ========================================================================== */
 
@@ -152,9 +249,9 @@ function bindSellerProfile(profile) {
 
     const displayName = profile.name || profile.fullName || profile.username || "";
     const ownerName = profile.fullName || profile.name || "";
-    const location = profile.location || "";
+    const location = profile.location || profile.city || "";
     const email = profile.email || "";
-    const phone = profile.phone || "";
+    const phone = profile.phone || profile.phoneNumber || "";
 
     // Calculate avatar initials
     let initials = "";
@@ -171,47 +268,75 @@ function bindSellerProfile(profile) {
 
     // Top Header
     const navAvatar = document.getElementById("seller-nav-avatar");
-    if (navAvatar && initials) navAvatar.innerText = initials;
+    if (navAvatar) {
+        if (initials) {
+            navAvatar.innerText = initials;
+        } else {
+            navAvatar.innerHTML = '<i class="fa-solid fa-user text-sm" aria-hidden="true"></i>';
+        }
+    }
 
     const navName = document.getElementById("seller-nav-name");
-    if (navName && displayName) navName.innerText = displayName;
+    if (navName) {
+        navName.innerText = displayName || "Seller";
+    }
 
     const navLocation = document.getElementById("seller-nav-location");
-    if (navLocation && location) {
-        navLocation.innerText = location + " • Material Seller";
+    if (navLocation) {
+        navLocation.innerText = location ? `${location} • Material Seller` : "Material Seller";
     }
 
     // Dashboard Banner Greeting
     const bannerGreeting = document.getElementById("seller-banner-greeting");
-    if (bannerGreeting && displayName) {
-        const hour = new Date().getHours();
-        const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-        bannerGreeting.innerText = `${timeGreeting}, ${displayName}`;
+    if (bannerGreeting) {
+        if (displayName) {
+            const hour = new Date().getHours();
+            const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+            bannerGreeting.innerText = `${timeGreeting}, ${displayName}`;
+        } else {
+            bannerGreeting.innerText = "Welcome to BuildBid";
+        }
     }
 
     const bannerRegion = document.getElementById("seller-banner-region");
-    if (bannerRegion && location) {
-        bannerRegion.innerText = `Verified Supplier Portal • ${location} Region`;
+    if (bannerRegion) {
+        bannerRegion.innerText = location ? `Verified Supplier Portal • ${location} Region` : "Verified Supplier Portal";
     }
 
     // Profile & Business Tab
     const profileAvatar = document.getElementById("seller-profile-avatar");
-    if (profileAvatar && initials) profileAvatar.innerText = initials;
+    if (profileAvatar) {
+        if (initials) {
+            profileAvatar.innerText = initials;
+        } else {
+            profileAvatar.innerHTML = '<i class="fa-solid fa-user text-xl" aria-hidden="true"></i>';
+        }
+    }
 
     const profileName = document.getElementById("seller-profile-name");
-    if (profileName && displayName) profileName.innerText = displayName;
+    if (profileName) {
+        profileName.innerText = displayName || "Seller Account";
+    }
 
     const ownerElem = document.getElementById("seller-owner-name");
-    if (ownerElem && ownerName) ownerElem.innerText = ownerName;
+    if (ownerElem) {
+        ownerElem.innerText = ownerName || displayName || "—";
+    }
 
     const addressElem = document.getElementById("seller-office-address");
-    if (addressElem && location) addressElem.innerText = location;
+    if (addressElem) {
+        addressElem.innerText = location || "—";
+    }
 
     const phoneElem = document.getElementById("seller-phone");
-    if (phoneElem && phone) phoneElem.innerText = phone;
+    if (phoneElem) {
+        phoneElem.innerText = phone || "—";
+    }
 
     const emailElem = document.getElementById("seller-email");
-    if (emailElem && email) emailElem.innerText = email;
+    if (emailElem) {
+        emailElem.innerText = email || "—";
+    }
 }
 
 /* ==========================================================================
@@ -289,6 +414,10 @@ function renderIncomingRequirements(projects = [], materialRequests = []) {
     if (countLabel) countLabel.innerText = totalCount;
     if (bannerReqCount) bannerReqCount.innerText = `${totalCount} active customer material requirements`;
     if (navReqBadge) navReqBadge.innerText = totalCount;
+    const kpiActiveReq = document.getElementById("kpi-active-requests");
+    if (kpiActiveReq) kpiActiveReq.innerText = totalCount;
+    const bannerViewCount = document.getElementById("seller-banner-view-req-count");
+    if (bannerViewCount) bannerViewCount.innerText = `View ${totalCount} Requests`;
 
     // Render Dashboard Home incoming requirements (limit to 5 in summary)
     if (listContainer) {
@@ -1044,10 +1173,24 @@ if (document.readyState === "loading") {
    ========================================================================== */
 
 async function loadSellerInventory() {
+    const seq = ++_inventoryReqSeq;
+    const tbody = document.getElementById("inventory-table-body");
+    const alertsContainer = document.getElementById("low-stock-alerts-container");
+    const alertsBadge = document.getElementById("low-stock-alerts-badge");
+    const navBadge = document.getElementById("nav-inventory-badge");
+
+    if (tbody) renderSellerTableLoading(tbody, 7);
+    if (alertsContainer) renderSellerCardLoading(alertsContainer);
+
     const token = getCleanToken();
     if (!token) {
-        updateInventoryLowStockBadge();
-        renderLowStockAlerts();
+        if (seq !== _inventoryReqSeq) return;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">Please log in to view material catalog.</td></tr>`;
+        }
+        if (alertsContainer) {
+            alertsContainer.innerHTML = `<div class="p-4 text-center text-slate-400 text-xs">Please log in to view low stock alerts.</div>`;
+        }
         return;
     }
 
@@ -1061,16 +1204,33 @@ async function loadSellerInventory() {
             }
         });
 
-        if (response.ok) {
-            const materials = await response.json();
-            if (Array.isArray(materials)) {
-                renderSellerMaterials(materials);
-                updateInventoryLowStockBadge(materials);
-                renderLowStockAlerts(materials);
-            }
+        if (seq !== _inventoryReqSeq) return;
+
+        if (!response.ok) {
+            throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const materials = await response.json();
+        if (Array.isArray(materials)) {
+            window.cachedSellerMaterials = materials;
+            _sellerCatalogCache = materials;
+            renderSellerMaterials(materials);
+            updateInventoryLowStockBadge(materials);
+            renderLowStockAlerts(materials);
+        } else {
+            throw new Error("Invalid response format");
         }
     } catch (err) {
+        if (seq !== _inventoryReqSeq) return;
         console.warn("Seller Dashboard: Could not load dynamic materials from /api/seller/materials:", err);
+        if (tbody) {
+            renderSellerTableError(tbody, 7, "loadSellerInventory()");
+        }
+        if (alertsContainer) {
+            renderSellerCardError(alertsContainer, "loadSellerInventory()");
+        }
+        if (alertsBadge) alertsBadge.textContent = "—";
+        if (navBadge) navBadge.textContent = "—";
     }
 }
 
@@ -1081,19 +1241,10 @@ function updateInventoryLowStockBadge(materials) {
 
     if (Array.isArray(materials)) {
         // Count ONLY materials where stockStatus is strictly "LOW_STOCK"
-        // "OUT_OF_STOCK" and "IN_STOCK" are logically separate and must NOT be counted
         const lowCount = materials.filter(m => m && m.stockStatus === "LOW_STOCK").length;
         badge.textContent = `${lowCount} Low`;
     } else {
-        const lowRows = document.querySelectorAll('#inventory-table-body tr');
-        let lowCount = 0;
-        lowRows.forEach(row => {
-            const statusCell = row.children[5];
-            if (statusCell && statusCell.textContent.includes("Low Stock")) {
-                lowCount++;
-            }
-        });
-        badge.textContent = `${lowCount} Low`;
+        badge.textContent = "—";
     }
 }
 
@@ -1102,35 +1253,19 @@ function renderLowStockAlerts(materials) {
     const badge = document.getElementById("low-stock-alerts-badge");
     if (!container) return;
 
-    let lowStockMaterials = [];
-
-    if (Array.isArray(materials)) {
-        // Filter ONLY materials where stockStatus is strictly "LOW_STOCK"
-        // "OUT_OF_STOCK" and "IN_STOCK" are logically separate and must NOT be shown
-        lowStockMaterials = materials.filter(m => m && m.stockStatus === "LOW_STOCK");
-    } else {
-        // Fallback for static/offline DOM inspection
-        const rows = document.querySelectorAll('#inventory-table-body tr');
-        rows.forEach(row => {
-            const statusCell = row.children[5];
-            if (statusCell && statusCell.textContent.includes("Low Stock")) {
-                const nameSpan = row.querySelector('td:first-child span.font-bold');
-                const stockCell = row.children[3] || row.children[1];
-                const editBtn = row.querySelector('button[onclick*="openEditMaterialModal"]');
-                let id = "3";
-                if (editBtn) {
-                    const m = editBtn.getAttribute("onclick").match(/openEditMaterialModal\(['"]?([^'")]+)/);
-                    if (m) id = m[1];
-                }
-                lowStockMaterials.push({
-                    id: id,
-                    materialName: nameSpan ? nameSpan.textContent.trim() : "Low Stock Material",
-                    availableStock: stockCell ? stockCell.textContent.trim() : "Low",
-                    unit: ""
-                });
-            }
-        });
+    if (!Array.isArray(materials)) {
+        container.innerHTML = `
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center text-slate-500 text-xs">
+                <p class="font-medium text-slate-700">Stock Alerts Unavailable</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Please refresh inventory to update alerts</p>
+                <button type="button" onclick="loadSellerInventory()" class="mt-2 px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-700 font-semibold text-[11px] shadow-sm">Retry</button>
+            </div>
+        `;
+        if (badge) badge.textContent = "—";
+        return;
     }
+
+    const lowStockMaterials = materials.filter(m => m && m.stockStatus === "LOW_STOCK");
 
     if (badge) {
         badge.textContent = `${lowStockMaterials.length} item${lowStockMaterials.length === 1 ? '' : 's'}`;
@@ -1287,22 +1422,18 @@ async function openEditMaterialModal(materialId) {
                     return;
                 }
             } catch (fetchErr) {
-                console.warn("Seller Dashboard: Network error fetching material details, using local fallback:", fetchErr);
+                console.warn("Seller Dashboard: Network error fetching material details:", fetchErr);
             }
         }
 
-        // Fallback for static demo rows if backend has no record with that ID yet
+        // Check against in-memory cached materials if available
+        if (!mat && Array.isArray(window.cachedSellerMaterials)) {
+            mat = window.cachedSellerMaterials.find(m => String(m.id) === String(materialId));
+        }
+
         if (!mat) {
-            const defaultRows = {
-                "1": { id: 1, materialName: "TMT Steel Rebars Fe 500", category: "TMT Steel", currentStock: 145, reservedStock: 10, availableStock: 135, unit: "Tons", unitPrice: 54000, brand: "Tata Tiscon", specifications: "Fe 500D Grade, ISI Certified", description: "" },
-                "2": { id: 2, materialName: "OPC Cement 53 Grade", category: "Cement", currentStock: 1250, reservedStock: 500, availableStock: 750, unit: "Bags", unitPrice: 370, brand: "UltraTech", specifications: "Grade 53 High Strength", description: "" },
-                "3": { id: 3, materialName: "River Sand (Coarse Plastering)", category: "Sand & Aggregate", currentStock: 18, reservedStock: 0, availableStock: 18, unit: "Tons", unitPrice: 1850, brand: "", specifications: "Screened coarse sand", description: "" }
-            };
-            mat = defaultRows[String(materialId)];
-            if (!mat) {
-                showToast("Could not load material details", "error");
-                return;
-            }
+            showToast("Unable to load material details. Please check connection and try again.", "error");
+            return;
         }
 
         // Populate Form Fields
@@ -1680,12 +1811,16 @@ async function loadInvoiceMaterials(preselectName) {
     const select = document.getElementById("invoiceMaterialSelect");
     if (!select) return;
 
+    select.innerHTML = '<option value="" disabled selected>Please wait… Data loading…</option>';
+
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
 
-    try {
-        let materials = [];
-        if (token) {
+    let materials = null;
+    let fetchFailed = false;
+
+    if (token) {
+        try {
             const res = await fetch(API_BASE_URL + "/api/seller/materials", {
                 method: "GET",
                 headers: {
@@ -1695,55 +1830,57 @@ async function loadInvoiceMaterials(preselectName) {
             });
             if (res.ok) {
                 materials = await res.json();
+            } else {
+                fetchFailed = true;
+            }
+        } catch (err) {
+            console.warn("Seller Dashboard: Could not load dynamic materials for invoice:", err);
+            fetchFailed = true;
+        }
+    } else {
+        fetchFailed = true;
+    }
+
+    if (!materials && Array.isArray(window.cachedSellerMaterials) && window.cachedSellerMaterials.length > 0) {
+        materials = window.cachedSellerMaterials;
+        fetchFailed = false;
+    }
+
+    if (fetchFailed || !Array.isArray(materials)) {
+        select.innerHTML = '<option value="" disabled selected>Catalog unavailable — retry</option>';
+        return;
+    }
+
+    if (materials.length === 0) {
+        select.innerHTML = '<option value="" disabled selected>No materials available</option>';
+        return;
+    }
+
+    select.innerHTML = '<option value="">-- Select Material from Inventory Catalog --</option>';
+
+    materials.forEach(mat => {
+        const opt = document.createElement("option");
+        opt.value = mat.materialName || "";
+        opt.textContent = `${mat.materialName || "Material"} (${mat.category || "General"}) — ₹${Number(mat.unitPrice || 0).toLocaleString("en-IN")} / ${mat.unit || "unit"}`;
+        opt.dataset.unit = mat.unit || "";
+        opt.dataset.price = mat.unitPrice != null ? mat.unitPrice : "0";
+        opt.dataset.brand = mat.brand || "";
+        opt.dataset.category = mat.category || "";
+        opt.dataset.stock = mat.availableStock != null ? mat.availableStock : mat.currentStock;
+        opt.dataset.transportBasis = mat.transportationChargeBasis || "";
+        opt.dataset.transportRate = mat.transportationRate != null ? mat.transportationRate : "0";
+        opt.dataset.transportEnabled = mat.transportationPolicyEnabled ? "true" : "false";
+        select.appendChild(opt);
+    });
+
+    if (preselectName) {
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === preselectName || select.options[i].text.includes(preselectName)) {
+                select.selectedIndex = i;
+                onInvoiceMaterialChange(select);
+                break;
             }
         }
-
-        select.innerHTML = '<option value="">-- Select Material from Inventory Catalog --</option>';
-
-        if (Array.isArray(materials) && materials.length > 0) {
-            materials.forEach(mat => {
-                const opt = document.createElement("option");
-                opt.value = mat.materialName || "";
-                opt.textContent = `${mat.materialName || "Material"} (${mat.category || "General"}) — ₹${Number(mat.unitPrice || 0).toLocaleString("en-IN")} / ${mat.unit || "unit"}`;
-                opt.dataset.unit = mat.unit || "";
-                opt.dataset.price = mat.unitPrice != null ? mat.unitPrice : "0";
-                opt.dataset.brand = mat.brand || "";
-                opt.dataset.category = mat.category || "";
-                opt.dataset.stock = mat.availableStock != null ? mat.availableStock : mat.currentStock;
-                opt.dataset.transportBasis = mat.transportationChargeBasis || "";
-                opt.dataset.transportRate = mat.transportationRate != null ? mat.transportationRate : "0";
-                opt.dataset.transportEnabled = mat.transportationPolicyEnabled ? "true" : "false";
-                select.appendChild(opt);
-            });
-        } else {
-            const defaultOptions = [
-                { name: "TMT Steel Rebars Fe 500", category: "Steel", price: 54000, unit: "Tons", transportBasis: "Per Ton", transportRate: 1500 },
-                { name: "OPC Cement 53 Grade", category: "Cement", price: 370, unit: "Bags", transportBasis: "Per Bag", transportRate: 15 },
-                { name: "River Sand (Coarse Plastering)", category: "Sand", price: 1850, unit: "Tons", transportBasis: "Per Ton", transportRate: 500 }
-            ];
-            defaultOptions.forEach(mat => {
-                const opt = document.createElement("option");
-                opt.value = mat.name;
-                opt.textContent = `${mat.name} (${mat.category}) — ₹${mat.price.toLocaleString("en-IN")} / ${mat.unit}`;
-                opt.dataset.unit = mat.unit;
-                opt.dataset.price = mat.price;
-                opt.dataset.transportBasis = mat.transportBasis || "";
-                opt.dataset.transportRate = mat.transportRate || "0";
-                select.appendChild(opt);
-            });
-        }
-
-        if (preselectName) {
-            for (let i = 0; i < select.options.length; i++) {
-                if (select.options[i].value === preselectName || select.options[i].text.includes(preselectName)) {
-                    select.selectedIndex = i;
-                    onInvoiceMaterialChange(select);
-                    break;
-                }
-            }
-        }
-    } catch (err) {
-        console.warn("Seller Dashboard: Could not load dynamic materials for invoice:", err);
     }
 }
 
@@ -1871,18 +2008,38 @@ function switchTab(tabId) {
     if (tabId === 'quotations' && typeof loadSellerQuotations === 'function') {
         loadSellerQuotations();
     }
+    if (tabId === 'inventory' && typeof loadSellerInventory === 'function') {
+        loadSellerInventory();
+    }
 }
 
 /**
  * Fetch and refresh both Buy Material requests and Customer Project requirements
  */
 async function refreshSellerRequests() {
+    const seq = ++_requestsReqSeq;
+    const listContainer = document.getElementById("incoming-requirements-list");
+    const tbody = document.getElementById("material-requests-tbody");
+    const countLabel = document.getElementById("requirements-count-label");
+    const bannerReqCount = document.getElementById("seller-banner-req-count");
+    const kpiActiveRequests = document.getElementById("kpi-active-requests");
+
+    if (listContainer) renderSellerCardLoading(listContainer);
+    if (tbody) renderSellerTableLoading(tbody, 7);
+
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
-    if (!token) return;
+    if (!token) {
+        if (seq !== _requestsReqSeq) return;
+        if (listContainer) listContainer.innerHTML = '<div class="p-6 text-center text-slate-400 text-xs">Please login to view customer material requirements.</div>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">Please login to view material requests.</td></tr>';
+        return;
+    }
 
-    let fetchedProjects = [];
-    let fetchedMaterialRequests = [];
+    let fetchedProjects = null;
+    let fetchedMaterialRequests = null;
+    let mrError = false;
+    let projError = false;
 
     try {
         const mrResponse = await fetch(API_BASE_URL + "/api/material-requests/seller", {
@@ -1894,9 +2051,12 @@ async function refreshSellerRequests() {
         });
         if (mrResponse.ok) {
             fetchedMaterialRequests = await mrResponse.json();
+        } else {
+            mrError = true;
         }
     } catch (err) {
         console.warn("Seller Dashboard: Could not reload /api/material-requests/seller:", err);
+        mrError = true;
     }
 
     try {
@@ -1909,12 +2069,38 @@ async function refreshSellerRequests() {
         });
         if (projResponse.ok) {
             fetchedProjects = await projResponse.json();
+        } else {
+            projError = true;
         }
     } catch (err) {
         console.warn("Seller Dashboard: Could not reload /api/projects:", err);
+        projError = true;
     }
 
-    renderIncomingRequirements(fetchedProjects, fetchedMaterialRequests);
+    if (seq !== _requestsReqSeq) return;
+
+    if (mrError && projError) {
+        if (listContainer) renderSellerCardError(listContainer, "refreshSellerRequests()");
+        if (tbody) renderSellerTableError(tbody, 7, "refreshSellerRequests()");
+        if (countLabel) countLabel.innerText = "—";
+        if (bannerReqCount) bannerReqCount.innerText = "Requirements unavailable";
+        if (kpiActiveRequests) kpiActiveRequests.innerText = "—";
+        return;
+    }
+
+    const validMR = Array.isArray(fetchedMaterialRequests) ? fetchedMaterialRequests : [];
+    const validProj = Array.isArray(fetchedProjects) ? fetchedProjects : [];
+
+    if (mrError && validProj.length === 0) {
+        if (listContainer) renderSellerCardError(listContainer, "refreshSellerRequests()");
+        if (tbody) renderSellerTableError(tbody, 7, "refreshSellerRequests()");
+        if (countLabel) countLabel.innerText = "—";
+        if (bannerReqCount) bannerReqCount.innerText = "Requirements unavailable";
+        if (kpiActiveRequests) kpiActiveRequests.innerText = "—";
+        return;
+    }
+
+    renderIncomingRequirements(validProj, validMR);
 }
 
 /**
@@ -1976,6 +2162,18 @@ async function loadSellerNotifications() {
         return;
     }
 
+    if (notifsContainer) {
+        notifsContainer.innerHTML = `
+            <div class="p-6 text-center text-slate-500" role="status" aria-live="polite">
+                <div class="flex flex-col items-center justify-center space-y-2 py-2">
+                    <i class="fa-solid fa-circle-notch fa-spin seller-spinner-icon text-blue-600 text-2xl" aria-hidden="true"></i>
+                    <p class="font-semibold text-slate-700 text-xs">Please wait…</p>
+                    <p class="text-[11px] text-slate-400">Data loading…</p>
+                </div>
+            </div>
+        `;
+    }
+
     try {
         const baseUrl = getApiBaseUrl();
         const res = await fetch(`${baseUrl}/api/notifications`, {
@@ -1988,7 +2186,12 @@ async function loadSellerNotifications() {
 
         if (!res.ok) {
             if (notifsContainer) {
-                notifsContainer.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs">Unable to load notifications</div>';
+                notifsContainer.innerHTML = `
+                    <div class="p-6 text-center text-xs">
+                        <p class="text-slate-500 mb-2">Unable to load notifications. The server may be starting or temporarily unavailable.</p>
+                        <button type="button" onclick="loadSellerNotifications()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Retry</button>
+                    </div>
+                `;
             }
             return;
         }
@@ -2057,7 +2260,12 @@ async function loadSellerNotifications() {
     } catch (err) {
         console.error("Seller notifications load error:", err);
         if (notifsContainer) {
-            notifsContainer.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs">Error loading notifications</div>';
+            notifsContainer.innerHTML = `
+                <div class="p-6 text-center text-xs">
+                    <p class="text-slate-500 mb-2">Unable to load notifications. The server may be starting or temporarily unavailable.</p>
+                    <button type="button" onclick="loadSellerNotifications()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Retry</button>
+                </div>
+            `;
         }
     }
 }
@@ -2162,6 +2370,10 @@ async function getSellerCatalogMaterials() {
     if (_sellerCatalogCache && Array.isArray(_sellerCatalogCache) && _sellerCatalogCache.length > 0) {
         return _sellerCatalogCache;
     }
+    if (window.cachedSellerMaterials && Array.isArray(window.cachedSellerMaterials) && window.cachedSellerMaterials.length > 0) {
+        _sellerCatalogCache = window.cachedSellerMaterials;
+        return _sellerCatalogCache;
+    }
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
     if (token) {
@@ -2177,6 +2389,7 @@ async function getSellerCatalogMaterials() {
                 const list = await res.json();
                 if (Array.isArray(list)) {
                     _sellerCatalogCache = list;
+                    window.cachedSellerMaterials = list;
                     return list;
                 }
             }
@@ -2184,21 +2397,7 @@ async function getSellerCatalogMaterials() {
             console.warn("Could not fetch seller catalog materials:", e);
         }
     }
-    // Fallback: check DOM inventory table
-    const rows = document.querySelectorAll('#inventory-table-body tr');
-    const fallbackList = [];
-    rows.forEach(r => {
-        const updateBtn = r.querySelector('button[onclick*="openEditMaterialModal"]');
-        if (updateBtn) {
-            const match = updateBtn.getAttribute('onclick').match(/openEditMaterialModal\('?([^'\)]+)'?\)/);
-            if (match) {
-                const id = parseInt(match[1]) || 1;
-                const name = r.querySelector('td:first-child span.font-bold')?.innerText || 'Material';
-                fallbackList.push({ id: id, materialName: name, unitPrice: 0, unit: 'Units' });
-            }
-        }
-    });
-    return fallbackList;
+    return [];
 }
 
 function onQuotationSkuChanged(selectElem) {
@@ -2658,6 +2857,12 @@ function updateQuotationTabBadges() {
     if (navQuoteBadge) {
         navQuoteBadge.innerText = `${pendingCount} Pending`;
     }
+
+    // Dashboard KPI
+    const kpiQuotationsSent = document.getElementById('kpi-quotations-sent');
+    if (kpiQuotationsSent) {
+        kpiQuotationsSent.innerText = allCount;
+    }
 }
 
 function filterQuotationsTab(filterName) {
@@ -2820,11 +3025,13 @@ function renderSellerQuotationsTable(filter = 'ALL') {
 }
 
 async function loadSellerQuotations() {
+    const seq = ++_quotationsReqSeq;
     if (_isQuotationsLoading) return;
     _isQuotationsLoading = true;
 
     const tbody = document.getElementById('quotations-tbody');
     const emptyState = document.getElementById('quotations-empty-state');
+    const kpiQuotationsSent = document.getElementById('kpi-quotations-sent');
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
 
@@ -2836,15 +3043,8 @@ async function loadSellerQuotations() {
         return;
     }
 
-    if (tbody && (!sellerQuotationsCache || sellerQuotationsCache.length === 0)) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="p-8 text-center text-slate-400 text-xs">
-                    <i class="fa-solid fa-spinner fa-spin mr-2 text-blue-600"></i>
-                    Loading quotations from BuildBid network...
-                </td>
-            </tr>
-        `;
+    if (tbody) {
+        renderSellerTableLoading(tbody, 7);
         if (emptyState) emptyState.classList.add('hidden');
     }
 
@@ -2857,11 +3057,14 @@ async function loadSellerQuotations() {
             }
         });
 
+        if (seq !== _quotationsReqSeq) return;
+
         if (res.status === 401 || res.status === 403) {
             console.warn('loadSellerQuotations: session unauthorized or expired.');
             if (tbody) {
                 tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-500 text-xs">Session expired. Please log in again.</td></tr>`;
             }
+            if (kpiQuotationsSent) kpiQuotationsSent.innerText = "—";
             return;
         }
 
@@ -2874,17 +3077,12 @@ async function loadSellerQuotations() {
         updateQuotationTabBadges();
         renderSellerQuotationsTable(currentQuotationFilter);
     } catch (err) {
+        if (seq !== _quotationsReqSeq) return;
         console.error('loadSellerQuotations error:', err);
-        if (tbody && (!sellerQuotationsCache || sellerQuotationsCache.length === 0)) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="p-8 text-center text-xs">
-                        <p class="text-red-500 mb-2">Unable to load quotations. Network or server error.</p>
-                        <button onclick="loadSellerQuotations()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">Retry</button>
-                    </td>
-                </tr>
-            `;
+        if (tbody) {
+            renderSellerTableError(tbody, 7, "loadSellerQuotations()");
         }
+        if (kpiQuotationsSent) kpiQuotationsSent.innerText = "—";
     } finally {
         _isQuotationsLoading = false;
     }
@@ -3487,10 +3685,24 @@ function viewQuotationOrder(quoteId) {
 let sellerOrdersCache = [];
 
 async function loadSellerOrders() {
+    const seq = ++_ordersReqSeq;
     const tbody = document.getElementById('sellerOrdersTbody');
+    const ordersBadge = document.getElementById('nav-orders-badge');
+    const kpiActiveOrders = document.getElementById('kpi-active-orders');
+
+    if (tbody) {
+        renderSellerTableLoading(tbody, 7);
+    }
+
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
-    if (!token) return;
+    if (!token) {
+        if (seq !== _ordersReqSeq) return;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">Please log in to view assigned material orders.</td></tr>`;
+        }
+        return;
+    }
 
     try {
         const res = await fetch(API_BASE_URL + "/api/material-orders/seller", {
@@ -3501,29 +3713,43 @@ async function loadSellerOrders() {
             }
         });
 
-        if (res.ok) {
-            const orders = await res.json();
-            if (Array.isArray(orders)) {
-                sellerOrdersCache = orders;
-                if (tbody) {
-                    if (orders.length > 0) {
-                        renderSellerOrders(orders);
-                    } else {
-                        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">No customer orders assigned yet.</td></tr>`;
-                    }
-                }
-                const activeOrders = orders.filter(o => {
-                    const s = (o.orderStatus || o.status || '').toUpperCase();
-                    return ['WAITING_FOR_ACCEPTANCE', 'ORDER_ACCEPTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(s);
-                });
-                const ordersBadge = document.getElementById('nav-orders-badge');
-                if (ordersBadge) {
-                    ordersBadge.innerText = `${activeOrders.length} Active`;
+        if (seq !== _ordersReqSeq) return;
+
+        if (!res.ok) {
+            throw new Error(`Server returned HTTP ${res.status}`);
+        }
+
+        const orders = await res.json();
+        if (Array.isArray(orders)) {
+            sellerOrdersCache = orders;
+            if (tbody) {
+                if (orders.length > 0) {
+                    renderSellerOrders(orders);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">No customer orders assigned yet.</td></tr>`;
                 }
             }
+            const activeOrders = orders.filter(o => {
+                const s = (o.orderStatus || o.status || '').toUpperCase();
+                return ['WAITING_FOR_ACCEPTANCE', 'ORDER_ACCEPTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(s);
+            });
+            if (ordersBadge) {
+                ordersBadge.innerText = `${activeOrders.length} Active`;
+            }
+            if (kpiActiveOrders) {
+                kpiActiveOrders.innerText = activeOrders.length;
+            }
+        } else {
+            throw new Error("Invalid response format");
         }
     } catch (e) {
+        if (seq !== _ordersReqSeq) return;
         console.warn("Could not fetch seller orders:", e);
+        if (tbody) {
+            renderSellerTableError(tbody, 7, "loadSellerOrders()");
+        }
+        if (ordersBadge) ordersBadge.innerText = "—";
+        if (kpiActiveOrders) kpiActiveOrders.innerText = "—";
     }
 }
 
