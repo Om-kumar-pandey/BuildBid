@@ -651,6 +651,7 @@ public class DirectBuyController {
      * PROCESSING -> READY_FOR_DISPATCH -> OUT_FOR_DELIVERY -> DELIVERED
      */
     @PutMapping("/requests/{id}/status")
+    @Transactional
     public ResponseEntity<?> updateDirectBuyStatus(
             @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, Object> body,
@@ -673,12 +674,12 @@ public class DirectBuyController {
                     .body(Map.of("error", "Access denied: Only registered material sellers can update order status."));
         }
 
-        Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
-        if (reqOpt.isEmpty()) {
+        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
+                .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        if (req == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
-        MaterialRequest req = reqOpt.get();
         if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Forbidden: Not your direct buy order."));
@@ -774,6 +775,7 @@ public class DirectBuyController {
     }
 
     @PutMapping("/requests/{id}/expected-delivery")
+    @Transactional
     public ResponseEntity<?> updateExpectedDelivery(
             @PathVariable("id") Long id,
             @RequestBody Map<String, Object> body,
@@ -783,18 +785,36 @@ public class DirectBuyController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
 
+        String principal = authentication.getName();
+        Optional<MarketplaceBackendApplication.MarketplaceUser> sellerOpt =
+                userRepository.findByEmail(principal).or(() -> userRepository.findByUsername(principal));
+        if (sellerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller account not found"));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+        if (!hasSellerRole(seller)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Only registered material sellers can update delivery date."));
+        }
+
         String dateStr = body != null && body.get("expectedDeliveryDate") != null
                 ? body.get("expectedDeliveryDate").toString().trim() : "";
         if (dateStr.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "expectedDeliveryDate is required"));
         }
 
-        Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
-        if (reqOpt.isEmpty()) {
+        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
+                .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        if (req == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
-        MaterialRequest req = reqOpt.get();
+        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Forbidden: Not your direct buy order."));
+        }
+
         req.setExpectedDeliveryDate(dateStr);
         MaterialRequest saved = materialRequestRepository.save(req);
 
@@ -825,6 +845,7 @@ public class DirectBuyController {
      * Seller declines Direct Buy request.
      */
     @PutMapping("/requests/{id}/decline")
+    @Transactional
     public ResponseEntity<?> declineDirectBuyRequest(@PathVariable("id") Long id, Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
@@ -837,12 +858,11 @@ public class DirectBuyController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller account not found"));
         }
 
-        Optional<MaterialRequest> reqOpt = materialRequestRepository.findById(id);
-        if (reqOpt.isEmpty()) {
+        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
+                .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        if (req == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
-
-        MaterialRequest req = reqOpt.get();
 
         // Validate seller ownership
         if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {

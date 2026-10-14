@@ -265,17 +265,19 @@ function viewExistingQuotation(quoteId) {
 }
 
 function renderIncomingRequirements(projects = [], materialRequests = []) {
-    // Cache material requests by business requestId or database id
+    // Rebuild or clear cachedMaterialRequests to prevent stale entries
+    const newCache = {};
     if (Array.isArray(materialRequests)) {
         materialRequests.forEach(mr => {
             const key = mr.requestId || ("MR-" + mr.id);
-            window.cachedMaterialRequests[key] = mr;
+            newCache[key] = mr;
             if (mr.id) {
-                window.cachedMaterialRequests[mr.id] = mr;
-                window.cachedMaterialRequests[String(mr.id)] = mr;
+                newCache[mr.id] = mr;
+                newCache[String(mr.id)] = mr;
             }
         });
     }
+    window.cachedMaterialRequests = newCache;
 
     const listContainer = document.getElementById("incoming-requirements-list");
     const tbody = document.getElementById("material-requests-tbody");
@@ -301,24 +303,34 @@ function renderIncomingRequirements(projects = [], materialRequests = []) {
         if (Array.isArray(projects) && displayedCount < 5) {
             projects.slice(0, 5 - displayedCount).forEach(p => {
                 listContainer.appendChild(createRequirementCard(p));
+                displayedCount++;
             });
+        }
+        if (displayedCount === 0) {
+            listContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">No active customer material requirements at this time.</div>`;
         }
     }
 
     // Render Material Requests Tab Table (full list)
     if (tbody) {
         tbody.innerHTML = "";
+        let rowCount = 0;
         // Render Buy Material requests first (direct buyer orders)
         if (Array.isArray(materialRequests)) {
             materialRequests.forEach(mr => {
                 tbody.appendChild(createMaterialRequestRow(mr));
+                rowCount++;
             });
         }
         // Then render project material requirements
         if (Array.isArray(projects)) {
             projects.forEach(p => {
                 tbody.appendChild(createRequirementRow(p));
+                rowCount++;
             });
+        }
+        if (rowCount === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">No incoming material requirements or direct orders at this time.</td></tr>`;
         }
     }
 }
@@ -362,12 +374,33 @@ function createMaterialRequestCard(mr) {
 
     let actionButtons = "";
     if (isDirectBuy) {
-        actionButtons = `
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
-                <i class="fa-solid fa-bolt text-xs"></i>
-                <span>Review Order</span>
-            </button>
-        `;
+        const directStatus = (mr.status || "NEW").trim().toUpperCase();
+        const isAccepted = ["ACCEPTED", "ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(directStatus);
+        const isDeclined = ["DECLINED", "REJECTED", "CANCELLED"].includes(directStatus);
+
+        if (isAccepted) {
+            actionButtons = `
+                <span class="px-3 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-circle-check text-teal-600"></i>
+                    <span>Accepted / ऑर्डर स्वीकृत</span>
+                </span>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View Details</button>
+            `;
+        } else if (isDeclined) {
+            actionButtons = `
+                <span class="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+                    <span>Declined / अस्वीकृत</span>
+                </span>
+            `;
+        } else {
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-bolt text-xs"></i>
+                    <span>Review Order</span>
+                </button>
+            `;
+        }
     } else {
         const isSubmitted = isQuotationSubmittedForRequest(mr);
         const existingQuoteId = getExistingQuoteIdForRequest(mr);
@@ -473,9 +506,30 @@ function createMaterialRequestRow(mr) {
 
     let actionButtons = "";
     if (isDirectBuy) {
-        actionButtons = `
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">Review Order</button>
-        `;
+        const directStatus = (mr.status || "NEW").trim().toUpperCase();
+        const isAccepted = ["ACCEPTED", "ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(directStatus);
+        const isDeclined = ["DECLINED", "REJECTED", "CANCELLED"].includes(directStatus);
+
+        if (isAccepted) {
+            actionButtons = `
+                <span class="px-2.5 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-circle-check text-teal-600"></i>
+                    <span>Accepted / ऑर्डर स्वीकृत</span>
+                </span>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
+            `;
+        } else if (isDeclined) {
+            actionButtons = `
+                <span class="px-2.5 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+                    <span>Declined / अस्वीकृत</span>
+                </span>
+            `;
+        } else {
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">Review Order</button>
+            `;
+        }
     } else {
         const isSubmitted = isQuotationSubmittedForRequest(mr);
         const existingQuoteId = getExistingQuoteIdForRequest(mr);
@@ -638,8 +692,8 @@ function openMaterialRequestModal(requestId) {
                 if (mr.verificationCode) {
                     verCodeEl.innerText = 'Code: ' + mr.verificationCode;
                     verCodeEl.classList.remove('hidden');
-                } else if (mr.status === 'ACCEPTED') {
-                    verCodeEl.innerText = 'Accepted';
+                } else if (mr.status === 'ACCEPTED' || mr.status === 'ORDER_ACCEPTED') {
+                    verCodeEl.innerText = 'Order Accepted';
                     verCodeEl.classList.remove('hidden');
                 } else {
                     verCodeEl.innerText = 'Verification Code on Accept';
@@ -707,6 +761,11 @@ async function acceptDirectBuyRequest(id, rId) {
     if (!confirm('Are you sure you want to accept this Direct Material Request?')) return;
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
+    const acceptBtn = document.getElementById('detailModalAcceptBtn');
+    const declineBtn = document.getElementById('detailModalDeclineBtn');
+    if (acceptBtn) acceptBtn.disabled = true;
+    if (declineBtn) declineBtn.disabled = true;
+
     try {
         const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/accept`, {
             method: 'PUT',
@@ -715,18 +774,26 @@ async function acceptDirectBuyRequest(id, rId) {
                 'Content-Type': 'application/json'
             }
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
             showToast('Direct Material Request accepted! Verification code: ' + (data.verificationCode || ''));
             closeModal('materialRequestDetailModal');
             if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
             if (typeof loadSellerOrders === 'function') loadSellerOrders();
+        } else if (res.status === 409) {
+            showToast('This material requirement has already been accepted and is being fulfilled in your Orders tab.');
+            closeModal('materialRequestDetailModal');
+            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+            if (typeof loadSellerOrders === 'function') loadSellerOrders();
         } else {
-            showToast(data.message || 'Failed to accept request');
+            showToast(data.message || data.error || 'Failed to accept request');
         }
     } catch (err) {
         console.error('Accept error:', err);
         showToast('Network error while accepting request');
+    } finally {
+        if (acceptBtn) acceptBtn.disabled = false;
+        if (declineBtn) declineBtn.disabled = false;
     }
 }
 
@@ -734,6 +801,11 @@ async function declineDirectBuyRequest(id, rId) {
     if (!confirm('Are you sure you want to decline this Direct Material Request?')) return;
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
+    const acceptBtn = document.getElementById('detailModalAcceptBtn');
+    const declineBtn = document.getElementById('detailModalDeclineBtn');
+    if (acceptBtn) acceptBtn.disabled = true;
+    if (declineBtn) declineBtn.disabled = true;
+
     try {
         const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/decline`, {
             method: 'PUT',
@@ -742,17 +814,20 @@ async function declineDirectBuyRequest(id, rId) {
                 'Content-Type': 'application/json'
             }
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
             showToast('Direct Material Request declined.');
             closeModal('materialRequestDetailModal');
             if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
         } else {
-            showToast(data.message || 'Failed to decline request');
+            showToast(data.message || data.error || 'Failed to decline request');
         }
     } catch (err) {
         console.error('Decline error:', err);
         showToast('Network error while declining request');
+    } finally {
+        if (acceptBtn) acceptBtn.disabled = false;
+        if (declineBtn) declineBtn.disabled = false;
     }
 }
 
@@ -1839,9 +1914,7 @@ async function refreshSellerRequests() {
         console.warn("Seller Dashboard: Could not reload /api/projects:", err);
     }
 
-    if (fetchedProjects.length > 0 || fetchedMaterialRequests.length > 0) {
-        renderIncomingRequirements(fetchedProjects, fetchedMaterialRequests);
-    }
+    renderIncomingRequirements(fetchedProjects, fetchedMaterialRequests);
 }
 
 /**
@@ -3441,7 +3514,7 @@ async function loadSellerOrders() {
                 }
                 const activeOrders = orders.filter(o => {
                     const s = (o.orderStatus || o.status || '').toUpperCase();
-                    return ['WAITING_FOR_ACCEPTANCE', 'ORDER_ACCEPTED', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(s);
+                    return ['WAITING_FOR_ACCEPTANCE', 'ORDER_ACCEPTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(s);
                 });
                 const ordersBadge = document.getElementById('nav-orders-badge');
                 if (ordersBadge) {
@@ -3471,6 +3544,9 @@ function renderSellerOrders(orders) {
         const expectedDelivery = order.expectedDeliveryDate || "Not Set";
         const rawStatus = (order.orderStatus || order.status || "WAITING_FOR_ACCEPTANCE").toUpperCase();
 
+        const isDirectBuy = order.sourceType === 'DIRECT_BUY' || order.type === 'DIRECT_BUY' || order.isDirectBuy === true;
+        const orderSourceType = isDirectBuy ? 'DIRECT_BUY' : 'MATERIAL_ORDER';
+
         // Items display with explicit quantity to deliver
         const items = order.items || [];
         let itemsHtml = items.map(it => `
@@ -3495,19 +3571,19 @@ function renderSellerOrders(orders) {
 
         if (rawStatus === "WAITING_FOR_ACCEPTANCE") {
             statusBadge = `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Waiting for Acceptance<br><span class="text-[9px] font-medium">स्वीकृति की प्रतीक्षा</span></span>`;
-            actionButtons = `<button onclick="acceptSellerOrder(${order.id})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-check"></i> Accept Order</button>`;
+            actionButtons = `<button onclick="acceptSellerOrder(${order.id}, '${orderSourceType}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-check"></i> Accept Order</button>`;
         } else if (rawStatus === "ORDER_ACCEPTED" || rawStatus === "ACCEPTED") {
             statusBadge = `<span class="bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Order Accepted<br><span class="text-[9px] font-medium">ऑर्डर स्वीकार किया गया</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'PROCESSING')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-gears"></i> Start Processing</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'PROCESSING', '${orderSourceType}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-gears"></i> Start Processing</button>`;
         } else if (rawStatus === "PROCESSING") {
             statusBadge = `<span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Processing<br><span class="text-[9px] font-medium">प्रक्रिया में</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'READY_FOR_DISPATCH')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-box"></i> Ready for Dispatch</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'READY_FOR_DISPATCH', '${orderSourceType}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-box"></i> Ready for Dispatch</button>`;
         } else if (rawStatus === "READY_FOR_DISPATCH" || rawStatus === "DISPATCHED") {
             statusBadge = `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Ready for Dispatch<br><span class="text-[9px] font-medium">भेजने के लिए तैयार</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'OUT_FOR_DELIVERY')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-truck"></i> Out for Delivery</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'OUT_FOR_DELIVERY', '${orderSourceType}')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-truck"></i> Out for Delivery</button>`;
         } else if (rawStatus === "OUT_FOR_DELIVERY") {
             statusBadge = `<span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Out for Delivery<br><span class="text-[9px] font-medium">डिलीवरी के लिए रवाना</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'DELIVERED')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Mark Delivered</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'DELIVERED', '${orderSourceType}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Mark Delivered</button>`;
         } else if (rawStatus === "DELIVERED" || rawStatus === "COMPLETED") {
             statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Delivered<br><span class="text-[9px] font-medium">डिलीवर हो गया</span></span>`;
             actionButtons = `<span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Fulfilled</span>`;
@@ -3531,7 +3607,7 @@ function renderSellerOrders(orders) {
             <td class="p-4 font-bold text-slate-900 text-xs">₹${totalAmount}</td>
             <td class="p-4">
                 <span class="text-blue-600 font-semibold block text-xs">${escapeHtml(expectedDelivery)}</span>
-                <button onclick="promptUpdateDeliveryDate(${order.id})" class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block">Update Date</button>
+                <button onclick="promptUpdateDeliveryDate(${order.id}, '${orderSourceType}')" class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block">Update Date</button>
             </td>
             <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">Authorized</span></td>
             <td class="p-4">${statusBadge}</td>
@@ -3544,13 +3620,17 @@ function renderSellerOrders(orders) {
     });
 }
 
-async function acceptSellerOrder(orderId) {
+async function acceptSellerOrder(orderId, sourceType = 'MATERIAL_ORDER') {
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
     if (!token) return;
 
     try {
-        const res = await fetch(API_BASE_URL + `/api/material-orders/${orderId}/accept`, {
+        const url = (sourceType === 'DIRECT_BUY')
+            ? API_BASE_URL + `/api/direct-buy/requests/${orderId}/accept`
+            : API_BASE_URL + `/api/material-orders/${orderId}/accept`;
+
+        const res = await fetch(url, {
             method: "PUT",
             headers: {
                 "Authorization": "Bearer " + token,
@@ -3562,42 +3642,46 @@ async function acceptSellerOrder(orderId) {
             showToast("Order accepted successfully! — ऑर्डर स्वीकार कर लिया गया!");
             await loadSellerOrders();
         } else {
-            const err = await res.json();
-            showToast(err.error || "Failed to accept order");
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || err.message || "Failed to accept order");
         }
     } catch (e) {
         showToast("Error accepting order");
     }
 }
 
-async function updateSellerOrderStatus(orderId, status) {
+async function updateSellerOrderStatus(orderId, status, sourceType = 'MATERIAL_ORDER') {
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
     if (!token) return;
 
     try {
-        const res = await fetch(API_BASE_URL + `/api/material-orders/${orderId}/status`, {
+        const url = (sourceType === 'DIRECT_BUY')
+            ? API_BASE_URL + `/api/direct-buy/requests/${orderId}/status`
+            : API_BASE_URL + `/api/material-orders/${orderId}/status`;
+
+        const res = await fetch(url, {
             method: "PUT",
             headers: {
                 "Authorization": "Bearer " + token,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ status: status })
+            body: JSON.stringify({ status: status, sourceType: sourceType })
         });
 
         if (res.ok) {
             showToast(`Order status updated to ${status} — स्थिति अपडेट की गई`);
             await loadSellerOrders();
         } else {
-            const err = await res.json();
-            showToast(err.error || "Failed to update order status");
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || err.message || "Failed to update order status");
         }
     } catch (e) {
         showToast("Error updating order status");
     }
 }
 
-async function promptUpdateDeliveryDate(orderId) {
+async function promptUpdateDeliveryDate(orderId, sourceType = 'MATERIAL_ORDER') {
     const newDate = prompt("Enter expected delivery date (e.g., 10 Oct 2026): — डिलीवरी की अनुमानित तिथि दर्ज करें:");
     if (!newDate || !newDate.trim()) return;
 
@@ -3606,21 +3690,25 @@ async function promptUpdateDeliveryDate(orderId) {
     if (!token) return;
 
     try {
-        const res = await fetch(API_BASE_URL + `/api/material-orders/${orderId}/expected-delivery`, {
+        const url = (sourceType === 'DIRECT_BUY')
+            ? API_BASE_URL + `/api/direct-buy/requests/${orderId}/expected-delivery`
+            : API_BASE_URL + `/api/material-orders/${orderId}/expected-delivery`;
+
+        const res = await fetch(url, {
             method: "PUT",
             headers: {
                 "Authorization": "Bearer " + token,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ expectedDeliveryDate: newDate.trim() })
+            body: JSON.stringify({ expectedDeliveryDate: newDate.trim(), sourceType: sourceType })
         });
 
         if (res.ok) {
             showToast("Expected delivery date updated! — डिलीवरी की तारीख अपडेट की गई!");
             await loadSellerOrders();
         } else {
-            const err = await res.json();
-            showToast(err.error || "Failed to update delivery date");
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || err.message || "Failed to update delivery date");
         }
     } catch (e) {
         showToast("Error updating delivery date");

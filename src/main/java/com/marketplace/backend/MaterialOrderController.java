@@ -23,6 +23,7 @@ public class MaterialOrderController {
 
     private final MaterialOrderService materialOrderService;
     private final MarketplaceBackendApplication.UserRepository userRepository;
+    private DirectBuyController directBuyController;
 
     @Autowired
     public MaterialOrderController(
@@ -31,6 +32,11 @@ public class MaterialOrderController {
     ) {
         this.materialOrderService = materialOrderService;
         this.userRepository = userRepository;
+    }
+
+    @Autowired(required = false)
+    public void setDirectBuyController(DirectBuyController directBuyController) {
+        this.directBuyController = directBuyController;
     }
 
     /**
@@ -108,10 +114,7 @@ public class MaterialOrderController {
                     .body(Map.of("error", "User account not found. Please log in again."));
         }
 
-        List<MaterialOrder> orders = materialOrderService.getOrdersForSeller(user);
-        List<Map<String, Object>> response = orders.stream()
-                .map(materialOrderService::toResponseMap)
-                .collect(Collectors.toList());
+        List<Map<String, Object>> response = materialOrderService.getUnifiedOrdersForSeller(user);
         return ResponseEntity.ok(response);
     }
 
@@ -158,6 +161,10 @@ public class MaterialOrderController {
             @RequestBody(required = false) Map<String, Object> body,
             Authentication authentication
     ) {
+        String sourceType = body != null && body.get("sourceType") != null ? body.get("sourceType").toString().trim() : null;
+        if ("DIRECT_BUY".equalsIgnoreCase(sourceType) && directBuyController != null) {
+            return directBuyController.updateDirectBuyStatus(id, body, authentication);
+        }
         String targetStatus = body != null && body.get("status") != null ? body.get("status").toString() : null;
         return handleStatusTransition(id, targetStatus, authentication);
     }
@@ -218,6 +225,10 @@ public class MaterialOrderController {
             @RequestBody Map<String, Object> body,
             Authentication authentication
     ) {
+        String sourceType = body != null && body.get("sourceType") != null ? body.get("sourceType").toString().trim() : null;
+        if ("DIRECT_BUY".equalsIgnoreCase(sourceType) && directBuyController != null) {
+            return directBuyController.updateExpectedDelivery(id, body, authentication);
+        }
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized."));
         }
