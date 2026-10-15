@@ -1505,15 +1505,48 @@
                 <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-200">
                     <button onclick="closeModal('materialRequestDetailModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Close — बंद करें</button>
                     <button id="detailModalDeclineBtn" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition-all hidden">
-                        Decline — अस्वीकार करें
+                        Decline Request
                     </button>
                     <button id="detailModalAcceptBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5 hidden">
                         <i class="fa-solid fa-check text-xs"></i>
-                        <span>Accept Request — स्वीकार करें</span>
+                        <span>Accept Request</span>
                     </button>
                     <button id="detailModalQuoteBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5">
                         <i class="fa-solid fa-paper-plane text-xs"></i>
                         <span>Send Quote — कोटेशन भेजें</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: DECLINE CONFIRMATION MODAL -->
+    <div id="declineConfirmModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="declineModalTitle">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-sm"></i>
+                    <h3 class="font-bold text-sm" id="declineModalTitle">Decline Material Request</h3>
+                </div>
+                <button type="button" onclick="closeDeclineConfirmModal()" class="text-slate-400 hover:text-white transition-colors" aria-label="Close dialog">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-xs text-slate-700">
+                <p id="declineModalMessage" class="text-sm font-medium text-slate-800 leading-relaxed">
+                    Are you sure you want to decline this material request? It will be removed from your dashboard after 24 hours.
+                </p>
+                <div id="declineModalError" class="hidden p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0 text-rose-500"></i>
+                    <div class="flex-1">
+                        <span id="declineModalErrorText">Failed to decline request.</span>
+                        <button type="button" id="declineModalRetryBtn" onclick="submitDeclineAction()" class="ml-2 font-bold text-rose-800 underline hover:text-rose-900">Retry</button>
+                    </div>
+                </div>
+                <div class="pt-2 flex items-center justify-end space-x-3">
+                    <button type="button" id="declineModalCancelBtn" onclick="closeDeclineConfirmModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all">Cancel</button>
+                    <button type="button" id="declineModalOkBtn" onclick="submitDeclineAction()" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                        <span id="declineModalOkText">OK</span>
                     </button>
                 </div>
             </div>

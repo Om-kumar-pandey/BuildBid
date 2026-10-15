@@ -25,6 +25,8 @@ public class DirectBuyController {
     private final MarketplaceBackendApplication.UserRepository userRepository;
     private final GeoLocationService geoLocationService;
     private final NotificationService notificationService;
+    private SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository;
+    private MaterialOrderService materialOrderService;
 
     @Autowired
     public DirectBuyController(
@@ -48,6 +50,16 @@ public class DirectBuyController {
             GeoLocationService geoLocationService
     ) {
         this(materialRepository, materialRequestRepository, userRepository, geoLocationService, null);
+    }
+
+    @Autowired(required = false)
+    public void setSellerMaterialRequestActionRepository(SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository) {
+        this.sellerMaterialRequestActionRepository = sellerMaterialRequestActionRepository;
+    }
+
+    @Autowired(required = false)
+    public void setMaterialOrderService(MaterialOrderService materialOrderService) {
+        this.materialOrderService = materialOrderService;
     }
 
     /**
@@ -617,6 +629,35 @@ public class DirectBuyController {
         }
 
         MaterialRequest saved = materialRequestRepository.save(req);
+
+        // Record seller-specific acceptance and create integrated order
+        SellerMaterialRequestAction action = null;
+        if (sellerMaterialRequestActionRepository != null) {
+            action = sellerMaterialRequestActionRepository
+                    .findBySellerIdAndMaterialRequestId(seller.getId(), saved.getId())
+                    .orElseGet(() -> {
+                        SellerMaterialRequestAction a = new SellerMaterialRequestAction();
+                        a.setSeller(seller);
+                        a.setMaterialRequest(saved);
+                        return a;
+                    });
+            action.setStatus("ACCEPTED");
+            action.setActionAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+        }
+
+        MaterialOrder createdOrder = null;
+        if (materialOrderService != null) {
+            try {
+                createdOrder = materialOrderService.createOrderForAcceptedMaterialRequest(saved, seller);
+                if (action != null) {
+                    action.setMaterialOrder(createdOrder);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (action != null && sellerMaterialRequestActionRepository != null) {
+            sellerMaterialRequestActionRepository.save(action);
+        }
 
         // Notify buyer
         if (notificationService != null && saved.getBuyer() != null) {

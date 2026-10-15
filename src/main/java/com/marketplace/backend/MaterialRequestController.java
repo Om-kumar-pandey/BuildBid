@@ -18,6 +18,8 @@ public class MaterialRequestController {
     private final GeoLocationService geoLocationService;
     private final NotificationService notificationService;
     private final QuotationRepository quotationRepository;
+    private SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository;
+    private MaterialOrderService materialOrderService;
 
     private static final java.time.ZoneId IST_ZONE = java.time.ZoneId.of("Asia/Kolkata");
     private static final java.time.format.DateTimeFormatter DISPLAY_DATE_FORMATTER =
@@ -29,13 +31,27 @@ public class MaterialRequestController {
             MarketplaceBackendApplication.UserRepository userRepository,
             GeoLocationService geoLocationService,
             @Autowired(required = false) NotificationService notificationService,
-            @Autowired(required = false) QuotationRepository quotationRepository
+            @Autowired(required = false) QuotationRepository quotationRepository,
+            @Autowired(required = false) SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository,
+            @Autowired(required = false) MaterialOrderService materialOrderService
     ) {
         this.materialRequestRepository = materialRequestRepository;
         this.userRepository = userRepository;
         this.geoLocationService = geoLocationService;
         this.notificationService = notificationService;
         this.quotationRepository = quotationRepository;
+        this.sellerMaterialRequestActionRepository = sellerMaterialRequestActionRepository;
+        this.materialOrderService = materialOrderService;
+    }
+
+    public MaterialRequestController(
+            MaterialRequestRepository materialRequestRepository,
+            MarketplaceBackendApplication.UserRepository userRepository,
+            GeoLocationService geoLocationService,
+            NotificationService notificationService,
+            QuotationRepository quotationRepository
+    ) {
+        this(materialRequestRepository, userRepository, geoLocationService, notificationService, quotationRepository, null, null);
     }
 
     public MaterialRequestController(
@@ -44,7 +60,7 @@ public class MaterialRequestController {
             GeoLocationService geoLocationService,
             NotificationService notificationService
     ) {
-        this(materialRequestRepository, userRepository, geoLocationService, notificationService, null);
+        this(materialRequestRepository, userRepository, geoLocationService, notificationService, null, null, null);
     }
 
     public MaterialRequestController(
@@ -52,7 +68,17 @@ public class MaterialRequestController {
             MarketplaceBackendApplication.UserRepository userRepository,
             GeoLocationService geoLocationService
     ) {
-        this(materialRequestRepository, userRepository, geoLocationService, null, null);
+        this(materialRequestRepository, userRepository, geoLocationService, null, null, null, null);
+    }
+
+    @Autowired(required = false)
+    public void setSellerMaterialRequestActionRepository(SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository) {
+        this.sellerMaterialRequestActionRepository = sellerMaterialRequestActionRepository;
+    }
+
+    @Autowired(required = false)
+    public void setMaterialOrderService(MaterialOrderService materialOrderService) {
+        this.materialOrderService = materialOrderService;
     }
 
     /**
@@ -404,7 +430,7 @@ public class MaterialRequestController {
      * Once a material requirement is allocated or accepted, it is immediately removed from Active Material Requests
      * for all other sellers.
      */
-    @GetMapping("/seller")
+    @GetMapping({"/seller", "/seller-eligible"})
     public ResponseEntity<?> getSellerEligibleRequests(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -445,78 +471,142 @@ public class MaterialRequestController {
         if (allRequests == null || allRequests.isEmpty()) {
             allRequests = materialRequestRepository.findAll();
         }
-        if (allRequests == null) allRequests = Collections.emptyList();
         List<Map<String, Object>> matching = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now(IST_ZONE);
 
         for (MaterialRequest req : allRequests) {
-            String status = req.getStatus() != null ? req.getStatus().toUpperCase() : "NEW";
-
-            // Closed, declined, or cancelled requests are not shown in active pool
-            if ("CLOSED".equals(status) || "DECLINED".equals(status) || "CANCELLED".equals(status)) {
+            if (!isRequestEligibleForSeller(req, seller, sellerState, sellerLocation, sellerLat, sellerLon, sellerGeo)) {
                 continue;
             }
 
-            // Section 9 & 11: ALLOCATED or ACCEPTED requirements must NO LONGER remain in active requests for sellers
+            // Check isolated seller action if repository is available
+            SellerMaterialRequestAction action = null;
+            if (sellerMaterialRequestActionRepository != null) {
+                action = sellerMaterialRequestActionRepository
+                        .findBySellerIdAndMaterialRequestId(seller.getId(), req.getId()).orElse(null);
+            }
+
+            if (action != null) {
+                if ("DECLINED".equalsIgnoreCase(action.getStatus())) {
+                    // 24-hour expiry check
+                    if (action.getExpiryAt() != null && !now.isBefore(action.getExpiryAt())) {
+                        // Expiry reached: exclude from active results for this declining seller
+                        continue;
+                    }
+                    // Before expiry: show Request Declined with live countdown
+                    Map<String, Object> map = toMap(req, true, seller);
+                    map.put("sellerStatus", "DECLINED");
+                    map.put("declinedAt", action.getDeclinedAt() != null ? action.getDeclinedAt().toString() : now.toString());
+                    map.put("expiryAt", action.getExpiryAt() != null ? action.getExpiryAt().toString() : now.plusHours(24).toString());
+                    long remainingSecs = action.getExpiryAt() != null ? Math.max(0, java.time.Duration.between(now, action.getExpiryAt()).getSeconds()) : 0L;
+                    map.put("remainingSeconds", remainingSecs);
+                    matching.add(map);
+                    continue;
+                } else if ("ACCEPTED".equalsIgnoreCase(action.getStatus())) {
+                    // Seller accepted: persist accepted state on reload for this seller
+                    Map<String, Object> map = toMap(req, true, seller);
+                    map.put("sellerStatus", "ACCEPTED");
+                    map.put("acceptedAt", action.getActionAt() != null ? action.getActionAt().toString() : now.toString());
+                    matching.add(map);
+                    continue;
+                }
+            }
+
+            // Fallback for requests without explicit action record
+            String status = req.getStatus() != null ? req.getStatus().toUpperCase() : "NEW";
+
+            if ("CLOSED".equals(status) || "CANCELLED".equals(status)) {
+                continue;
+            }
+
+            if ("DECLINED".equals(status)) {
+                // If targeted exclusively to this seller (legacy fallback), apply 24h rule
+                if (req.getTargetSeller() != null && req.getTargetSeller().getId().equals(seller.getId())) {
+                    LocalDateTime refTime = req.getUpdatedAt() != null ? req.getUpdatedAt() : req.getCreatedAt();
+                    if (refTime == null) refTime = now;
+                    LocalDateTime expiry = refTime.plusHours(24);
+                    if (!now.isBefore(expiry)) {
+                        continue; // Expired
+                    }
+                    Map<String, Object> map = toMap(req, true, seller);
+                    map.put("sellerStatus", "DECLINED");
+                    map.put("declinedAt", refTime.toString());
+                    map.put("expiryAt", expiry.toString());
+                    map.put("remainingSeconds", Math.max(0, java.time.Duration.between(now, expiry).getSeconds()));
+                    matching.add(map);
+                    continue;
+                } else {
+                    // For other sellers, broadcast request is still active
+                }
+            }
+
+            // Exclude already accepted/allocated requests if this seller did not accept it
             if ("POSTED_REQUIREMENT".equalsIgnoreCase(req.getRequestType()) || req.getRequestType() == null) {
                 if ("ALLOCATED".equals(status) || "ACCEPTED".equals(status) || "ORDER_ACCEPTED".equals(status) || "COMPLETED".equals(status)) {
-                    continue; // Completely removed from active requests for all sellers
+                    continue;
+                }
+            } else if ("DIRECT_MATERIAL".equalsIgnoreCase(req.getRequestType())) {
+                if ("ALLOCATED".equals(status) || "COMPLETED".equals(status)) {
+                    continue;
                 }
             }
 
-            boolean isEligible = false;
-
-            // Direct Material Request is targeted exclusively to the selected seller
-            if ("DIRECT_MATERIAL".equalsIgnoreCase(req.getRequestType())) {
-                if (req.getTargetSeller() != null && req.getTargetSeller().getId().equals(seller.getId())) {
-                    isEligible = true;
-                }
-            } else {
-                String scope = req.getRequestScope() != null ? req.getRequestScope().toUpperCase() : "STATE";
-
-                if (scope.equals("ALL_INDIA")) {
-                    isEligible = true;
-                } else if (scope.equals("STATE")) {
-                    String reqState = req.getState() != null ? req.getState().trim() : "";
-                    if (matchesState(sellerState, sellerLocation, reqState)) {
-                        isEligible = true;
-                    }
-                } else if (scope.equals("LOCAL")) {
-                    int radius = req.getLocalRadius() != null ? req.getLocalRadius() : 25;
-
-                    if (sellerLat != null && sellerLon != null && req.getLatitude() != null && req.getLongitude() != null) {
-                        double distKm = geoLocationService.calculateHaversineDistanceKm(
-                                sellerLat, sellerLon, req.getLatitude(), req.getLongitude()
-                        );
-                        if (distKm <= radius) {
-                            isEligible = true;
-                        }
-                    } else {
-                        String reqCombined = (req.getCity() + " " + req.getPinCode() + " " + req.getState()).trim();
-                        if (geoLocationService.areLocationsEquivalent(sellerLocation, reqCombined)) {
-                            isEligible = true;
-                        } else if (sellerGeo != null && sellerGeo.pincode() != null && sellerGeo.pincode().equals(req.getPinCode())) {
-                            isEligible = true;
-                        }
-                    }
-                }
-            }
-
-            if (isEligible) {
-                matching.add(toMap(req, true, seller));
-            }
+            Map<String, Object> map = toMap(req, true, seller);
+            map.put("sellerStatus", "PENDING");
+            matching.add(map);
         }
 
         return ResponseEntity.ok(matching);
     }
 
+    private boolean isRequestEligibleForSeller(
+            MaterialRequest req,
+            MarketplaceBackendApplication.MarketplaceUser seller,
+            String sellerState,
+            String sellerLocation,
+            Double sellerLat,
+            Double sellerLon,
+            GeoLocationService.GeoLocation sellerGeo
+    ) {
+        if ("DIRECT_MATERIAL".equalsIgnoreCase(req.getRequestType())) {
+            return req.getTargetSeller() != null && req.getTargetSeller().getId().equals(seller.getId());
+        }
+        String scope = req.getRequestScope() != null ? req.getRequestScope().toUpperCase() : "STATE";
+
+        if (scope.equals("ALL_INDIA")) {
+            return true;
+        } else if (scope.equals("STATE")) {
+            String reqState = req.getState() != null ? req.getState().trim() : "";
+            return matchesState(sellerState, sellerLocation, reqState);
+        } else if (scope.equals("LOCAL")) {
+            int radius = req.getLocalRadius() != null ? req.getLocalRadius() : 25;
+
+            if (sellerLat != null && sellerLon != null && req.getLatitude() != null && req.getLongitude() != null) {
+                double distKm = geoLocationService.calculateHaversineDistanceKm(
+                        sellerLat, sellerLon, req.getLatitude(), req.getLongitude()
+                );
+                return distKm <= radius;
+            } else {
+                String reqCombined = (req.getCity() + " " + req.getPinCode() + " " + req.getState()).trim();
+                if (geoLocationService.areLocationsEquivalent(sellerLocation, reqCombined)) {
+                    return true;
+                } else if (sellerGeo != null && sellerGeo.pincode() != null && sellerGeo.pincode().equals(req.getPinCode())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
-     * Accept a Direct Material Request.
-     * Section 3, 9, 10: State validated, atomic, prevents multiple seller allocation.
+     * Accept a Material Request.
+     * Section 3, 9, 10: State validated, atomic, prevents multiple seller allocation,
+     * persists seller action and integrates with Orders.
      */
     @PutMapping("/{id}/accept")
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> acceptRequest(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             Authentication authentication
     ) {
         if (authentication == null || authentication.getName() == null) {
@@ -536,8 +626,17 @@ public class MaterialRequestController {
                     .body(Map.of("error", "Access denied: Only registered material sellers can accept orders."));
         }
 
-        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
-                .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        MaterialRequest req = null;
+        try {
+            Long numericId = Long.parseLong(id);
+            req = materialRequestRepository.findByIdForUpdate(numericId)
+                    .orElseGet(() -> materialRequestRepository.findById(numericId).orElse(null));
+        } catch (NumberFormatException ignored) {}
+
+        if (req == null) {
+            req = materialRequestRepository.findByRequestId(id).orElse(null);
+        }
+
         if (req == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
@@ -546,6 +645,29 @@ public class MaterialRequestController {
         if (req.getTargetSeller() != null && !req.getTargetSeller().getId().equals(seller.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Forbidden: You are not authorized to accept this direct request."));
+        }
+
+        // Check seller-specific action state
+        SellerMaterialRequestAction existingAction = null;
+        if (sellerMaterialRequestActionRepository != null) {
+            existingAction = sellerMaterialRequestActionRepository
+                    .findBySellerIdAndMaterialRequestId(seller.getId(), req.getId()).orElse(null);
+        }
+
+        if (existingAction != null && "DECLINED".equalsIgnoreCase(existingAction.getStatus())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "error", "Cannot accept a material request that was previously declined.",
+                    "message", "Cannot accept a material request that was previously declined."
+            ));
+        }
+
+        if (existingAction != null && "ACCEPTED".equalsIgnoreCase(existingAction.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "success", false,
+                    "error", "This material requirement has already been accepted.",
+                    "message", "This material requirement has already been accepted."
+            ));
         }
 
         // Section 9 & 10: Single allocation guard & prevent duplicate allocation
@@ -575,6 +697,28 @@ public class MaterialRequestController {
 
         MaterialRequest saved = materialRequestRepository.save(req);
 
+        // Record seller-specific acceptance
+        SellerMaterialRequestAction action = existingAction != null ? existingAction : new SellerMaterialRequestAction();
+        action.setSeller(seller);
+        action.setMaterialRequest(saved);
+        action.setStatus("ACCEPTED");
+        action.setActionAt(LocalDateTime.now(IST_ZONE));
+
+        // Create or retrieve integrated MaterialOrder
+        MaterialOrder createdOrder = null;
+        if (materialOrderService != null) {
+            try {
+                createdOrder = materialOrderService.createOrderForAcceptedMaterialRequest(saved, seller);
+                action.setMaterialOrder(createdOrder);
+            } catch (Exception e) {
+                // Ignore exception and preserve flow
+            }
+        }
+
+        if (sellerMaterialRequestActionRepository != null) {
+            sellerMaterialRequestActionRepository.save(action);
+        }
+
         // Section 2 & 12: Targeted notification exclusively to buyer
         if (notificationService != null && saved.getBuyer() != null) {
             try {
@@ -594,21 +738,31 @@ public class MaterialRequestController {
         resp.put("success", true);
         resp.put("requestId", saved.getRequestId());
         resp.put("status", "ACCEPTED");
+        resp.put("sellerStatus", "ACCEPTED");
         resp.put("statusEn", "Order Accepted");
         resp.put("statusHi", "ऑर्डर स्वीकार किया गया");
         resp.put("verificationCode", saved.getVerificationCode());
+        if (createdOrder != null) {
+            resp.put("orderId", createdOrder.getOrderCode());
+            resp.put("orderCode", createdOrder.getOrderCode());
+        }
         resp.put("message", "Direct Buy request accepted — ऑर्डर स्वीकार कर लिया गया");
 
         return ResponseEntity.ok(resp);
     }
 
+    public ResponseEntity<?> acceptRequest(Long id, Authentication authentication) {
+        return acceptRequest(id != null ? id.toString() : null, authentication);
+    }
+
     /**
-     * Decline a Direct Material Request.
+     * Decline a Material Request.
+     * Persists server-side 24-hour decline expiry and enforces seller isolation.
      */
     @PutMapping("/{id}/decline")
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> declineRequest(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             Authentication authentication
     ) {
         if (authentication == null || authentication.getName() == null) {
@@ -622,23 +776,96 @@ public class MaterialRequestController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Seller not found"));
         }
 
-        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
-                .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+        if (!hasSellerRole(seller)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Only registered material sellers can decline requests."));
+        }
+
+        MaterialRequest req = null;
+        try {
+            Long numericId = Long.parseLong(id);
+            req = materialRequestRepository.findByIdForUpdate(numericId)
+                    .orElseGet(() -> materialRequestRepository.findById(numericId).orElse(null));
+        } catch (NumberFormatException ignored) {}
+
+        if (req == null) {
+            req = materialRequestRepository.findByRequestId(id).orElse(null);
+        }
+
         if (req == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
-        if (req.getTargetSeller() != null && !req.getTargetSeller().getId().equals(sellerOpt.get().getId())) {
+        if (req.getTargetSeller() != null && !req.getTargetSeller().getId().equals(seller.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden"));
         }
 
-        req.setStatus("DECLINED");
-        MaterialRequest saved = materialRequestRepository.save(req);
-        Map<String, Object> resp = toMap(saved, true, sellerOpt.get());
+        // Check if already accepted
+        SellerMaterialRequestAction existingAction = null;
+        if (sellerMaterialRequestActionRepository != null) {
+            existingAction = sellerMaterialRequestActionRepository
+                    .findBySellerIdAndMaterialRequestId(seller.getId(), req.getId()).orElse(null);
+        }
+
+        if (existingAction != null && "ACCEPTED".equalsIgnoreCase(existingAction.getStatus())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "error", "Cannot decline a request that has already been accepted.",
+                    "message", "Cannot decline a request that has already been accepted."
+            ));
+        }
+
+        LocalDateTime now = LocalDateTime.now(IST_ZONE);
+
+        // If already declined by this seller, return existing state without resetting expiry
+        if (existingAction != null && "DECLINED".equalsIgnoreCase(existingAction.getStatus())) {
+            LocalDateTime expiryAt = existingAction.getExpiryAt() != null ? existingAction.getExpiryAt() : now.plusHours(24);
+            long remainingSecs = Math.max(0, java.time.Duration.between(now, expiryAt).getSeconds());
+            Map<String, Object> resp = toMap(req, true, seller);
+            resp.put("success", true);
+            resp.put("status", "DECLINED");
+            resp.put("sellerStatus", "DECLINED");
+            resp.put("declinedAt", existingAction.getDeclinedAt() != null ? existingAction.getDeclinedAt().toString() : now.toString());
+            resp.put("expiryAt", expiryAt.toString());
+            resp.put("remainingSeconds", remainingSecs);
+            resp.put("message", "Direct Buy request declined — अनुरोध अस्वीकार कर दिया गया");
+            return ResponseEntity.ok(resp);
+        }
+
+        // Persist new 24-hour decline expiry
+        LocalDateTime expiryAt = now.plusHours(24);
+        SellerMaterialRequestAction action = existingAction != null ? existingAction : new SellerMaterialRequestAction();
+        action.setSeller(seller);
+        action.setMaterialRequest(req);
+        action.setStatus("DECLINED");
+        action.setActionAt(now);
+        action.setDeclinedAt(now);
+        action.setExpiryAt(expiryAt);
+
+        if (sellerMaterialRequestActionRepository != null) {
+            sellerMaterialRequestActionRepository.save(action);
+        }
+
+        // For direct buy requests targeted to this seller, also record DECLINED status
+        if (req.getTargetSeller() != null && req.getTargetSeller().getId().equals(seller.getId())) {
+            req.setStatus("DECLINED");
+            materialRequestRepository.save(req);
+        }
+
+        Map<String, Object> resp = toMap(req, true, seller);
         resp.put("success", true);
         resp.put("status", "DECLINED");
+        resp.put("sellerStatus", "DECLINED");
+        resp.put("declinedAt", now.toString());
+        resp.put("expiryAt", expiryAt.toString());
+        resp.put("remainingSeconds", 86400L);
         resp.put("message", "Direct Buy request declined — अनुरोध अस्वीकार कर दिया गया");
         return ResponseEntity.ok(resp);
+    }
+
+    public ResponseEntity<?> declineRequest(Long id, Authentication authentication) {
+        return declineRequest(id != null ? id.toString() : null, authentication);
     }
 
     /**
@@ -716,10 +943,6 @@ public class MaterialRequestController {
             if (lowerLoc.contains(lowerReq)) return true;
         }
         return false;
-    }
-
-    private Map<String, Object> toMap(MaterialRequest req, boolean includeItems) {
-        return toMap(req, includeItems, null);
     }
 
     private Map<String, Object> toMap(MaterialRequest req, boolean includeItems, MarketplaceBackendApplication.MarketplaceUser caller) {
@@ -815,6 +1038,31 @@ public class MaterialRequestController {
             map.put("hasSubmittedQuotation", false);
             map.put("existingQuotationId", null);
             map.put("existingQuotationStatus", null);
+        }
+
+        // Persistent seller-specific request action state (Phase 2 & Phase 5)
+        if (caller != null && hasSellerRole(caller) && sellerMaterialRequestActionRepository != null && req.getId() != null) {
+            Optional<SellerMaterialRequestAction> smraOpt = sellerMaterialRequestActionRepository
+                    .findBySellerIdAndMaterialRequestId(caller.getId(), req.getId());
+            if (smraOpt.isPresent()) {
+                SellerMaterialRequestAction smra = smraOpt.get();
+                map.put("sellerStatus", smra.getStatus());
+                if (smra.getActionAt() != null) {
+                    map.put("actionAt", smra.getActionAt().toString());
+                }
+                if (smra.getDeclinedAt() != null) {
+                    map.put("declinedAt", smra.getDeclinedAt().toString());
+                }
+                if (smra.getExpiryAt() != null) {
+                    map.put("expiryAt", smra.getExpiryAt().toString());
+                    long rem = java.time.Duration.between(LocalDateTime.now(IST_ZONE), smra.getExpiryAt()).getSeconds();
+                    map.put("remainingSeconds", Math.max(0, rem));
+                }
+            } else if (!map.containsKey("sellerStatus")) {
+                map.put("sellerStatus", "PENDING");
+            }
+        } else if (!map.containsKey("sellerStatus")) {
+            map.put("sellerStatus", "PENDING");
         }
 
         // Build brief summary of items for table listings

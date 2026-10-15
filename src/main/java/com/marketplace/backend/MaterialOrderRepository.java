@@ -28,6 +28,10 @@ public interface MaterialOrderRepository extends JpaRepository<MaterialOrder, Lo
 
     List<MaterialOrder> findByMaterialRequestIdOrderByCreatedAtDesc(Long materialRequestId);
 
+    Optional<MaterialOrder> findFirstByMaterialRequestIdAndSellerId(Long materialRequestId, Long sellerId);
+
+    boolean existsByMaterialRequestIdAndSellerId(Long materialRequestId, Long sellerId);
+
     @Query("SELECT MAX(o.id) FROM MaterialOrder o")
     Long findMaxId();
 

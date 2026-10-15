@@ -390,6 +390,9 @@ function viewExistingQuotation(quoteId) {
 }
 
 function renderIncomingRequirements(projects = [], materialRequests = []) {
+    if (typeof _activeCountdownMap !== 'undefined') {
+        _activeCountdownMap.clear();
+    }
     // Rebuild or clear cachedMaterialRequests to prevent stale entries
     const newCache = {};
     if (Array.isArray(materialRequests)) {
@@ -464,6 +467,236 @@ function renderIncomingRequirements(projects = [], materialRequests = []) {
     }
 }
 
+/* ==========================================================================
+   24-HOUR DECLINE EXPIRY & COUNTDOWN TIMER MANAGER (Phase 4 & 5)
+   ========================================================================== */
+
+let _sellerCountdownInterval = null;
+const _activeCountdownMap = new Map(); // key -> { expiryMs, onExpire }
+
+function formatRemainingDuration(totalSeconds) {
+    if (totalSeconds <= 0) return '0s';
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const parts = [];
+    if (hours > 0) parts.push(hours + 'h');
+    parts.push((hours > 0 ? String(minutes).padStart(2, '0') : minutes) + 'm');
+    parts.push(String(seconds).padStart(2, '0') + 's');
+    return parts.join(' ');
+}
+
+function registerCountdown(key, expiryTimestamp, onExpireCallback) {
+    if (!key) return;
+    const expiryMs = typeof expiryTimestamp === 'number'
+        ? expiryTimestamp
+        : (Date.parse(expiryTimestamp) || (Date.now() + 86400000));
+    _activeCountdownMap.set(key, { expiryMs, onExpire: onExpireCallback });
+    startCountdownTicker();
+}
+
+function startCountdownTicker() {
+    if (_sellerCountdownInterval) return;
+    _sellerCountdownInterval = setInterval(() => {
+        const now = Date.now();
+        if (_activeCountdownMap.size === 0) {
+            clearInterval(_sellerCountdownInterval);
+            _sellerCountdownInterval = null;
+            return;
+        }
+        for (const [key, item] of _activeCountdownMap.entries()) {
+            const diffSec = Math.floor((item.expiryMs - now) / 1000);
+            const el = document.getElementById(key);
+            if (!el) {
+                // If element was unmounted or replaced
+                continue;
+            }
+            if (diffSec <= 0) {
+                el.innerText = 'Removed from your dashboard in 0s';
+                _activeCountdownMap.delete(key);
+                if (typeof item.onExpire === 'function') {
+                    item.onExpire();
+                }
+            } else {
+                el.innerText = 'Removed from your dashboard in ' + formatRemainingDuration(diffSec);
+            }
+        }
+    }, 1000);
+}
+
+/* ==========================================================================
+   DECLINE CONFIRMATION MODAL & ACTION HANDLER (Phase 4 & 5)
+   ========================================================================== */
+
+let pendingDeclineContext = null; // { id, requestId, btn }
+
+function openDeclineConfirmModal(id, requestId, btnEl) {
+    pendingDeclineContext = { id, requestId, btn: btnEl };
+    const modal = document.getElementById('declineConfirmModal');
+    const errBox = document.getElementById('declineModalError');
+    const okBtn = document.getElementById('declineModalOkBtn');
+    const cancelBtn = document.getElementById('declineModalCancelBtn');
+    const okText = document.getElementById('declineModalOkText');
+
+    if (errBox) errBox.classList.add('hidden');
+    if (okBtn) okBtn.disabled = false;
+    if (cancelBtn) cancelBtn.disabled = false;
+    if (okText) okText.innerText = 'OK';
+
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function closeDeclineConfirmModal() {
+    pendingDeclineContext = null;
+    const modal = document.getElementById('declineConfirmModal');
+    if (modal) {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+}
+
+async function submitDeclineAction() {
+    if (!pendingDeclineContext) return;
+    const { id, requestId, btn } = pendingDeclineContext;
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+    const okBtn = document.getElementById('declineModalOkBtn');
+    const cancelBtn = document.getElementById('declineModalCancelBtn');
+    const okText = document.getElementById('declineModalOkText');
+    const errBox = document.getElementById('declineModalError');
+    const errText = document.getElementById('declineModalErrorText');
+
+    if (okBtn) okBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (okText) okText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Processing...';
+    if (errBox) errBox.classList.add('hidden');
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/decline`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            closeDeclineConfirmModal();
+            closeModal('materialRequestDetailModal');
+            showToast('Material request declined. It will be removed in 24 hours.');
+            if (typeof refreshSellerRequests === 'function') {
+                await refreshSellerRequests();
+            }
+        } else {
+            const msg = data.message || data.error || ('Decline failed with status ' + res.status);
+            if (errBox && errText) {
+                errText.innerText = msg;
+                errBox.classList.remove('hidden');
+            } else {
+                showToast(msg);
+            }
+            if (okBtn) okBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (okText) okText.innerText = 'OK';
+        }
+    } catch (err) {
+        console.error('Decline error:', err);
+        const netMsg = 'Network error while declining request. Please retry.';
+        if (errBox && errText) {
+            errText.innerText = netMsg;
+            errBox.classList.remove('hidden');
+        } else {
+            showToast(netMsg);
+        }
+        if (okBtn) okBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (okText) okText.innerText = 'OK';
+    }
+}
+
+/* ==========================================================================
+   ACCEPT REQUEST ACTION HANDLER (Phase 2 & Phase 3)
+   ========================================================================== */
+
+async function handleAcceptRequest(id, requestId, btnEl) {
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    let originalHtml = '';
+    if (btnEl) {
+        originalHtml = btnEl.innerHTML;
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Accepting...';
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/accept`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            showToast('Request accepted! Order created in your Orders tab.');
+            closeModal('materialRequestDetailModal');
+            if (btnEl) {
+                btnEl.className = "px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5";
+                btnEl.innerHTML = '<i class="fa-solid fa-check text-xs"></i><span>Request Accepted</span>';
+                btnEl.disabled = true;
+                btnEl.onclick = null;
+            }
+            if (typeof loadSellerOrders === 'function') {
+                loadSellerOrders();
+            }
+            if (typeof refreshSellerRequests === 'function') {
+                await refreshSellerRequests();
+            }
+        } else if (res.status === 409) {
+            showToast('This material requirement has already been accepted and is being fulfilled in your Orders tab.');
+            closeModal('materialRequestDetailModal');
+            if (btnEl) {
+                btnEl.className = "px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5";
+                btnEl.innerHTML = '<i class="fa-solid fa-check text-xs"></i><span>Request Accepted</span>';
+                btnEl.disabled = true;
+                btnEl.onclick = null;
+            }
+            if (typeof loadSellerOrders === 'function') {
+                loadSellerOrders();
+            }
+            if (typeof refreshSellerRequests === 'function') {
+                await refreshSellerRequests();
+            }
+        } else {
+            const errorMsg = data.message || data.error || ('Failed to accept request (HTTP ' + res.status + ')');
+            showToast(errorMsg);
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.innerHTML = '<span class="text-rose-600 font-bold inline-flex items-center gap-1"><i class="fa-solid fa-rotate-right text-xs"></i> Retry</span>';
+                btnEl.onclick = (e) => {
+                    e.stopPropagation();
+                    handleAcceptRequest(id, requestId, btnEl);
+                };
+            }
+        }
+    } catch (err) {
+        console.error('Accept error:', err);
+        showToast('Network error while accepting request. Please retry.');
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = '<span class="text-rose-600 font-bold inline-flex items-center gap-1"><i class="fa-solid fa-rotate-right text-xs"></i> Retry</span>';
+            btnEl.onclick = (e) => {
+                e.stopPropagation();
+                handleAcceptRequest(id, requestId, btnEl);
+            };
+        }
+    }
+}
+
 function createMaterialRequestCard(mr) {
     const div = document.createElement("div");
     div.className = "bg-slate-50 hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4";
@@ -501,52 +734,69 @@ function createMaterialRequestCard(mr) {
         scopeBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">State: ${escapeHtml(mr.state || '')}</span>`;
     }
 
-    let actionButtons = "";
-    if (isDirectBuy) {
-        const directStatus = (mr.status || "NEW").trim().toUpperCase();
-        const isAccepted = ["ACCEPTED", "ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(directStatus);
-        const isDeclined = ["DECLINED", "REJECTED", "CANCELLED"].includes(directStatus);
+    const sellerStatus = (mr.sellerStatus || "").toUpperCase();
+    const generalStatus = (mr.status || "NEW").toUpperCase();
+    const isAccepted = sellerStatus === "ACCEPTED" || ["ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(generalStatus);
+    const isDeclined = sellerStatus === "DECLINED" || (isDirectBuy && ["DECLINED", "REJECTED"].includes(generalStatus));
 
-        if (isAccepted) {
-            actionButtons = `
-                <span class="px-3 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-circle-check text-teal-600"></i>
-                    <span>Accepted / ऑर्डर स्वीकृत</span>
-                </span>
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View Details</button>
-            `;
-        } else if (isDeclined) {
-            actionButtons = `
-                <span class="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+    let actionButtons = "";
+    if (isAccepted) {
+        actionButtons = `
+            <button disabled class="px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-check text-xs"></i>
+                <span>Request Accepted</span>
+            </button>
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View Details</button>
+        `;
+    } else if (isDeclined) {
+        div.classList.add("opacity-60", "border-dashed");
+        const cdKey = "cd-card-" + (mr.id || rId);
+        const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+        let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+        actionButtons = `
+            <div class="flex flex-col items-end gap-1">
+                <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm opacity-80">
                     <i class="fa-solid fa-circle-xmark text-rose-600"></i>
-                    <span>Declined / अस्वीकृत</span>
+                    <span>Request Declined</span>
                 </span>
-            `;
-        } else {
-            actionButtons = `
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
-                    <i class="fa-solid fa-bolt text-xs"></i>
-                    <span>Review Order</span>
-                </button>
-            `;
-        }
+                <span id="${cdKey}" class="text-[11px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed from your dashboard in ${formatRemainingDuration(remSec)}</span>
+            </div>
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all opacity-75">View Details</button>
+        `;
+        registerCountdown(cdKey, expiryTimestamp, () => {
+            div.remove();
+            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+        });
     } else {
-        const isSubmitted = isQuotationSubmittedForRequest(mr);
-        const existingQuoteId = getExistingQuoteIdForRequest(mr);
-        if (isSubmitted) {
-            actionButtons = `
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
-                <span class="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                    <span>Quotation Submitted</span>
-                </span>
-                ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
-            `;
-        } else {
-            actionButtons = `
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View</button>
-                <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
-            `;
+        // Pending
+        actionButtons = `
+            <button onclick="handleAcceptRequest(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
+                <i class="fa-solid fa-check text-xs"></i>
+                <span>Accept Request</span>
+            </button>
+            <button onclick="openDeclineConfirmModal(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg transition-all">
+                Decline Request
+            </button>
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">
+                View Details
+            </button>
+        `;
+        if (!isDirectBuy) {
+            const isSubmitted = isQuotationSubmittedForRequest(mr);
+            const existingQuoteId = getExistingQuoteIdForRequest(mr);
+            if (isSubmitted) {
+                actionButtons += `
+                    <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>Quotation Submitted</span>
+                    </span>
+                    ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
+                `;
+            } else {
+                actionButtons += `
+                    <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+                `;
+            }
         }
     }
 
@@ -633,49 +883,68 @@ function createMaterialRequestRow(mr) {
         ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-bold uppercase block w-fit mb-1">Direct Buy</span>`
         : `<span class="text-[10px] bg-blue-100 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold uppercase block w-fit mb-1">Posted Req</span>`;
 
-    let actionButtons = "";
-    if (isDirectBuy) {
-        const directStatus = (mr.status || "NEW").trim().toUpperCase();
-        const isAccepted = ["ACCEPTED", "ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(directStatus);
-        const isDeclined = ["DECLINED", "REJECTED", "CANCELLED"].includes(directStatus);
+    const sellerStatus = (mr.sellerStatus || "").toUpperCase();
+    const generalStatus = (mr.status || "NEW").toUpperCase();
+    const isAccepted = sellerStatus === "ACCEPTED" || ["ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(generalStatus);
+    const isDeclined = sellerStatus === "DECLINED" || (isDirectBuy && ["DECLINED", "REJECTED"].includes(generalStatus));
 
-        if (isAccepted) {
-            actionButtons = `
-                <span class="px-2.5 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-circle-check text-teal-600"></i>
-                    <span>Accepted / ऑर्डर स्वीकृत</span>
-                </span>
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
-            `;
-        } else if (isDeclined) {
-            actionButtons = `
-                <span class="px-2.5 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+    let actionButtons = "";
+    if (isAccepted) {
+        actionButtons = `
+            <button disabled class="px-2.5 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-check text-xs"></i>
+                <span>Request Accepted</span>
+            </button>
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
+        `;
+    } else if (isDeclined) {
+        tr.classList.add("opacity-60", "bg-slate-50");
+        const cdKey = "cd-row-" + (mr.id || rId);
+        const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+        let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+        actionButtons = `
+            <div class="inline-flex flex-col items-end gap-1">
+                <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm opacity-80">
                     <i class="fa-solid fa-circle-xmark text-rose-600"></i>
-                    <span>Declined / अस्वीकृत</span>
+                    <span>Request Declined</span>
                 </span>
-            `;
-        } else {
-            actionButtons = `
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">Review Order</button>
-            `;
-        }
+                <span id="${cdKey}" class="text-[10px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed from your dashboard in ${formatRemainingDuration(remSec)}</span>
+            </div>
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all opacity-75">View Details</button>
+        `;
+        registerCountdown(cdKey, expiryTimestamp, () => {
+            tr.remove();
+            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+        });
     } else {
-        const isSubmitted = isQuotationSubmittedForRequest(mr);
-        const existingQuoteId = getExistingQuoteIdForRequest(mr);
-        if (isSubmitted) {
-            actionButtons = `
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
-                <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                    <span>Quotation Submitted</span>
-                </span>
-                ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
-            `;
-        } else {
-            actionButtons = `
-                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View</button>
-                <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
-            `;
+        // Pending
+        actionButtons = `
+            <button onclick="handleAcceptRequest(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">
+                Accept Request
+            </button>
+            <button onclick="openDeclineConfirmModal(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-semibold transition-all">
+                Decline Request
+            </button>
+            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">
+                View
+            </button>
+        `;
+        if (!isDirectBuy) {
+            const isSubmitted = isQuotationSubmittedForRequest(mr);
+            const existingQuoteId = getExistingQuoteIdForRequest(mr);
+            if (isSubmitted) {
+                actionButtons += `
+                    <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>Quotation Submitted</span>
+                    </span>
+                    ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
+                `;
+            } else {
+                actionButtons += `
+                    <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
+                `;
+            }
         }
     }
 
@@ -711,6 +980,7 @@ function openMaterialRequestModal(requestId) {
         return;
     }
 
+    const rId = mr.requestId || ("MR-" + mr.id);
     const isDirectBuy = (mr.requestType === 'DIRECT_MATERIAL');
 
     const titleEl = document.getElementById('detailModalTitle');
@@ -806,10 +1076,6 @@ function openMaterialRequestModal(requestId) {
     const estTotalEl = document.getElementById('detailModalEstTotal');
     const verCodeEl = document.getElementById('detailModalVerCode');
 
-    const acceptBtn = document.getElementById('detailModalAcceptBtn');
-    const declineBtn = document.getElementById('detailModalDeclineBtn');
-    const quoteBtn = document.getElementById('detailModalQuoteBtn');
-
     if (isDirectBuy) {
         if (snapshotContainer) {
             snapshotContainer.classList.remove('hidden');
@@ -830,28 +1096,58 @@ function openMaterialRequestModal(requestId) {
                 }
             }
         }
-
-        if (quoteBtn) quoteBtn.classList.add('hidden');
-
-        const rawStatus = (mr.status || 'NEW').toUpperCase();
-        if (rawStatus === 'WAITING_FOR_ACCEPTANCE' || rawStatus === 'PENDING' || rawStatus === 'NEW' || rawStatus === 'OPEN') {
-            if (acceptBtn) {
-                acceptBtn.classList.remove('hidden');
-                acceptBtn.onclick = () => acceptDirectBuyRequest(mr.id, rId);
-            }
-            if (declineBtn) {
-                declineBtn.classList.remove('hidden');
-                declineBtn.onclick = () => declineDirectBuyRequest(mr.id, rId);
-            }
-        } else {
-            if (acceptBtn) acceptBtn.classList.add('hidden');
-            if (declineBtn) declineBtn.classList.add('hidden');
-        }
     } else {
         if (snapshotContainer) snapshotContainer.classList.add('hidden');
-        if (acceptBtn) acceptBtn.classList.add('hidden');
+    }
+
+    const acceptBtn = document.getElementById('detailModalAcceptBtn');
+    const declineBtn = document.getElementById('detailModalDeclineBtn');
+    const quoteBtn = document.getElementById('detailModalQuoteBtn');
+
+    const sellerStatus = (mr.sellerStatus || "").toUpperCase();
+    const generalStatus = (mr.status || "NEW").toUpperCase();
+    const isAccepted = sellerStatus === "ACCEPTED" || ["ORDER_ACCEPTED", "PROCESSING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"].includes(generalStatus);
+    const isDeclined = sellerStatus === "DECLINED" || (isDirectBuy && ["DECLINED", "REJECTED"].includes(generalStatus));
+
+    if (isAccepted) {
+        if (acceptBtn) {
+            acceptBtn.className = "px-4 py-2 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-semibold opacity-75 cursor-not-allowed inline-flex items-center space-x-1.5 shadow-sm";
+            acceptBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i><span>Request Accepted</span>';
+            acceptBtn.disabled = true;
+            acceptBtn.onclick = null;
+            acceptBtn.classList.remove('hidden');
+        }
         if (declineBtn) declineBtn.classList.add('hidden');
-        if (quoteBtn) {
+        if (quoteBtn) quoteBtn.classList.add('hidden');
+    } else if (isDeclined) {
+        if (declineBtn) {
+            const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+            let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+            declineBtn.className = "px-4 py-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl font-semibold opacity-75 cursor-not-allowed inline-flex items-center space-x-1.5 shadow-sm";
+            declineBtn.innerHTML = `<i class="fa-solid fa-circle-xmark text-xs"></i><span>Request Declined (${formatRemainingDuration(remSec)})</span>`;
+            declineBtn.disabled = true;
+            declineBtn.onclick = null;
+            declineBtn.classList.remove('hidden');
+        }
+        if (acceptBtn) acceptBtn.classList.add('hidden');
+        if (quoteBtn) quoteBtn.classList.add('hidden');
+    } else {
+        // Pending
+        if (acceptBtn) {
+            acceptBtn.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5";
+            acceptBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i><span>Accept Request</span>';
+            acceptBtn.disabled = false;
+            acceptBtn.onclick = () => handleAcceptRequest(mr.id, rId, acceptBtn);
+            acceptBtn.classList.remove('hidden');
+        }
+        if (declineBtn) {
+            declineBtn.className = "px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition-all";
+            declineBtn.innerHTML = 'Decline Request';
+            declineBtn.disabled = false;
+            declineBtn.onclick = () => openDeclineConfirmModal(mr.id, rId, declineBtn);
+            declineBtn.classList.remove('hidden');
+        }
+        if (!isDirectBuy && quoteBtn) {
             quoteBtn.classList.remove('hidden');
             const isSubmitted = isQuotationSubmittedForRequest(mr);
             const existingQuoteId = getExistingQuoteIdForRequest(mr);
@@ -880,6 +1176,8 @@ function openMaterialRequestModal(requestId) {
                     );
                 };
             }
+        } else if (quoteBtn) {
+            quoteBtn.classList.add('hidden');
         }
     }
 
@@ -887,77 +1185,13 @@ function openMaterialRequestModal(requestId) {
 }
 
 async function acceptDirectBuyRequest(id, rId) {
-    if (!confirm('Are you sure you want to accept this Direct Material Request?')) return;
-    const token = getCleanToken();
-    const API_BASE_URL = getApiBaseUrl();
     const acceptBtn = document.getElementById('detailModalAcceptBtn');
-    const declineBtn = document.getElementById('detailModalDeclineBtn');
-    if (acceptBtn) acceptBtn.disabled = true;
-    if (declineBtn) declineBtn.disabled = true;
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/accept`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-            showToast('Direct Material Request accepted! Verification code: ' + (data.verificationCode || ''));
-            closeModal('materialRequestDetailModal');
-            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
-            if (typeof loadSellerOrders === 'function') loadSellerOrders();
-        } else if (res.status === 409) {
-            showToast('This material requirement has already been accepted and is being fulfilled in your Orders tab.');
-            closeModal('materialRequestDetailModal');
-            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
-            if (typeof loadSellerOrders === 'function') loadSellerOrders();
-        } else {
-            showToast(data.message || data.error || 'Failed to accept request');
-        }
-    } catch (err) {
-        console.error('Accept error:', err);
-        showToast('Network error while accepting request');
-    } finally {
-        if (acceptBtn) acceptBtn.disabled = false;
-        if (declineBtn) declineBtn.disabled = false;
-    }
+    await handleAcceptRequest(id, rId, acceptBtn);
 }
 
-async function declineDirectBuyRequest(id, rId) {
-    if (!confirm('Are you sure you want to decline this Direct Material Request?')) return;
-    const token = getCleanToken();
-    const API_BASE_URL = getApiBaseUrl();
-    const acceptBtn = document.getElementById('detailModalAcceptBtn');
+function declineDirectBuyRequest(id, rId) {
     const declineBtn = document.getElementById('detailModalDeclineBtn');
-    if (acceptBtn) acceptBtn.disabled = true;
-    if (declineBtn) declineBtn.disabled = true;
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/material-requests/${id}/decline`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-            showToast('Direct Material Request declined.');
-            closeModal('materialRequestDetailModal');
-            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
-        } else {
-            showToast(data.message || data.error || 'Failed to decline request');
-        }
-    } catch (err) {
-        console.error('Decline error:', err);
-        showToast('Network error while declining request');
-    } finally {
-        if (acceptBtn) acceptBtn.disabled = false;
-        if (declineBtn) declineBtn.disabled = false;
-    }
+    openDeclineConfirmModal(id, rId, declineBtn);
 }
 
 function createRequirementCard(p) {

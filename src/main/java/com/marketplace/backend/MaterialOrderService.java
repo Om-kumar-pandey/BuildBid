@@ -31,6 +31,7 @@ public class MaterialOrderService {
     private final MaterialRequestRepository materialRequestRepository;
     private final QuotationRepository quotationRepository;
     private final NotificationService notificationService;
+    private SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository;
 
     @Autowired
     public MaterialOrderService(
@@ -49,6 +50,11 @@ public class MaterialOrderService {
         this.materialRequestRepository = materialRequestRepository;
         this.quotationRepository = quotationRepository;
         this.notificationService = notificationService;
+    }
+
+    @Autowired(required = false)
+    public void setSellerMaterialRequestActionRepository(SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository) {
+        this.sellerMaterialRequestActionRepository = sellerMaterialRequestActionRepository;
     }
 
     public MaterialOrderService(
@@ -70,6 +76,119 @@ public class MaterialOrderService {
 
     public MaterialOrderService(MaterialOrderRepository materialOrderRepository) {
         this(materialOrderRepository, null, null, null, null, null, null);
+    }
+
+    /**
+     * Atomically creates a MaterialOrder from an accepted MaterialRequest.
+     * Captures line items, agreed amounts, delivery address, buyer details, and timestamps.
+     * Idempotent: returns existing order if one already exists for this request and seller.
+     */
+    @Transactional
+    public MaterialOrder createOrderForAcceptedMaterialRequest(
+            MaterialRequest materialRequest,
+            MarketplaceBackendApplication.MarketplaceUser seller
+    ) {
+        if (materialRequest == null || materialRequest.getId() == null) {
+            throw new IllegalArgumentException("Valid material request required.");
+        }
+        if (seller == null || seller.getId() == null) {
+            throw new IllegalArgumentException("Valid seller required.");
+        }
+
+        // Idempotency: If an order already exists for this material request and seller, return it
+        Optional<MaterialOrder> existingOrder = materialOrderRepository.findFirstByMaterialRequestIdAndSellerId(
+                materialRequest.getId(), seller.getId()
+        );
+        if (existingOrder.isPresent()) {
+            return existingOrder.get();
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser buyer = materialRequest.getBuyer();
+        if (buyer == null) {
+            throw new IllegalStateException("Material request buyer is missing.");
+        }
+
+        String buyerRole = materialRequest.getBuyerRole();
+        if (buyerRole == null || buyerRole.isBlank()) {
+            if (buyer.getRoles() != null && buyer.getRoles().contains(MarketplaceBackendApplication.Role.CONTRACTOR)) {
+                buyerRole = "CONTRACTOR";
+            } else if (buyer.getRoles() != null && (buyer.getRoles().contains(MarketplaceBackendApplication.Role.PROFESSIONAL)
+                    || buyer.getRoles().contains(MarketplaceBackendApplication.Role.SERVICE_PROVIDER))) {
+                buyerRole = "PROFESSIONAL";
+            } else {
+                buyerRole = "CUSTOMER";
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        MaterialOrder order = new MaterialOrder();
+        order.setOrderCode(generateOrderCode());
+        order.setMaterialRequest(materialRequest);
+        order.setBuyer(buyer);
+        order.setBuyerRole(buyerRole);
+        order.setSeller(seller);
+
+        double matAmount = materialRequest.getMaterialAmount() != null
+                ? materialRequest.getMaterialAmount()
+                : (materialRequest.getMaterialPrice() != null ? materialRequest.getMaterialPrice() : 0.0);
+        double freight = materialRequest.getTransportationCost() != null ? materialRequest.getTransportationCost() : 0.0;
+        double total = materialRequest.getEstimatedTotal() != null
+                ? materialRequest.getEstimatedTotal()
+                : (matAmount + freight);
+
+        order.setMaterialAmount(matAmount);
+        order.setTransportationAmount(freight);
+        order.setTaxGst(0.0);
+        order.setTotalAmount(total);
+        order.setCurrency("INR");
+
+        order.setDeliveryAddress(materialRequest.getDeliveryAddress() != null ? materialRequest.getDeliveryAddress() : "");
+        String contact = materialRequest.getContactPhone() != null ? materialRequest.getContactPhone() : "";
+        if (contact.isBlank() && buyer.getPhone() != null) {
+            contact = buyer.getPhone();
+        }
+        order.setContactNumber(contact);
+        order.setExpectedDeliveryDate(materialRequest.getExpectedDeliveryDate() != null ? materialRequest.getExpectedDeliveryDate() : "Not Set");
+        order.setPaymentTerms("STANDARD");
+
+        order.setOrderStatus("CONFIRMED");
+        order.setPaymentStatus("PENDING");
+        order.setDeliveryStatus("PENDING");
+
+        order.setCreatedAt(now);
+        order.setUpdatedAt(now);
+        order.setConfirmedAt(now);
+
+        // Copy items from MaterialRequestItem
+        if (materialRequest.getItems() != null && !materialRequest.getItems().isEmpty()) {
+            for (MaterialRequestItem mri : materialRequest.getItems()) {
+                MaterialOrderItem moi = new MaterialOrderItem();
+                moi.setMaterialOrder(order);
+                moi.setMaterialName(mri.getMaterialName() != null ? mri.getMaterialName() : "Material Item");
+                moi.setQuantity(mri.getQuantity() != null ? mri.getQuantity() : 1.0);
+                moi.setUnit(mri.getUnit() != null ? mri.getUnit() : "");
+                double unitPrice = materialRequest.getMaterialPrice() != null ? materialRequest.getMaterialPrice() : 0.0;
+                moi.setUnitPrice(unitPrice);
+                double subtotal = unitPrice > 0 ? (moi.getQuantity() * unitPrice) : (moi.getQuantity());
+                moi.setSubtotal(subtotal);
+                moi.setItemStatus("CONFIRMED");
+                moi.setCreatedAt(now);
+                order.addItem(moi);
+            }
+        }
+
+        try {
+            return materialOrderRepository.save(order);
+        } catch (DataIntegrityViolationException dive) {
+            Optional<MaterialOrder> retry = materialOrderRepository.findFirstByMaterialRequestIdAndSellerId(
+                    materialRequest.getId(), seller.getId()
+            );
+            if (retry.isPresent()) {
+                return retry.get();
+            }
+            throw dive;
+        }
     }
 
     /**
@@ -438,6 +557,7 @@ public class MaterialOrderService {
             throw new IllegalArgumentException("Valid seller authentication required.");
         }
         List<Map<String, Object>> result = new ArrayList<>();
+        Set<Long> seenMrIds = new HashSet<>();
 
         // 1. Material Orders (Quotation & Multi-Seller accepted orders)
         List<MaterialOrder> orders = materialOrderRepository.findBySellerIdOrderByCreatedAtDesc(seller.getId());
@@ -452,6 +572,9 @@ public class MaterialOrderService {
                 if (!map.containsKey("orderType") || map.get("orderType") == null) {
                     map.put("orderType", "STANDARD");
                 }
+                if (o.getMaterialRequest() != null && o.getMaterialRequest().getId() != null) {
+                    seenMrIds.add(o.getMaterialRequest().getId());
+                }
                 result.add(map);
             }
         }
@@ -462,8 +585,25 @@ public class MaterialOrderService {
                     .findByTargetSellerAndRequestTypeOrderByCreatedAtDesc(seller, "DIRECT_MATERIAL");
             if (directBuyRequests != null) {
                 for (MaterialRequest mr : directBuyRequests) {
-                    if (isAcceptedDirectBuyStatus(mr.getStatus())) {
+                    if (isAcceptedDirectBuyStatus(mr.getStatus()) && !seenMrIds.contains(mr.getId())) {
                         result.add(mapDirectBuyRequestToOrderCard(mr));
+                        seenMrIds.add(mr.getId());
+                    }
+                }
+            }
+        }
+
+        // 3. Accepted Seller Material Request Actions
+        if (sellerMaterialRequestActionRepository != null) {
+            List<SellerMaterialRequestAction> sellerActions = sellerMaterialRequestActionRepository.findBySellerId(seller.getId());
+            if (sellerActions != null) {
+                for (SellerMaterialRequestAction action : sellerActions) {
+                    if ("ACCEPTED".equalsIgnoreCase(action.getStatus()) && action.getMaterialRequest() != null) {
+                        MaterialRequest mr = action.getMaterialRequest();
+                        if (!seenMrIds.contains(mr.getId())) {
+                            result.add(mapDirectBuyRequestToOrderCard(mr));
+                            seenMrIds.add(mr.getId());
+                        }
                     }
                 }
             }
