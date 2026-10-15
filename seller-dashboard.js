@@ -740,63 +740,95 @@ function createMaterialRequestCard(mr) {
     const isDeclined = sellerStatus === "DECLINED" || (isDirectBuy && ["DECLINED", "REJECTED"].includes(generalStatus));
 
     let actionButtons = "";
-    if (isAccepted) {
-        actionButtons = `
-            <button disabled class="px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-check text-xs"></i>
-                <span>Request Accepted</span>
-            </button>
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View Details</button>
-        `;
-    } else if (isDeclined) {
-        div.classList.add("opacity-60", "border-dashed");
-        const cdKey = "cd-card-" + (mr.id || rId);
-        const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
-        let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
-        actionButtons = `
-            <div class="flex flex-col items-end gap-1">
-                <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm opacity-80">
-                    <i class="fa-solid fa-circle-xmark text-rose-600"></i>
-                    <span>Request Declined</span>
-                </span>
-                <span id="${cdKey}" class="text-[11px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed from your dashboard in ${formatRemainingDuration(remSec)}</span>
-            </div>
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all opacity-75">View Details</button>
-        `;
-        registerCountdown(cdKey, expiryTimestamp, () => {
-            div.remove();
-            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
-        });
-    } else {
-        // Pending
-        actionButtons = `
-            <button onclick="handleAcceptRequest(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
-                <i class="fa-solid fa-check text-xs"></i>
-                <span>Accept Request</span>
-            </button>
-            <button onclick="openDeclineConfirmModal(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg transition-all">
-                Decline Request
-            </button>
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">
-                View Details
-            </button>
-        `;
-        if (!isDirectBuy) {
-            const isSubmitted = isQuotationSubmittedForRequest(mr);
-            const existingQuoteId = getExistingQuoteIdForRequest(mr);
-            if (isSubmitted) {
-                actionButtons += `
-                    <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                        <span>Quotation Submitted</span>
+    if (isDirectBuy) {
+        if (isAccepted) {
+            actionButtons = `
+                <button disabled class="px-3 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-check text-xs"></i>
+                    <span>Request Accepted</span>
+                </button>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">View Details</button>
+            `;
+        } else if (isDeclined) {
+            div.classList.add("opacity-60", "border-dashed", "bg-rose-50/20");
+            const cdKey = "cd-card-" + (mr.id || rId);
+            const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+            let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+            actionButtons = `
+                <div class="flex flex-col items-end gap-1">
+                    <span class="px-2.5 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-black tracking-wider inline-flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-ban text-rose-600"></i>
+                        <span>REJECTED</span>
                     </span>
-                    ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
+                    <span id="${cdKey}" class="text-[11px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed from your dashboard in ${formatRemainingDuration(remSec)}</span>
+                </div>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all opacity-75">View Details</button>
+            `;
+            registerCountdown(cdKey, expiryTimestamp, () => {
+                div.remove();
+                if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+            });
+        } else {
+            // Direct Buy Pending: Accept Request, Decline Request, View Details
+            actionButtons = `
+                <button onclick="handleAcceptRequest(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-check text-xs"></i>
+                    <span>Accept Request</span>
+                </button>
+                <button onclick="openDeclineConfirmModal(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg transition-all">
+                    Decline Request
+                </button>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">
+                    View Details
+                </button>
+            `;
+        }
+    } else {
+        // STEP 2: POSTED MATERIAL REQUIREMENTS: STRICTLY TWO CARD ACTIONS (View & Send Quote / Quotation Already Sent)
+        if (isDeclined) {
+            div.classList.add("opacity-60", "border-dashed");
+            const cdKey = "cd-card-" + (mr.id || rId);
+            const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+            let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+            actionButtons = `
+                <div class="flex flex-col items-end gap-1">
+                    <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm opacity-80">
+                        <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+                        <span>Dismissed</span>
+                    </span>
+                    <span id="${cdKey}" class="text-[11px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed in ${formatRemainingDuration(remSec)}</span>
+                </div>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all opacity-75">View Details</button>
+            `;
+            registerCountdown(cdKey, expiryTimestamp, () => {
+                div.remove();
+                if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+            });
+        } else {
+            const isSubmitted = isQuotationSubmittedForRequest(mr);
+            let quoteAction = "";
+            if (isSubmitted) {
+                quoteAction = `
+                    <span class="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm cursor-default" title="You have already submitted a quotation for this requirement">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>Quotation Already Sent</span>
+                    </span>
                 `;
             } else {
-                actionButtons += `
-                    <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all">Send Quote</button>
+                quoteAction = `
+                    <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || title)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                        <span>Send Quote</span>
+                    </button>
                 `;
             }
+
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition-all">
+                    View
+                </button>
+                ${quoteAction}
+            `;
         }
     }
 
@@ -889,62 +921,91 @@ function createMaterialRequestRow(mr) {
     const isDeclined = sellerStatus === "DECLINED" || (isDirectBuy && ["DECLINED", "REJECTED"].includes(generalStatus));
 
     let actionButtons = "";
-    if (isAccepted) {
-        actionButtons = `
-            <button disabled class="px-2.5 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-check text-xs"></i>
-                <span>Request Accepted</span>
-            </button>
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
-        `;
-    } else if (isDeclined) {
-        tr.classList.add("opacity-60", "bg-slate-50");
-        const cdKey = "cd-row-" + (mr.id || rId);
-        const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
-        let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
-        actionButtons = `
-            <div class="inline-flex flex-col items-end gap-1">
-                <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm opacity-80">
-                    <i class="fa-solid fa-circle-xmark text-rose-600"></i>
-                    <span>Request Declined</span>
-                </span>
-                <span id="${cdKey}" class="text-[10px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed from your dashboard in ${formatRemainingDuration(remSec)}</span>
-            </div>
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all opacity-75">View Details</button>
-        `;
-        registerCountdown(cdKey, expiryTimestamp, () => {
-            tr.remove();
-            if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
-        });
-    } else {
-        // Pending
-        actionButtons = `
-            <button onclick="handleAcceptRequest(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">
-                Accept Request
-            </button>
-            <button onclick="openDeclineConfirmModal(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-semibold transition-all">
-                Decline Request
-            </button>
-            <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">
-                View
-            </button>
-        `;
-        if (!isDirectBuy) {
-            const isSubmitted = isQuotationSubmittedForRequest(mr);
-            const existingQuoteId = getExistingQuoteIdForRequest(mr);
-            if (isSubmitted) {
-                actionButtons += `
-                    <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                        <span>Quotation Submitted</span>
+    if (isDirectBuy) {
+        if (isAccepted) {
+            actionButtons = `
+                <button disabled class="px-2.5 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold opacity-75 cursor-not-allowed inline-flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-check text-xs"></i>
+                    <span>Request Accepted</span>
+                </button>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">View Details</button>
+            `;
+        } else if (isDeclined) {
+            tr.classList.add("opacity-60", "bg-rose-50/20");
+            const cdKey = "cd-row-" + (mr.id || rId);
+            const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+            let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+            actionButtons = `
+                <div class="inline-flex flex-col items-end gap-1">
+                    <span class="px-2.5 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-black tracking-wider inline-flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-ban text-rose-600"></i>
+                        <span>REJECTED</span>
                     </span>
-                    ${existingQuoteId ? `<button onclick="viewExistingQuotation('${escapeJs(existingQuoteId)}')" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg transition-all">View Quote</button>` : ''}
+                    <span id="${cdKey}" class="text-[10px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed in ${formatRemainingDuration(remSec)}</span>
+                </div>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all opacity-75">View Details</button>
+            `;
+            registerCountdown(cdKey, expiryTimestamp, () => {
+                tr.remove();
+                if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+            });
+        } else {
+            // Direct Buy Pending: Accept Request, Decline Request, View
+            actionButtons = `
+                <button onclick="handleAcceptRequest(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all">
+                    Accept Request
+                </button>
+                <button onclick="openDeclineConfirmModal(${mr.id}, '${escapeJs(rId)}', this)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-semibold transition-all">
+                    Decline Request
+                </button>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">
+                    View
+                </button>
+            `;
+        }
+    } else {
+        // STEP 2: POSTED MATERIAL REQUIREMENTS: STRICTLY TWO CARD ACTIONS (View & Send Quote / Quotation Already Sent)
+        if (isDeclined) {
+            tr.classList.add("opacity-60", "bg-slate-50");
+            const cdKey = "cd-row-" + (mr.id || rId);
+            const expiryTimestamp = mr.expiryAt || (Date.now() + 86400000);
+            let remSec = mr.remainingSeconds != null ? mr.remainingSeconds : Math.max(0, Math.floor((Date.parse(expiryTimestamp) - Date.now()) / 1000));
+            actionButtons = `
+                <div class="inline-flex flex-col items-end gap-1">
+                    <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm opacity-80">
+                        <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+                        <span>Dismissed</span>
+                    </span>
+                    <span id="${cdKey}" class="text-[10px] font-semibold text-rose-600 bg-rose-50/80 px-2 py-0.5 rounded border border-rose-200/60">Removed in ${formatRemainingDuration(remSec)}</span>
+                </div>
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all opacity-75">View Details</button>
+            `;
+            registerCountdown(cdKey, expiryTimestamp, () => {
+                tr.remove();
+                if (typeof refreshSellerRequests === 'function') refreshSellerRequests();
+            });
+        } else {
+            const isSubmitted = isQuotationSubmittedForRequest(mr);
+            let quoteAction = "";
+            if (isSubmitted) {
+                quoteAction = `
+                    <span class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm cursor-default" title="You have already submitted a quotation for this requirement">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>Quotation Already Sent</span>
+                    </span>
                 `;
             } else {
-                actionButtons += `
+                quoteAction = `
                     <button onclick="openQuotationModal('${escapeJs(rId)}', '${escapeJs(firstItem.materialName || matSummary)}', ${firstItem.quantity || 1}, '${escapeJs(firstItem.unit || 'Units')}', ${mr.id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">Send Quote</button>
                 `;
             }
+
+            actionButtons = `
+                <button onclick="openMaterialRequestModal('${escapeJs(rId)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">
+                    View
+                </button>
+                ${quoteAction}
+            `;
         }
     }
 
@@ -1133,51 +1194,57 @@ function openMaterialRequestModal(requestId) {
         if (quoteBtn) quoteBtn.classList.add('hidden');
     } else {
         // Pending
-        if (acceptBtn) {
-            acceptBtn.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5";
-            acceptBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i><span>Accept Request</span>';
-            acceptBtn.disabled = false;
-            acceptBtn.onclick = () => handleAcceptRequest(mr.id, rId, acceptBtn);
-            acceptBtn.classList.remove('hidden');
-        }
-        if (declineBtn) {
-            declineBtn.className = "px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition-all";
-            declineBtn.innerHTML = 'Decline Request';
-            declineBtn.disabled = false;
-            declineBtn.onclick = () => openDeclineConfirmModal(mr.id, rId, declineBtn);
-            declineBtn.classList.remove('hidden');
-        }
-        if (!isDirectBuy && quoteBtn) {
-            quoteBtn.classList.remove('hidden');
-            const isSubmitted = isQuotationSubmittedForRequest(mr);
-            const existingQuoteId = getExistingQuoteIdForRequest(mr);
-            if (isSubmitted) {
-                quoteBtn.className = "px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold transition-all flex items-center space-x-1.5 cursor-pointer";
-                quoteBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i><span>Quotation Submitted</span>`;
-                quoteBtn.onclick = function() {
-                    closeModal('materialRequestDetailModal');
-                    if (existingQuoteId) {
-                        viewExistingQuotation(existingQuoteId);
-                    }
-                };
-            } else {
-                quoteBtn.className = "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5";
-                quoteBtn.innerHTML = `<i class="fa-solid fa-paper-plane text-xs"></i><span>Send Quotation</span>`;
-                quoteBtn.onclick = function() {
-                    closeModal('materialRequestDetailModal');
-                    const items = mr.items || [];
-                    const firstItem = items[0] || {};
-                    openQuotationModal(
-                        mr.requestId || ('MR-' + mr.id),
-                        firstItem.materialName || mr.materialSummary || 'Requested Material',
-                        firstItem.quantity || 1,
-                        firstItem.unit || 'Units',
-                        mr.id
-                    );
-                };
+        if (isDirectBuy) {
+            if (acceptBtn) {
+                acceptBtn.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5";
+                acceptBtn.innerHTML = '<i class="fa-solid fa-check text-xs"></i><span>Accept Request</span>';
+                acceptBtn.disabled = false;
+                acceptBtn.onclick = () => handleAcceptRequest(mr.id, rId, acceptBtn);
+                acceptBtn.classList.remove('hidden');
             }
-        } else if (quoteBtn) {
-            quoteBtn.classList.add('hidden');
+            if (declineBtn) {
+                declineBtn.className = "px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition-all";
+                declineBtn.innerHTML = 'Decline Request';
+                declineBtn.disabled = false;
+                declineBtn.onclick = () => openDeclineConfirmModal(mr.id, rId, declineBtn);
+                declineBtn.classList.remove('hidden');
+            }
+            if (quoteBtn) quoteBtn.classList.add('hidden');
+        } else {
+            // STEP 2: Posted Material Requirement: NEVER show Accept Request in View modal
+            if (acceptBtn) acceptBtn.classList.add('hidden');
+            if (declineBtn) {
+                declineBtn.className = "px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition-all";
+                declineBtn.innerHTML = 'Decline Request';
+                declineBtn.disabled = false;
+                declineBtn.onclick = () => openDeclineConfirmModal(mr.id, rId, declineBtn);
+                declineBtn.classList.remove('hidden');
+            }
+            if (quoteBtn) {
+                quoteBtn.classList.remove('hidden');
+                const isSubmitted = isQuotationSubmittedForRequest(mr);
+                const existingQuoteId = getExistingQuoteIdForRequest(mr);
+                if (isSubmitted) {
+                    quoteBtn.className = "px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold transition-all flex items-center space-x-1.5 cursor-default";
+                    quoteBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i><span>Quotation Already Sent</span>`;
+                    quoteBtn.onclick = null;
+                } else {
+                    quoteBtn.className = "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center space-x-1.5";
+                    quoteBtn.innerHTML = `<i class="fa-solid fa-paper-plane text-xs"></i><span>Send Quotation</span>`;
+                    quoteBtn.onclick = function() {
+                        closeModal('materialRequestDetailModal');
+                        const items = mr.items || [];
+                        const firstItem = items[0] || {};
+                        openQuotationModal(
+                            mr.requestId || ('MR-' + mr.id),
+                            firstItem.materialName || mr.materialSummary || 'Requested Material',
+                            firstItem.quantity || 1,
+                            firstItem.unit || 'Units',
+                            mr.id
+                        );
+                    };
+                }
+            }
         }
     }
 
@@ -2529,7 +2596,9 @@ async function handleSellerNotificationClick(notifId, type, refId, isUnread) {
     }
 
     const t = (type || "").toUpperCase();
-    if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
+    if (t.includes("QUOTATION_REJECTED")) {
+        switchTab('quotations');
+    } else if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
         switchTab('orders');
     } else if (t.includes("QUOTATION") || t.includes("REQUIREMENT") || t.includes("LEAD")) {
         switchTab('requests');

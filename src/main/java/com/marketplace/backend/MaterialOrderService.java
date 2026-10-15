@@ -174,6 +174,24 @@ public class MaterialOrderService {
                 moi.setSubtotal(subtotal);
                 moi.setItemStatus("CONFIRMED");
                 moi.setCreatedAt(now);
+
+                // Attempt to link matching catalog material if available
+                Material matchedMaterial = null;
+                if (materialRepository != null && mri.getMaterialName() != null && seller != null) {
+                    try {
+                        List<Material> sellerMats = materialRepository.findBySellerOrderByCreatedAtDesc(seller);
+                        if (sellerMats != null) {
+                            for (Material sm : sellerMats) {
+                                if (sm.getMaterialName() != null && sm.getMaterialName().trim().equalsIgnoreCase(mri.getMaterialName().trim())) {
+                                    matchedMaterial = sm;
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+                moi.setMaterial(matchedMaterial);
+
                 order.addItem(moi);
             }
         }

@@ -102,6 +102,9 @@ public class Quotation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<QuotationItem> items = new ArrayList<>();
@@ -313,5 +316,13 @@ public class Quotation {
         }
         this.items.add(item);
         item.setQuotation(this);
+    }
+
+    public LocalDateTime getRejectedAt() {
+        return rejectedAt;
+    }
+
+    public void setRejectedAt(LocalDateTime rejectedAt) {
+        this.rejectedAt = rejectedAt;
     }
 }

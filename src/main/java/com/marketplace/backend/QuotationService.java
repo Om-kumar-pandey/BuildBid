@@ -194,7 +194,7 @@ public class QuotationService {
                 throw new SecurityException("You are not within the eligible service area for this material requirement.");
             }
 
-            // Duplicate active quotation check
+            // Duplicate active quotation check: prevent duplicate submission by the same seller for the same requirement
             List<Quotation> existingActive = quotationRepository.findByMaterialRequestIdAndProviderIdAndStatusIn(
                     matReq.getId(), provider.getId(), ACTIVE_STATUSES
             );
@@ -277,7 +277,9 @@ public class QuotationService {
 
                     String unit = getString(itemMap, "unit");
                     if (unit == null || unit.isBlank()) unit = getString(itemMap, "quotedUnit");
-                    if (unit == null || unit.isBlank() && reqItem != null) unit = reqItem.getUnit();
+                    if ((unit == null || unit.isBlank()) && reqItem != null) {
+                        unit = reqItem.getUnit();
+                    }
                     if (unit == null || unit.isBlank()) unit = catalogMaterial.getUnit();
                     if (unit == null || unit.isBlank()) unit = "Unit";
 
@@ -522,7 +524,15 @@ public class QuotationService {
         if (provider == null) return Collections.emptyList();
         List<Quotation> list = quotationRepository.findByProviderIdOrderByCreatedAtDesc(provider.getId());
         List<Map<String, Object>> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
         for (Quotation q : list) {
+            // Step 7: 24-hour rejection expiry
+            if ("REJECTED".equalsIgnoreCase(q.getStatus())) {
+                LocalDateTime refRejectionTime = q.getRejectedAt() != null ? q.getRejectedAt() : q.getUpdatedAt();
+                if (refRejectionTime != null && !now.isBefore(refRejectionTime.plusHours(24))) {
+                    continue; // Exclude rejected quotation at or after 24 hours
+                }
+            }
             result.add(toResponseMap(q));
         }
         return result;
@@ -737,8 +747,24 @@ public class QuotationService {
             for (Quotation comp : activeComp) {
                 if (!comp.getId().equals(quotation.getId())) {
                     comp.setStatus("REJECTED");
+                    if (comp.getRejectedAt() == null) {
+                        comp.setRejectedAt(now);
+                    }
                     comp.setUpdatedAt(now);
                     quotationRepository.save(comp);
+                    if (notificationService != null && comp.getProvider() != null) {
+                        try {
+                            notificationService.createNotification(
+                                    comp.getProvider(),
+                                    "Quotation Rejected",
+                                    "कोटेशन अस्वीकृत",
+                                    "This quotation has been rejected.",
+                                    "यह कोटेशन अस्वीकृत कर दिया गया है।",
+                                    "QUOTATION_REJECTED",
+                                    comp.getQuotationId()
+                            );
+                        } catch (Exception ignored) {}
+                    }
                 }
             }
 
@@ -805,8 +831,24 @@ public class QuotationService {
             for (Quotation comp : activeComp) {
                 if (!comp.getId().equals(quotation.getId())) {
                     comp.setStatus("REJECTED");
+                    if (comp.getRejectedAt() == null) {
+                        comp.setRejectedAt(now);
+                    }
                     comp.setUpdatedAt(now);
                     quotationRepository.save(comp);
+                    if (notificationService != null && comp.getProvider() != null) {
+                        try {
+                            notificationService.createNotification(
+                                    comp.getProvider(),
+                                    "Quotation Rejected",
+                                    "कोटेशन अस्वीकृत",
+                                    "This quotation has been rejected.",
+                                    "यह कोटेशन अस्वीकृत कर दिया गया है।",
+                                    "QUOTATION_REJECTED",
+                                    comp.getQuotationId()
+                            );
+                        } catch (Exception ignored) {}
+                    }
                 }
             }
 
@@ -868,9 +910,28 @@ public class QuotationService {
 
         validateQuotationCanBeRejected(quotation);
 
+        LocalDateTime now = LocalDateTime.now();
         quotation.setStatus("REJECTED");
-        quotation.setUpdatedAt(LocalDateTime.now());
+        if (quotation.getRejectedAt() == null) {
+            quotation.setRejectedAt(now);
+        }
+        quotation.setUpdatedAt(now);
         quotationRepository.save(quotation);
+
+        // Notify affected seller
+        if (notificationService != null && quotation.getProvider() != null) {
+            try {
+                notificationService.createNotification(
+                        quotation.getProvider(),
+                        "Quotation Rejected",
+                        "कोटेशन अस्वीकृत",
+                        "This quotation has been rejected.",
+                        "यह कोटेशन अस्वीकृत कर दिया गया है।",
+                        "QUOTATION_REJECTED",
+                        quotation.getQuotationId()
+                );
+            } catch (Exception ignored) {}
+        }
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", true);
@@ -1033,7 +1094,9 @@ public class QuotationService {
 
                         String unit = getString(itemMap, "unit");
                         if (unit == null || unit.isBlank()) unit = getString(itemMap, "quotedUnit");
-                        if (unit == null || unit.isBlank() && reqItem != null) unit = reqItem.getUnit();
+                        if ((unit == null || unit.isBlank()) && reqItem != null) {
+                            unit = reqItem.getUnit();
+                        }
                         if (unit == null || unit.isBlank()) unit = catalogMaterial.getUnit();
                         if (unit == null || unit.isBlank()) unit = "Unit";
 
@@ -1443,6 +1506,7 @@ public class QuotationService {
         map.put("status", q.getStatus() != null ? q.getStatus() : "SUBMITTED");
         map.put("createdAt", q.getCreatedAt() != null ? q.getCreatedAt().toString() : "");
         map.put("updatedAt", q.getUpdatedAt() != null ? q.getUpdatedAt().toString() : "");
+        map.put("rejectedAt", q.getRejectedAt() != null ? q.getRejectedAt().toString() : "");
 
         // Expose itemized line items (Phase 4C)
         List<Map<String, Object>> itemsList = new ArrayList<>();

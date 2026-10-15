@@ -850,7 +850,24 @@ public class MaterialRequestController {
         // For direct buy requests targeted to this seller, also record DECLINED status
         if (req.getTargetSeller() != null && req.getTargetSeller().getId().equals(seller.getId())) {
             req.setStatus("DECLINED");
-            materialRequestRepository.save(req);
+            MaterialRequest savedDirectReq = materialRequestRepository.save(req);
+            MarketplaceBackendApplication.MarketplaceUser notifyBuyer = (savedDirectReq != null && savedDirectReq.getBuyer() != null)
+                    ? savedDirectReq.getBuyer() : req.getBuyer();
+            String notifyReqId = (savedDirectReq != null && savedDirectReq.getRequestId() != null)
+                    ? savedDirectReq.getRequestId() : req.getRequestId();
+            if (notificationService != null && notifyBuyer != null) {
+                try {
+                    notificationService.createNotification(
+                            notifyBuyer,
+                            "Order Declined",
+                            "ऑर्डर अस्वीकार किया गया",
+                            "Seller " + seller.getName() + " has declined your material order.",
+                            "विक्रेता " + seller.getName() + " ने आपका सामग्री ऑर्डर अस्वीकार कर दिया है।",
+                            "DIRECT_BUY_DECLINED",
+                            notifyReqId
+                    );
+                } catch (Exception ignored) {}
+            }
         }
 
         Map<String, Object> resp = toMap(req, true, seller);

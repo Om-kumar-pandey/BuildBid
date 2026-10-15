@@ -14,6 +14,44 @@ function escapeHtml(str) {
    ========================================================= */
 function getDirectBuyTimelineHTML(req) {
   const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
+  const isDeclinedOrRejected = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED") || rawStatus.includes("अस्वीकृत");
+
+  if (isDeclinedOrRejected) {
+    const sellerName = req.sellerName || req.targetProvider || "Designated Seller";
+    return `
+      <div class="card-direct-buy-section declined-section" style="border-left: 4px solid #ef4444; background: #fffafb; padding: 16px; border-radius: 12px; margin-top: 12px; border: 1px solid #fecdd3;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #dc2626; letter-spacing: 0.5px;">
+              <i class="fa-solid fa-circle-xmark mr-1"></i> Direct Purchase Flow / सीधा खरीद प्रवाह
+            </span>
+            <div style="font-size: 15px; font-weight: 800; color: #991b1b; margin-top: 2px;">
+              Request Declined by Seller / विक्रेता द्वारा अनुरोध अस्वीकार
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span class="status-badge rejected" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-ban"></i> Declined / अस्वीकृत
+            </span>
+          </div>
+        </div>
+        <div class="direct-buy-declined-notice" style="background: #fef2f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 700; color: #991b1b;">
+              Seller (${escapeHtml(sellerName)}) has declined this purchase request.
+            </div>
+            <div style="font-size: 12px; color: #b91c1c; margin-top: 2px;">
+              No payment has been deducted. You may choose another verified seller or post a material requirement for quotation offers.
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   let currentStep = 1;
 
   if (rawStatus.includes("DELIVERED") || rawStatus.includes("डिलीवर") || rawStatus === "COMPLETED") {
@@ -877,6 +915,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load Customer Requests from Backend (Direct Buy, Material Req, Direct Hire)
   await loadCustomerRequests();
+
+  // Cross-role status synchronization: refresh when window gains focus or tab becomes active (Step 4)
+  window.addEventListener("focus", () => {
+    loadCustomerRequests();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      loadCustomerRequests();
+    }
+  });
 });
 
 async function loadCustomerRequests() {
@@ -1287,22 +1335,39 @@ function createRequestCardHTML(req) {
     `;
   }
 
+  // Card Header Status Badge Label & Style Class
+  const sUpper = (req.rawStatus || req.status || "").toUpperCase();
+  const isDeclinedOrRejected = sUpper.includes("DECLIN") || sUpper.includes("REJECT") || sUpper.includes("अस्वीकृत");
+
   // Footer Actions
   let footerButtonsHTML = "";
   if (isDirectBuy) {
-    footerButtonsHTML = `
-      <button class="btn-card-action primary-subtle" onclick="openRequestDetailsModal('${req.id}')">
-        <i class="fa-solid fa-circle-info"></i> View Details
-      </button>
-      <a href="my-orders.html?ref=${req.id}" class="btn-card-action" style="color: #0284c7; text-decoration: none;">
-        <i class="fa-solid fa-truck-ramp-box"></i> Track in My Orders
-      </a>
-      ${(req.sellerPhone) ? `
-        <button class="btn-card-action" onclick="openContactProviderModal('${escapeHtml(req.sellerName || 'Seller')}', 'Material Seller', '${escapeHtml(req.sellerPhone)}', '')">
-          <i class="fa-solid fa-phone"></i> Contact Seller
+    if (isDeclinedOrRejected) {
+      footerButtonsHTML = `
+        <button class="btn-card-action primary-subtle" onclick="openRequestDetailsModal('${req.id}')">
+          <i class="fa-solid fa-circle-info"></i> View Details
         </button>
-      ` : ''}
-    `;
+        ${(req.sellerPhone) ? `
+          <button class="btn-card-action" onclick="openContactProviderModal('${escapeHtml(req.sellerName || 'Seller')}', 'Material Seller', '${escapeHtml(req.sellerPhone)}', '')">
+            <i class="fa-solid fa-phone"></i> Contact Seller
+          </button>
+        ` : ''}
+      `;
+    } else {
+      footerButtonsHTML = `
+        <button class="btn-card-action primary-subtle" onclick="openRequestDetailsModal('${req.id}')">
+          <i class="fa-solid fa-circle-info"></i> View Details
+        </button>
+        <a href="my-orders.html?ref=${req.id}" class="btn-card-action" style="color: #0284c7; text-decoration: none;">
+          <i class="fa-solid fa-truck-ramp-box"></i> Track in My Orders
+        </a>
+        ${(req.sellerPhone) ? `
+          <button class="btn-card-action" onclick="openContactProviderModal('${escapeHtml(req.sellerName || 'Seller')}', 'Material Seller', '${escapeHtml(req.sellerPhone)}', '')">
+            <i class="fa-solid fa-phone"></i> Contact Seller
+          </button>
+        ` : ''}
+      `;
+    }
   } else if (isDirectHire) {
     footerButtonsHTML = `
       <button class="btn-card-action primary-subtle" onclick="openRequestDetailsModal('${req.id}')">
@@ -1337,10 +1402,10 @@ function createRequestCardHTML(req) {
     `;
   }
 
-  // Card Header Status Badge Label & Style Class
-  const sUpper = (req.rawStatus || req.status || "").toUpperCase();
   let badgeLabel = req.status;
-  if (req.statusEn && req.statusHi) {
+  if (isDirectBuy && isDeclinedOrRejected) {
+    badgeLabel = "Declined / अस्वीकृत";
+  } else if (req.statusEn && req.statusHi) {
     badgeLabel = `${req.statusEn} / ${req.statusHi}`;
   } else if (isDirectHire) {
     if (sUpper.includes("ACCEPTED") || sUpper.includes("स्वीकार")) {
@@ -1365,8 +1430,12 @@ function createRequestCardHTML(req) {
     badgeClass = "pending";
   }
 
+  const cardFadedClass = (isDirectBuy && isDeclinedOrRejected) ? " faded-rejected-card" : "";
+  const stampHTML = (isDirectBuy && isDeclinedOrRejected) ? `<div class="rejected-stamp-overlay">REJECTED</div>` : "";
+
   return `
-    <div class="request-card" id="card-${req.id}">
+    <div class="request-card${cardFadedClass}" id="card-${req.id}">
+      ${stampHTML}
       <!-- Header Bar -->
       <div class="card-header-bar">
         <div class="header-left-badges">

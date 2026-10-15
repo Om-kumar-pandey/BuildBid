@@ -914,6 +914,39 @@ public class DirectBuyController {
         req.setStatus("DECLINED");
         MaterialRequest saved = materialRequestRepository.save(req);
 
+        MarketplaceBackendApplication.MarketplaceUser seller = sellerOpt.get();
+        if (sellerMaterialRequestActionRepository != null) {
+            SellerMaterialRequestAction action = sellerMaterialRequestActionRepository
+                    .findBySellerIdAndMaterialRequestId(seller.getId(), saved.getId())
+                    .orElseGet(() -> {
+                        SellerMaterialRequestAction a = new SellerMaterialRequestAction();
+                        a.setSeller(seller);
+                        a.setMaterialRequest(saved);
+                        return a;
+                    });
+            action.setStatus("DECLINED");
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+            action.setActionAt(now);
+            action.setDeclinedAt(now);
+            action.setExpiryAt(now.plusHours(24));
+            sellerMaterialRequestActionRepository.save(action);
+        }
+
+        // Notify buyer
+        if (notificationService != null && saved.getBuyer() != null) {
+            try {
+                notificationService.createNotification(
+                        saved.getBuyer(),
+                        "Order Declined",
+                        "ऑर्डर अस्वीकार किया गया",
+                        "Seller " + seller.getName() + " has declined your material order.",
+                        "विक्रेता " + seller.getName() + " ने आपका सामग्री ऑर्डर अस्वीकार कर दिया है।",
+                        "DIRECT_BUY_DECLINED",
+                        saved.getRequestId()
+                );
+            } catch (Exception ignored) {}
+        }
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", true);
         resp.put("requestId", saved.getRequestId());

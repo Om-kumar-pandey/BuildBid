@@ -169,7 +169,13 @@ function getNotifTargetUrl(n) {
   if (type === "POST_REQUIREMENT_REJECTED" || type.includes("POST_REQUIREMENT_REJECTED")) {
     return `professional dashboard.html#find-work`;
   }
+  if (type === "QUOTATION_REJECTED" || type.includes("QUOTATION_REJECTED")) {
+    return `seller-dashboard.html#quotations`;
+  }
   if (type.includes("QUOTATION_RECEIVED") || type.includes("QUOTATION")) {
+    return `my-requests.html${ref ? '?ref=' + ref : ''}`;
+  }
+  if (type.includes("DIRECT_BUY_DECLINED") || type.includes("DIRECT_BUY_REJECTED")) {
     return `my-requests.html${ref ? '?ref=' + ref : ''}`;
   }
   if (type.includes("ORDER") || type.includes("DELIVERY") || type.includes("PROCESSING") || 

@@ -978,4 +978,151 @@ public class SkuQuotationAndMaterialOrderItemTest {
         assertEquals(initialReserved, catalogMatCementSeller1.getReservedStock());
         assertEquals(initialAvailable, catalogMatCementSeller1.getAvailableStock());
     }
+
+    // ========================================================
+    // QUOTATION ITEM UNIT FALLBACK NULL-SAFETY TESTS
+    // ========================================================
+
+    // 40. unit == null and reqItem == null: safely falls back to catalogMaterial.getUnit() without NPE
+    @Test
+    public void test40_QuotationUnitFallback_NullUnitAndNullReqItem() {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 500L);
+        Map<String, Object> itemMap = new HashMap<>();
+        itemMap.put("materialId", 401L); // Cement unit is "Bags"
+        itemMap.put("quantity", 50.0);
+        itemMap.put("unitPrice", 420.0);
+        // unit is null / omitted, reqItem is null / omitted
+        payload.put("items", List.of(itemMap));
+
+        Quotation q = quotationService.submitQuotation(payload, seller1);
+
+        assertNotNull(q);
+        assertEquals(1, q.getItems().size());
+        assertNull(q.getItems().get(0).getMaterialRequestItem());
+        assertEquals("Bags", q.getItems().get(0).getQuotedUnit());
+    }
+
+    // 41. Blank unit and reqItem == null: safely falls back to catalogMaterial.getUnit() without NPE
+    @Test
+    public void test41_QuotationUnitFallback_BlankUnitAndNullReqItem() {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 500L);
+        Map<String, Object> itemMap = new HashMap<>();
+        itemMap.put("materialId", 401L);
+        itemMap.put("quantity", 50.0);
+        itemMap.put("unitPrice", 420.0);
+        itemMap.put("unit", "   "); // blank
+        // reqItem is null / omitted
+        payload.put("items", List.of(itemMap));
+
+        Quotation q = quotationService.submitQuotation(payload, seller1);
+
+        assertNotNull(q);
+        assertEquals(1, q.getItems().size());
+        assertNull(q.getItems().get(0).getMaterialRequestItem());
+        assertEquals("Bags", q.getItems().get(0).getQuotedUnit());
+    }
+
+    // 42. unit == null and non-null reqItem: falls back to reqItem.getUnit()
+    @Test
+    public void test42_QuotationUnitFallback_NullUnitAndNonNullReqItem() {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 500L);
+        Map<String, Object> itemMap = new HashMap<>();
+        itemMap.put("materialRequestItemId", 502L); // Steel item has unit "KG"
+        itemMap.put("materialId", 401L); // Catalog material has unit "Bags"
+        itemMap.put("quantity", 50.0);
+        itemMap.put("unitPrice", 420.0);
+        // unit is null / omitted
+        payload.put("items", List.of(itemMap));
+
+        Quotation q = quotationService.submitQuotation(payload, seller1);
+
+        assertNotNull(q);
+        assertEquals(1, q.getItems().size());
+        assertNotNull(q.getItems().get(0).getMaterialRequestItem());
+        assertEquals(502L, q.getItems().get(0).getMaterialRequestItem().getId());
+        assertEquals("KG", q.getItems().get(0).getQuotedUnit());
+    }
+
+    // 43. Blank unit and non-null reqItem: falls back to reqItem.getUnit()
+    @Test
+    public void test43_QuotationUnitFallback_BlankUnitAndNonNullReqItem() {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 500L);
+        Map<String, Object> itemMap = new HashMap<>();
+        itemMap.put("materialRequestItemId", 502L); // Steel item has unit "KG"
+        itemMap.put("materialId", 401L);
+        itemMap.put("quantity", 50.0);
+        itemMap.put("unitPrice", 420.0);
+        itemMap.put("unit", "   "); // blank
+        payload.put("items", List.of(itemMap));
+
+        Quotation q = quotationService.submitQuotation(payload, seller1);
+
+        assertNotNull(q);
+        assertEquals(1, q.getItems().size());
+        assertNotNull(q.getItems().get(0).getMaterialRequestItem());
+        assertEquals("KG", q.getItems().get(0).getQuotedUnit());
+    }
+
+    // 44. Nonblank unit: remains unchanged regardless of reqItem or catalogMaterial
+    @Test
+    public void test44_QuotationUnitFallback_NonBlankUnitRemainsUnchanged() {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("requestType", "MATERIAL_REQUIREMENT");
+        payload.put("materialRequestId", 500L);
+        Map<String, Object> itemMap = new HashMap<>();
+        itemMap.put("materialRequestItemId", 502L); // Steel item has unit "KG"
+        itemMap.put("materialId", 401L); // Catalog material has unit "Bags"
+        itemMap.put("quantity", 50.0);
+        itemMap.put("unitPrice", 420.0);
+        itemMap.put("unit", "CustomMetricTons");
+        payload.put("items", List.of(itemMap));
+
+        Quotation q = quotationService.submitQuotation(payload, seller1);
+
+        assertNotNull(q);
+        assertEquals(1, q.getItems().size());
+        assertEquals("CustomMetricTons", q.getItems().get(0).getQuotedUnit());
+    }
+
+    // 45. updateQuotationItems: unit == null and reqItem == null safely updates without NPE
+    @Test
+    public void test45_UpdateQuotationItems_NullUnitAndNullReqItem_NoNpe() {
+        Quotation q = new Quotation();
+        ReflectionTestUtils.setField(q, "id", 1001L);
+        q.setQuotationId("QT-1001");
+        q.setRequestType("MATERIAL_REQUIREMENT");
+        q.setStatus("SUBMITTED");
+        q.setProvider(seller1);
+        q.setMaterialRequest(materialReq);
+        q.setMaterialCost(10000.0);
+        q.setLabourCost(0.0);
+        q.setTransportationCost(500.0);
+        q.setTaxGst(250.0);
+        q.setQuotedAmount(10750.0);
+
+        when(quotationRepository.findById(1001L)).thenReturn(Optional.of(q));
+        when(quotationRepository.findByIdForUpdate(1001L)).thenReturn(Optional.of(q));
+
+        Map<String, Object> updatePayload = new HashMap<>();
+        Map<String, Object> itemMap = new HashMap<>();
+        itemMap.put("materialId", 401L);
+        itemMap.put("quantity", 25.0);
+        itemMap.put("unitPrice", 430.0);
+        // unit is null, reqItem is null
+        updatePayload.put("items", List.of(itemMap));
+
+        Quotation updated = quotationService.updateQuotation("1001", updatePayload, seller1);
+
+        assertNotNull(updated);
+        assertEquals(1, updated.getItems().size());
+        assertEquals("Bags", updated.getItems().get(0).getQuotedUnit());
+    }
 }

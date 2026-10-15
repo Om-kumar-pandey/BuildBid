@@ -31,7 +31,7 @@ public class MaterialOrderItem {
     private QuotationItem quotationItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "material_id", nullable = false)
+    @JoinColumn(name = "material_id", nullable = true)
     @JsonIgnore
     private Material material;
 
