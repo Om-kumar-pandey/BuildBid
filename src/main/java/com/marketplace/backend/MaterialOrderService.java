@@ -3,6 +3,9 @@ package com.marketplace.backend;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 public class MaterialOrderService {
 
     private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
+    private static final Logger log = LoggerFactory.getLogger(MaterialOrderService.class);
     private static final DateTimeFormatter DISPLAY_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
 
@@ -83,7 +87,7 @@ public class MaterialOrderService {
      * Captures line items, agreed amounts, delivery address, buyer details, and timestamps.
      * Idempotent: returns existing order if one already exists for this request and seller.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public MaterialOrder createOrderForAcceptedMaterialRequest(
             MaterialRequest materialRequest,
             MarketplaceBackendApplication.MarketplaceUser seller

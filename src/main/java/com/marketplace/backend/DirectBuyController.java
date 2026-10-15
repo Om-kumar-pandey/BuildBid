@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import java.util.*;
 @RequestMapping("/api/direct-buy")
 public class DirectBuyController {
 
+    private static final Logger log = LoggerFactory.getLogger(DirectBuyController.class);
     private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
     private static final DateTimeFormatter DISPLAY_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
@@ -606,6 +609,29 @@ public class DirectBuyController {
                     .body(Map.of("error", "Forbidden: You are not authorized to accept this direct request."));
         }
 
+        // Check seller-specific action state
+        SellerMaterialRequestAction existingAction = null;
+        if (sellerMaterialRequestActionRepository != null) {
+            existingAction = sellerMaterialRequestActionRepository
+                    .findBySellerIdAndMaterialRequestId(seller.getId(), req.getId()).orElse(null);
+        }
+
+        if (existingAction != null && "DECLINED".equalsIgnoreCase(existingAction.getStatus())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "error", "Cannot accept a material request that was previously declined.",
+                    "message", "Cannot accept a material request that was previously declined."
+            ));
+        }
+
+        if (existingAction != null && "ACCEPTED".equalsIgnoreCase(existingAction.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "success", false,
+                    "error", "This material requirement has already been accepted.",
+                    "message", "This material requirement has already been accepted."
+            ));
+        }
+
         // Section 9 & 10: Single allocation guard & prevent duplicate allocation
         String currentStatus = req.getStatus() != null ? req.getStatus().toUpperCase() : "NEW";
         if ("ALLOCATED".equals(currentStatus) || "ACCEPTED".equals(currentStatus) || "ORDER_ACCEPTED".equals(currentStatus)) {
@@ -633,14 +659,9 @@ public class DirectBuyController {
         // Record seller-specific acceptance and create integrated order
         SellerMaterialRequestAction action = null;
         if (sellerMaterialRequestActionRepository != null) {
-            action = sellerMaterialRequestActionRepository
-                    .findBySellerIdAndMaterialRequestId(seller.getId(), saved.getId())
-                    .orElseGet(() -> {
-                        SellerMaterialRequestAction a = new SellerMaterialRequestAction();
-                        a.setSeller(seller);
-                        a.setMaterialRequest(saved);
-                        return a;
-                    });
+            action = existingAction != null ? existingAction : new SellerMaterialRequestAction();
+            action.setSeller(seller);
+            action.setMaterialRequest(saved);
             action.setStatus("ACCEPTED");
             action.setActionAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
         }
@@ -652,7 +673,11 @@ public class DirectBuyController {
                 if (action != null) {
                     action.setMaterialOrder(createdOrder);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                // Best-effort order creation failed in its independent transaction (REQUIRES_NEW).
+                // The parent acceptance transaction remains committable and unblemished.
+                log.warn("Optional MaterialOrder creation failed for Direct Buy request {}: {}", saved.getId(), e.getMessage());
+            }
         }
 
         if (action != null && sellerMaterialRequestActionRepository != null) {
@@ -678,9 +703,14 @@ public class DirectBuyController {
         resp.put("success", true);
         resp.put("requestId", saved.getRequestId());
         resp.put("status", "ACCEPTED");
+        resp.put("sellerStatus", "ACCEPTED");
         resp.put("statusEn", "Order Accepted");
         resp.put("statusHi", "ऑर्डर स्वीकार किया गया");
         resp.put("verificationCode", saved.getVerificationCode());
+        if (createdOrder != null) {
+            resp.put("orderId", createdOrder.getOrderCode());
+            resp.put("orderCode", createdOrder.getOrderCode());
+        }
         resp.put("message", "Direct Buy request accepted — ऑर्डर स्वीकार कर लिया गया");
 
         return ResponseEntity.ok(resp);

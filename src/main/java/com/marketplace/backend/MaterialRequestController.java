@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -21,6 +23,7 @@ public class MaterialRequestController {
     private SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository;
     private MaterialOrderService materialOrderService;
 
+    private static final Logger log = LoggerFactory.getLogger(MaterialRequestController.class);
     private static final java.time.ZoneId IST_ZONE = java.time.ZoneId.of("Asia/Kolkata");
     private static final java.time.format.DateTimeFormatter DISPLAY_DATE_FORMATTER =
             java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a", Locale.ENGLISH);
@@ -711,7 +714,9 @@ public class MaterialRequestController {
                 createdOrder = materialOrderService.createOrderForAcceptedMaterialRequest(saved, seller);
                 action.setMaterialOrder(createdOrder);
             } catch (Exception e) {
-                // Ignore exception and preserve flow
+                // Best-effort order creation failed in its independent transaction (REQUIRES_NEW).
+                // The parent acceptance transaction remains committable and unblemished.
+                log.warn("Optional MaterialOrder creation failed for accepted MaterialRequest {}: {}", saved.getId(), e.getMessage());
             }
         }
 

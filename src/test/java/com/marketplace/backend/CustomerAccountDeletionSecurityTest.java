@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -733,5 +734,139 @@ public class CustomerAccountDeletionSecurityTest {
                 );
 
         assertFalse(jwtService.isValid(token, disabledDetails), "Token MUST be invalid when user is disabled");
+    }
+
+    // ============================================================
+    // 12. DTO REQUEST & RESPONSE CONTRACT REGRESSION TESTS
+    // ============================================================
+
+    @Test
+    @DisplayName("Regression: Deactivation payload requires 'confirmation' = 'DEACTIVATE' and 'currentPassword'")
+    void testDeactivationPayloadContract() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        Authentication auth = createMockAuth("customera@buildbid.com", "CUSTOMER");
+
+        // Missing confirmation field must fail
+        String missingConfirmJson = "{\"currentPassword\": \"SecretPass@123\"}";
+        CustomerAccountDeletionDto.DeactivateAccountRequest missingReq =
+                mapper.readValue(missingConfirmJson, CustomerAccountDeletionDto.DeactivateAccountRequest.class);
+        assertNull(missingReq.confirmation());
+        ResponseEntity<?> resMissing = deletionController.deactivateAccount(missingReq, auth);
+        assertEquals(HttpStatus.BAD_REQUEST, resMissing.getStatusCode());
+
+        // Correct contract: both currentPassword and confirmation: "DEACTIVATE"
+        String validJson = "{\"currentPassword\": \"SecretPass@123\", \"confirmation\": \"DEACTIVATE\"}";
+        CustomerAccountDeletionDto.DeactivateAccountRequest validReq =
+                mapper.readValue(validJson, CustomerAccountDeletionDto.DeactivateAccountRequest.class);
+        assertEquals("SecretPass@123", validReq.currentPassword());
+        assertEquals("DEACTIVATE", validReq.confirmation());
+
+        ResponseEntity<?> resValid = deletionController.deactivateAccount(validReq, auth);
+        assertEquals(HttpStatus.OK, resValid.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Regression: Deletion initiation payload requires 'confirmation' property and rejects obsolete 'confirmText'")
+    void testDeletionInitiationPayloadContract() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        Authentication auth = createMockAuth("customera@buildbid.com", "CUSTOMER");
+
+        // Obsolete contract sending 'confirmText' instead of 'confirmation'
+        String obsoleteJson = "{\"confirmText\": \"DELETE\", \"currentPassword\": \"SecretPass@123\"}";
+        CustomerAccountDeletionDto.InitiateDeletionRequest obsoleteReq =
+                mapper.readValue(obsoleteJson, CustomerAccountDeletionDto.InitiateDeletionRequest.class);
+        assertNull(obsoleteReq.confirmation(), "confirmText should not bind to confirmation");
+        ResponseEntity<?> resObsolete = deletionController.startPermanentDeletion(obsoleteReq, auth);
+        assertEquals(HttpStatus.BAD_REQUEST, resObsolete.getStatusCode());
+
+        // Correct contract sending 'confirmation': 'DELETE'
+        String validJson = "{\"confirmation\": \"DELETE\", \"currentPassword\": \"SecretPass@123\"}";
+        CustomerAccountDeletionDto.InitiateDeletionRequest validReq =
+                mapper.readValue(validJson, CustomerAccountDeletionDto.InitiateDeletionRequest.class);
+        assertEquals("DELETE", validReq.confirmation());
+        assertEquals("SecretPass@123", validReq.currentPassword());
+
+        ResponseEntity<?> resValid = deletionController.startPermanentDeletion(validReq, auth);
+        assertEquals(HttpStatus.OK, resValid.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Regression: OTP verification serializes 'deletionTicket' and never 'authorizationTicket'")
+    void testDeletionOtpVerificationResponseContract() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        CustomerAccountDeletionDto.DeletionOtpVerificationResponse responseDto =
+                new CustomerAccountDeletionDto.DeletionOtpVerificationResponse(
+                        "Verification successful.",
+                        "bb_del_998877aabbcc",
+                        5
+                );
+
+        String json = mapper.writeValueAsString(responseDto);
+        assertTrue(json.contains("\"deletionTicket\":\"bb_del_998877aabbcc\""), "Serialized JSON must contain 'deletionTicket'");
+        assertFalse(json.contains("authorizationTicket"), "Serialized JSON must NOT contain obsolete 'authorizationTicket'");
+
+        // Also test controller endpoint returns DeletionOtpVerificationResponse with deletionTicket
+        String correctOtp = "123456";
+        UserVerification record = new UserVerification(
+                customerA.getId(),
+                UserVerification.VerificationType.PERMANENT_ACCOUNT_DELETION,
+                customerA.getEmail(),
+                passwordEncoder.encode(correctOtp),
+                LocalDateTime.now().plusMinutes(10),
+                LocalDateTime.now().plusSeconds(60)
+        );
+        when(verificationRepository.findTopByUserIdAndVerificationTypeAndUsedFalseOrderByCreatedAtDesc(
+                eq(customerA.getId()),
+                eq(UserVerification.VerificationType.PERMANENT_ACCOUNT_DELETION)
+        )).thenReturn(Optional.of(record));
+
+        Authentication auth = createMockAuth("customera@buildbid.com", "CUSTOMER");
+        ResponseEntity<?> res = deletionController.verifyDeletionOtp(
+                new CustomerAccountDeletionDto.VerifyDeletionOtpRequest(correctOtp), auth
+        );
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        CustomerAccountDeletionDto.DeletionOtpVerificationResponse body =
+                (CustomerAccountDeletionDto.DeletionOtpVerificationResponse) res.getBody();
+        assertNotNull(body);
+        assertNotNull(body.deletionTicket());
+        assertTrue(body.deletionTicket().startsWith("bb_del_"));
+    }
+
+    @Test
+    @DisplayName("Regression: Confirm deletion payload requires 'deletionTicket' and 'confirmation: DELETE'")
+    void testConfirmDeletionPayloadContract() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        Authentication auth = createMockAuth("customera@buildbid.com", "CUSTOMER");
+
+        customerA.setDeletionAuthToken("bb_del_active_ticket");
+        customerA.setDeletionAuthExpiry(LocalDateTime.now().plusMinutes(5));
+
+        // Obsolete fields { "confirmText": "DELETE", "authorizationTicket": "..." }
+        String obsoleteJson = "{\"confirmText\": \"DELETE\", \"authorizationTicket\": \"bb_del_active_ticket\"}";
+        CustomerAccountDeletionDto.ConfirmDeletionRequest obsoleteReq =
+                mapper.readValue(obsoleteJson, CustomerAccountDeletionDto.ConfirmDeletionRequest.class);
+        assertNull(obsoleteReq.deletionTicket(), "authorizationTicket must not bind to deletionTicket");
+        assertNull(obsoleteReq.confirmation(), "confirmText must not bind to confirmation");
+
+        ResponseEntity<?> resObsolete = deletionController.confirmPermanentDeletion(obsoleteReq, auth);
+        assertEquals(HttpStatus.BAD_REQUEST, resObsolete.getStatusCode());
+
+        // Missing deletionTicket
+        String missingTicketJson = "{\"confirmation\": \"DELETE\"}";
+        CustomerAccountDeletionDto.ConfirmDeletionRequest missingTicketReq =
+                mapper.readValue(missingTicketJson, CustomerAccountDeletionDto.ConfirmDeletionRequest.class);
+        ResponseEntity<?> resMissingTicket = deletionController.confirmPermanentDeletion(missingTicketReq, auth);
+        assertEquals(HttpStatus.BAD_REQUEST, resMissingTicket.getStatusCode());
+
+        // Correct contract: deletionTicket and confirmation: "DELETE"
+        String validJson = "{\"deletionTicket\": \"bb_del_active_ticket\", \"confirmation\": \"DELETE\"}";
+        CustomerAccountDeletionDto.ConfirmDeletionRequest validReq =
+                mapper.readValue(validJson, CustomerAccountDeletionDto.ConfirmDeletionRequest.class);
+        assertEquals("bb_del_active_ticket", validReq.deletionTicket());
+        assertEquals("DELETE", validReq.confirmation());
+
+        ResponseEntity<?> resValid = deletionController.confirmPermanentDeletion(validReq, auth);
+        assertEquals(HttpStatus.OK, resValid.getStatusCode());
     }
 }
