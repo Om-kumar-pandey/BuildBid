@@ -714,7 +714,8 @@ public class MaterialRequestController {
                 createdOrder = materialOrderService.createOrderForAcceptedMaterialRequest(saved, seller);
                 action.setMaterialOrder(createdOrder);
             } catch (Exception e) {
-                log.error("MaterialOrder creation failed for accepted MaterialRequest {}: {}", saved.getId(), e.getMessage(), e);
+                log.error("MaterialOrder creation failed for accepted MaterialRequest [id={}, requestId={}, sellerId={}]: {}",
+                        saved.getId(), saved.getRequestId(), seller.getId(), e.getMessage(), e);
                 throw e;
             }
         }

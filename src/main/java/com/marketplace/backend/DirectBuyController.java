@@ -674,7 +674,8 @@ public class DirectBuyController {
                     action.setMaterialOrder(createdOrder);
                 }
             } catch (Exception e) {
-                log.error("MaterialOrder creation failed for Direct Buy request {}: {}", saved.getId(), e.getMessage(), e);
+                log.error("MaterialOrder creation failed for Direct Buy request [id={}, requestId={}, sellerId={}]: {}",
+                        saved.getId(), saved.getRequestId(), seller.getId(), e.getMessage(), e);
                 throw e;
             }
         }
