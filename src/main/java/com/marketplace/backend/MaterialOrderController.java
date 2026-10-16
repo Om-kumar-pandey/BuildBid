@@ -51,7 +51,7 @@ public class MaterialOrderController {
      * 4. Returns ONLY accepted orders (strictly excludes WAITING_FOR_ACCEPTANCE, CANCELLED, etc.)
      * 5. User data isolation: Customer A sees ONLY Customer A's accepted orders; Customer B cannot see Customer A's orders.
      */
-    @GetMapping({"/customer", "/customer-orders"})
+    @GetMapping({"/customer", "/customer-orders", "/contractor", "/contractor-orders"})
     public ResponseEntity<?> getCustomerMyOrders(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -64,11 +64,13 @@ public class MaterialOrderController {
                     .body(Map.of("error", "User account not found. Please log in again."));
         }
 
-        // Section 7 & Test 6: Verify authenticated account has allowed Customer role
-        boolean isCustomer = user.getRoles() != null && user.getRoles().contains(MarketplaceBackendApplication.Role.CUSTOMER);
-        if (!isCustomer) {
+        // Section 7 & Test 6: Verify authenticated account has allowed Customer or Contractor role
+        boolean isAllowedBuyer = user.getRoles() != null &&
+                (user.getRoles().contains(MarketplaceBackendApplication.Role.CUSTOMER) ||
+                 user.getRoles().contains(MarketplaceBackendApplication.Role.CONTRACTOR));
+        if (!isAllowedBuyer) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Access denied. Only Customer accounts can access Customer My Orders."));
+                    .body(Map.of("error", "Access denied. Only Customer and Contractor accounts can access My Orders."));
         }
 
         List<Map<String, Object>> response = materialOrderService.getAcceptedOrdersForCustomer(user);

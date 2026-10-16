@@ -600,6 +600,28 @@
     </button>
   </div>
 
+  <!-- 7. ORDER ACCEPTED APPROVAL POPUP MODAL (SECTION 5) -->
+  <div class="modal-backdrop-overlay" id="orderAcceptedPopupModal" style="z-index: 10050;">
+    <div class="modal-dialog-box modal-small" style="max-width: 460px; text-align: center; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+      <div style="padding: 32px 28px 24px; display: flex; flex-direction: column; align-items: center; background: #ffffff;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: #ecfdf5; border: 2.5px solid #a7f3d0; display: flex; align-items: center; justify-content: center; color: #059669; font-size: 32px; margin-bottom: 18px;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3 id="orderAcceptedModalTitle" style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 10px; letter-spacing: -0.3px;">
+          Order Accepted Successfully!
+        </h3>
+        <p id="orderAcceptedModalMessage" style="font-size: 14px; color: #475569; line-height: 1.55; margin: 0 0 24px;">
+          Your order has been approved and allocated to the seller. Please check your My Orders section for complete order details.
+        </p>
+        <div style="display: flex; gap: 12px; width: 100%; justify-content: center;">
+          <button type="button" class="btn-proceed-quote" id="btnOrderAcceptedOk" onclick="closeOrderAcceptedPopup()" style="min-width: 140px; justify-content: center; padding: 11px 28px; font-size: 14px; font-weight: 700; border-radius: 8px; background: #059669; border: none; color: #ffffff; cursor: pointer;">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="layout.js"></script>
   <script src="my-requests.js"></script>

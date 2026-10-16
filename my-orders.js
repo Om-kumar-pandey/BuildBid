@@ -62,9 +62,26 @@ function setupUserDisplay() {
     const firstName = displayName.split(" ")[0];
     navUserName.textContent = firstName.charAt(0).toUpperCase() + firstName.slice(1);
   }
+
+  const role = (user.role || (user.roles && user.roles[0]) || "").toUpperCase();
+  const isContractor = role === "CONTRACTOR" || localStorage.getItem("contractorUser") || (window.location.search.includes("role=contractor"));
+
   if (navUserRole) {
-    navUserRole.textContent = "Customer";
+    navUserRole.textContent = isContractor ? "Contractor" : "Customer";
   }
+
+  if (isContractor) {
+    const userPill = document.querySelector(".user-pill");
+    if (userPill) userPill.setAttribute("onclick", "window.location.href='contractor-dashboard.html'");
+    const brandLogo = document.querySelector(".brand-logo");
+    if (brandLogo) brandLogo.href = "contractor-dashboard.html";
+    const profileLink = document.querySelector(".side-menu a[href='customer dashboard.html']");
+    if (profileLink) {
+      profileLink.href = "contractor-dashboard.html";
+      profileLink.innerHTML = '<i class="fa-solid fa-table-cells-large"></i> Dashboard';
+    }
+  }
+
   if (navAvatar && navAvatar.tagName === "IMG") {
     const photo = user.profilePhoto || user.avatarUrl || user.profilePhotoUrl;
     navAvatar.src = photo || `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(displayName)}`;
@@ -145,7 +162,7 @@ async function loadCustomerOrders() {
       if (res.status === 401) {
         showToast("Session expired. Please log in again.", "warning");
       } else if (res.status === 403) {
-        showToast("Access denied. Customer account required.", "danger");
+        showToast("Access denied. Authorized account required.", "danger");
       }
       currentOrders = [];
       updateMetricCards(0, 0, 0);
@@ -186,6 +203,8 @@ async function loadCustomerOrders() {
           status: rawStatus,
           orderedDate: item.submittedDate || (item.submittedTimestamp ? formatTimestampIST(item.submittedTimestamp) : (item.createdAt ? formatTimestampIST(item.createdAt) : "Recently")),
           expectedDeliveryDate: item.expectedDeliveryDate || "Pending confirmation",
+          verificationCode: item.verificationCode || "",
+          notes: item.specialNotes || item.notes || item.description || "",
           items: item.items || [],
           subtotal: Number(item.materialAmount || item.subtotal || 0),
           freight: Number(item.transportationAmount || item.deliveryCharges || item.freight || 0),
@@ -499,6 +518,22 @@ function createOrderCardHTML(order) {
             </div>
           </div>
         </div>
+
+        ${order.verificationCode ? `
+          <div style="background: #f0fdf4; border: 1px dashed #86efac; border-radius: 8px; padding: 8px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+            <span style="color: #166534; font-weight: 700;">
+              <i class="fa-solid fa-shield-halved" style="color: #16a34a; margin-right: 6px;"></i> Delivery Verification Code:
+            </span>
+            <span style="font-family: monospace; font-size: 14px; font-weight: 800; color: #14532d; letter-spacing: 1px;">
+              ${escapeHtml(order.verificationCode)}
+            </span>
+          </div>
+        ` : ""}
+        ${order.notes ? `
+          <p style="font-size: 13px; color: #475569; margin: 0 0 12px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <strong>Notes:</strong> ${escapeHtml(order.notes)}
+          </p>
+        ` : ""}
 
         <!-- Material Item Table -->
         <table class="order-items-table">

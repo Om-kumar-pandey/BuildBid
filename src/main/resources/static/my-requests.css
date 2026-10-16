@@ -434,6 +434,82 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
 }
 
+/* Center-Positioned Authentic APPROVED — ORDER ACCEPTED Stamp Overlay */
+.approved-stamp-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  border: 3.5px dashed #059669;
+  color: #059669;
+  padding: 12px 24px;
+  border-radius: 12px;
+  pointer-events: none;
+  opacity: 0.94;
+  background: rgba(240, 253, 244, 0.94);
+  line-height: 1.25;
+  z-index: 15;
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.18);
+  text-align: center;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.approved-stamp-title {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #059669;
+  text-shadow: 0 1px 2px rgba(5, 150, 105, 0.15);
+  white-space: nowrap;
+}
+
+.approved-stamp-sub {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #047857;
+  text-transform: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.order-accepted-info-banner {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .approved-stamp-overlay {
+    padding: 8px 14px;
+  }
+  .approved-stamp-title {
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    white-space: normal;
+  }
+  .approved-stamp-sub {
+    font-size: 11px;
+    white-space: normal;
+  }
+}
+
 /* Card Header */
 .card-header-bar {
   display: flex;

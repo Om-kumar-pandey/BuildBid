@@ -741,7 +741,95 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   setupProfilePhotoEditor();
   loadContractorNotifications();
+  checkContractorOrderApprovals();
 });
+
+async function checkContractorOrderApprovals() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  let userId = "default";
+  try {
+    const rawUser = localStorage.getItem("currentUser") || 
+                    localStorage.getItem("contractorUser") || 
+                    localStorage.getItem("loggedInUser") || "{}";
+    const user = JSON.parse(rawUser);
+    userId = user.id || user.email || user.username || "default";
+  } catch (e) {}
+
+  const storageKey = `buildbid_shown_approval_popups_${userId}`;
+  let shownPopups = [];
+  try {
+    shownPopups = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    if (!Array.isArray(shownPopups)) shownPopups = [];
+  } catch (e) {
+    shownPopups = [];
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/material-orders/customer`, {
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/json"
+      }
+    });
+    if (!res.ok) return;
+    const orders = await res.json();
+    if (!Array.isArray(orders)) return;
+
+    const newAccepted = orders.filter(o => {
+      const status = (o.orderStatus || o.status || "").toUpperCase();
+      const isAccepted = status && !["WAITING_FOR_ACCEPTANCE", "CANCELLED", "DECLINED", "REJECTED", "NEW", "DRAFT"].includes(status);
+      if (!isAccepted) return false;
+      const key = String(o.orderCode || o.orderId || o.id || "");
+      return key && !shownPopups.includes(key);
+    });
+
+    if (newAccepted.length === 0) return;
+
+    newAccepted.forEach(o => {
+      const key = String(o.orderCode || o.orderId || o.id || "");
+      if (key && !shownPopups.includes(key)) {
+        shownPopups.push(key);
+      }
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(shownPopups));
+    showContractorOrderAcceptedModal();
+  } catch (err) {
+    // Non-blocking
+  }
+}
+
+function showContractorOrderAcceptedModal() {
+  let modal = document.getElementById("orderAcceptedPopupModal");
+  if (!modal) {
+    const modalHTML = `
+      <div class="modal-backdrop-overlay active" id="orderAcceptedPopupModal" style="position: fixed; inset: 0; z-index: 10050; background: rgba(11, 25, 44, 0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #ffffff; border-radius: 16px; width: 100%; max-width: 460px; text-align: center; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+          <div style="padding: 32px 28px 24px; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #ecfdf5; border: 2.5px solid #a7f3d0; display: flex; align-items: center; justify-content: center; color: #059669; font-size: 32px; margin-bottom: 18px;">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 10px; letter-spacing: -0.3px;">
+              Order Accepted Successfully!
+            </h3>
+            <p style="font-size: 14px; color: #475569; line-height: 1.55; margin: 0 0 24px;">
+              Your order has been approved and allocated to the seller. Please check your My Orders section for complete order details.
+            </p>
+            <div style="display: flex; gap: 12px; width: 100%; justify-content: center;">
+              <button type="button" onclick="document.getElementById('orderAcceptedPopupModal').remove()" style="min-width: 140px; justify-content: center; padding: 11px 28px; font-size: 14px; font-weight: 700; border-radius: 8px; background: #059669; border: none; color: #ffffff; cursor: pointer;">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+  }
+}
 
 
 

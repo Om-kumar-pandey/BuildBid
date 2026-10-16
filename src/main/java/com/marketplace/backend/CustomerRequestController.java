@@ -24,7 +24,7 @@ import java.util.*;
  * MUST NEVER appear in My Requests.
  */
 @RestController
-@RequestMapping("/api/customer")
+@RequestMapping({"/api/customer", "/api/contractor"})
 public class CustomerRequestController {
 
     private final MaterialRequestRepository materialRequestRepository;
@@ -186,7 +186,7 @@ public class CustomerRequestController {
                 statusHi = rawStatus;
             }
         } else {
-            if ("ALLOCATED".equals(rawStatus)) {
+            if ("ALLOCATED".equals(rawStatus) || "ACCEPTED".equals(rawStatus) || "ORDER_ACCEPTED".equals(rawStatus)) {
                 displayStatus = "Purchase Plan Confirmed";
                 statusEn = "Purchase Plan Confirmed";
                 statusHi = "खरीद योजना की पुष्टि";
@@ -409,7 +409,9 @@ public class CustomerRequestController {
                         moMap.put("items", orderItems);
                         orderSummaries.add(moMap);
                     }
+                    card.put("orders", orderSummaries);
                     card.put("sellerOrders", orderSummaries);
+                    card.put("allocatedOrdersCount", orderSummaries.size());
                     if (topExpectedDeliveryDate != null) {
                         card.put("expectedDeliveryDate", topExpectedDeliveryDate);
                     }

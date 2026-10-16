@@ -12,6 +12,52 @@ function escapeHtml(str) {
 /* =========================================================
    DIRECT BUY & MULTI-SELLER ALLOCATION HELPERS (FLOW A & B)
    ========================================================= */
+
+function isOrderAcceptedState(req) {
+  if (!req) return false;
+  const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
+  const isDeclinedOrRejected = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED") || rawStatus.includes("अस्वीकृत") || rawStatus.includes("CANCEL");
+  if (isDeclinedOrRejected) return false;
+
+  const isDirectBuy = (req.type === "DIRECT_BUY" || req.isDirectBuy === true || (req.id && String(req.id).startsWith("DMR-")));
+
+  if (isDirectBuy) {
+    return rawStatus === "ORDER_ACCEPTED" || 
+           rawStatus === "ACCEPTED" || 
+           rawStatus === "PROCESSING" || 
+           rawStatus === "READY_FOR_DISPATCH" || 
+           rawStatus === "DISPATCHED" || 
+           rawStatus === "OUT_FOR_DELIVERY" || 
+           rawStatus === "DELIVERED" || 
+           rawStatus === "COMPLETED" ||
+           (req.status && (
+             req.status.toLowerCase().includes("order accepted") ||
+             req.status.toLowerCase().includes("processing") ||
+             req.status.toLowerCase().includes("ready for dispatch") ||
+             req.status.toLowerCase().includes("out for delivery") ||
+             req.status.toLowerCase().includes("delivered") ||
+             req.status.toLowerCase().includes("accepted")
+           ));
+  }
+
+  if (req.type === "MATERIAL_REQUIREMENT") {
+    const hasAllocatedOrders = (req.orders && req.orders.length > 0) || 
+                               (req.sellerOrders && req.sellerOrders.length > 0) ||
+                               (req.allocatedOrdersCount && req.allocatedOrdersCount > 0);
+    const hasAcceptedQuote = (req.quotations && req.quotations.some(q => (q.status || "").toUpperCase() === "ACCEPTED"));
+
+    return rawStatus === "ALLOCATED" || 
+           rawStatus === "ACCEPTED" || 
+           rawStatus === "ORDER_ACCEPTED" || 
+           rawStatus === "CONFIRMED" || 
+           req.status === "Purchase Plan Confirmed" ||
+           hasAllocatedOrders ||
+           hasAcceptedQuote;
+  }
+
+  return false;
+}
+
 function getDirectBuyTimelineHTML(req) {
   const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
   const isDeclinedOrRejected = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED") || rawStatus.includes("अस्वीकृत");
@@ -986,6 +1032,7 @@ async function loadCustomerRequests() {
   // Render Initial Metrics & Requests List
   renderSummaryMetrics();
   renderRequests();
+  checkAndShowOrderAcceptedPopup(currentRequests);
 }
 
 function formatTimeAgo(dateStr) {
@@ -1099,8 +1146,23 @@ function syncUserProfileUI() {
     const displayName = user.name || user.fullName || user.username || "Customer";
     const firstName = displayName.split(" ")[0] || "Customer";
 
+    const role = (user.role || (user.roles && user.roles[0]) || "").toUpperCase();
+    const isContractor = role === "CONTRACTOR" || localStorage.getItem("contractorUser") || (window.location.search.includes("role=contractor"));
+
     if (navUserName) navUserName.textContent = firstName;
-    if (navUserRole) navUserRole.textContent = "Customer";
+    if (navUserRole) navUserRole.textContent = isContractor ? "Contractor" : "Customer";
+
+    if (isContractor) {
+      const userPill = document.querySelector(".user-pill");
+      if (userPill) userPill.setAttribute("onclick", "window.location.href='contractor-dashboard.html'");
+      const brandLogo = document.querySelector(".brand-logo");
+      if (brandLogo) brandLogo.href = "contractor-dashboard.html";
+      const profileLink = document.querySelector(".side-menu a[href='customer dashboard.html']");
+      if (profileLink) {
+        profileLink.href = "contractor-dashboard.html";
+        profileLink.innerHTML = '<i class="fa-solid fa-table-cells-large"></i> Dashboard';
+      }
+    }
 
     if (navAvatar && navAvatar.tagName === "IMG") {
       navAvatar.src = user.profilePhoto || 
@@ -1198,7 +1260,15 @@ function createRequestCardHTML(req) {
   const quoteCount = req.quotations ? req.quotations.length : 0;
   const isDirectBuy = (req.type === "DIRECT_BUY" || req.isDirectBuy === true);
   const isDirectHire = (req.type === "DIRECT_HIRE");
-  const isPlanConfirmed = (req.status === "Purchase Plan Confirmed" || req.status === "ALLOCATED" || (req.rawStatus || "").toUpperCase() === "ALLOCATED");
+  const isApproved = isOrderAcceptedState(req);
+  const isPlanConfirmed = (req.status === "Purchase Plan Confirmed" || 
+                           req.status === "ALLOCATED" || 
+                           (req.rawStatus || "").toUpperCase() === "ALLOCATED" ||
+                           (req.rawStatus || "").toUpperCase() === "ACCEPTED" ||
+                           (req.rawStatus || "").toUpperCase() === "ORDER_ACCEPTED" ||
+                           (req.orders && req.orders.length > 0) ||
+                           (req.sellerOrders && req.sellerOrders.length > 0) ||
+                           (req.type === "MATERIAL_REQUIREMENT" && isApproved));
 
   // Determine Main Section State
   let quotationSectionHTML = "";
@@ -1405,6 +1475,12 @@ function createRequestCardHTML(req) {
   let badgeLabel = req.status;
   if (isDirectBuy && isDeclinedOrRejected) {
     badgeLabel = "Declined / अस्वीकृत";
+  } else if (isApproved) {
+    if (isDirectBuy) {
+      badgeLabel = (req.statusEn && req.statusHi) ? `${req.statusEn} / ${req.statusHi}` : "Order Accepted / ऑर्डर स्वीकार किया गया";
+    } else {
+      badgeLabel = "Purchase Plan Confirmed / खरीद योजना की पुष्टि";
+    }
   } else if (req.statusEn && req.statusHi) {
     badgeLabel = `${req.statusEn} / ${req.statusHi}`;
   } else if (isDirectHire) {
@@ -1416,7 +1492,9 @@ function createRequestCardHTML(req) {
   }
 
   let badgeClass = "pending";
-  if (sUpper.includes("DELIVERED") || sUpper.includes("COMPLETED") || sUpper.includes("CLOSED")) {
+  if (isApproved) {
+    badgeClass = "accepted";
+  } else if (sUpper.includes("DELIVERED") || sUpper.includes("COMPLETED") || sUpper.includes("CLOSED")) {
     badgeClass = "completed";
   } else if (sUpper.includes("OUT_FOR_DELIVERY") || sUpper.includes("DISPATCH") || sUpper.includes("PROCESSING") || sUpper.includes("ACTIVE")) {
     badgeClass = "active";
@@ -1431,7 +1509,17 @@ function createRequestCardHTML(req) {
   }
 
   const cardFadedClass = (isDirectBuy && isDeclinedOrRejected) ? " faded-rejected-card" : "";
-  const stampHTML = (isDirectBuy && isDeclinedOrRejected) ? `<div class="rejected-stamp-overlay">REJECTED</div>` : "";
+  let stampHTML = "";
+  if (isDirectBuy && isDeclinedOrRejected) {
+    stampHTML = `<div class="rejected-stamp-overlay">REJECTED</div>`;
+  } else if (isApproved) {
+    stampHTML = `
+      <div class="approved-stamp-overlay">
+        <div class="approved-stamp-title">APPROVED — ORDER ACCEPTED</div>
+        <div class="approved-stamp-sub">☑ Check your My Orders section for more details.</div>
+      </div>
+    `;
+  }
 
   return `
     <div class="request-card${cardFadedClass}" id="card-${req.id}">
@@ -1472,6 +1560,13 @@ function createRequestCardHTML(req) {
 
         <!-- Dynamic Direct Buy or Quotation Section -->
         ${quotationSectionHTML}
+
+        ${isApproved ? `
+          <div class="order-accepted-info-banner">
+            <i class="fa-regular fa-square-check" style="font-size: 16px; color: #059669;"></i>
+            <span>☑ Check your My Orders section for more details.</span>
+          </div>
+        ` : ""}
       </div>
 
       <!-- Action Footer -->
@@ -1481,6 +1576,103 @@ function createRequestCardHTML(req) {
     </div>
   `;
 }
+
+/* =========================================================
+   ORDER ACCEPTED APPROVAL POPUP NOTIFICATION (SECTION 5)
+   ========================================================= */
+function checkAndShowOrderAcceptedPopup(requests) {
+  if (!Array.isArray(requests) || requests.length === 0) return;
+
+  // Retrieve current user identifier for strict per-contractor isolation
+  let userId = "default";
+  try {
+    const rawUser = localStorage.getItem("currentUser") || 
+                    localStorage.getItem("contractorUser") || 
+                    localStorage.getItem("customerUser") || "{}";
+    const user = JSON.parse(rawUser);
+    userId = user.id || user.email || user.username || "default";
+  } catch (e) {
+    userId = "default";
+  }
+
+  const storageKey = `buildbid_shown_approval_popups_${userId}`;
+  let shownPopups = [];
+  try {
+    shownPopups = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    if (!Array.isArray(shownPopups)) shownPopups = [];
+  } catch (e) {
+    shownPopups = [];
+  }
+
+  // Find newly accepted/allocated orders that haven't been shown yet
+  const newlyAccepted = requests.filter(req => {
+    if (!isOrderAcceptedState(req)) return false;
+    const reqKey = String(req.id || req.backendId || req.orderId || req.requestId || "");
+    return reqKey && !shownPopups.includes(reqKey);
+  });
+
+  if (newlyAccepted.length === 0) return;
+
+  // Mark all new items as shown to prevent repeated display on re-renders / reloads
+  newlyAccepted.forEach(req => {
+    const reqKey = String(req.id || req.backendId || req.orderId || req.requestId || "");
+    if (reqKey && !shownPopups.includes(reqKey)) {
+      shownPopups.push(reqKey);
+    }
+  });
+
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(shownPopups));
+  } catch (e) {}
+
+  // Trigger professional modal notification once
+  showOrderAcceptedModal();
+}
+
+function showOrderAcceptedModal() {
+  let modal = document.getElementById("orderAcceptedPopupModal");
+  if (!modal) {
+    // Dynamic injection fallback if not already in HTML markup
+    const modalHTML = `
+      <div class="modal-backdrop-overlay" id="orderAcceptedPopupModal" style="z-index: 10050;">
+        <div class="modal-dialog-box modal-small" style="max-width: 460px; text-align: center; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+          <div style="padding: 32px 28px 24px; display: flex; flex-direction: column; align-items: center; background: #ffffff;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #ecfdf5; border: 2.5px solid #a7f3d0; display: flex; align-items: center; justify-content: center; color: #059669; font-size: 32px; margin-bottom: 18px;">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 id="orderAcceptedModalTitle" style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 10px; letter-spacing: -0.3px;">
+              Order Accepted Successfully!
+            </h3>
+            <p id="orderAcceptedModalMessage" style="font-size: 14px; color: #475569; line-height: 1.55; margin: 0 0 24px;">
+              Your order has been approved and allocated to the seller. Please check your My Orders section for complete order details.
+            </p>
+            <div style="display: flex; gap: 12px; width: 100%; justify-content: center;">
+              <button type="button" class="btn-proceed-quote" id="btnOrderAcceptedOk" onclick="closeOrderAcceptedPopup()" style="min-width: 140px; justify-content: center; padding: 11px 28px; font-size: 14px; font-weight: 700; border-radius: 8px; background: #059669; border: none; color: #ffffff; cursor: pointer;">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+    modal = document.getElementById("orderAcceptedPopupModal");
+  }
+
+  if (modal) {
+    modal.classList.add("active");
+  }
+}
+
+function closeOrderAcceptedPopup() {
+  const modal = document.getElementById("orderAcceptedPopupModal");
+  if (modal) {
+    modal.classList.remove("active");
+  }
+}
+window.closeOrderAcceptedPopup = closeOrderAcceptedPopup;
+window.showOrderAcceptedModal = showOrderAcceptedModal;
+window.checkAndShowOrderAcceptedPopup = checkAndShowOrderAcceptedPopup;
 
 /* =========================================================
    6. FILTERING & SORTING ENGINE
