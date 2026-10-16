@@ -674,9 +674,8 @@ public class DirectBuyController {
                     action.setMaterialOrder(createdOrder);
                 }
             } catch (Exception e) {
-                // Best-effort order creation failed in its independent transaction (REQUIRES_NEW).
-                // The parent acceptance transaction remains committable and unblemished.
-                log.warn("Optional MaterialOrder creation failed for Direct Buy request {}: {}", saved.getId(), e.getMessage());
+                log.error("MaterialOrder creation failed for Direct Buy request {}: {}", saved.getId(), e.getMessage(), e);
+                throw e;
             }
         }
 

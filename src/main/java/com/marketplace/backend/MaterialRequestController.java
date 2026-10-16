@@ -714,9 +714,8 @@ public class MaterialRequestController {
                 createdOrder = materialOrderService.createOrderForAcceptedMaterialRequest(saved, seller);
                 action.setMaterialOrder(createdOrder);
             } catch (Exception e) {
-                // Best-effort order creation failed in its independent transaction (REQUIRES_NEW).
-                // The parent acceptance transaction remains committable and unblemished.
-                log.warn("Optional MaterialOrder creation failed for accepted MaterialRequest {}: {}", saved.getId(), e.getMessage());
+                log.error("MaterialOrder creation failed for accepted MaterialRequest {}: {}", saved.getId(), e.getMessage(), e);
+                throw e;
             }
         }
 

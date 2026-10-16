@@ -14,7 +14,10 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 
 /**
  * BUILDBID - SELLER MATERIAL REQUEST ACCEPT/DECLINE & 24-HOUR EXPIRY INTEGRATION TESTS
@@ -389,5 +392,254 @@ public class SellerMaterialRequestAcceptDeclineTest {
 
         ResponseEntity<?> declineResp = materialRequestController.declineRequest("105", authCustomer);
         assertEquals(HttpStatus.FORBIDDEN, declineResp.getStatusCode());
+    }
+
+    // ============================================================
+    // DIRECT BUY ACCEPTANCE, TRANSACTION ATOMICITY & DEDUPLICATION REGRESSION TESTS
+    // ============================================================
+
+    private MaterialRequest createMockDirectBuyRequest(Long id, String reqCode, String status, MarketplaceBackendApplication.MarketplaceUser targetSeller) {
+        MaterialRequest req = new MaterialRequest();
+        ReflectionTestUtils.setField(req, "id", id);
+        req.setRequestId(reqCode);
+        req.setRequestType("DIRECT_MATERIAL");
+        req.setRequestScope("DIRECT");
+        req.setState("Uttar Pradesh");
+        req.setCity("Noida");
+        req.setPinCode("201301");
+        req.setStatus(status);
+        req.setTargetSeller(targetSeller);
+        req.setBuyer(buyerCustomer);
+        req.setBuyerRole("CUSTOMER");
+        req.setMaterialAmount(25000.0);
+        req.setTransportationCost(1500.0);
+        req.setEstimatedTotal(26500.0);
+        req.setCreatedAt(LocalDateTime.now(IST_ZONE).minusHours(1));
+
+        MaterialRequestItem item = new MaterialRequestItem();
+        item.setMaterialName("Ultratech Cement OPC 53");
+        item.setQuantity(50.0);
+        item.setUnit("Bags");
+        item.setCategory("Cement");
+        req.addItem(item);
+
+        return req;
+    }
+
+    @Test
+    @DisplayName("Regression 1 & 2: Authorized seller accepts customer Direct Buy - persists request, seller action, and order together")
+    public void testAuthorizedSellerAcceptsDirectBuy_persistsRequestActionAndOrderTogether() {
+        MaterialRequest req = createMockDirectBuyRequest(301L, "DMR-301", "WAITING_FOR_ACCEPTANCE", sellerA);
+        when(materialRequestRepository.findByIdForUpdate(301L)).thenReturn(Optional.of(req));
+        when(materialRequestRepository.findById(301L)).thenReturn(Optional.of(req));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        when(sellerMaterialRequestActionRepository.findBySellerIdAndMaterialRequestId(sellerA.getId(), 301L))
+                .thenReturn(Optional.empty());
+
+        MaterialOrder savedOrder = new MaterialOrder();
+        ReflectionTestUtils.setField(savedOrder, "id", 601L);
+        savedOrder.setOrderCode("ORD-2026-00301");
+        savedOrder.setMaterialRequest(req);
+        savedOrder.setSeller(sellerA);
+        savedOrder.setBuyer(buyerCustomer);
+        savedOrder.setBuyerRole("CUSTOMER");
+        savedOrder.setOrderStatus("CONFIRMED");
+        savedOrder.setTotalAmount(26500.0);
+        savedOrder.setCreatedAt(LocalDateTime.now(IST_ZONE));
+
+        when(materialOrderRepository.findFirstByMaterialRequestIdAndSellerId(301L, sellerA.getId())).thenReturn(Optional.empty());
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenReturn(savedOrder);
+
+        ResponseEntity<?> resp = materialRequestController.acceptRequest("301", authSellerA);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) resp.getBody();
+        assertNotNull(body);
+        assertEquals(true, body.get("success"));
+        assertEquals("ACCEPTED", body.get("status"));
+        assertEquals("ACCEPTED", body.get("sellerStatus"));
+        assertEquals("ORD-2026-00301", body.get("orderCode"));
+        assertNotNull(body.get("verificationCode"));
+
+        // Verify all 3 entities persisted in coherent transaction
+        ArgumentCaptor<MaterialRequest> reqCaptor = ArgumentCaptor.forClass(MaterialRequest.class);
+        verify(materialRequestRepository).save(reqCaptor.capture());
+        assertEquals("ACCEPTED", reqCaptor.getValue().getStatus());
+
+        ArgumentCaptor<SellerMaterialRequestAction> actionCaptor = ArgumentCaptor.forClass(SellerMaterialRequestAction.class);
+        verify(sellerMaterialRequestActionRepository).save(actionCaptor.capture());
+        assertEquals("ACCEPTED", actionCaptor.getValue().getStatus());
+        assertEquals(savedOrder, actionCaptor.getValue().getMaterialOrder());
+
+        ArgumentCaptor<MaterialOrder> orderCaptor = ArgumentCaptor.forClass(MaterialOrder.class);
+        verify(materialOrderRepository).save(orderCaptor.capture());
+        assertEquals(buyerCustomer, orderCaptor.getValue().getBuyer());
+        assertEquals(sellerA, orderCaptor.getValue().getSeller());
+        assertEquals(26500.0, orderCaptor.getValue().getTotalAmount());
+
+        // Verify targeted notification sent to buyer
+        verify(notificationService).createNotification(
+                eq(buyerCustomer),
+                eq("Order Accepted"),
+                anyString(),
+                contains(sellerA.getName()),
+                anyString(),
+                eq("DIRECT_BUY_ACCEPTED"),
+                eq("DMR-301")
+        );
+    }
+
+    @Test
+    @DisplayName("Regression 3: Required order creation failure propagates exception and prevents fake success")
+    public void testOrderCreationFailure_propagatesExceptionAndPreventsFakeSuccess() {
+        MaterialRequest req = createMockDirectBuyRequest(302L, "DMR-302", "WAITING_FOR_ACCEPTANCE", sellerA);
+        when(materialRequestRepository.findByIdForUpdate(302L)).thenReturn(Optional.of(req));
+        when(materialRequestRepository.findById(302L)).thenReturn(Optional.of(req));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        when(sellerMaterialRequestActionRepository.findBySellerIdAndMaterialRequestId(sellerA.getId(), 302L))
+                .thenReturn(Optional.empty());
+
+        when(materialOrderRepository.findFirstByMaterialRequestIdAndSellerId(302L, sellerA.getId())).thenReturn(Optional.empty());
+        when(materialOrderRepository.save(any(MaterialOrder.class)))
+                .thenThrow(new DataIntegrityViolationException("Column 'quotation_id' cannot be null"));
+
+        // Must throw DataIntegrityViolationException to trigger outer transaction rollback
+        assertThrows(DataIntegrityViolationException.class, () -> {
+            materialRequestController.acceptRequest("302", authSellerA);
+        });
+
+        // Seller action must NOT be persisted as successful
+        verify(sellerMaterialRequestActionRepository, never()).save(any(SellerMaterialRequestAction.class));
+    }
+
+    @Test
+    @DisplayName("Regression 4: Custom non-catalog material handled with nullable material_id and quotation_id")
+    public void testCustomMaterialHandledWithNullableSchema() {
+        MaterialRequest req = createMockDirectBuyRequest(303L, "DMR-303", "WAITING_FOR_ACCEPTANCE", sellerA);
+        req.getItems().clear();
+
+        MaterialRequestItem customItem = new MaterialRequestItem();
+        customItem.setMaterialName("Custom Carved Stone Jali");
+        customItem.setQuantity(10.0);
+        customItem.setUnit("Pieces");
+        customItem.setIsCustomMaterial(true);
+        customItem.setCustomMaterialName("Custom Carved Stone Jali");
+        req.addItem(customItem);
+
+        when(materialRepository.findBySellerOrderByCreatedAtDesc(sellerA)).thenReturn(Collections.emptyList());
+        when(materialOrderRepository.findFirstByMaterialRequestIdAndSellerId(303L, sellerA.getId())).thenReturn(Optional.empty());
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MaterialOrder created = materialOrderService.createOrderForAcceptedMaterialRequest(req, sellerA);
+
+        assertNotNull(created);
+        assertNull(created.getQuotation(), "Direct Buy order must have null quotation (quotation_id NULL)");
+        assertEquals(1, created.getItems().size());
+        MaterialOrderItem item = created.getItems().get(0);
+        assertNull(item.getMaterial(), "Custom material must have null catalog material (material_id NULL)");
+        assertEquals("Custom Carved Stone Jali", item.getMaterialName());
+    }
+
+    @Test
+    @DisplayName("Regression 5: Quotation-based order creation still works with quotation_id populated")
+    public void testQuotationBasedOrderCreationStillWorks() {
+        MaterialRequest req = createMockRequest(106L, "MR-106", "STATE", "NEW");
+
+        Quotation quotation = new Quotation();
+        ReflectionTestUtils.setField(quotation, "id", 801L);
+        quotation.setQuotationId("QUO-801");
+        quotation.setRequestType("MATERIAL_REQUIREMENT");
+        quotation.setMaterialRequest(req);
+        quotation.setProvider(sellerA);
+        quotation.setProviderRole("MATERIAL_SELLER");
+        quotation.setQuotedAmount(55000.0);
+        quotation.setMaterialCost(50000.0);
+        quotation.setTransportationCost(5000.0);
+        quotation.setStatus("ACCEPTED");
+
+        when(materialOrderRepository.existsByQuotationId(801L)).thenReturn(false);
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MaterialOrder order = materialOrderService.createOrderFromAcceptedQuotation(quotation, req, buyerCustomer);
+
+        assertNotNull(order);
+        assertNotNull(order.getQuotation());
+        assertEquals(801L, order.getQuotation().getId());
+        assertEquals("CONFIRMED", order.getOrderStatus());
+        assertEquals(buyerCustomer, order.getBuyer());
+        assertEquals(sellerA, order.getSeller());
+    }
+
+    @Test
+    @DisplayName("Regression 6 & 7: Customer Orders returns accepted Direct Buy order exactly once (deduplicated)")
+    public void testCustomerOrdersReturnsAcceptedDirectBuyOrderExactlyOnce() {
+        MaterialRequest directBuyReq = createMockDirectBuyRequest(301L, "DMR-301", "ACCEPTED", sellerA);
+
+        MaterialOrder persistedOrder = new MaterialOrder();
+        ReflectionTestUtils.setField(persistedOrder, "id", 601L);
+        persistedOrder.setOrderCode("ORD-2026-00301");
+        persistedOrder.setMaterialRequest(directBuyReq);
+        persistedOrder.setSeller(sellerA);
+        persistedOrder.setBuyer(buyerCustomer);
+        persistedOrder.setBuyerRole("CUSTOMER");
+        persistedOrder.setOrderStatus("CONFIRMED");
+        persistedOrder.setTotalAmount(26500.0);
+        persistedOrder.setCreatedAt(LocalDateTime.now(IST_ZONE));
+
+        // Both tables return the record for the customer
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(buyerCustomer.getId()))
+                .thenReturn(Collections.singletonList(persistedOrder));
+        when(materialRequestRepository.findByBuyerOrderByCreatedAtDesc(buyerCustomer))
+                .thenReturn(Collections.singletonList(directBuyReq));
+
+        List<Map<String, Object>> customerOrders = materialOrderService.getAcceptedOrdersForCustomer(buyerCustomer);
+
+        assertNotNull(customerOrders);
+        assertEquals(1, customerOrders.size(), "Direct Buy order must appear EXACTLY ONCE in customer orders!");
+        Map<String, Object> orderCard = customerOrders.get(0);
+        assertEquals("ORD-2026-00301", orderCard.get("orderCode"));
+        assertEquals("DIRECT_BUY", orderCard.get("type"));
+        assertEquals(true, orderCard.get("isDirectBuy"));
+        assertEquals("CONFIRMED", orderCard.get("orderStatus"));
+        assertEquals("Seller Alpha Materials", orderCard.get("sellerName"));
+    }
+
+    @Test
+    @DisplayName("Regression 8: Repeated Direct Buy acceptance returns 409 conflict and prevents duplicates")
+    public void testRepeatedDirectBuyAcceptanceReturnsConflict() {
+        MaterialRequest req = createMockDirectBuyRequest(301L, "DMR-301", "ACCEPTED", sellerA);
+        when(materialRequestRepository.findByIdForUpdate(301L)).thenReturn(Optional.of(req));
+        when(materialRequestRepository.findById(301L)).thenReturn(Optional.of(req));
+
+        SellerMaterialRequestAction existingAction = new SellerMaterialRequestAction();
+        existingAction.setStatus("ACCEPTED");
+        existingAction.setSeller(sellerA);
+        existingAction.setMaterialRequest(req);
+        when(sellerMaterialRequestActionRepository.findBySellerIdAndMaterialRequestId(sellerA.getId(), 301L))
+                .thenReturn(Optional.of(existingAction));
+
+        ResponseEntity<?> resp = materialRequestController.acceptRequest("301", authSellerA);
+
+        assertEquals(HttpStatus.CONFLICT, resp.getStatusCode());
+        verify(materialOrderRepository, never()).save(any(MaterialOrder.class));
+    }
+
+    @Test
+    @DisplayName("Regression 9: Unauthorized seller cannot accept targeted Direct Buy request")
+    public void testUnauthorizedSellerCannotAcceptTargetedDirectBuy() {
+        // Request is targeted strictly to Seller A
+        MaterialRequest req = createMockDirectBuyRequest(301L, "DMR-301", "WAITING_FOR_ACCEPTANCE", sellerA);
+        when(materialRequestRepository.findByIdForUpdate(301L)).thenReturn(Optional.of(req));
+        when(materialRequestRepository.findById(301L)).thenReturn(Optional.of(req));
+
+        // Seller B attempts to accept Seller A's targeted direct buy
+        ResponseEntity<?> resp = materialRequestController.acceptRequest("301", authSellerB);
+
+        assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
+        verify(materialOrderRepository, never()).save(any(MaterialOrder.class));
+        verify(sellerMaterialRequestActionRepository, never()).save(any(SellerMaterialRequestAction.class));
     }
 }

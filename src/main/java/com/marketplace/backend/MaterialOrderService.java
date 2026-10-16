@@ -87,7 +87,7 @@ public class MaterialOrderService {
      * Captures line items, agreed amounts, delivery address, buyer details, and timestamps.
      * Idempotent: returns existing order if one already exists for this request and seller.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public MaterialOrder createOrderForAcceptedMaterialRequest(
             MaterialRequest materialRequest,
             MarketplaceBackendApplication.MarketplaceUser seller
@@ -396,27 +396,53 @@ public class MaterialOrderService {
             throw new IllegalArgumentException("Valid customer authentication required.");
         }
         List<Map<String, Object>> result = new ArrayList<>();
+        Set<Long> seenMaterialRequestIds = new HashSet<>();
 
-        // 1. Material Orders (Quotation & Multi-Seller accepted orders)
+        // 1. Material Orders (Quotation, Multi-Seller, and Direct Buy accepted orders)
         List<MaterialOrder> orders = materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(customer.getId());
         if (orders != null) {
             for (MaterialOrder o : orders) {
                 if (isAcceptedOrderStatus(o.getOrderStatus())) {
                     Map<String, Object> map = toResponseMap(o);
-                    map.put("type", o.getMaterialRequest() != null && o.getMaterialRequest().getRequestId() != null ? "MULTI_SELLER" : "STANDARD_ORDER");
-                    map.put("typeLabel", "Multi-Seller Allocation / मल्टी-विक्रेता ऑर्डर");
+                    if (o.getMaterialRequest() != null) {
+                        if (o.getMaterialRequest().getId() != null) {
+                            seenMaterialRequestIds.add(o.getMaterialRequest().getId());
+                        }
+                        if ("DIRECT_MATERIAL".equalsIgnoreCase(o.getMaterialRequest().getRequestType())) {
+                            map.put("type", "DIRECT_BUY");
+                            map.put("orderType", "DIRECT_BUY");
+                            map.put("sourceType", "DIRECT_BUY");
+                            map.put("isDirectBuy", true);
+                            map.put("typeLabel", "Direct Buy Order / सीधा खरीद ऑर्डर");
+                        } else if (o.getMaterialRequest().getRequestId() != null) {
+                            map.put("type", "MULTI_SELLER");
+                            map.put("typeLabel", "Multi-Seller Allocation / मल्टी-विक्रेता ऑर्डर");
+                        } else {
+                            map.put("type", "STANDARD_ORDER");
+                            map.put("typeLabel", "Material Order / सामग्री ऑर्डर");
+                        }
+                    } else {
+                        map.put("type", "STANDARD_ORDER");
+                        map.put("typeLabel", "Material Order / सामग्री ऑर्डर");
+                    }
                     result.add(map);
                 }
             }
         }
 
         // 2. Direct Buy Orders (stored in MaterialRequest with requestType='DIRECT_MATERIAL')
+        // Deduplicate using stable MaterialRequest ID so an accepted Direct Buy is shown exactly once
         if (materialRequestRepository != null) {
             List<MaterialRequest> directBuyRequests = materialRequestRepository.findByBuyerOrderByCreatedAtDesc(customer);
             if (directBuyRequests != null) {
                 for (MaterialRequest mr : directBuyRequests) {
-                    if ("DIRECT_MATERIAL".equalsIgnoreCase(mr.getRequestType()) && isAcceptedOrderStatus(mr.getStatus())) {
+                    if ("DIRECT_MATERIAL".equalsIgnoreCase(mr.getRequestType())
+                            && isAcceptedOrderStatus(mr.getStatus())
+                            && (mr.getId() == null || !seenMaterialRequestIds.contains(mr.getId()))) {
                         result.add(mapDirectBuyRequestToOrderCard(mr));
+                        if (mr.getId() != null) {
+                            seenMaterialRequestIds.add(mr.getId());
+                        }
                     }
                 }
             }
@@ -586,13 +612,21 @@ public class MaterialOrderService {
         if (orders != null) {
             for (MaterialOrder o : orders) {
                 Map<String, Object> map = toResponseMap(o);
-                map.put("sourceType", "MATERIAL_ORDER");
-                map.put("isDirectBuy", false);
-                if (!map.containsKey("type") || map.get("type") == null) {
-                    map.put("type", o.getMaterialRequest() != null && o.getMaterialRequest().getRequestId() != null ? "MULTI_SELLER" : "STANDARD_ORDER");
-                }
-                if (!map.containsKey("orderType") || map.get("orderType") == null) {
-                    map.put("orderType", "STANDARD");
+                if (o.getMaterialRequest() != null && "DIRECT_MATERIAL".equalsIgnoreCase(o.getMaterialRequest().getRequestType())) {
+                    map.put("sourceType", "DIRECT_BUY");
+                    map.put("type", "DIRECT_BUY");
+                    map.put("orderType", "DIRECT_BUY");
+                    map.put("isDirectBuy", true);
+                    map.put("typeLabel", "Direct Buy Order / सीधा खरीद ऑर्डर");
+                } else {
+                    map.put("sourceType", "MATERIAL_ORDER");
+                    map.put("isDirectBuy", false);
+                    if (!map.containsKey("type") || map.get("type") == null) {
+                        map.put("type", o.getMaterialRequest() != null && o.getMaterialRequest().getRequestId() != null ? "MULTI_SELLER" : "STANDARD_ORDER");
+                    }
+                    if (!map.containsKey("orderType") || map.get("orderType") == null) {
+                        map.put("orderType", "STANDARD");
+                    }
                 }
                 if (o.getMaterialRequest() != null && o.getMaterialRequest().getId() != null) {
                     seenMrIds.add(o.getMaterialRequest().getId());
