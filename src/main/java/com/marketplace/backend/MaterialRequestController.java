@@ -978,8 +978,20 @@ public class MaterialRequestController {
         map.put("city", req.getCity() != null ? req.getCity() : "");
         map.put("state", req.getState());
         map.put("pinCode", req.getPinCode());
-        map.put("contactPerson", req.getContactPerson() != null ? req.getContactPerson() : "");
-        map.put("expectedDeliveryDate", req.getExpectedDeliveryDate() != null ? req.getExpectedDeliveryDate() : "");
+        String reqExpDate = req.getExpectedDeliveryDate();
+        if ((reqExpDate == null || reqExpDate.isBlank() || "Not Set".equalsIgnoreCase(reqExpDate.trim()))
+                && materialOrderService != null && materialOrderService.getMaterialOrderRepository() != null && req.getId() != null) {
+            List<MaterialOrder> linkedOrders = materialOrderService.getMaterialOrderRepository().findByMaterialRequestIdOrderByCreatedAtDesc(req.getId());
+            if (linkedOrders != null && !linkedOrders.isEmpty()) {
+                for (MaterialOrder mo : linkedOrders) {
+                    if (mo.getExpectedDeliveryDate() != null && !mo.getExpectedDeliveryDate().isBlank() && !"Not Set".equalsIgnoreCase(mo.getExpectedDeliveryDate().trim())) {
+                        reqExpDate = mo.getExpectedDeliveryDate();
+                        break;
+                    }
+                }
+            }
+        }
+        map.put("expectedDeliveryDate", reqExpDate != null ? reqExpDate : "");
         map.put("unloadingBy", req.getUnloadingBy() != null ? req.getUnloadingBy() : "SUPPLIER");
         map.put("truckAccess", req.getTruckAccess() != null ? req.getTruckAccess() : "HEAVY_TRUCK");
         map.put("requestScope", req.getRequestScope());

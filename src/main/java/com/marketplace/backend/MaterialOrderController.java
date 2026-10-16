@@ -244,6 +244,9 @@ public class MaterialOrderController {
             MaterialOrder updated = materialOrderService.updateExpectedDelivery(id, date, user);
             return ResponseEntity.ok(materialOrderService.toResponseMap(updated));
         } catch (NoSuchElementException e) {
+            if (directBuyController != null) {
+                return directBuyController.updateExpectedDelivery(id, body, authentication);
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));

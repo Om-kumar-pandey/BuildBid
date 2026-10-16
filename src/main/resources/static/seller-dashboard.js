@@ -4066,12 +4066,89 @@ function isOrderAccepted(order) {
  * Checks if an order has a valid, non-placeholder expected delivery date.
  */
 function hasValidExpectedDeliveryDate(order) {
-    if (!order || !order.expectedDeliveryDate) return false;
-    const d = String(order.expectedDeliveryDate).trim();
-    if (!d || d.toLowerCase() === 'not set' || d.toLowerCase() === 'pending confirmation' || d.toLowerCase() === 'standard delivery window') {
+    if (!order) return false;
+    const dateVal = order.expectedDeliveryDate || order.deliveryDate;
+    if (!dateVal) return false;
+    const d = String(dateVal).trim();
+    if (!d || d.toLowerCase() === 'not set' || d.toLowerCase() === 'pending confirmation' || d.toLowerCase() === 'standard delivery window' || d.toLowerCase() === 'null') {
         return false;
     }
     return true;
+}
+
+/**
+ * Standardized renderer for Expected Delivery cell across Seller Dashboard table.
+ * Accurately displays:
+ * - Red blinking pulsing dot, "Not Set", and "Expected Date Required" for accepted orders without a date
+ * - Green verified calendar check, formatted DD/MM/YYYY date, and "Edit Date" for orders with persisted date
+ * - Subdued "Not Set (Pending order acceptance)" for unaccepted orders without blinking alert
+ */
+function renderExpectedDeliveryCellContent(order) {
+    if (!order) return '';
+    const isDirectBuy = order.sourceType === 'DIRECT_BUY' || order.type === 'DIRECT_BUY' || order.isDirectBuy === true;
+    const orderSourceType = isDirectBuy ? 'DIRECT_BUY' : 'MATERIAL_ORDER';
+    const orderCode = order.orderCode || order.orderId || ('ORD-' + order.id);
+    const isAccepted = isOrderAccepted(order);
+    const hasValidDate = hasValidExpectedDeliveryDate(order);
+    const isMissingDate = isAccepted && !hasValidDate;
+    const mrId = order.materialRequestId || (isDirectBuy ? order.id : null);
+    const mrIdParam = mrId ? mrId : 'null';
+
+    if (isMissingDate) {
+        return `
+            <div class="space-y-1.5 py-0.5" id="delivery-cell-${order.id}">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-700">Not Set</span>
+                    <span class="relative flex h-2.5 w-2.5 flex-shrink-0" title="Expected Date Required">
+                        <span class="expected-date-ping-dot absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+                    </span>
+                </div>
+                <div class="expected-date-required-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-100/90 border border-rose-300 text-rose-800 text-[10px] font-bold shadow-xs">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 text-[10px]"></i>
+                    <span>Expected Date Required</span>
+                </div>
+                <div>
+                    <button type="button" 
+                        id="btn-update-delivery-${order.id}"
+                        onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}', '', ${mrIdParam})" 
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
+                        <i class="fa-regular fa-calendar-plus text-xs"></i>
+                        <span>Update Date</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (hasValidDate) {
+        const rawDate = (order.expectedDeliveryDate || order.deliveryDate || '').toString().trim();
+        const displayDate = formatExpectedDeliveryDateForDisplay(rawDate);
+        return `
+            <div class="space-y-1 py-0.5" id="delivery-cell-${order.id}">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-regular fa-calendar-check text-emerald-600 text-sm"></i>
+                    <span>${escapeHtml(displayDate)}</span>
+                </span>
+                ${isAccepted ? `
+                <button type="button" 
+                    onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}', '${escapeJs(displayDate)}', ${mrIdParam})" 
+                    class="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline mt-0.5 inline-flex items-center gap-1 cursor-pointer">
+                    <i class="fa-regular fa-pen-to-square text-[9px]"></i>
+                    <span>Edit Date</span>
+                </button>
+                ` : ''}
+            </div>
+        `;
+    } else {
+        return `
+            <div class="space-y-1 py-0.5" id="delivery-cell-${order.id}">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
+                <span class="text-xs font-semibold text-slate-500 block">Not Set</span>
+                <span class="text-[10px] text-slate-400 italic block">Pending order acceptance</span>
+            </div>
+        `;
+    }
 }
 
 /**
@@ -4122,12 +4199,13 @@ async function loadSellerOrders() {
     }
 
     try {
-        const res = await fetch(API_BASE_URL + "/api/material-orders/seller", {
+        const res = await fetch(API_BASE_URL + `/api/material-orders/seller?_t=${Date.now()}`, {
             method: "GET",
             headers: {
                 "Authorization": "Bearer " + token,
                 "Content-Type": "application/json"
-            }
+            },
+            cache: 'no-store'
         });
 
         if (seq !== _ordersReqSeq) return;
@@ -4233,7 +4311,7 @@ function renderSellerOrders(orders) {
             <div>
                 <div class="flex items-center space-x-1.5">
                     <span class="text-blue-600 font-bold block text-xs">${escapeHtml(orderCode)}</span>
-                    ${isMissingDate ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock text-rose-500 mr-1 text-[9px]"></i>Date Pending</span>` : ''}
+                    ${isMissingDate ? `<span id="date-pending-badge-${order.id}" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock text-rose-500 mr-1 text-[9px]"></i>Date Pending</span>` : ''}
                 </div>
                 <span class="font-bold text-slate-800 text-xs block">${escapeHtml(buyerName)} <span class="text-[10px] text-slate-500 font-normal">(${escapeHtml(buyerRole)})</span></span>
                 ${order.contactNumber ? `<span class="text-[11px] text-slate-600 block"><i class="fa-solid fa-phone mr-1 text-slate-400"></i>${escapeHtml(order.contactNumber)}</span>` : ''}
@@ -4241,64 +4319,8 @@ function renderSellerOrders(orders) {
             </div>
         `;
 
-        // Expected Delivery column presentation
-        let expectedDeliveryCellHtml = '';
-        if (isMissingDate) {
-            expectedDeliveryCellHtml = `
-                <div class="space-y-1.5 py-0.5" id="delivery-cell-${order.id}">
-                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-bold text-slate-700">Not Set</span>
-                        <span class="relative flex h-2.5 w-2.5 flex-shrink-0" title="Expected Date Required">
-                            <span class="expected-date-ping-dot absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
-                        </span>
-                    </div>
-                    <div class="expected-date-required-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-100/90 border border-rose-300 text-rose-800 text-[10px] font-bold shadow-xs">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-600 text-[10px]"></i>
-                        <span>Expected Date Required</span>
-                    </div>
-                    <div>
-                        <button type="button" 
-                            id="btn-update-delivery-${order.id}"
-                            onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}')" 
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
-                            <i class="fa-regular fa-calendar-plus text-xs"></i>
-                            <span>Update Date</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-        } else if (hasValidDate) {
-            const savedDate = order.expectedDeliveryDate.trim();
-            const displayDate = formatExpectedDeliveryDateForDisplay(savedDate);
-            expectedDeliveryCellHtml = `
-                <div class="space-y-1 py-0.5" id="delivery-cell-${order.id}">
-                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
-                    <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <i class="fa-regular fa-calendar-check text-emerald-600 text-sm"></i>
-                        <span>${escapeHtml(displayDate)}</span>
-                    </span>
-                    ${isAccepted ? `
-                    <button type="button" 
-                        onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}', '${escapeJs(displayDate)}')" 
-                        class="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline mt-0.5 inline-flex items-center gap-1 cursor-pointer">
-                        <i class="fa-regular fa-pen-to-square text-[9px]"></i>
-                        <span>Edit Date</span>
-                    </button>
-                    ` : ''}
-                </div>
-            `;
-        } else {
-            // Not accepted yet (e.g. WAITING_FOR_ACCEPTANCE) - keeps 'Not Set' without blinking alert
-            expectedDeliveryCellHtml = `
-                <div class="space-y-1 py-0.5" id="delivery-cell-${order.id}">
-                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
-                    <span class="text-xs font-semibold text-slate-500 block">Not Set</span>
-                    <span class="text-[10px] text-slate-400 italic block">Pending order acceptance</span>
-                </div>
-            `;
-        }
+        // Expected Delivery column presentation via centralized helper
+        const expectedDeliveryCellHtml = renderExpectedDeliveryCellContent(order);
 
         tr.innerHTML = `
             <td class="p-4 font-medium">${buyerInfoHtml}</td>
@@ -4420,38 +4442,13 @@ function getTodayDateInIST() {
 function formatExpectedDeliveryDateForDisplay(dateStr) {
     if (!dateStr) return '';
     const trimmed = String(dateStr).trim();
-    if (!trimmed || trimmed.toLowerCase() === 'not set' || trimmed.toLowerCase() === 'pending confirmation') {
+    if (!trimmed || trimmed.toLowerCase() === 'not set' || trimmed.toLowerCase() === 'pending confirmation' || trimmed.toLowerCase() === 'standard delivery window' || trimmed.toLowerCase() === 'null') {
         return trimmed;
     }
 
-    // 1. Slash format "DD/MM/YYYY" or "D/M/YYYY"
-    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (slashMatch) {
-        const d = String(parseInt(slashMatch[1], 10)).padStart(2, '0');
-        const m = String(parseInt(slashMatch[2], 10)).padStart(2, '0');
-        const y = slashMatch[3];
-        return `${d}/${m}/${y}`;
-    }
-
-    // 2. Text month format e.g. "28 Oct 2026" or "8 Oct 2026"
-    const textMatch = trimmed.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
-    if (textMatch) {
-        const months = {
-            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
-            'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
-        };
-        const m = months[textMatch[2].toLowerCase()];
-        if (m) {
-            const d = String(parseInt(textMatch[1], 10)).padStart(2, '0');
-            const y = textMatch[3];
-            return `${d}/${m}/${y}`;
-        }
-    }
-
-    // 3. ISO format "YYYY-MM-DD"
-    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (isoMatch) {
-        return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+    const comp = parseExpectedDeliveryDateToComponents(trimmed);
+    if (comp && comp.display) {
+        return comp.display;
     }
 
     return trimmed;
@@ -4462,35 +4459,19 @@ function formatExpectedDeliveryDateForDisplay(dateStr) {
  */
 function parseExpectedDeliveryDateToComponents(dateStr) {
     if (!dateStr) return null;
-    const trimmed = String(dateStr).trim();
-    if (!trimmed || trimmed.toLowerCase() === 'not set' || trimmed.toLowerCase() === 'pending confirmation') return null;
+    let trimmed = String(dateStr).trim();
+    if (!trimmed || trimmed.toLowerCase() === 'not set' || trimmed.toLowerCase() === 'pending confirmation' || trimmed.toLowerCase() === 'standard delivery window' || trimmed.toLowerCase() === 'null') return null;
 
-    // DD/MM/YYYY
-    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    // Remove any commas or redundant spaces (e.g., "28 Oct, 2026")
+    trimmed = trimmed.replace(/,\s*/g, ' ').replace(/\s+/g, ' ');
+
+    // 1. Slash or hyphen format "DD/MM/YYYY" or "DD-MM-YYYY"
+    const slashMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (slashMatch) {
         const d = parseInt(slashMatch[1], 10);
         const m = parseInt(slashMatch[2], 10);
         const y = parseInt(slashMatch[3], 10);
-        return {
-            day: d,
-            month: m,
-            year: y,
-            iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-            display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
-        };
-    }
-
-    // Textual "28 Oct 2026"
-    const textMatch = trimmed.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
-    if (textMatch) {
-        const months = {
-            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
-        };
-        const m = months[textMatch[2].toLowerCase()];
-        if (m) {
-            const d = parseInt(textMatch[1], 10);
-            const y = parseInt(textMatch[3], 10);
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
             return {
                 day: d,
                 month: m,
@@ -4501,7 +4482,7 @@ function parseExpectedDeliveryDateToComponents(dateStr) {
         }
     }
 
-    // ISO "YYYY-MM-DD"
+    // 2. ISO "YYYY-MM-DD"
     const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
         const y = parseInt(isoMatch[1], 10);
@@ -4514,6 +4495,55 @@ function parseExpectedDeliveryDateToComponents(dateStr) {
             iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
             display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
         };
+    }
+
+    const months = {
+        'jan': 1, 'january': 1,
+        'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4,
+        'may': 5,
+        'jun': 6, 'june': 6,
+        'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8,
+        'sep': 9, 'september': 9,
+        'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12
+    };
+
+    // 3. Textual day-first "28 Oct 2026" or "28 October 2026"
+    const dayFirstMatch = trimmed.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+    if (dayFirstMatch) {
+        const m = months[dayFirstMatch[2].toLowerCase()];
+        if (m) {
+            const d = parseInt(dayFirstMatch[1], 10);
+            const y = parseInt(dayFirstMatch[3], 10);
+            return {
+                day: d,
+                month: m,
+                year: y,
+                iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
+            };
+        }
+    }
+
+    // 4. Textual month-first "Oct 28 2026" or "October 28 2026"
+    const monthFirstMatch = trimmed.match(/^([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})$/);
+    if (monthFirstMatch) {
+        const m = months[monthFirstMatch[1].toLowerCase()];
+        if (m) {
+            const d = parseInt(monthFirstMatch[2], 10);
+            const y = parseInt(monthFirstMatch[3], 10);
+            return {
+                day: d,
+                month: m,
+                year: y,
+                iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
+            };
+        }
     }
 
     return null;
@@ -4643,17 +4673,19 @@ function setupDeliveryModalSyncListeners() {
 /**
  * Open professional date picker modal for updating expected delivery date
  */
-function openUpdateDeliveryDateModal(orderId, sourceType = 'MATERIAL_ORDER', orderCode = '', currentDate = '') {
+function openUpdateDeliveryDateModal(orderId, sourceType = 'MATERIAL_ORDER', orderCode = '', currentDate = '', materialRequestId = null) {
     const modal = document.getElementById('updateDeliveryDateModal');
     if (!modal) return;
 
     const orderIdInput = document.getElementById('deliveryModalOrderId');
     const sourceTypeInput = document.getElementById('deliveryModalSourceType');
+    const mrIdInput = document.getElementById('deliveryModalMaterialRequestId');
     const orderCodeSpan = document.getElementById('deliveryModalOrderCode');
     const sourceBadge = document.getElementById('deliveryModalSourceBadge');
 
     if (orderIdInput) orderIdInput.value = orderId;
     if (sourceTypeInput) sourceTypeInput.value = sourceType || 'MATERIAL_ORDER';
+    if (mrIdInput) mrIdInput.value = (materialRequestId && materialRequestId !== 'null') ? materialRequestId : '';
     if (orderCodeSpan) orderCodeSpan.innerText = orderCode || ('ORD-' + orderId);
 
     if (sourceBadge) {
@@ -4683,7 +4715,7 @@ function openUpdateDeliveryDateModal(orderId, sourceType = 'MATERIAL_ORDER', ord
         manualInput.value = '';
     }
 
-    if (currentDate && currentDate.trim() && currentDate.toLowerCase() !== 'not set' && currentDate.toLowerCase() !== 'pending confirmation') {
+    if (currentDate && currentDate.trim() && currentDate.toLowerCase() !== 'not set' && currentDate.toLowerCase() !== 'pending confirmation' && currentDate.toLowerCase() !== 'standard delivery window' && currentDate.toLowerCase() !== 'null') {
         const parsed = parseExpectedDeliveryDateToComponents(currentDate);
         if (parsed) {
             if (manualInput) manualInput.value = parsed.display;
@@ -4717,6 +4749,8 @@ async function submitDeliveryDateUpdate() {
 
     const orderId = document.getElementById('deliveryModalOrderId') ? document.getElementById('deliveryModalOrderId').value : null;
     const sourceType = document.getElementById('deliveryModalSourceType') ? document.getElementById('deliveryModalSourceType').value : 'MATERIAL_ORDER';
+    const mrIdInput = document.getElementById('deliveryModalMaterialRequestId');
+    const materialRequestId = mrIdInput && mrIdInput.value && mrIdInput.value !== 'null' ? mrIdInput.value : null;
     const manualInput = document.getElementById('deliveryModalManualDate');
     const picker = document.getElementById('deliveryModalDatePicker');
 
@@ -4769,11 +4803,16 @@ async function submitDeliveryDateUpdate() {
         if (spinner) spinner.classList.remove('hidden');
         if (saveText) saveText.innerText = 'Saving...';
 
-        const url = (sourceType === 'DIRECT_BUY')
-            ? `${API_BASE_URL}/api/direct-buy/requests/${orderId}/expected-delivery`
-            : `${API_BASE_URL}/api/material-orders/${orderId}/expected-delivery`;
+        let targetId = orderId;
+        if (sourceType === 'DIRECT_BUY' && materialRequestId) {
+            targetId = materialRequestId;
+        }
 
-        const res = await fetch(url, {
+        let url = (sourceType === 'DIRECT_BUY')
+            ? `${API_BASE_URL}/api/direct-buy/requests/${targetId}/expected-delivery`
+            : `${API_BASE_URL}/api/material-orders/${targetId}/expected-delivery`;
+
+        let res = await fetch(url, {
             method: 'PUT',
             headers: {
                 'Authorization': 'Bearer ' + token,
@@ -4785,17 +4824,66 @@ async function submitDeliveryDateUpdate() {
             })
         });
 
-        if (res.ok) {
-            showToast(`Expected delivery date updated to ${validation.displayDate}! — डिलीवरी की तारीख अपडेट की गई!`);
-            closeModal('updateDeliveryDateModal');
+        // Robust fallback if 404
+        if (res.status === 404) {
+            const fallbackUrl = (sourceType === 'DIRECT_BUY')
+                ? `${API_BASE_URL}/api/material-orders/${orderId}/expected-delivery`
+                : `${API_BASE_URL}/api/direct-buy/requests/${orderId}/expected-delivery`;
+            const fallbackRes = await fetch(fallbackUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    expectedDeliveryDate: validation.canonicalApiDate,
+                    sourceType: sourceType
+                })
+            });
+            if (fallbackRes.ok) {
+                res = fallbackRes;
+            }
+        }
 
+        if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            const confirmedDate = data.expectedDeliveryDate || data.deliveryDate || validation.canonicalApiDate;
+            const displayDate = formatExpectedDeliveryDateForDisplay(confirmedDate);
+
+            // Update in-memory cache for all matching records
             if (Array.isArray(sellerOrdersCache)) {
-                const targetOrder = sellerOrdersCache.find(o => String(o.id) === String(orderId));
-                if (targetOrder) {
-                    targetOrder.expectedDeliveryDate = validation.canonicalApiDate;
-                }
+                sellerOrdersCache.forEach(o => {
+                    if (String(o.id) === String(orderId) || 
+                        (materialRequestId && String(o.id) === String(materialRequestId)) ||
+                        (o.materialRequestId && String(o.materialRequestId) === String(orderId)) ||
+                        (materialRequestId && o.materialRequestId && String(o.materialRequestId) === String(materialRequestId))) {
+                        o.expectedDeliveryDate = confirmedDate;
+                        o.deliveryDate = confirmedDate;
+                    }
+                });
             }
 
+            // Immediately re-render the delivery cell in DOM using the updated authoritative order data
+            const cellElem = document.getElementById(`delivery-cell-${orderId}`);
+            if (cellElem) {
+                const targetOrder = (Array.isArray(sellerOrdersCache) && sellerOrdersCache.find(o => String(o.id) === String(orderId))) || {
+                    id: orderId,
+                    sourceType: sourceType,
+                    expectedDeliveryDate: confirmedDate,
+                    orderStatus: 'ACCEPTED',
+                    materialRequestId: materialRequestId
+                };
+                cellElem.outerHTML = renderExpectedDeliveryCellContent(targetOrder);
+            }
+
+            // Remove Date Pending badge from buyer column if present
+            const pendingBadge = document.getElementById(`date-pending-badge-${orderId}`);
+            if (pendingBadge) pendingBadge.remove();
+
+            closeModal('updateDeliveryDateModal');
+            showToast(`Expected delivery date updated to ${displayDate}! — डिलीवरी की तारीख अपडेट की गई!`);
+
+            // Authoritative background refresh with cache busting to guarantee persistent sync
             await loadSellerOrders();
         } else {
             const errData = await res.json().catch(() => ({}));

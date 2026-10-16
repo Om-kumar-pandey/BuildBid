@@ -570,7 +570,20 @@ public class MaterialOrderService {
             map.put("verificationCode", mr.getVerificationCode());
         }
 
-        map.put("expectedDeliveryDate", mr.getExpectedDeliveryDate() != null && !mr.getExpectedDeliveryDate().isBlank() ? mr.getExpectedDeliveryDate() : "Not Set");
+        String expDeliveryDate = mr.getExpectedDeliveryDate();
+        if ((expDeliveryDate == null || expDeliveryDate.isBlank() || "Not Set".equalsIgnoreCase(expDeliveryDate.trim()))
+                && materialOrderRepository != null && mr.getId() != null) {
+            List<MaterialOrder> linkedOrders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
+            if (linkedOrders != null && !linkedOrders.isEmpty()) {
+                for (MaterialOrder mo : linkedOrders) {
+                    if (mo.getExpectedDeliveryDate() != null && !mo.getExpectedDeliveryDate().isBlank() && !"Not Set".equalsIgnoreCase(mo.getExpectedDeliveryDate().trim())) {
+                        expDeliveryDate = mo.getExpectedDeliveryDate();
+                        break;
+                    }
+                }
+            }
+        }
+        map.put("expectedDeliveryDate", expDeliveryDate != null && !expDeliveryDate.isBlank() ? expDeliveryDate : "Not Set");
 
         // Status normalization
         String rawStatus = mr.getStatus() != null ? mr.getStatus().trim().toUpperCase() : "ACCEPTED";
@@ -1024,6 +1037,14 @@ public class MaterialOrderService {
         return updateOrderStatus(orderId, "ORDER_ACCEPTED", seller);
     }
 
+    public MaterialOrderRepository getMaterialOrderRepository() {
+        return this.materialOrderRepository;
+    }
+
+    public MaterialRequestRepository getMaterialRequestRepository() {
+        return this.materialRequestRepository;
+    }
+
     @Transactional
     public MaterialOrder updateExpectedDelivery(Long orderId, String expectedDeliveryDate, MarketplaceBackendApplication.MarketplaceUser caller) {
         if (orderId == null) throw new IllegalArgumentException("Valid order ID is required.");
@@ -1031,7 +1052,13 @@ public class MaterialOrderService {
         if (caller == null) throw new SecurityException("Authentication required.");
 
         MaterialOrder order = materialOrderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+                .orElseGet(() -> {
+                    List<MaterialOrder> byMr = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(orderId);
+                    if (byMr != null && !byMr.isEmpty()) {
+                        return byMr.get(0);
+                    }
+                    throw new NoSuchElementException("Order not found with ID: " + orderId);
+                });
 
         boolean isSeller = order.getSeller() != null && order.getSeller().getId().equals(caller.getId());
         if (!isSeller) {
@@ -1041,6 +1068,16 @@ public class MaterialOrderService {
         String validatedDate = DeliveryDateValidator.validateAndNormalize(expectedDeliveryDate);
         order.setExpectedDeliveryDate(validatedDate);
         order.setUpdatedAt(LocalDateTime.now(IST_ZONE));
+
+        if (order.getMaterialRequest() != null) {
+            MaterialRequest mr = order.getMaterialRequest();
+            mr.setExpectedDeliveryDate(validatedDate);
+            mr.setUpdatedAt(LocalDateTime.now(IST_ZONE));
+            if (materialRequestRepository != null) {
+                materialRequestRepository.save(mr);
+            }
+        }
+
         MaterialOrder saved = materialOrderRepository.save(order);
 
         // Notify Buyer
@@ -1575,7 +1612,14 @@ public class MaterialOrderService {
         map.put("completedAt", order.getCompletedAt() != null ? order.getCompletedAt().toString() : null);
         map.put("cancelledAt", order.getCancelledAt() != null ? order.getCancelledAt().toString() : null);
         map.put("updatedAt", order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : null);
-        map.put("expectedDeliveryDate", order.getExpectedDeliveryDate() != null && !order.getExpectedDeliveryDate().isBlank() ? order.getExpectedDeliveryDate() : "Not Set");
+        String orderExpDate = order.getExpectedDeliveryDate();
+        if ((orderExpDate == null || orderExpDate.isBlank() || "Not Set".equalsIgnoreCase(orderExpDate.trim()))
+                && order.getMaterialRequest() != null
+                && order.getMaterialRequest().getExpectedDeliveryDate() != null
+                && !order.getMaterialRequest().getExpectedDeliveryDate().isBlank()) {
+            orderExpDate = order.getMaterialRequest().getExpectedDeliveryDate();
+        }
+        map.put("expectedDeliveryDate", orderExpDate != null && !orderExpDate.isBlank() ? orderExpDate : "Not Set");
 
         if (order.getBuyer() != null) {
             map.put("buyerName", order.getBuyer().getName());

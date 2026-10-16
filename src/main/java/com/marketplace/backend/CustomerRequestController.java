@@ -264,7 +264,20 @@ public class CustomerRequestController {
             card.put("materialAmount", mr.getMaterialAmount());
             card.put("estimatedTotal", mr.getEstimatedTotal());
             card.put("verificationCode", mr.getVerificationCode());
-            card.put("expectedDeliveryDate", mr.getExpectedDeliveryDate());
+            String expDate = mr.getExpectedDeliveryDate();
+            if ((expDate == null || expDate.isBlank() || "Not Set".equalsIgnoreCase(expDate.trim()))
+                    && materialOrderRepository != null && mr.getId() != null) {
+                List<MaterialOrder> orders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
+                if (orders != null && !orders.isEmpty()) {
+                    for (MaterialOrder mo : orders) {
+                        if (mo.getExpectedDeliveryDate() != null && !mo.getExpectedDeliveryDate().isBlank() && !"Not Set".equalsIgnoreCase(mo.getExpectedDeliveryDate().trim())) {
+                            expDate = mo.getExpectedDeliveryDate();
+                            break;
+                        }
+                    }
+                }
+            }
+            card.put("expectedDeliveryDate", expDate);
             card.put("quotations", Collections.emptyList());
         } else {
             card.put("type", "MATERIAL_REQUIREMENT");
@@ -359,11 +372,12 @@ public class CustomerRequestController {
             }
             card.put("quotations", quotationCards);
 
-            // If ALLOCATED, fetch generated seller orders
-            if ("ALLOCATED".equals(rawStatus) && materialOrderRepository != null) {
+            // Fetch generated seller orders if any exist for this MaterialRequest
+            if (materialOrderRepository != null) {
                 List<MaterialOrder> orders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
-                List<Map<String, Object>> orderSummaries = new ArrayList<>();
-                if (orders != null) {
+                if (orders != null && !orders.isEmpty()) {
+                    List<Map<String, Object>> orderSummaries = new ArrayList<>();
+                    String topExpectedDeliveryDate = null;
                     for (MaterialOrder mo : orders) {
                         Map<String, Object> moMap = new LinkedHashMap<>();
                         moMap.put("id", mo.getId());
@@ -375,6 +389,10 @@ public class CustomerRequestController {
                         moMap.put("totalAmount", mo.getTotalAmount());
                         moMap.put("status", mo.getOrderStatus());
                         moMap.put("expectedDeliveryDate", mo.getExpectedDeliveryDate());
+                        if (topExpectedDeliveryDate == null && mo.getExpectedDeliveryDate() != null
+                                && !mo.getExpectedDeliveryDate().isBlank() && !"Not Set".equalsIgnoreCase(mo.getExpectedDeliveryDate().trim())) {
+                            topExpectedDeliveryDate = mo.getExpectedDeliveryDate();
+                        }
 
                         List<Map<String, Object>> orderItems = new ArrayList<>();
                         if (mo.getItems() != null) {
@@ -391,8 +409,14 @@ public class CustomerRequestController {
                         moMap.put("items", orderItems);
                         orderSummaries.add(moMap);
                     }
+                    card.put("sellerOrders", orderSummaries);
+                    if (topExpectedDeliveryDate != null) {
+                        card.put("expectedDeliveryDate", topExpectedDeliveryDate);
+                    }
                 }
-                card.put("sellerOrders", orderSummaries);
+            }
+            if (!card.containsKey("expectedDeliveryDate") || card.get("expectedDeliveryDate") == null) {
+                card.put("expectedDeliveryDate", mr.getExpectedDeliveryDate());
             }
         }
 

@@ -91,6 +91,7 @@ public class SellerDirectBuyOrdersIntegrationTest {
                 geoLocationService,
                 notificationService
         );
+        directBuyController.setMaterialOrderRepository(materialOrderRepository);
 
         materialRequestController = new MaterialRequestController(
                 materialRequestRepository,
@@ -98,6 +99,7 @@ public class SellerDirectBuyOrdersIntegrationTest {
                 geoLocationService,
                 notificationService
         );
+        materialRequestController.setMaterialOrderService(materialOrderService);
 
         materialOrderController = new MaterialOrderController(materialOrderService, userRepository);
         materialOrderController.setDirectBuyController(directBuyController);
@@ -817,5 +819,213 @@ public class SellerDirectBuyOrdersIntegrationTest {
         assertEquals(10, parsed.getMonthValue());
         assertEquals(2026, parsed.getYear());
         assertEquals("28/10/2026", DeliveryDateValidator.toDisplayFormat(parsed));
+    }
+
+    @Test
+    @DisplayName("MaterialOrder date update propagates to linked MaterialRequest and returns authoritative date")
+    public void testMaterialOrderDateUpdatePropagatesToLinkedMaterialRequest() {
+        MaterialRequest mr = createDirectBuyRequest(2001L, "DMR-2001", customerUser, "CUSTOMER", "ACCEPTED");
+        mr.setExpectedDeliveryDate("Not Set");
+
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 701L);
+        order.setOrderCode("ORD-701");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("Not Set");
+        order.setMaterialRequest(mr);
+
+        when(materialOrderRepository.findById(701L)).thenReturn(Optional.of(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(701L, Map.of("expectedDeliveryDate", "28/10/2026"), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("28 Oct 2026", order.getExpectedDeliveryDate());
+        assertEquals("28 Oct 2026", mr.getExpectedDeliveryDate());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) resp.getBody();
+        assertEquals("28 Oct 2026", body.get("expectedDeliveryDate"));
+    }
+
+    @Test
+    @DisplayName("Direct Buy date update propagates to linked MaterialOrder and returns authoritative date")
+    public void testDirectBuyDateUpdatePropagatesToLinkedMaterialOrder() {
+        MaterialRequest mr = createDirectBuyRequest(2002L, "DMR-2002", customerUser, "CUSTOMER", "ACCEPTED");
+        mr.setExpectedDeliveryDate("Not Set");
+
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 702L);
+        order.setOrderCode("ORD-702");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("Not Set");
+        order.setMaterialRequest(mr);
+
+        when(materialRequestRepository.findByIdForUpdate(2002L)).thenReturn(Optional.of(mr));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(i -> i.getArgument(0));
+        when(materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(2002L)).thenReturn(Collections.singletonList(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(2002L, Map.of("expectedDeliveryDate", "28/10/2026"), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("28 Oct 2026", mr.getExpectedDeliveryDate());
+        assertEquals("28 Oct 2026", order.getExpectedDeliveryDate());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) resp.getBody();
+        assertEquals("28 Oct 2026", body.get("expectedDeliveryDate"));
+    }
+
+    @Test
+    @DisplayName("Direct Buy date update succeeds when invoked with linked MaterialOrder ID")
+    public void testDirectBuyDateUpdateWithMaterialOrderId() {
+        MaterialRequest mr = createDirectBuyRequest(2003L, "DMR-2003", customerUser, "CUSTOMER", "ACCEPTED");
+        mr.setExpectedDeliveryDate("Not Set");
+
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 703L);
+        order.setOrderCode("ORD-703");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("Not Set");
+        order.setMaterialRequest(mr);
+
+        when(materialRequestRepository.findByIdForUpdate(703L)).thenReturn(Optional.empty());
+        when(materialOrderRepository.findById(703L)).thenReturn(Optional.of(order));
+        when(materialRequestRepository.findByIdForUpdate(2003L)).thenReturn(Optional.of(mr));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(i -> i.getArgument(0));
+        when(materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(2003L)).thenReturn(Collections.singletonList(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(703L, Map.of("expectedDeliveryDate", "28/10/2026"), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("28 Oct 2026", mr.getExpectedDeliveryDate());
+        assertEquals("28 Oct 2026", order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Customer views receive authoritative expected delivery date for both order sources")
+    public void testCustomerViewsSeeSavedExpectedDeliveryDate() {
+        // Direct buy order
+        MaterialRequest directMr = createDirectBuyRequest(2004L, "DMR-2004", customerUser, "CUSTOMER", "ACCEPTED");
+        directMr.setExpectedDeliveryDate("28 Oct 2026");
+
+        MaterialOrder directOrder = new MaterialOrder();
+        ReflectionTestUtils.setField(directOrder, "id", 704L);
+        directOrder.setOrderCode("ORD-704");
+        directOrder.setSeller(sellerUser);
+        directOrder.setBuyer(customerUser);
+        directOrder.setOrderStatus("ORDER_ACCEPTED");
+        directOrder.setExpectedDeliveryDate("28 Oct 2026");
+        directOrder.setMaterialRequest(directMr);
+
+        // Standard quotation order
+        MaterialOrder quoteOrder = new MaterialOrder();
+        ReflectionTestUtils.setField(quoteOrder, "id", 705L);
+        quoteOrder.setOrderCode("ORD-705");
+        quoteOrder.setSeller(sellerUser);
+        quoteOrder.setBuyer(customerUser);
+        quoteOrder.setOrderStatus("ORDER_ACCEPTED");
+        quoteOrder.setExpectedDeliveryDate("29 Oct 2026");
+
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(customerUser.getId()))
+                .thenReturn(Arrays.asList(directOrder, quoteOrder));
+        when(materialRequestRepository.findByBuyerOrderByCreatedAtDesc(customerUser))
+                .thenReturn(Collections.emptyList());
+
+        List<Map<String, Object>> customerOrders = materialOrderService.getAcceptedOrdersForCustomer(customerUser);
+        assertEquals(2, customerOrders.size());
+        assertEquals("28 Oct 2026", customerOrders.get(0).get("expectedDeliveryDate"));
+        assertEquals("29 Oct 2026", customerOrders.get(1).get("expectedDeliveryDate"));
+    }
+
+    @Test
+    @DisplayName("Contractor and professional requesters see saved expected delivery date via MaterialRequestController")
+    public void testContractorAndProfessionalRequestersSeeSavedDate() {
+        MaterialRequest req = new MaterialRequest();
+        ReflectionTestUtils.setField(req, "id", 2005L);
+        req.setRequestId("REQ-2005");
+        req.setBuyer(contractorUser);
+        req.setBuyerRole("CONTRACTOR");
+        req.setStatus("ORDER_PLACED");
+        req.setExpectedDeliveryDate("Not Set"); // Unset on request entity
+
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 706L);
+        order.setOrderCode("ORD-706");
+        order.setSeller(sellerUser);
+        order.setBuyer(contractorUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("28 Oct 2026"); // Persisted on order entity
+        order.setMaterialRequest(req);
+
+        Authentication authContractor = mock(Authentication.class);
+        when(authContractor.getName()).thenReturn("contractor@buildbid.com");
+        when(userRepository.findByEmail("contractor@buildbid.com")).thenReturn(Optional.of(contractorUser));
+        when(materialRequestRepository.findByBuyerOrderByCreatedAtDesc(contractorUser))
+                .thenReturn(Collections.singletonList(req));
+        when(materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(2005L))
+                .thenReturn(Collections.singletonList(order));
+
+        ResponseEntity<?> resp = materialRequestController.getMyMaterialRequests(authContractor);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) resp.getBody();
+        assertNotNull(list);
+        assertEquals(1, list.size());
+        // Falls back to linked MaterialOrder date
+        assertEquals("28 Oct 2026", list.get(0).get("expectedDeliveryDate"));
+    }
+
+    @Test
+    @DisplayName("Past date and invalid date submissions are rejected strictly")
+    public void testPastAndInvalidDateRejectedStrictly() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 707L);
+        order.setSeller(sellerUser);
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(707L)).thenReturn(Optional.of(order));
+
+        // Past date
+        ResponseEntity<?> pastResp = materialOrderController.updateExpectedDelivery(707L, Map.of("expectedDeliveryDate", "01/01/2020"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, pastResp.getStatusCode());
+        assertEquals("Not Set", order.getExpectedDeliveryDate());
+
+        // Malformed date
+        ResponseEntity<?> malformedResp = materialOrderController.updateExpectedDelivery(707L, Map.of("expectedDeliveryDate", "31/02/2026"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, malformedResp.getStatusCode());
+        assertEquals("Not Set", order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Reloading unified seller orders reconstructs the updated date without missing warning")
+    public void testReloadUnifiedOrdersForSellerReconstructsUpdatedDate() {
+        MaterialRequest directMr = createDirectBuyRequest(2006L, "DMR-2006", customerUser, "CUSTOMER", "ACCEPTED");
+        directMr.setExpectedDeliveryDate("28 Oct 2026");
+
+        MaterialOrder directOrder = new MaterialOrder();
+        ReflectionTestUtils.setField(directOrder, "id", 708L);
+        directOrder.setOrderCode("ORD-708");
+        directOrder.setSeller(sellerUser);
+        directOrder.setBuyer(customerUser);
+        directOrder.setOrderStatus("ORDER_ACCEPTED");
+        directOrder.setExpectedDeliveryDate("28 Oct 2026");
+        directOrder.setMaterialRequest(directMr);
+
+        when(materialOrderRepository.findBySellerIdOrderByCreatedAtDesc(sellerUser.getId()))
+                .thenReturn(Collections.singletonList(directOrder));
+        when(materialRequestRepository.findByTargetSellerAndRequestTypeOrderByCreatedAtDesc(sellerUser, "DIRECT_MATERIAL"))
+                .thenReturn(Collections.emptyList());
+
+        List<Map<String, Object>> sellerOrders = materialOrderService.getUnifiedOrdersForSeller(sellerUser);
+        assertEquals(1, sellerOrders.size());
+        Map<String, Object> orderCard = sellerOrders.get(0);
+        assertEquals("28 Oct 2026", orderCard.get("expectedDeliveryDate"));
+        assertNotEquals("Not Set", orderCard.get("expectedDeliveryDate"));
     }
 }

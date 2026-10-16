@@ -65,6 +65,19 @@ public class DirectBuyController {
         this.materialOrderService = materialOrderService;
     }
 
+    private MaterialOrderRepository materialOrderRepository;
+
+    @Autowired(required = false)
+    public void setMaterialOrderRepository(MaterialOrderRepository materialOrderRepository) {
+        this.materialOrderRepository = materialOrderRepository;
+    }
+
+    private MaterialOrderRepository getEffectiveMaterialOrderRepository() {
+        if (this.materialOrderRepository != null) return this.materialOrderRepository;
+        if (this.materialOrderService != null) return this.materialOrderService.getMaterialOrderRepository();
+        return null;
+    }
+
     /**
      * 1. GET /api/direct-buy/materials
      * Returns dynamic list of materials currently in active seller inventory.
@@ -878,6 +891,15 @@ public class DirectBuyController {
         MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
                 .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
         if (req == null) {
+            MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
+            if (mor != null) {
+                MaterialOrder matched = mor.findById(id).orElse(null);
+                if (matched != null && matched.getMaterialRequest() != null) {
+                    req = matched.getMaterialRequest();
+                }
+            }
+        }
+        if (req == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
@@ -896,6 +918,19 @@ public class DirectBuyController {
         req.setExpectedDeliveryDate(validatedDate);
         req.setUpdatedAt(LocalDateTime.now(IST_ZONE));
         MaterialRequest saved = materialRequestRepository.save(req);
+
+        // Synchronize linked MaterialOrders
+        MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
+        if (mor != null) {
+            List<MaterialOrder> linkedOrders = mor.findByMaterialRequestIdOrderByCreatedAtDesc(saved.getId());
+            if (linkedOrders != null && !linkedOrders.isEmpty()) {
+                for (MaterialOrder mo : linkedOrders) {
+                    mo.setExpectedDeliveryDate(validatedDate);
+                    mo.setUpdatedAt(LocalDateTime.now(IST_ZONE));
+                    mor.save(mo);
+                }
+            }
+        }
 
         if (notificationService != null && saved.getBuyer() != null) {
             try {
