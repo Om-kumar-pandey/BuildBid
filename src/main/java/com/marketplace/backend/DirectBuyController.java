@@ -886,7 +886,15 @@ public class DirectBuyController {
                     .body(Map.of("error", "Forbidden: Not your direct buy order."));
         }
 
-        req.setExpectedDeliveryDate(dateStr);
+        String validatedDate;
+        try {
+            validatedDate = DeliveryDateValidator.validateAndNormalize(dateStr);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+
+        req.setExpectedDeliveryDate(validatedDate);
+        req.setUpdatedAt(LocalDateTime.now(IST_ZONE));
         MaterialRequest saved = materialRequestRepository.save(req);
 
         if (notificationService != null && saved.getBuyer() != null) {
@@ -895,8 +903,8 @@ public class DirectBuyController {
                         saved.getBuyer(),
                         "Delivery Date Updated",
                         "डिलीवरी की तारीख अपडेट की गई",
-                        "Expected delivery date for order " + saved.getRequestId() + " is now " + dateStr + ".",
-                        "ऑर्डर " + saved.getRequestId() + " की अनुमानित डिलीवरी तिथि अब " + dateStr + " है।",
+                        "Expected delivery date for order " + saved.getRequestId() + " is now " + validatedDate + ".",
+                        "ऑर्डर " + saved.getRequestId() + " की अनुमानित डिलीवरी तिथि अब " + validatedDate + " है।",
                         "DELIVERY_DATE_UPDATED",
                         saved.getRequestId()
                 );

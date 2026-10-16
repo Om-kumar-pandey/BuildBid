@@ -8,8 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -511,5 +513,309 @@ public class SellerDirectBuyOrdersIntegrationTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertEquals("30 Oct 2026", mr.getExpectedDeliveryDate());
         verify(materialOrderRepository, never()).findById(888L);
+    }
+
+    // ==========================================
+    // 5. STANDARD MATERIAL ORDER DELIVERY DATE & VISIBILITY TESTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Assigned seller can update expected delivery date on standard MaterialOrder")
+    public void testAssignedSellerCanUpdateMaterialOrderDeliveryDate() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 601L);
+        order.setOrderCode("ORD-601");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("Not Set");
+
+        when(materialOrderRepository.findById(601L)).thenReturn(Optional.of(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> body = Map.of("expectedDeliveryDate", "28 Oct 2026");
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(601L, body, authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("28 Oct 2026", order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Unrelated seller is rejected with 403 when updating expected delivery on standard MaterialOrder")
+    public void testUnrelatedSellerCannotUpdateMaterialOrderDeliveryDate() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 602L);
+        order.setOrderCode("ORD-602");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("Not Set");
+
+        when(materialOrderRepository.findById(602L)).thenReturn(Optional.of(order));
+
+        Map<String, Object> body = Map.of("expectedDeliveryDate", "28 Oct 2026");
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(602L, body, authOtherSeller);
+        assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
+        assertEquals("Not Set", order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Updating expected delivery on non-existent order returns 404")
+    public void testUpdateExpectedDeliveryNonExistentOrderReturns404() {
+        when(materialOrderRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        Map<String, Object> body = Map.of("expectedDeliveryDate", "28 Oct 2026");
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(9999L, body, authSeller);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Empty expected delivery date returns 400 Bad Request")
+    public void testEmptyExpectedDeliveryDateReturns400() {
+        Map<String, Object> body = Map.of("expectedDeliveryDate", "   ");
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(601L, body, authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Saved expected delivery date is visible to customer via getAcceptedOrdersForCustomer")
+    public void testSavedDeliveryDateVisibleToCustomer() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 701L);
+        order.setOrderCode("ORD-701");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("02 Nov 2026");
+
+        when(materialOrderRepository.findByBuyerIdOrderByCreatedAtDesc(customerUser.getId()))
+                .thenReturn(List.of(order));
+
+        List<Map<String, Object>> customerOrders = materialOrderService.getAcceptedOrdersForCustomer(customerUser);
+        assertNotNull(customerOrders);
+        assertEquals(1, customerOrders.size());
+        assertEquals("02 Nov 2026", customerOrders.get(0).get("expectedDeliveryDate"));
+    }
+
+    // ==========================================
+    // 6. STRICT EXPECTED DELIVERY DATE VALIDATION TESTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Impossible calendar dates (e.g. 31/02/2026, 29/02/2025, 31 Feb 2026) are rejected with 400 for MaterialOrder")
+    public void testImpossibleDatesRejectedForMaterialOrder() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 610L);
+        order.setSeller(sellerUser);
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(610L)).thenReturn(Optional.of(order));
+
+        List<String> impossibleDates = List.of("31/02/2026", "29/02/2025", "31/04/2026", "31 Feb 2026");
+        for (String d : impossibleDates) {
+            ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(610L, Map.of("expectedDeliveryDate", d), authSeller);
+            assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode(), "Expected 400 for impossible date: " + d);
+            assertEquals("Not Set", order.getExpectedDeliveryDate());
+        }
+    }
+
+    @Test
+    @DisplayName("Impossible calendar dates (e.g. 31/02/2026, 29/02/2025, 31 Feb 2026) are rejected with 400 for DirectBuy")
+    public void testImpossibleDatesRejectedForDirectBuy() {
+        MaterialRequest mr = createDirectBuyRequest(1010L, "DMR-1010", customerUser, "CUSTOMER", "ACCEPTED");
+        when(materialRequestRepository.findByIdForUpdate(1010L)).thenReturn(Optional.of(mr));
+
+        List<String> impossibleDates = List.of("31/02/2026", "29/02/2025", "31/04/2026", "31 Feb 2026");
+        for (String d : impossibleDates) {
+            ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(1010L, Map.of("expectedDeliveryDate", d), authSeller);
+            assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode(), "Expected 400 for impossible date: " + d);
+            assertEquals("18 Oct 2026", mr.getExpectedDeliveryDate());
+        }
+    }
+
+    @Test
+    @DisplayName("Malformed or arbitrary non-date strings (e.g. 2026-13-45, not-a-valid-date) are rejected with 400 for MaterialOrder")
+    public void testMalformedStringsRejectedForMaterialOrder() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 611L);
+        order.setSeller(sellerUser);
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(611L)).thenReturn(Optional.of(order));
+
+        List<String> malformedStrings = List.of("not-a-valid-date", "2026-13-45", "99/99/9999", "tomorrow");
+        for (String s : malformedStrings) {
+            ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(611L, Map.of("expectedDeliveryDate", s), authSeller);
+            assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode(), "Expected 400 for malformed string: " + s);
+            assertEquals("Not Set", order.getExpectedDeliveryDate());
+        }
+    }
+
+    @Test
+    @DisplayName("Malformed or arbitrary non-date strings (e.g. 2026-13-45, not-a-valid-date) are rejected with 400 for DirectBuy")
+    public void testMalformedStringsRejectedForDirectBuy() {
+        MaterialRequest mr = createDirectBuyRequest(1011L, "DMR-1011", customerUser, "CUSTOMER", "ACCEPTED");
+        when(materialRequestRepository.findByIdForUpdate(1011L)).thenReturn(Optional.of(mr));
+
+        List<String> malformedStrings = List.of("not-a-valid-date", "2026-13-45", "99/99/9999", "tomorrow");
+        for (String s : malformedStrings) {
+            ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(1011L, Map.of("expectedDeliveryDate", s), authSeller);
+            assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode(), "Expected 400 for malformed string: " + s);
+            assertEquals("18 Oct 2026", mr.getExpectedDeliveryDate());
+        }
+    }
+
+    @Test
+    @DisplayName("Past dates in Asia/Kolkata timezone are rejected with 400 for MaterialOrder")
+    public void testPastDatesRejectedForMaterialOrder() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 612L);
+        order.setSeller(sellerUser);
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(612L)).thenReturn(Optional.of(order));
+
+        LocalDate yesterday = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1);
+        String textYesterday = yesterday.format(DateTimeFormatter.ofPattern("dd MMM uuuu", Locale.ENGLISH));
+
+        ResponseEntity<?> resp1 = materialOrderController.updateExpectedDelivery(612L, Map.of("expectedDeliveryDate", textYesterday), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp1.getStatusCode());
+        assertEquals("Not Set", order.getExpectedDeliveryDate());
+
+        ResponseEntity<?> resp2 = materialOrderController.updateExpectedDelivery(612L, Map.of("expectedDeliveryDate", "10/10/2020"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp2.getStatusCode());
+        assertEquals("Not Set", order.getExpectedDeliveryDate());
+
+        ResponseEntity<?> resp3 = materialOrderController.updateExpectedDelivery(612L, Map.of("expectedDeliveryDate", "10 Oct 2020"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp3.getStatusCode());
+        assertEquals("Not Set", order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Past dates in Asia/Kolkata timezone are rejected with 400 for DirectBuy")
+    public void testPastDatesRejectedForDirectBuy() {
+        MaterialRequest mr = createDirectBuyRequest(1012L, "DMR-1012", customerUser, "CUSTOMER", "ACCEPTED");
+        when(materialRequestRepository.findByIdForUpdate(1012L)).thenReturn(Optional.of(mr));
+
+        LocalDate yesterday = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1);
+        String textYesterday = yesterday.format(DateTimeFormatter.ofPattern("dd MMM uuuu", Locale.ENGLISH));
+
+        ResponseEntity<?> resp1 = directBuyController.updateExpectedDelivery(1012L, Map.of("expectedDeliveryDate", textYesterday), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp1.getStatusCode());
+        assertEquals("18 Oct 2026", mr.getExpectedDeliveryDate());
+
+        ResponseEntity<?> resp2 = directBuyController.updateExpectedDelivery(1012L, Map.of("expectedDeliveryDate", "10/10/2020"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp2.getStatusCode());
+        assertEquals("18 Oct 2026", mr.getExpectedDeliveryDate());
+
+        ResponseEntity<?> resp3 = directBuyController.updateExpectedDelivery(1012L, Map.of("expectedDeliveryDate", "10 Oct 2020"), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp3.getStatusCode());
+        assertEquals("18 Oct 2026", mr.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Valid current business date (today in Asia/Kolkata) is accepted for MaterialOrder")
+    public void testTodayDateAcceptedForMaterialOrder() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 613L);
+        order.setSeller(sellerUser);
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(613L)).thenReturn(Optional.of(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+        String textToday = today.format(DateTimeFormatter.ofPattern("dd MMM uuuu", Locale.ENGLISH));
+
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(613L, Map.of("expectedDeliveryDate", textToday), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(textToday, order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Valid current business date (today in Asia/Kolkata) is accepted for DirectBuy")
+    public void testTodayDateAcceptedForDirectBuy() {
+        MaterialRequest mr = createDirectBuyRequest(1013L, "DMR-1013", customerUser, "CUSTOMER", "ACCEPTED");
+        when(materialRequestRepository.findByIdForUpdate(1013L)).thenReturn(Optional.of(mr));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(i -> i.getArgument(0));
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
+        String textToday = today.format(DateTimeFormatter.ofPattern("dd MMM uuuu", Locale.ENGLISH));
+
+        ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(1013L, Map.of("expectedDeliveryDate", textToday), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(textToday, mr.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Slash date format DD/MM/YYYY is accepted and normalized to canonical format for MaterialOrder")
+    public void testSlashDateFormatAcceptedForMaterialOrder() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 614L);
+        order.setSeller(sellerUser);
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(614L)).thenReturn(Optional.of(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(614L, Map.of("expectedDeliveryDate", "28/10/2026"), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("28 Oct 2026", order.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Slash date format DD/MM/YYYY is accepted and normalized to canonical format for DirectBuy")
+    public void testSlashDateFormatAcceptedForDirectBuy() {
+        MaterialRequest mr = createDirectBuyRequest(1014L, "DMR-1014", customerUser, "CUSTOMER", "ACCEPTED");
+        when(materialRequestRepository.findByIdForUpdate(1014L)).thenReturn(Optional.of(mr));
+        when(materialRequestRepository.save(any(MaterialRequest.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(1014L, Map.of("expectedDeliveryDate", "25/10/2026"), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("25 Oct 2026", mr.getExpectedDeliveryDate());
+    }
+
+    @Test
+    @DisplayName("Empty or whitespace expected delivery date returns 400 for DirectBuy")
+    public void testEmptyDateReturns400ForDirectBuy() {
+        ResponseEntity<?> resp1 = directBuyController.updateExpectedDelivery(1004L, Map.of("expectedDeliveryDate", ""), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp1.getStatusCode());
+
+        ResponseEntity<?> resp2 = directBuyController.updateExpectedDelivery(1004L, Map.of("expectedDeliveryDate", "   "), authSeller);
+        assertEquals(HttpStatus.BAD_REQUEST, resp2.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Non-existent DirectBuy request returns 404 Not Found")
+    public void testNonExistentDirectBuyReturns404() {
+        when(materialRequestRepository.findByIdForUpdate(99999L)).thenReturn(Optional.empty());
+        when(materialRequestRepository.findById(99999L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> resp = directBuyController.updateExpectedDelivery(99999L, Map.of("expectedDeliveryDate", "28 Oct 2026"), authSeller);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Saved expected delivery dates retain calendar day when returned to frontend in response maps")
+    public void testSavedDatesRetainCalendarDayAcrossResponseMap() {
+        MaterialOrder order = new MaterialOrder();
+        ReflectionTestUtils.setField(order, "id", 615L);
+        order.setOrderCode("ORD-615");
+        order.setSeller(sellerUser);
+        order.setBuyer(customerUser);
+        order.setOrderStatus("ORDER_ACCEPTED");
+        order.setExpectedDeliveryDate("Not Set");
+        when(materialOrderRepository.findById(615L)).thenReturn(Optional.of(order));
+        when(materialOrderRepository.save(any(MaterialOrder.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResponseEntity<?> resp = materialOrderController.updateExpectedDelivery(615L, Map.of("expectedDeliveryDate", "28/10/2026"), authSeller);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = (Map<String, Object>) resp.getBody();
+        assertNotNull(map);
+        String returnedDate = (String) map.get("expectedDeliveryDate");
+        assertEquals("28 Oct 2026", returnedDate);
+
+        // Verify day 28 is retained without shifting
+        LocalDate parsed = DeliveryDateValidator.validateAndParse(returnedDate);
+        assertEquals(28, parsed.getDayOfMonth());
+        assertEquals(10, parsed.getMonthValue());
+        assertEquals(2026, parsed.getYear());
+        assertEquals("28/10/2026", DeliveryDateValidator.toDisplayFormat(parsed));
     }
 }

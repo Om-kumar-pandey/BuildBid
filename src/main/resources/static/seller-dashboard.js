@@ -1426,17 +1426,33 @@ async function initSellerDashboard() {
     }
 
     // 4. Fetch dynamic customer project requirements and Buy Material requests
-    await refreshSellerRequests();
+    try {
+        await refreshSellerRequests();
+    } catch (err) {
+        console.warn("Seller Dashboard: Error in refreshSellerRequests:", err);
+    }
 
     // 5. Fetch dynamic seller inventory
-    await loadSellerInventory();
+    try {
+        await loadSellerInventory();
+    } catch (err) {
+        console.warn("Seller Dashboard: Error in loadSellerInventory:", err);
+    }
 
-    // 5b. Fetch dynamic seller orders
-    await loadSellerOrders();
+    // 5b. Fetch dynamic seller orders & sync active orders sidebar badge
+    try {
+        await loadSellerOrders();
+    } catch (err) {
+        console.warn("Seller Dashboard: Error in loadSellerOrders:", err);
+    }
 
     // 5c. Fetch dynamic seller quotations
     if (typeof loadSellerQuotations === 'function') {
-        await loadSellerQuotations();
+        try {
+            await loadSellerQuotations();
+        } catch (err) {
+            console.warn("Seller Dashboard: Error in loadSellerQuotations:", err);
+        }
     }
 
     // 6. Check URL hash or query params (e.g. #invoices, ?from=invoice)
@@ -2313,10 +2329,14 @@ function switchTab(tabId) {
         targetNav.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
     }
 
+    if (typeof updateSellerOrdersBadge === 'function' && Array.isArray(sellerOrdersCache) && sellerOrdersCache.length > 0) {
+        updateSellerOrdersBadge(sellerOrdersCache);
+    }
+
     if (tabId === 'requests' && typeof refreshSellerRequests === 'function') {
         refreshSellerRequests();
     }
-    if (tabId === 'orders' && typeof loadSellerOrders === 'function') {
+    if ((tabId === 'orders' || tabId === 'dashboard') && typeof loadSellerOrders === 'function') {
         loadSellerOrders();
     }
     if (tabId === 'quotations' && typeof loadSellerQuotations === 'function') {
@@ -4003,6 +4023,80 @@ function viewQuotationOrder(quoteId) {
  */
 let sellerOrdersCache = [];
 
+/**
+ * Checks if a given order status represents an active, non-terminal fulfillment lifecycle state.
+ * Active: WAITING_FOR_ACCEPTANCE, CONFIRMED, ORDER_ACCEPTED, ACCEPTED, PROCESSING, READY_FOR_DISPATCH, DISPATCHED, OUT_FOR_DELIVERY.
+ * Terminal: DELIVERED, COMPLETED, CANCELLED, DECLINED, REJECTED.
+ */
+function isOrderActiveStatus(statusStr) {
+    if (!statusStr) return false;
+    const s = String(statusStr).trim().toUpperCase();
+    return [
+        'WAITING_FOR_ACCEPTANCE',
+        'CONFIRMED',
+        'ORDER_ACCEPTED',
+        'ACCEPTED',
+        'PROCESSING',
+        'READY_FOR_DISPATCH',
+        'DISPATCHED',
+        'OUT_FOR_DELIVERY'
+    ].includes(s);
+}
+
+/**
+ * Checks if an order is in an accepted state (where seller has accepted the order).
+ */
+function isOrderAccepted(order) {
+    if (!order) return false;
+    const rawStatus = (order.orderStatus || order.status || order.rawStatus || '').trim().toUpperCase();
+    return [
+        'ORDER_ACCEPTED',
+        'ACCEPTED',
+        'PROCESSING',
+        'READY_FOR_DISPATCH',
+        'DISPATCHED',
+        'OUT_FOR_DELIVERY'
+    ].includes(rawStatus);
+}
+
+/**
+ * Checks if an order has a valid, non-placeholder expected delivery date.
+ */
+function hasValidExpectedDeliveryDate(order) {
+    if (!order || !order.expectedDeliveryDate) return false;
+    const d = String(order.expectedDeliveryDate).trim();
+    if (!d || d.toLowerCase() === 'not set' || d.toLowerCase() === 'pending confirmation' || d.toLowerCase() === 'standard delivery window') {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Synchronizes the Orders sidebar badge and Dashboard KPI counter with authoritative active orders count.
+ */
+function updateSellerOrdersBadge(orders) {
+    const ordersBadge = document.getElementById('nav-orders-badge');
+    const kpiActiveOrders = document.getElementById('kpi-active-orders');
+    if (!ordersBadge && !kpiActiveOrders) return;
+
+    let activeCount = 0;
+    if (Array.isArray(orders)) {
+        activeCount = orders.filter(o => {
+            const s = (o.orderStatus || o.status || o.rawStatus || '').trim().toUpperCase();
+            return isOrderActiveStatus(s);
+        }).length;
+    } else if (typeof orders === 'number') {
+        activeCount = orders;
+    }
+
+    if (ordersBadge) {
+        ordersBadge.innerText = `${activeCount} Active`;
+    }
+    if (kpiActiveOrders) {
+        kpiActiveOrders.innerText = activeCount;
+    }
+}
+
 async function loadSellerOrders() {
     const seq = ++_ordersReqSeq;
     const tbody = document.getElementById('sellerOrdersTbody');
@@ -4020,6 +4114,7 @@ async function loadSellerOrders() {
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">Please log in to view assigned material orders.</td></tr>`;
         }
+        if (ordersBadge) ordersBadge.innerText = "";
         return;
     }
 
@@ -4048,16 +4143,7 @@ async function loadSellerOrders() {
                     tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 text-xs">No customer orders assigned yet.</td></tr>`;
                 }
             }
-            const activeOrders = orders.filter(o => {
-                const s = (o.orderStatus || o.status || '').toUpperCase();
-                return ['WAITING_FOR_ACCEPTANCE', 'ORDER_ACCEPTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(s);
-            });
-            if (ordersBadge) {
-                ordersBadge.innerText = `${activeOrders.length} Active`;
-            }
-            if (kpiActiveOrders) {
-                kpiActiveOrders.innerText = activeOrders.length;
-            }
+            updateSellerOrdersBadge(orders);
         } else {
             throw new Error("Invalid response format");
         }
@@ -4086,11 +4172,14 @@ function renderSellerOrders(orders) {
         const buyerName = order.buyerName || "Authorized Buyer";
         const buyerRole = order.buyerRole || "CUSTOMER";
         const totalAmount = Number(order.totalAmount || 0).toLocaleString('en-IN');
-        const expectedDelivery = order.expectedDeliveryDate || "Not Set";
-        const rawStatus = (order.orderStatus || order.status || "WAITING_FOR_ACCEPTANCE").toUpperCase();
+        const rawStatus = (order.orderStatus || order.status || order.rawStatus || "WAITING_FOR_ACCEPTANCE").trim().toUpperCase();
 
         const isDirectBuy = order.sourceType === 'DIRECT_BUY' || order.type === 'DIRECT_BUY' || order.isDirectBuy === true;
         const orderSourceType = isDirectBuy ? 'DIRECT_BUY' : 'MATERIAL_ORDER';
+
+        const isAccepted = isOrderAccepted(order);
+        const hasValidDate = hasValidExpectedDeliveryDate(order);
+        const isMissingDate = isAccepted && !hasValidDate;
 
         // Items display with explicit quantity to deliver
         const items = order.items || [];
@@ -4136,24 +4225,81 @@ function renderSellerOrders(orders) {
             statusBadge = `<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">${escapeHtml(rawStatus)}</span>`;
         }
 
-        // Authorized Buyer info
+        // Authorized Buyer info with visual indicator if date pending
         const buyerInfoHtml = `
             <div>
-                <span class="text-blue-600 font-bold block text-xs">${escapeHtml(orderCode)}</span>
+                <div class="flex items-center space-x-1.5">
+                    <span class="text-blue-600 font-bold block text-xs">${escapeHtml(orderCode)}</span>
+                    ${isMissingDate ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock text-rose-500 mr-1 text-[9px]"></i>Date Pending</span>` : ''}
+                </div>
                 <span class="font-bold text-slate-800 text-xs block">${escapeHtml(buyerName)} <span class="text-[10px] text-slate-500 font-normal">(${escapeHtml(buyerRole)})</span></span>
                 ${order.contactNumber ? `<span class="text-[11px] text-slate-600 block"><i class="fa-solid fa-phone mr-1 text-slate-400"></i>${escapeHtml(order.contactNumber)}</span>` : ''}
                 ${order.deliveryAddress ? `<span class="text-[11px] text-slate-500 block truncate max-w-xs" title="${escapeHtml(order.deliveryAddress)}"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i>${escapeHtml(order.deliveryAddress)}</span>` : ''}
             </div>
         `;
 
+        // Expected Delivery column presentation
+        let expectedDeliveryCellHtml = '';
+        if (isMissingDate) {
+            expectedDeliveryCellHtml = `
+                <div class="space-y-1.5" id="delivery-cell-${order.id}">
+                    <span class="text-xs font-semibold text-slate-500 block">Not Set</span>
+                    <div class="expected-date-required-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold shadow-xs">
+                        <span class="relative flex h-2 w-2">
+                            <span class="expected-date-ping-dot absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                        </span>
+                        <i class="fa-solid fa-triangle-exclamation text-rose-500 text-[10px]"></i>
+                        <span>Expected Date Required</span>
+                    </div>
+                    <div>
+                        <button type="button" 
+                            id="btn-update-delivery-${order.id}"
+                            onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}')" 
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs transition-all cursor-pointer">
+                            <i class="fa-regular fa-calendar-plus text-xs"></i>
+                            <span>Update Expected Delivery</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else if (hasValidDate) {
+            const savedDate = order.expectedDeliveryDate.trim();
+            const displayDate = formatExpectedDeliveryDateForDisplay(savedDate);
+            expectedDeliveryCellHtml = `
+                <div class="space-y-1" id="delivery-cell-${order.id}">
+                    <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-regular fa-calendar-check text-emerald-600 text-sm"></i>
+                        <span>${escapeHtml(displayDate)}</span>
+                    </span>
+                    ${isAccepted ? `
+                    <button type="button" 
+                        onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}', '${escapeJs(displayDate)}')" 
+                        class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block cursor-pointer">
+                        Edit Date
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            // Not accepted yet (e.g. WAITING_FOR_ACCEPTANCE) - keeps 'Not Set' without blinking alert
+            expectedDeliveryCellHtml = `
+                <div class="space-y-1" id="delivery-cell-${order.id}">
+                    <span class="text-xs font-semibold text-slate-500 block">Not Set</span>
+                    <button type="button" 
+                        onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}')" 
+                        class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block cursor-pointer">
+                        Update Date
+                    </button>
+                </div>
+            `;
+        }
+
         tr.innerHTML = `
             <td class="p-4 font-medium">${buyerInfoHtml}</td>
             <td class="p-4">${itemsHtml}</td>
             <td class="p-4 font-bold text-slate-900 text-xs">₹${totalAmount}</td>
-            <td class="p-4">
-                <span class="text-blue-600 font-semibold block text-xs">${escapeHtml(expectedDelivery)}</span>
-                <button onclick="promptUpdateDeliveryDate(${order.id}, '${orderSourceType}')" class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block">Update Date</button>
-            </td>
+            <td class="p-4">${expectedDeliveryCellHtml}</td>
             <td class="p-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">Authorized</span></td>
             <td class="p-4">${statusBadge}</td>
             <td class="p-4 text-right space-y-1">
@@ -4226,38 +4372,447 @@ async function updateSellerOrderStatus(orderId, status, sourceType = 'MATERIAL_O
     }
 }
 
-async function promptUpdateDeliveryDate(orderId, sourceType = 'MATERIAL_ORDER') {
-    const newDate = prompt("Enter expected delivery date (e.g., 10 Oct 2026): — डिलीवरी की अनुमानित तिथि दर्ज करें:");
-    if (!newDate || !newDate.trim()) return;
+/**
+ * Returns current business date in Asia/Kolkata timezone.
+ * @returns {{ year: number, month: number, day: number, iso: string, display: string }}
+ */
+function getTodayDateInIST() {
+    try {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        const iso = formatter.format(new Date()); // "YYYY-MM-DD"
+        const [y, m, d] = iso.split('-');
+        return {
+            year: parseInt(y, 10),
+            month: parseInt(m, 10),
+            day: parseInt(d, 10),
+            iso: `${y}-${m}-${d}`,
+            display: `${d}/${m}/${y}`
+        };
+    } catch (e) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return {
+            year: y,
+            month: parseInt(m, 10),
+            day: parseInt(d, 10),
+            iso: `${y}-${m}-${d}`,
+            display: `${d}/${m}/${y}`
+        };
+    }
+}
+
+/**
+ * Formats any recognized expected delivery date string (e.g. "28 Oct 2026", "2026-10-28", "28/10/2026")
+ * into consistent DD/MM/YYYY display format.
+ */
+function formatExpectedDeliveryDateForDisplay(dateStr) {
+    if (!dateStr) return '';
+    const trimmed = String(dateStr).trim();
+    if (!trimmed || trimmed.toLowerCase() === 'not set' || trimmed.toLowerCase() === 'pending confirmation') {
+        return trimmed;
+    }
+
+    // 1. Slash format "DD/MM/YYYY" or "D/M/YYYY"
+    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+        const d = String(parseInt(slashMatch[1], 10)).padStart(2, '0');
+        const m = String(parseInt(slashMatch[2], 10)).padStart(2, '0');
+        const y = slashMatch[3];
+        return `${d}/${m}/${y}`;
+    }
+
+    // 2. Text month format e.g. "28 Oct 2026" or "8 Oct 2026"
+    const textMatch = trimmed.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+    if (textMatch) {
+        const months = {
+            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+            'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+        };
+        const m = months[textMatch[2].toLowerCase()];
+        if (m) {
+            const d = String(parseInt(textMatch[1], 10)).padStart(2, '0');
+            const y = textMatch[3];
+            return `${d}/${m}/${y}`;
+        }
+    }
+
+    // 3. ISO format "YYYY-MM-DD"
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+        return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+    }
+
+    return trimmed;
+}
+
+/**
+ * Parses known format into calendar components { day, month, year, iso: 'YYYY-MM-DD', display: 'DD/MM/YYYY' }
+ */
+function parseExpectedDeliveryDateToComponents(dateStr) {
+    if (!dateStr) return null;
+    const trimmed = String(dateStr).trim();
+    if (!trimmed || trimmed.toLowerCase() === 'not set' || trimmed.toLowerCase() === 'pending confirmation') return null;
+
+    // DD/MM/YYYY
+    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+        const d = parseInt(slashMatch[1], 10);
+        const m = parseInt(slashMatch[2], 10);
+        const y = parseInt(slashMatch[3], 10);
+        return {
+            day: d,
+            month: m,
+            year: y,
+            iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+            display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
+        };
+    }
+
+    // Textual "28 Oct 2026"
+    const textMatch = trimmed.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+    if (textMatch) {
+        const months = {
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        };
+        const m = months[textMatch[2].toLowerCase()];
+        if (m) {
+            const d = parseInt(textMatch[1], 10);
+            const y = parseInt(textMatch[3], 10);
+            return {
+                day: d,
+                month: m,
+                year: y,
+                iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
+            };
+        }
+    }
+
+    // ISO "YYYY-MM-DD"
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+        const y = parseInt(isoMatch[1], 10);
+        const m = parseInt(isoMatch[2], 10);
+        const d = parseInt(isoMatch[3], 10);
+        return {
+            day: d,
+            month: m,
+            year: y,
+            iso: `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+            display: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(y).padStart(4, '0')}`
+        };
+    }
+
+    return null;
+}
+
+/**
+ * Strictly validates an expected delivery date string (entered manually in DD/MM/YYYY or picked).
+ * Enforces:
+ * - Non-blank
+ * - Strict calendar date (rejects 31/02/2026, 29/02 in non-leap, 31/04, etc.)
+ * - Year between 2000 and 2100
+ * - Past date rejection using Asia/Kolkata current date
+ */
+function validateStrictExpectedDeliveryDate(rawInput) {
+    if (!rawInput || !rawInput.trim()) {
+        return { valid: false, error: 'Expected delivery date is required.' };
+    }
+
+    const trimmed = rawInput.trim();
+    const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) {
+        return { valid: false, error: 'Invalid date format. Please enter date in DD/MM/YYYY format (e.g. 28/10/2026).' };
+    }
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+
+    if (year < 2000 || year > 2100) {
+        return { valid: false, error: 'Please enter a valid 4-digit year between 2000 and 2100.' };
+    }
+
+    if (month < 1 || month > 12) {
+        return { valid: false, error: 'Invalid month in date. Month must be between 01 and 12.' };
+    }
+
+    // Strict days in month (handles leap year accurately via Date(year, month, 0))
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) {
+        return { valid: false, error: `Invalid date: Day ${day} does not exist in month ${month}/${year}.` };
+    }
+
+    const isoStr = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const todayIST = getTodayDateInIST();
+
+    // Check past date in Asia/Kolkata
+    if (isoStr < todayIST.iso) {
+        return { valid: false, error: `Expected delivery date cannot be in the past (${todayIST.display} IST is today).` };
+    }
+
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const canonicalApiDate = `${String(day).padStart(2, '0')} ${MONTHS[month - 1]} ${year}`;
+    const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+
+    return {
+        valid: true,
+        day, month, year,
+        iso: isoStr,
+        displayDate: displayDate,
+        canonicalApiDate: canonicalApiDate
+    };
+}
+
+/**
+ * Triggers native calendar picker and syncs from current manual input if valid
+ */
+function triggerDeliveryDatePicker() {
+    const picker = document.getElementById('deliveryModalDatePicker');
+    const manualInput = document.getElementById('deliveryModalManualDate');
+    if (!picker) return;
+
+    if (manualInput && manualInput.value) {
+        const val = validateStrictExpectedDeliveryDate(manualInput.value);
+        if (val.valid) {
+            picker.value = val.iso;
+        }
+    }
+
+    if (typeof picker.showPicker === 'function') {
+        try {
+            picker.showPicker();
+            return;
+        } catch (e) {
+            // fallback
+        }
+    }
+    picker.focus();
+    picker.click();
+}
+
+let _deliveryModalSyncInitialized = false;
+function setupDeliveryModalSyncListeners() {
+    if (_deliveryModalSyncInitialized) return;
+    _deliveryModalSyncInitialized = true;
+
+    const picker = document.getElementById('deliveryModalDatePicker');
+    const manualInput = document.getElementById('deliveryModalManualDate');
+    const errContainer = document.getElementById('deliveryModalError');
+
+    if (picker && manualInput) {
+        // When calendar picker value changes -> update manual input to DD/MM/YYYY
+        picker.addEventListener('change', () => {
+            if (picker.value) {
+                const parts = picker.value.split('-');
+                if (parts.length === 3) {
+                    const [y, m, d] = parts;
+                    manualInput.value = `${d}/${m}/${y}`;
+                    if (errContainer) errContainer.classList.add('hidden');
+                }
+            }
+        });
+
+        // When user types in manual input -> sync to picker if valid
+        manualInput.addEventListener('input', () => {
+            if (errContainer) errContainer.classList.add('hidden');
+            const val = manualInput.value.trim();
+            if (val.length === 10) {
+                const res = validateStrictExpectedDeliveryDate(val);
+                if (res.valid) {
+                    picker.value = res.iso;
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Open professional date picker modal for updating expected delivery date
+ */
+function openUpdateDeliveryDateModal(orderId, sourceType = 'MATERIAL_ORDER', orderCode = '', currentDate = '') {
+    const modal = document.getElementById('updateDeliveryDateModal');
+    if (!modal) return;
+
+    const orderIdInput = document.getElementById('deliveryModalOrderId');
+    const sourceTypeInput = document.getElementById('deliveryModalSourceType');
+    const orderCodeSpan = document.getElementById('deliveryModalOrderCode');
+    const sourceBadge = document.getElementById('deliveryModalSourceBadge');
+
+    if (orderIdInput) orderIdInput.value = orderId;
+    if (sourceTypeInput) sourceTypeInput.value = sourceType || 'MATERIAL_ORDER';
+    if (orderCodeSpan) orderCodeSpan.innerText = orderCode || ('ORD-' + orderId);
+
+    if (sourceBadge) {
+        if (sourceType === 'DIRECT_BUY') {
+            sourceBadge.innerText = 'Direct Buy Order';
+            sourceBadge.className = 'bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold';
+        } else {
+            sourceBadge.innerText = 'Standard Order';
+            sourceBadge.className = 'bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold';
+        }
+    }
+
+    const todayIST = getTodayDateInIST();
+    const todayHint = document.getElementById('deliveryModalTodayHint');
+    if (todayHint) {
+        todayHint.innerText = `Min: ${todayIST.display} (IST)`;
+    }
+
+    const picker = document.getElementById('deliveryModalDatePicker');
+    const manualInput = document.getElementById('deliveryModalManualDate');
+
+    if (picker) {
+        picker.min = todayIST.iso;
+        picker.value = '';
+    }
+    if (manualInput) {
+        manualInput.value = '';
+    }
+
+    if (currentDate && currentDate.trim() && currentDate.toLowerCase() !== 'not set' && currentDate.toLowerCase() !== 'pending confirmation') {
+        const parsed = parseExpectedDeliveryDateToComponents(currentDate);
+        if (parsed) {
+            if (manualInput) manualInput.value = parsed.display;
+            if (picker) picker.value = parsed.iso;
+        }
+    }
+
+    setupDeliveryModalSyncListeners();
+
+    const errContainer = document.getElementById('deliveryModalError');
+    if (errContainer) errContainer.classList.add('hidden');
+
+    const saveBtn = document.getElementById('deliveryModalSaveBtn');
+    const spinner = document.getElementById('deliveryModalSpinner');
+    const saveText = document.getElementById('deliveryModalSaveText');
+    if (saveBtn) saveBtn.disabled = false;
+    if (spinner) spinner.classList.add('hidden');
+    if (saveText) saveText.innerText = 'Save Delivery Date';
+
+    openModal('updateDeliveryDateModal');
+    if (manualInput) setTimeout(() => manualInput.focus(), 100);
+}
+
+let _isSavingDeliveryDate = false;
+
+/**
+ * Validates, locks against duplicate submissions, and persists expected delivery date to authoritative backend
+ */
+async function submitDeliveryDateUpdate() {
+    if (_isSavingDeliveryDate) return;
+
+    const orderId = document.getElementById('deliveryModalOrderId') ? document.getElementById('deliveryModalOrderId').value : null;
+    const sourceType = document.getElementById('deliveryModalSourceType') ? document.getElementById('deliveryModalSourceType').value : 'MATERIAL_ORDER';
+    const manualInput = document.getElementById('deliveryModalManualDate');
+    const picker = document.getElementById('deliveryModalDatePicker');
+
+    let rawVal = manualInput ? manualInput.value.trim() : '';
+    if (!rawVal && picker && picker.value) {
+        const parts = picker.value.split('-');
+        if (parts.length === 3) rawVal = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    const errContainer = document.getElementById('deliveryModalError');
+    const errText = document.getElementById('deliveryModalErrorText');
+
+    function showError(msg) {
+        if (errContainer && errText) {
+            errText.innerText = msg;
+            errContainer.classList.remove('hidden');
+        } else {
+            showToast(msg);
+        }
+    }
+
+    if (errContainer) errContainer.classList.add('hidden');
+
+    if (!orderId) {
+        showError('Order reference missing. Please try again.');
+        return;
+    }
+
+    const validation = validateStrictExpectedDeliveryDate(rawVal);
+    if (!validation.valid) {
+        showError(validation.error);
+        if (manualInput) manualInput.focus();
+        return;
+    }
 
     const token = getCleanToken();
     const API_BASE_URL = getApiBaseUrl();
-    if (!token) return;
+    if (!token) {
+        showError('Session expired. Please log in again.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('deliveryModalSaveBtn');
+    const spinner = document.getElementById('deliveryModalSpinner');
+    const saveText = document.getElementById('deliveryModalSaveText');
 
     try {
+        _isSavingDeliveryDate = true;
+        if (saveBtn) saveBtn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+        if (saveText) saveText.innerText = 'Saving...';
+
         const url = (sourceType === 'DIRECT_BUY')
-            ? API_BASE_URL + `/api/direct-buy/requests/${orderId}/expected-delivery`
-            : API_BASE_URL + `/api/material-orders/${orderId}/expected-delivery`;
+            ? `${API_BASE_URL}/api/direct-buy/requests/${orderId}/expected-delivery`
+            : `${API_BASE_URL}/api/material-orders/${orderId}/expected-delivery`;
 
         const res = await fetch(url, {
-            method: "PUT",
+            method: 'PUT',
             headers: {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ expectedDeliveryDate: newDate.trim(), sourceType: sourceType })
+            body: JSON.stringify({
+                expectedDeliveryDate: validation.canonicalApiDate,
+                sourceType: sourceType
+            })
         });
 
         if (res.ok) {
-            showToast("Expected delivery date updated! — डिलीवरी की तारीख अपडेट की गई!");
+            showToast(`Expected delivery date updated to ${validation.displayDate}! — डिलीवरी की तारीख अपडेट की गई!`);
+            closeModal('updateDeliveryDateModal');
+
+            if (Array.isArray(sellerOrdersCache)) {
+                const targetOrder = sellerOrdersCache.find(o => String(o.id) === String(orderId));
+                if (targetOrder) {
+                    targetOrder.expectedDeliveryDate = validation.canonicalApiDate;
+                }
+            }
+
             await loadSellerOrders();
         } else {
-            const err = await res.json().catch(() => ({}));
-            showToast(err.error || err.message || "Failed to update delivery date");
+            const errData = await res.json().catch(() => ({}));
+            const msg = errData.error || errData.message || `Failed to update delivery date (HTTP ${res.status})`;
+            showError(msg);
         }
-    } catch (e) {
-        showToast("Error updating delivery date");
+    } catch (err) {
+        console.error('Error saving delivery date:', err);
+        showError('Network error while saving expected delivery date. Please try again.');
+    } finally {
+        _isSavingDeliveryDate = false;
+        if (saveBtn) saveBtn.disabled = false;
+        if (spinner) spinner.classList.add('hidden');
+        if (saveText) saveText.innerText = 'Save Delivery Date';
     }
+}
+
+/**
+ * Backward compatibility wrapper for existing invocation paths
+ */
+function promptUpdateDeliveryDate(orderId, sourceType = 'MATERIAL_ORDER') {
+    openUpdateDeliveryDateModal(orderId, sourceType);
 }
 
 /**

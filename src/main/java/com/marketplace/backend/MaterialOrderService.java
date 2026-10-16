@@ -1038,8 +1038,9 @@ public class MaterialOrderService {
             throw new SecurityException("Only fulfilling seller can update expected delivery date.");
         }
 
-        order.setExpectedDeliveryDate(expectedDeliveryDate.trim());
-        order.setUpdatedAt(LocalDateTime.now());
+        String validatedDate = DeliveryDateValidator.validateAndNormalize(expectedDeliveryDate);
+        order.setExpectedDeliveryDate(validatedDate);
+        order.setUpdatedAt(LocalDateTime.now(IST_ZONE));
         MaterialOrder saved = materialOrderRepository.save(order);
 
         // Notify Buyer
@@ -1048,8 +1049,8 @@ public class MaterialOrderService {
                     order.getBuyer(),
                     "Delivery Date Updated",
                     "डिलीवरी की तारीख अपडेट की गई",
-                    "Seller " + caller.getName() + " updated expected delivery to " + expectedDeliveryDate + " for order " + order.getOrderCode() + ".",
-                    "विक्रेता " + caller.getName() + " ने ऑर्डर " + order.getOrderCode() + " के लिए डिलीवरी की तारीख " + expectedDeliveryDate + " अपडेट की है।",
+                    "Seller " + caller.getName() + " updated expected delivery to " + validatedDate + " for order " + order.getOrderCode() + ".",
+                    "विक्रेता " + caller.getName() + " ने ऑर्डर " + order.getOrderCode() + " के लिए डिलीवरी की तारीख " + validatedDate + " अपडेट की है।",
                     "DELIVERY_DATE",
                     order.getOrderCode()
             );
