@@ -25,12 +25,14 @@
   <script>
     (function () {
       try {
-        var raw = localStorage.getItem('currentUser') || localStorage.getItem('loggedInUser') || sessionStorage.getItem('currentUser');
+        var raw = localStorage.getItem('currentUser') || localStorage.getItem('loggedInUser') || sessionStorage.getItem('currentUser') || localStorage.getItem('marketplaceUser');
         if (raw) {
           var u = JSON.parse(raw);
-          var r = (u.role || (u.roles && u.roles[0]) || '').toUpperCase();
+          var r = (u.role || (u.roles && (typeof u.roles[0] === 'string' ? u.roles[0] : (u.roles[0].name || u.roles[0].authority))) || '').toUpperCase();
           if (r === 'CONTRACTOR') {
             document.documentElement.classList.add('is-contractor');
+          } else if (r === 'MATERIAL_SELLER' || r === 'SELLER') {
+            window.location.replace('seller-dashboard.html#hired-professionals');
           }
         }
       } catch (e) {}

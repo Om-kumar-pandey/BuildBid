@@ -1460,7 +1460,20 @@ async function initSellerDashboard() {
         // Pre-fetch invoice materials
         loadInvoiceMaterials();
     }
+
+    // Setup Hired Professionals event listeners
+    if (typeof initSellerHiredProfessionalsListeners === "function") {
+        initSellerHiredProfessionalsListeners();
+    }
 }
+
+// Global hash change listener for seamless URL-based tab routing
+window.addEventListener("hashchange", () => {
+    if (window.location.hash) {
+        const hashTab = window.location.hash.replace("#", "").trim();
+        if (hashTab) switchTab(hashTab);
+    }
+});
 
 // Execute dashboard initialization as soon as DOM is ready or immediately
 if (document.readyState === "loading") {
@@ -2311,6 +2324,9 @@ function switchTab(tabId) {
     }
     if (tabId === 'inventory' && typeof loadSellerInventory === 'function') {
         loadSellerInventory();
+    }
+    if (tabId === 'hired-professionals' && typeof loadSellerHiredProfessionals === 'function') {
+        loadSellerHiredProfessionals();
     }
 }
 
@@ -4358,4 +4374,488 @@ function showLogoutToast(callback, customTitle, customMessage) {
   }
 
   setTimeout(navigateOnce, 1200);
+}
+
+/* ==========================================================================
+   DYNAMIC DATA BINDING: SELLER HIRED PROFESSIONALS (DIRECT HIRE INTEGRATION)
+   ========================================================================== */
+
+let allSellerHiredProfessionals = [];
+let _hiredProReqSeq = 0;
+
+/**
+ * Initialize DOM listeners for Seller Hired Professionals filter controls
+ */
+function initSellerHiredProfessionalsListeners() {
+    const searchInput = document.getElementById("sellerHiredSearchInput");
+    if (searchInput && !searchInput.dataset.bound) {
+        searchInput.dataset.bound = "true";
+        searchInput.addEventListener("input", () => {
+            renderSellerHiredCards();
+        });
+    }
+
+    const statusFilter = document.getElementById("sellerHiredStatusFilter");
+    if (statusFilter && !statusFilter.dataset.bound) {
+        statusFilter.dataset.bound = "true";
+        statusFilter.addEventListener("change", () => {
+            renderSellerHiredCards();
+        });
+    }
+
+    const resetBtn = document.getElementById("sellerBtnResetHiredFilters");
+    if (resetBtn && !resetBtn.dataset.bound) {
+        resetBtn.dataset.bound = "true";
+        resetBtn.addEventListener("click", () => {
+            if (searchInput) searchInput.value = "";
+            if (statusFilter) statusFilter.value = "ALL";
+            renderSellerHiredCards();
+        });
+    }
+}
+
+/**
+ * Fetch authoritative accepted hired professionals from GET /api/hired-professionals
+ */
+async function loadSellerHiredProfessionals() {
+    const seq = ++_hiredProReqSeq;
+    const token = getCleanToken();
+
+    const loadingState = document.getElementById("sellerHiredLoadingState");
+    const errorState = document.getElementById("sellerHiredErrorState");
+    const emptyState = document.getElementById("sellerHiredEmptyState");
+    const noFilterState = document.getElementById("sellerHiredNoFilterState");
+    const cardsGrid = document.getElementById("sellerHiredCardsGrid");
+    const errorTitle = document.getElementById("sellerHiredErrorTitle");
+    const errorMsg = document.getElementById("sellerHiredErrorMessage");
+
+    if (loadingState) loadingState.classList.remove("hidden");
+    if (errorState) errorState.classList.add("hidden");
+    if (emptyState) emptyState.classList.add("hidden");
+    if (noFilterState) noFilterState.classList.add("hidden");
+    if (cardsGrid) cardsGrid.classList.add("hidden");
+
+    if (!token) {
+        if (loadingState) loadingState.classList.add("hidden");
+        if (errorState) {
+            errorState.classList.remove("hidden");
+            if (errorTitle) errorTitle.textContent = "Session Expired";
+            if (errorMsg) errorMsg.textContent = "Please log in again to view your hired professionals.";
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/hired-professionals`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Accept": "application/json"
+            }
+        });
+
+        if (seq !== _hiredProReqSeq) return;
+
+        if (response.status === 401) {
+            if (loadingState) loadingState.classList.add("hidden");
+            if (errorState) {
+                errorState.classList.remove("hidden");
+                if (errorTitle) errorTitle.textContent = "Session Expired";
+                if (errorMsg) errorMsg.textContent = "Your session has expired. Please log in again.";
+            }
+            return;
+        }
+
+        if (response.status === 403) {
+            if (loadingState) loadingState.classList.add("hidden");
+            if (errorState) {
+                errorState.classList.remove("hidden");
+                if (errorTitle) errorTitle.textContent = "Access Restricted";
+                if (errorMsg) errorMsg.textContent = "Access denied. Only registered requesters can view hired professionals.";
+            }
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Server returned error status (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (seq !== _hiredProReqSeq) return;
+
+        allSellerHiredProfessionals = Array.isArray(data) ? data : [];
+
+        // Update Summary KPI Metrics
+        updateSellerHiredMetrics(allSellerHiredProfessionals);
+
+        // Render Cards with active filters
+        renderSellerHiredCards();
+
+    } catch (err) {
+        if (seq !== _hiredProReqSeq) return;
+        console.error("Seller Dashboard: Failed to load hired professionals:", err);
+        if (loadingState) loadingState.classList.add("hidden");
+        if (errorState) {
+            errorState.classList.remove("hidden");
+            if (errorTitle) errorTitle.textContent = "Unable to Load Hired Professionals";
+            if (errorMsg) errorMsg.textContent = "An error occurred while fetching your records. Please check your network connection and retry.";
+        }
+    }
+}
+
+/**
+ * Update summary KPI metrics based on live records
+ */
+function updateSellerHiredMetrics(list) {
+    const totalEl = document.getElementById("sellerMetricTotalHired");
+    const activeEl = document.getElementById("sellerMetricActiveHired");
+    const servicesEl = document.getElementById("sellerMetricTotalServices");
+
+    const total = list.length;
+    const active = list.filter(item => (item.status || "").toUpperCase() === "ACTIVE").length;
+
+    const distinctServices = new Set();
+    list.forEach(item => {
+        if (item.service) distinctServices.add(item.service.trim().toLowerCase());
+        else if (item.serviceType) distinctServices.add(item.serviceType.trim().toLowerCase());
+    });
+
+    if (totalEl) totalEl.textContent = total;
+    if (activeEl) activeEl.textContent = active;
+    if (servicesEl) servicesEl.textContent = distinctServices.size;
+}
+
+/**
+ * Filter and render professional cards inside the Seller Dashboard grid
+ */
+function renderSellerHiredCards() {
+    const loadingState = document.getElementById("sellerHiredLoadingState");
+    const errorState = document.getElementById("sellerHiredErrorState");
+    const emptyState = document.getElementById("sellerHiredEmptyState");
+    const noFilterState = document.getElementById("sellerHiredNoFilterState");
+    const cardsGrid = document.getElementById("sellerHiredCardsGrid");
+    const resultsCount = document.getElementById("sellerHiredResultsCount");
+
+    if (loadingState) loadingState.classList.add("hidden");
+    if (errorState) errorState.classList.add("hidden");
+
+    const searchInput = document.getElementById("sellerHiredSearchInput");
+    const statusFilter = document.getElementById("sellerHiredStatusFilter");
+
+    const query = (searchInput ? searchInput.value : "").trim().toLowerCase();
+    const selectedStatus = statusFilter ? statusFilter.value : "ALL";
+
+    const filtered = allSellerHiredProfessionals.filter(item => {
+        if (selectedStatus !== "ALL") {
+            const itemStatus = (item.status || "").toUpperCase();
+            if (itemStatus !== selectedStatus) return false;
+        }
+
+        if (query) {
+            const proName = (item.professionalName || "").toLowerCase();
+            const service = (item.service || "").toLowerCase();
+            const serviceType = (item.serviceType || "").toLowerCase();
+            const location = (item.location || "").toLowerCase();
+            const hiringId = (item.hiringId || "").toLowerCase();
+            const reqId = (item.requestId || "").toLowerCase();
+
+            const matches = proName.includes(query) ||
+                            service.includes(query) ||
+                            serviceType.includes(query) ||
+                            location.includes(query) ||
+                            hiringId.includes(query) ||
+                            reqId.includes(query);
+            if (!matches) return false;
+        }
+
+        return true;
+    });
+
+    if (resultsCount) {
+        resultsCount.innerHTML = `Showing <strong>${filtered.length}</strong> of <strong>${allSellerHiredProfessionals.length}</strong> hired professionals`;
+    }
+
+    if (allSellerHiredProfessionals.length === 0) {
+        if (emptyState) emptyState.classList.remove("hidden");
+        if (noFilterState) noFilterState.classList.add("hidden");
+        if (cardsGrid) {
+            cardsGrid.classList.add("hidden");
+            cardsGrid.innerHTML = "";
+        }
+        return;
+    }
+
+    if (filtered.length === 0) {
+        if (emptyState) emptyState.classList.add("hidden");
+        if (noFilterState) noFilterState.classList.remove("hidden");
+        if (cardsGrid) {
+            cardsGrid.classList.add("hidden");
+            cardsGrid.innerHTML = "";
+        }
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add("hidden");
+    if (noFilterState) noFilterState.classList.add("hidden");
+    if (cardsGrid) {
+        cardsGrid.innerHTML = filtered.map(item => createSellerHiredCardHtml(item)).join("");
+        cardsGrid.classList.remove("hidden");
+    }
+}
+
+/**
+ * Generate semantic, Tailwind-styled professional card HTML matching Seller Dashboard design
+ */
+function createSellerHiredCardHtml(item) {
+    const proName = escapeSellerHtml(item.professionalName || "Professional Specialist");
+    const hiringId = escapeSellerHtml(item.hiringId || item.requestId || "HIRE-N/A");
+    const requestId = escapeSellerHtml(item.requestId || "REQ-N/A");
+    const roleDisplay = escapeSellerHtml(formatSellerProRole(item.professionalRole, item.serviceType));
+    const service = escapeSellerHtml(item.service || item.serviceType || "Construction Service");
+    const location = escapeSellerHtml(item.location || "Location on Request");
+    const dateFormatted = formatSellerProDate(item.hiringDate);
+    const budgetFormatted = item.agreedBudget != null ? formatSellerCurrency(item.agreedBudget) : "Direct Quote Agreed";
+    const scopeSnippet = escapeSellerHtml(item.projectScope || "Direct hire engagement for specialized engineering & site execution.");
+    const phone = item.phone ? escapeSellerHtml(item.phone) : "";
+
+    const hiredViaDisplay = (item.hiredVia === "DIRECT_HIRE" || !item.hiredVia) ? "Direct Hire" : String(item.hiredVia).replace(/_/g, " ");
+
+    const photoUrl = item.profilePhotoUrl ? escapeSellerHtml(item.profilePhotoUrl) : "";
+    const avatarHtml = photoUrl
+        ? `<img src="${photoUrl}" alt="${proName}" class="w-11 h-11 rounded-xl object-cover border border-slate-200" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(item.professionalName || 'Pro')}'">`
+        : `<div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center border border-blue-200">${getSellerProInitials(item.professionalName || "Pro")}</div>`;
+
+    return `
+        <article class="bg-white rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
+            <!-- Card Top Header -->
+            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center space-x-1">
+                        <i class="fa-solid fa-user-check text-[10px]"></i>
+                        <span>${escapeSellerHtml(hiredViaDisplay)}</span>
+                    </span>
+                    <span class="font-mono text-[11px] text-slate-400 font-medium">#${hiringId}</span>
+                </div>
+                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>ACTIVE</span>
+                </span>
+            </div>
+
+            <!-- Card Body Content -->
+            <div class="p-4 space-y-3.5 flex-1">
+                <!-- Profile Row -->
+                <div class="flex items-center space-x-3">
+                    ${avatarHtml}
+                    <div class="overflow-hidden flex-1">
+                        <h3 class="font-bold text-slate-900 text-sm truncate flex items-center space-x-1" title="${proName}">
+                            <span>${proName}</span>
+                            <i class="fa-solid fa-circle-check text-blue-500 text-xs flex-shrink-0" title="BuildBid Verified Professional"></i>
+                        </h3>
+                        <p class="text-xs text-slate-500 truncate mt-0.5">${roleDisplay}</p>
+                    </div>
+                </div>
+
+                <!-- Key Attributes 2x2 Grid -->
+                <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block flex items-center space-x-1">
+                            <i class="fa-solid fa-screwdriver-wrench text-[9px]"></i>
+                            <span>Service</span>
+                        </span>
+                        <span class="font-semibold text-slate-800 truncate block mt-0.5" title="${service}">${service}</span>
+                    </div>
+
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block flex items-center space-x-1">
+                            <i class="fa-solid fa-location-dot text-[9px]"></i>
+                            <span>Location</span>
+                        </span>
+                        <span class="font-semibold text-slate-800 truncate block mt-0.5" title="${location}">${location}</span>
+                    </div>
+
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block flex items-center space-x-1">
+                            <i class="fa-regular fa-calendar text-[9px]"></i>
+                            <span>Hired Date</span>
+                        </span>
+                        <span class="font-semibold text-slate-700 block mt-0.5">${dateFormatted}</span>
+                    </div>
+
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block flex items-center space-x-1">
+                            <i class="fa-solid fa-indian-rupee-sign text-[9px]"></i>
+                            <span>Agreed Budget</span>
+                        </span>
+                        <span class="font-bold text-emerald-600 block mt-0.5">${budgetFormatted}</span>
+                    </div>
+                </div>
+
+                <!-- Scope Preview -->
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Project Scope:</span>
+                    <p class="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">${scopeSnippet}</p>
+                </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="px-4 py-3 bg-white border-t border-slate-100 flex items-center space-x-2">
+                <button type="button" onclick="openSellerHiredDetailsModal('${hiringId}')"
+                    class="flex-1 py-2 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-regular fa-eye text-xs"></i>
+                    <span>View Full Details</span>
+                </button>
+                ${phone ? `
+                    <a href="tel:${phone}" class="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200 flex items-center justify-center transition-all" title="Direct Phone Call: ${phone}">
+                        <i class="fa-solid fa-phone text-xs"></i>
+                    </a>
+                ` : ""}
+            </div>
+        </article>
+    `;
+}
+
+/**
+ * Open details modal populated with specified professional's records
+ */
+function openSellerHiredDetailsModal(hiringId) {
+    const item = allSellerHiredProfessionals.find(p =>
+        String(p.hiringId) === String(hiringId) || String(p.requestId) === String(hiringId)
+    );
+    if (!item) {
+        showToast("Professional hiring record could not be found.");
+        return;
+    }
+
+    const proName = escapeSellerHtml(item.professionalName || "Professional Specialist");
+    const proRole = escapeSellerHtml(formatSellerProRole(item.professionalRole, item.serviceType));
+    const service = escapeSellerHtml(item.service || "Specialized Service");
+    const serviceType = escapeSellerHtml(item.serviceType || item.service || "General");
+    const location = escapeSellerHtml(item.location || "Location on Request");
+    const budget = item.agreedBudget != null ? formatSellerCurrency(item.agreedBudget) : "Direct Quote Agreed";
+    const dateStr = formatSellerProDateTime(item.hiringDate);
+    const scope = escapeSellerHtml(item.projectScope || "Direct hire engagement for specialized engineering & site execution.");
+    const phone = item.phone ? escapeSellerHtml(item.phone) : "Not Provided";
+    const email = item.email ? escapeSellerHtml(item.email) : "Not Provided";
+    const hId = escapeSellerHtml(item.hiringId || item.requestId || "HIRE-N/A");
+    const rId = escapeSellerHtml(item.requestId || "REQ-N/A");
+
+    const avatarWrap = document.getElementById("sellerModalProAvatar");
+    if (avatarWrap) {
+        if (item.profilePhotoUrl) {
+            avatarWrap.innerHTML = `<img src="${escapeSellerHtml(item.profilePhotoUrl)}" alt="${proName}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(item.professionalName || 'Pro')}'">`;
+        } else {
+            avatarWrap.innerHTML = getSellerProInitials(item.professionalName || "Pro");
+        }
+    }
+
+    setSellerElementText("sellerModalProName", proName);
+    setSellerElementText("sellerModalProRole", proRole);
+    setSellerElementText("sellerModalHiringId", `#${hId}`);
+    setSellerElementText("sellerModalRequestId", `#${rId}`);
+    setSellerElementText("sellerModalServiceType", serviceType);
+    setSellerElementText("sellerModalService", service);
+    setSellerElementText("sellerModalAgreedBudget", budget);
+    setSellerElementText("sellerModalLocation", location);
+    setSellerElementText("sellerModalHiringDate", dateStr);
+    setSellerElementText("sellerModalProjectScope", scope);
+
+    const phoneEl = document.getElementById("sellerModalPhone");
+    if (phoneEl) {
+        if (item.phone) {
+            phoneEl.innerHTML = `<a href="tel:${escapeSellerHtml(item.phone)}" class="text-blue-600 hover:underline flex items-center space-x-1"><i class="fa-solid fa-phone text-[10px]"></i><span>${escapeSellerHtml(item.phone)}</span></a>`;
+        } else {
+            phoneEl.textContent = "Not Provided";
+        }
+    }
+
+    const emailEl = document.getElementById("sellerModalEmail");
+    if (emailEl) {
+        if (item.email) {
+            emailEl.innerHTML = `<a href="mailto:${escapeSellerHtml(item.email)}" class="text-blue-600 hover:underline flex items-center space-x-1"><i class="fa-regular fa-envelope text-[10px]"></i><span>${escapeSellerHtml(item.email)}</span></a>`;
+        } else {
+            emailEl.textContent = "Not Provided";
+        }
+    }
+
+    const hiredVia = (item.hiredVia === "DIRECT_HIRE" || !item.hiredVia) ? "Direct Hire" : String(item.hiredVia).replace(/_/g, " ");
+    const hiredViaBadge = document.getElementById("sellerModalHiredViaBadge");
+    if (hiredViaBadge) {
+        hiredViaBadge.innerHTML = `<i class="fa-solid fa-user-check text-[10px]"></i><span>${escapeSellerHtml(hiredVia)}</span>`;
+    }
+
+    openModal("sellerHiredDetailsModal");
+}
+
+function formatSellerProRole(role, type) {
+    const cleanRole = (role || "Professional").replace("ROLE_", "").toLowerCase();
+    const capRole = cleanRole.charAt(0).toUpperCase() + cleanRole.slice(1);
+    if (!type) return capRole;
+    return `${capRole} • ${type}`;
+}
+
+function formatSellerProDate(dateStr) {
+    if (!dateStr) return "Recent";
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "Recent";
+        const day = String(d.getDate()).padStart(2, "0");
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const month = months[d.getMonth()];
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+    } catch (e) {
+        return "Recent";
+    }
+}
+
+function formatSellerProDateTime(dateStr) {
+    if (!dateStr) return "Recently recorded";
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "Recently recorded";
+        const day = String(d.getDate()).padStart(2, "0");
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const month = months[d.getMonth()];
+        const year = d.getFullYear();
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12 || 12;
+        return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
+    } catch (e) {
+        return "Recently recorded";
+    }
+}
+
+function formatSellerCurrency(amount) {
+    const num = Number(amount);
+    if (isNaN(num)) return "Quote Agreed";
+    return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0
+    }).format(num);
+}
+
+function getSellerProInitials(name) {
+    if (!name) return "P";
+    const parts = name.trim().split(" ").filter(Boolean);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function escapeSellerHtml(str) {
+    if (str == null) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function setSellerElementText(elementId, text) {
+    const el = document.getElementById(elementId);
+    if (el) el.textContent = text;
 }

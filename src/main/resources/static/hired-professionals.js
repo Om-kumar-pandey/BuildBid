@@ -179,24 +179,8 @@ function setupRoleBasedShell(user, role) {
     syncContractorBadges();
 
   } else if (role === "MATERIAL_SELLER" || role === "SELLER") {
-    if (universalTopNav) universalTopNav.style.display = "flex";
-    if (contractorTopNav) contractorTopNav.style.display = "none";
-    if (sellerSidebar) sellerSidebar.style.display = "flex";
-    dashboardUrl = "seller-dashboard.html";
-    roleDisplayName = "Material Seller";
-
-    // Populate user identity in universal top navbar
-    if (user) {
-      const rawName = user.name || user.fullName || user.username || user.companyName || roleDisplayName;
-      const firstName = rawName.split(" ")[0];
-      if (navUserName) navUserName.textContent = firstName;
-      if (navUserRole) navUserRole.textContent = roleDisplayName;
-
-      const photoUrl = user.profilePhoto || user.avatarUrl || user.profilePhotoUrl || "";
-      if (navAvatar && navAvatar.tagName === "IMG") {
-        navAvatar.src = photoUrl || `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(rawName)}`;
-      }
-    }
+    window.location.replace("seller-dashboard.html#hired-professionals");
+    return;
   } else {
     // Default to Customer
     if (universalTopNav) universalTopNav.style.display = "flex";
