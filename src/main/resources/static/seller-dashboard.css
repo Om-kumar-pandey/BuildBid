@@ -70,8 +70,8 @@ body {
         transform: scale(1);
     }
     50% {
-        opacity: 0.35;
-        transform: scale(1.06);
+        opacity: 0.45;
+        transform: scale(1.04);
     }
 }
 
@@ -80,15 +80,19 @@ body {
     display: inline-flex;
 }
 
-.expected-date-ping-dot {
-    animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes ping {
-    75%, 100% {
-        transform: scale(2);
+@keyframes expectedDatePingDot {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.95;
+    }
+    70%, 100% {
+        transform: scale(2.4);
         opacity: 0;
     }
+}
+
+.expected-date-ping-dot {
+    animation: expectedDatePingDot 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

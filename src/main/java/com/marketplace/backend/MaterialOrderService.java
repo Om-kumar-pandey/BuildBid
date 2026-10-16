@@ -1575,7 +1575,7 @@ public class MaterialOrderService {
         map.put("completedAt", order.getCompletedAt() != null ? order.getCompletedAt().toString() : null);
         map.put("cancelledAt", order.getCancelledAt() != null ? order.getCancelledAt().toString() : null);
         map.put("updatedAt", order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : null);
-        map.put("expectedDeliveryDate", order.getExpectedDeliveryDate() != null ? order.getExpectedDeliveryDate() : "");
+        map.put("expectedDeliveryDate", order.getExpectedDeliveryDate() != null && !order.getExpectedDeliveryDate().isBlank() ? order.getExpectedDeliveryDate() : "Not Set");
 
         if (order.getBuyer() != null) {
             map.put("buyerName", order.getBuyer().getName());

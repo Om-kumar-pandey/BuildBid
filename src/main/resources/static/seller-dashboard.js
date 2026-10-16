@@ -4034,6 +4034,7 @@ function isOrderActiveStatus(statusStr) {
     return [
         'WAITING_FOR_ACCEPTANCE',
         'CONFIRMED',
+        'ORDER_CONFIRMED',
         'ORDER_ACCEPTED',
         'ACCEPTED',
         'PROCESSING',
@@ -4050,6 +4051,8 @@ function isOrderAccepted(order) {
     if (!order) return false;
     const rawStatus = (order.orderStatus || order.status || order.rawStatus || '').trim().toUpperCase();
     return [
+        'CONFIRMED',
+        'ORDER_CONFIRMED',
         'ORDER_ACCEPTED',
         'ACCEPTED',
         'PROCESSING',
@@ -4205,19 +4208,19 @@ function renderSellerOrders(orders) {
 
         if (rawStatus === "WAITING_FOR_ACCEPTANCE") {
             statusBadge = `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Waiting for Acceptance<br><span class="text-[9px] font-medium">स्वीकृति की प्रतीक्षा</span></span>`;
-            actionButtons = `<button onclick="acceptSellerOrder(${order.id}, '${orderSourceType}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-check"></i> Accept Order</button>`;
-        } else if (rawStatus === "ORDER_ACCEPTED" || rawStatus === "ACCEPTED") {
+            actionButtons = `<button onclick="acceptSellerOrder(${order.id}, '${orderSourceType}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-check"></i> Accept Order</button>`;
+        } else if (rawStatus === "ORDER_ACCEPTED" || rawStatus === "ACCEPTED" || rawStatus === "CONFIRMED" || rawStatus === "ORDER_CONFIRMED") {
             statusBadge = `<span class="bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Order Accepted<br><span class="text-[9px] font-medium">ऑर्डर स्वीकार किया गया</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'PROCESSING', '${orderSourceType}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-gears"></i> Start Processing</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'PROCESSING', '${orderSourceType}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-gears"></i> Start Processing</button>`;
         } else if (rawStatus === "PROCESSING") {
             statusBadge = `<span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Processing<br><span class="text-[9px] font-medium">प्रक्रिया में</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'READY_FOR_DISPATCH', '${orderSourceType}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-box"></i> Ready for Dispatch</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'READY_FOR_DISPATCH', '${orderSourceType}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-box"></i> Ready for Dispatch</button>`;
         } else if (rawStatus === "READY_FOR_DISPATCH" || rawStatus === "DISPATCHED") {
             statusBadge = `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Ready for Dispatch<br><span class="text-[9px] font-medium">भेजने के लिए तैयार</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'OUT_FOR_DELIVERY', '${orderSourceType}')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-truck"></i> Out for Delivery</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'OUT_FOR_DELIVERY', '${orderSourceType}')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-truck"></i> Out for Delivery</button>`;
         } else if (rawStatus === "OUT_FOR_DELIVERY") {
             statusBadge = `<span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Out for Delivery<br><span class="text-[9px] font-medium">डिलीवरी के लिए रवाना</span></span>`;
-            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'DELIVERED', '${orderSourceType}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Mark Delivered</button>`;
+            actionButtons = `<button onclick="updateSellerOrderStatus(${order.id}, 'DELIVERED', '${orderSourceType}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-circle-check"></i> Mark Delivered</button>`;
         } else if (rawStatus === "DELIVERED" || rawStatus === "COMPLETED") {
             statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-bold block text-center">Delivered<br><span class="text-[9px] font-medium">डिलीवर हो गया</span></span>`;
             actionButtons = `<span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Fulfilled</span>`;
@@ -4242,23 +4245,26 @@ function renderSellerOrders(orders) {
         let expectedDeliveryCellHtml = '';
         if (isMissingDate) {
             expectedDeliveryCellHtml = `
-                <div class="space-y-1.5" id="delivery-cell-${order.id}">
-                    <span class="text-xs font-semibold text-slate-500 block">Not Set</span>
-                    <div class="expected-date-required-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold shadow-xs">
-                        <span class="relative flex h-2 w-2">
-                            <span class="expected-date-ping-dot absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                <div class="space-y-1.5 py-0.5" id="delivery-cell-${order.id}">
+                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-slate-700">Not Set</span>
+                        <span class="relative flex h-2.5 w-2.5 flex-shrink-0" title="Expected Date Required">
+                            <span class="expected-date-ping-dot absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
                         </span>
-                        <i class="fa-solid fa-triangle-exclamation text-rose-500 text-[10px]"></i>
+                    </div>
+                    <div class="expected-date-required-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-100/90 border border-rose-300 text-rose-800 text-[10px] font-bold shadow-xs">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600 text-[10px]"></i>
                         <span>Expected Date Required</span>
                     </div>
                     <div>
                         <button type="button" 
                             id="btn-update-delivery-${order.id}"
                             onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}')" 
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs transition-all cursor-pointer">
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
                             <i class="fa-regular fa-calendar-plus text-xs"></i>
-                            <span>Update Expected Delivery</span>
+                            <span>Update Date</span>
                         </button>
                     </div>
                 </div>
@@ -4267,7 +4273,8 @@ function renderSellerOrders(orders) {
             const savedDate = order.expectedDeliveryDate.trim();
             const displayDate = formatExpectedDeliveryDateForDisplay(savedDate);
             expectedDeliveryCellHtml = `
-                <div class="space-y-1" id="delivery-cell-${order.id}">
+                <div class="space-y-1 py-0.5" id="delivery-cell-${order.id}">
+                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
                     <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <i class="fa-regular fa-calendar-check text-emerald-600 text-sm"></i>
                         <span>${escapeHtml(displayDate)}</span>
@@ -4275,8 +4282,9 @@ function renderSellerOrders(orders) {
                     ${isAccepted ? `
                     <button type="button" 
                         onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}', '${escapeJs(displayDate)}')" 
-                        class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block cursor-pointer">
-                        Edit Date
+                        class="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline mt-0.5 inline-flex items-center gap-1 cursor-pointer">
+                        <i class="fa-regular fa-pen-to-square text-[9px]"></i>
+                        <span>Edit Date</span>
                     </button>
                     ` : ''}
                 </div>
@@ -4284,13 +4292,10 @@ function renderSellerOrders(orders) {
         } else {
             // Not accepted yet (e.g. WAITING_FOR_ACCEPTANCE) - keeps 'Not Set' without blinking alert
             expectedDeliveryCellHtml = `
-                <div class="space-y-1" id="delivery-cell-${order.id}">
+                <div class="space-y-1 py-0.5" id="delivery-cell-${order.id}">
+                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Expected Delivery</span>
                     <span class="text-xs font-semibold text-slate-500 block">Not Set</span>
-                    <button type="button" 
-                        onclick="openUpdateDeliveryDateModal(${order.id}, '${orderSourceType}', '${escapeJs(orderCode)}')" 
-                        class="text-[10px] text-slate-400 hover:text-blue-600 underline mt-0.5 block cursor-pointer">
-                        Update Date
-                    </button>
+                    <span class="text-[10px] text-slate-400 italic block">Pending order acceptance</span>
                 </div>
             `;
         }

@@ -62,3 +62,42 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* Continuously Blinking Red Action-Required Indicator */
+@keyframes pulseBlinkRed {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(1.04);
+    }
+}
+
+.expected-date-required-badge {
+    animation: pulseBlinkRed 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    display: inline-flex;
+}
+
+@keyframes expectedDatePingDot {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.95;
+    }
+    70%, 100% {
+        transform: scale(2.4);
+        opacity: 0;
+    }
+}
+
+.expected-date-ping-dot {
+    animation: expectedDatePingDot 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .expected-date-required-badge,
+    .expected-date-ping-dot {
+        animation: none !important;
+    }
+}
