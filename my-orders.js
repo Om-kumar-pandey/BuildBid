@@ -240,19 +240,20 @@ function isAcceptedStatus(status) {
 }
 
 /**
- * 5 Stages:
- * 1 = Order Accepted
- * 2 = Processing
- * 3 = Ready for Dispatch
- * 4 = Out for Delivery
- * 5 = Delivered
+ * 4 Visible Positions (Order Accepted is excluded; lifecycle begins at Processing):
+ * 1 = Processing
+ * 2 = Processed
+ * 3 = Order Dispatched
+ * 4 = Out for Delivery / Delivered
+ * (getStageIndex returns 1-5 where 4=Out for Delivery active, 5=Delivered complete)
  */
 function getStageIndex(status) {
   const s = (status || "").toUpperCase();
-  if (s.includes("DELIVERED") || s.includes("COMPLETED") || s.includes("डिलीवर")) return 5;
-  if (s.includes("OUT_FOR_DELIVERY") || s.includes("रवाना") || s.includes("OUT FOR DELIVERY")) return 4;
-  if (s.includes("READY_FOR_DISPATCH") || s.includes("DISPATCHED") || s.includes("तैयार") || s.includes("READY FOR DISPATCH")) return 3;
-  if (s.includes("PROCESSING") || s.includes("प्रक्रिया")) return 2;
+  if (s.includes("DELIVERED") || (s.includes("COMPLETED") && !s.includes("PROCESSING")) || s.includes("डिलीवर")) return 5;
+  if (s.includes("OUT_FOR_DELIVERY") || s.includes("OUT FOR DELIVERY") || s.includes("रवाना")) return 4;
+  if (s.includes("DISPATCHED") || (s.includes("DISPATCH") && !s.includes("READY")) || s.includes("भेजा")) return 3;
+  if (s.includes("READY_FOR_DISPATCH") || s.includes("READY FOR DISPATCH") || s.includes("PROCESSED") || s.includes("PROCESSING_COMPLETED") || s.includes("तैयार") || s.includes("प्रसंस्कृत")) return 2;
+  if (s.includes("PROCESSING") || s.includes("प्रक्रिया")) return 1;
   return 1; // ORDER_ACCEPTED, ACCEPTED, CONFIRMED
 }
 
@@ -280,8 +281,8 @@ function getStatusDetails(status) {
     case 3:
       return {
         step: 3,
-        titleEn: "Ready for Dispatch",
-        titleHi: "भेजने के लिए तैयार",
+        titleEn: "Order Dispatched",
+        titleHi: "ऑर्डर भेजा गया",
         badgeClass: "status-dispatch",
         icon: "fa-solid fa-box-open",
         stateTag: "— CURRENT"
@@ -289,20 +290,20 @@ function getStatusDetails(status) {
     case 2:
       return {
         step: 2,
-        titleEn: "Processing",
-        titleHi: "प्रक्रिया में",
-        badgeClass: "status-processing",
-        icon: "fa-solid fa-spinner fa-spin",
+        titleEn: "Processed",
+        titleHi: "प्रसंस्कृत",
+        badgeClass: "status-processed",
+        icon: "fa-solid fa-boxes-packing",
         stateTag: "— CURRENT"
       };
     case 1:
     default:
       return {
         step: 1,
-        titleEn: "Order Accepted",
-        titleHi: "स्वीकार किया गया",
-        badgeClass: "status-accepted",
-        icon: "fa-solid fa-circle-check",
+        titleEn: "Processing",
+        titleHi: "प्रक्रिया में",
+        badgeClass: "status-processing",
+        icon: "fa-solid fa-gear",
         stateTag: "— CURRENT"
       };
   }
@@ -379,11 +380,18 @@ function renderOrders() {
 
     if (statusFilter !== "ALL") {
       const step = getStageIndex(o.status);
-      if (statusFilter === "ACCEPTED" && step !== 1) return false;
-      if (statusFilter === "PROCESSING" && step !== 2) return false;
-      if (statusFilter === "READY_FOR_DISPATCH" && step !== 3) return false;
-      if (statusFilter === "OUT_FOR_DELIVERY" && step !== 4) return false;
-      if (statusFilter === "DELIVERED" && step !== 5) return false;
+      const rawStatus = (o.status || "").toUpperCase();
+      if (statusFilter === "ACCEPTED") {
+        if (step !== 1 && !rawStatus.includes("ACCEPT") && !rawStatus.includes("CONFIRM")) return false;
+      } else if (statusFilter === "PROCESSING") {
+        if (step !== 1 && !rawStatus.includes("PROCESS")) return false;
+      } else if (statusFilter === "READY_FOR_DISPATCH") {
+        if (step !== 2 && step !== 3 && !rawStatus.includes("DISPATCH") && !rawStatus.includes("READY") && !rawStatus.includes("PROCESSED")) return false;
+      } else if (statusFilter === "OUT_FOR_DELIVERY") {
+        if (step !== 4 && !rawStatus.includes("OUT_FOR_DELIVERY") && !rawStatus.includes("OUT FOR DELIVERY")) return false;
+      } else if (statusFilter === "DELIVERED") {
+        if (step !== 5 && !rawStatus.includes("DELIVER") && !rawStatus.includes("COMPLET")) return false;
+      }
     }
 
     return true;
@@ -430,39 +438,68 @@ function createOrderCardHTML(order) {
         </tr>
       `;
 
-  // 5 Progress Stages Definition
+  const isDeliveredLifecycle = (currentStep === 5);
+  const isOutForDelivery = (currentStep === 4);
+
+  // Exactly 4 Visible Progress Positions (Order Accepted is excluded)
+  // Position 4 dynamically displays "Out for Delivery" during transit or "Delivered" upon fulfillment
+  const step4TitleEn = isOutForDelivery ? "Out for Delivery" : "Delivered";
+  const step4TitleHi = isOutForDelivery ? "डिलीवरी के लिए रवाना" : "डिलीवर हो गया";
+
   const stages = [
-    { step: 1, titleEn: "Order Accepted", titleHi: "स्वीकार किया गया" },
-    { step: 2, titleEn: "Processing", titleHi: "प्रक्रिया में" },
-    { step: 3, titleEn: "Ready for Dispatch", titleHi: "भेजने के लिए तैयार" },
-    { step: 4, titleEn: "Out for Delivery", titleHi: "डिलीवरी के लिए रवाना" },
-    { step: 5, titleEn: "Delivered", titleHi: "डिलीवर हो गया" }
+    { step: 1, titleEn: "Processing", titleHi: "प्रक्रिया में" },
+    { step: 2, titleEn: "Processed", titleHi: "प्रसंस्कृत" },
+    { step: 3, titleEn: "Order Dispatched", titleHi: "ऑर्डर भेजा गया" },
+    { step: 4, titleEn: step4TitleEn, titleHi: step4TitleHi }
   ];
 
-  const timelineStepsHTML = stages.map(st => {
+  const timelineStepsHTML = stages.map((st, idx) => {
     let stateClass = "upcoming";
     let circleContent = `${st.step}`;
     let tagHTML = "";
 
-    if (st.step < currentStep) {
+    if (isDeliveredLifecycle) {
+      // Delivered lifecycle: all 4 steps completed with static green checkmark
       stateClass = "completed";
       circleContent = '<i class="fa-solid fa-check"></i>';
-      tagHTML = '<span class="step-status-tag">— COMPLETED</span>';
-    } else if (st.step === currentStep) {
+      tagHTML = '<span class="step-status-tag step-tag-completed"><i class="fa-solid fa-check"></i> Completed</span>';
+    } else if (st.step < currentStep) {
+      // Completed preceding steps
+      stateClass = "completed";
+      circleContent = '<i class="fa-solid fa-check"></i>';
+      tagHTML = '<span class="step-status-tag step-tag-completed"><i class="fa-solid fa-check"></i> Completed</span>';
+    } else if (st.step === currentStep || (st.step === 4 && isOutForDelivery)) {
+      // Current active incomplete step with rotating loader
       stateClass = "current";
-      circleContent = (currentStep === 5) ? '<i class="fa-solid fa-check"></i>' : `${st.step}`;
-      tagHTML = (currentStep === 5) 
-        ? '<span class="step-status-tag" style="background:#16a34a;color:#fff;">— COMPLETED</span>'
-        : '<span class="step-status-tag">— CURRENT</span>';
+      circleContent = `${st.step}`;
+      tagHTML = '<span class="step-status-tag step-tag-current"><span class="step-tag-pulse-dot"></span> CURRENT</span>';
+    } else {
+      // Future steps
+      stateClass = "upcoming";
+      circleContent = `${st.step}`;
+      tagHTML = '';
+    }
+
+    const isLast = (idx === stages.length - 1);
+    let lineClass = "";
+    if (!isLast) {
+      if (isDeliveredLifecycle || st.step < currentStep) {
+        lineClass = "line-completed";
+      } else {
+        lineClass = "line-upcoming";
+      }
     }
 
     return `
       <div class="progress-step-5 ${stateClass}">
-        <div class="step-circle">${circleContent}</div>
+        ${!isLast ? `<div class="step-connector-line ${lineClass}"></div>` : ""}
+        <div class="step-circle-wrapper">
+          <div class="step-circle">${circleContent}</div>
+        </div>
         <div>
           <div class="step-title">${st.titleEn}</div>
           <div class="step-subtitle">${st.titleHi}</div>
-          ${tagHTML}
+          ${tagHTML ? `<div class="step-tag-wrapper">${tagHTML}</div>` : ""}
         </div>
       </div>
     `;
@@ -550,12 +587,11 @@ function createOrderCardHTML(order) {
           </tbody>
         </table>
 
-        <!-- 5-Stage Order Progress Tracker -->
+        <!-- Order Progress Tracker -->
         <div class="order-progress-section">
           <div class="order-progress-header">
-            <span><i class="fa-solid fa-route" style="color: #0284c7; margin-right: 6px;"></i> Order Progress / पूर्ति की प्रगति</span>
-            <span style="font-size: 12px; font-weight: 700; color: #0284c7;">
-              Stage ${currentStep} of 5
+            <span class="order-progress-title">
+              <i class="fa-solid fa-route"></i> Order Progress / पूर्ति की प्रगति
             </span>
           </div>
 
