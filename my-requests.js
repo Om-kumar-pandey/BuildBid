@@ -108,7 +108,7 @@ function getDirectBuyTimelineHTML(req) {
     currentStep = 4;
   } else if (rawStatus.includes("PROCESSING") || rawStatus.includes("प्रक्रिया")) {
     currentStep = 3;
-  } else if (rawStatus.includes("ORDER_ACCEPTED") || rawStatus.includes("ACCEPTED") || rawStatus.includes("स्वीकार")) {
+  } else if (rawStatus.includes("ORDER_ACCEPTED") || rawStatus.includes("ACCEPTED") || rawStatus.includes("CONFIRMED") || rawStatus.includes("स्वीकार")) {
     currentStep = 2;
   } else {
     currentStep = 1; // WAITING_FOR_ACCEPTANCE
@@ -149,20 +149,27 @@ function getDirectBuyTimelineHTML(req) {
       stepClass += " passed";
       dotClass += " completed";
       dotContent = '<i class="fa-solid fa-check"></i>';
-    } else {
-      if (p.step < currentStep) {
-        stepClass += " passed";
+    } else if (p.step < currentStep) {
+      stepClass += " passed";
+      dotClass += " completed";
+      dotContent = '<i class="fa-solid fa-check"></i>';
+    } else if (p.step === currentStep) {
+      if (currentStep === 2) {
+        // Step 2 (Order Accepted) is a completed milestone once accepted by seller.
+        // It must show the completed checkmark and not a continuous loading spinner.
+        stepClass += " current";
         dotClass += " completed";
         dotContent = '<i class="fa-solid fa-check"></i>';
-      } else if (p.step === currentStep) {
+      } else {
+        // Steps genuinely in progress (Waiting for Acceptance, Processing, Ready for Dispatch, Out for Delivery)
         stepClass += " current";
         dotClass += " current";
         dotContent = '<span class="phase-spinner" title="In Progress"></span>';
-      } else {
-        stepClass += " pending";
-        dotClass += " pending";
-        dotContent = '<span class="dot-inactive"></span>';
       }
+    } else {
+      stepClass += " pending";
+      dotClass += " pending";
+      dotContent = '<span class="dot-inactive"></span>';
     }
 
     return `
