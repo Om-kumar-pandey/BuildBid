@@ -1304,6 +1304,7 @@ public class MaterialOrderService {
                             order.getOrderCode()
                     );
                 }
+                syncLinkedMaterialRequest(order, "OUT_FOR_DELIVERY", now);
                 return outOrder;
 
             case "DELIVERED":
@@ -1330,6 +1331,7 @@ public class MaterialOrderService {
                             order.getOrderCode()
                     );
                 }
+                syncLinkedMaterialRequest(order, "DELIVERED", now);
                 return deliveredOrder;
 
             case "COMPLETED":
@@ -1355,6 +1357,19 @@ public class MaterialOrderService {
 
             default:
                 throw new IllegalArgumentException("Unsupported order status: " + normalizedTarget);
+        }
+    }
+
+    private void syncLinkedMaterialRequest(MaterialOrder order, String targetStatus, LocalDateTime now) {
+        if (order != null && order.getMaterialRequest() != null && materialRequestRepository != null) {
+            MaterialRequest mr = order.getMaterialRequest();
+            if ("DIRECT_MATERIAL".equalsIgnoreCase(mr.getRequestType())) {
+                String norm = "DISPATCHED".equalsIgnoreCase(targetStatus) ? "READY_FOR_DISPATCH" :
+                              ("COMPLETED".equalsIgnoreCase(targetStatus) ? "DELIVERED" : targetStatus);
+                mr.setStatus(norm);
+                mr.setUpdatedAt(now != null ? now : LocalDateTime.now(IST_ZONE));
+                materialRequestRepository.save(mr);
+            }
         }
     }
 

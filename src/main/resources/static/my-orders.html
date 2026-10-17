@@ -284,6 +284,7 @@
       font-size: 14px;
     }
 
+    .progress-timeline-4,
     .progress-timeline-5 {
       display: flex;
       justify-content: space-between;
@@ -292,6 +293,7 @@
       margin: 10px 0 6px 0;
     }
 
+    .progress-step-4,
     .progress-step-5 {
       position: relative;
       z-index: 2;
@@ -379,6 +381,7 @@
     }
 
     /* Completed Step State */
+    .progress-step-4.completed .step-circle,
     .progress-step-5.completed .step-circle {
       background: #16a34a;
       border-color: #16a34a;
@@ -388,11 +391,13 @@
       animation: none !important;
     }
 
+    .progress-step-4.completed .step-title,
     .progress-step-5.completed .step-title {
       color: #15803d;
       font-weight: 700;
     }
 
+    .progress-step-4.completed .step-subtitle,
     .progress-step-5.completed .step-subtitle {
       color: #475569;
     }
@@ -404,6 +409,7 @@
     }
 
     /* Current Step State */
+    .progress-step-4.current .step-circle,
     .progress-step-5.current .step-circle {
       background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
       border-color: #3b82f6;
@@ -413,6 +419,7 @@
     }
 
     /* Rotating outer loader ring for current incomplete step */
+    .progress-step-4.current .step-circle-wrapper::before,
     .progress-step-5.current .step-circle-wrapper::before {
       content: "";
       position: absolute;
@@ -436,6 +443,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .progress-step-4.current .step-circle-wrapper::before,
       .progress-step-5.current .step-circle-wrapper::before {
         animation: none;
         border-color: #4f46e5;
@@ -445,11 +453,13 @@
       }
     }
 
+    .progress-step-4.current .step-title,
     .progress-step-5.current .step-title {
       color: #1e40af;
       font-weight: 800;
     }
 
+    .progress-step-4.current .step-subtitle,
     .progress-step-5.current .step-subtitle {
       color: #334155;
     }
@@ -476,29 +486,34 @@
     }
 
     /* Upcoming / Neutral Steps */
+    .progress-step-4.upcoming .step-circle,
     .progress-step-5.upcoming .step-circle {
       background: #ffffff;
       border-color: #cbd5e1;
       color: #94a3b8;
     }
 
+    .progress-step-4.upcoming .step-title,
     .progress-step-5.upcoming .step-title {
       color: #94a3b8;
       font-weight: 600;
     }
 
+    .progress-step-4.upcoming .step-subtitle,
     .progress-step-5.upcoming .step-subtitle {
       color: #cbd5e1;
     }
 
     /* Responsive Design for Mobile & Tablet */
     @media (max-width: 640px) {
+      .progress-timeline-4,
       .progress-timeline-5 {
         flex-direction: column;
         align-items: flex-start;
         padding-left: 12px;
         gap: 20px;
       }
+      .progress-step-4,
       .progress-step-5 {
         flex-direction: row;
         align-items: flex-start;
@@ -561,6 +576,234 @@
     .seller-contact-note {
       font-size: 12px;
       color: #64748b;
+    }
+
+    /* =========================================================
+       SEARCH & FILTER TOOLBAR (REFINED PROFESSIONAL DESIGN)
+       ========================================================= */
+    .requests-toolbar.orders-toolbar-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(15, 35, 65, 0.04);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .requests-toolbar.orders-toolbar-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 6px 20px rgba(15, 35, 65, 0.07);
+    }
+
+    .orders-toolbar-card .toolbar-search {
+      flex: 1 1 340px;
+      min-width: 240px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .orders-toolbar-card .toolbar-search i {
+      position: absolute;
+      left: 14px;
+      color: #94a3b8;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .orders-toolbar-card .toolbar-search input {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px 0 38px;
+      font-size: 13.5px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      outline: none;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .orders-toolbar-card .toolbar-search input::placeholder {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .orders-toolbar-card .toolbar-search input:focus {
+      background: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+    }
+
+    .orders-toolbar-card .toolbar-filters {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+    }
+
+    .orders-toolbar-card .filter-select-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .orders-toolbar-card .filter-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      height: 44px;
+      padding: 0 38px 0 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1e293b;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      line-height: 42px;
+      white-space: nowrap;
+    }
+
+    .orders-toolbar-card .filter-select:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .orders-toolbar-card .filter-select:focus {
+      background: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+    }
+
+    .orders-toolbar-card .filter-select-wrapper .select-caret {
+      position: absolute;
+      right: 14px;
+      color: #64748b;
+      font-size: 11px;
+      pointer-events: none;
+      transition: transform 0.2s ease;
+    }
+
+    .orders-toolbar-card .filter-select-wrapper:hover .select-caret {
+      color: #0f172a;
+    }
+
+    .orders-toolbar-card .btn-toolbar-reset {
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 18px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #475569;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .orders-toolbar-card .btn-toolbar-reset i {
+      font-size: 12px;
+      color: #64748b;
+      transition: transform 0.25s ease;
+    }
+
+    .orders-toolbar-card .btn-toolbar-reset:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+      color: #0f172a;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    .orders-toolbar-card .btn-toolbar-reset:hover i {
+      color: #0284c7;
+      transform: rotate(-45deg);
+    }
+
+    .orders-toolbar-card .btn-toolbar-reset:active {
+      transform: translateY(0);
+      background: #cbd5e1;
+    }
+
+    /* Responsive Toolbar Layout */
+    @media (max-width: 1080px) {
+      .requests-toolbar.orders-toolbar-card {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .orders-toolbar-card .toolbar-search {
+        flex: 1 1 100%;
+        width: 100%;
+      }
+      .orders-toolbar-card .toolbar-filters {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .orders-toolbar-card .filter-select-wrapper {
+        flex: 1 1 200px;
+      }
+      .orders-toolbar-card .filter-select {
+        width: 100%;
+      }
+      .orders-toolbar-card .btn-toolbar-reset {
+        flex-shrink: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .requests-toolbar.orders-toolbar-card {
+        padding: 14px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .orders-toolbar-card .toolbar-search {
+        width: 100%;
+        min-width: 0;
+      }
+      .orders-toolbar-card .toolbar-filters {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 10px;
+      }
+      .orders-toolbar-card .filter-select-wrapper {
+        width: 100%;
+      }
+      .orders-toolbar-card .filter-select {
+        width: 100%;
+      }
+      .orders-toolbar-card .btn-toolbar-reset {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -776,37 +1019,36 @@
       </section>
 
       <!-- Search, Filter Toolbar -->
-      <section class="requests-toolbar">
+      <section class="requests-toolbar orders-toolbar-card" id="ordersFilterToolbar">
         <div class="toolbar-search">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="orderSearchInput" placeholder="Search orders by ID, seller, material...">
+          <input type="text" id="orderSearchInput" placeholder="Search orders by ID, seller, material..." aria-label="Search orders by ID, seller, material">
         </div>
 
         <div class="toolbar-filters">
           <!-- Flow Type Filter -->
           <div class="filter-select-wrapper">
-            <select id="orderTypeFilter">
+            <select id="orderTypeFilter" class="filter-select" aria-label="Filter by order type">
               <option value="ALL">All Order Types / सभी प्रकार</option>
               <option value="DIRECT_BUY">Direct Buy Orders / सीधा खरीद</option>
-              <option value="MULTI_SELLER">Multi-Seller Allocation Orders / मल्टी-विक्रेता</option>
+              <option value="MULTI_SELLER">Multi-Seller Allocation / मल्टी-विक्रेता</option>
             </select>
             <i class="fa-solid fa-chevron-down select-caret"></i>
           </div>
 
           <!-- Status Filter -->
           <div class="filter-select-wrapper">
-            <select id="orderStatusFilter">
-              <option value="ALL">All Statuses / सभी स्थितियां</option>
-              <option value="ACCEPTED">Order Accepted / स्वीकार किया गया</option>
+            <select id="orderStatusFilter" class="filter-select" aria-label="Filter by status">
+              <option value="ALL">All Statuses / सभी स्थितियाँ</option>
               <option value="PROCESSING">Processing / प्रक्रिया में</option>
-              <option value="READY_FOR_DISPATCH">Ready for Dispatch / भेजने के लिए तैयार</option>
-              <option value="OUT_FOR_DELIVERY">Out for Delivery / डिलीवरी के लिए रवाना</option>
+              <option value="DISPATCHED">Order Dispatched / ऑर्डर भेजा गया</option>
+              <option value="OUT_FOR_DELIVERY">Out for Delivery / डिलीवरी के लिए निकल चुका है</option>
               <option value="DELIVERED">Delivered / डिलीवर हो गया</option>
             </select>
             <i class="fa-solid fa-chevron-down select-caret"></i>
           </div>
 
-          <button class="btn-toolbar-reset" id="btnResetFilters" title="Reset all filters">
+          <button type="button" class="btn-toolbar-reset" id="btnResetFilters" title="Reset all filters">
             <i class="fa-solid fa-rotate-left"></i> Reset
           </button>
         </div>

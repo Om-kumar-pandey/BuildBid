@@ -788,6 +788,23 @@ public class DirectBuyController {
         req.setStatus(normalizedTarget);
         MaterialRequest saved = materialRequestRepository.save(req);
 
+        // Synchronize linked MaterialOrders if any exist
+        MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
+        if (mor != null) {
+            List<MaterialOrder> linkedOrders = mor.findByMaterialRequestIdOrderByCreatedAtDesc(saved.getId());
+            if (linkedOrders != null && !linkedOrders.isEmpty()) {
+                for (MaterialOrder mo : linkedOrders) {
+                    mo.setOrderStatus(normalizedTarget);
+                    mo.setDeliveryStatus(normalizedTarget);
+                    if ("DELIVERED".equals(normalizedTarget)) {
+                        mo.setDeliveredAt(LocalDateTime.now(IST_ZONE));
+                    }
+                    mo.setUpdatedAt(LocalDateTime.now(IST_ZONE));
+                    mor.save(mo);
+                }
+            }
+        }
+
         // Bilingual notifications to buyer
         if (notificationService != null && saved.getBuyer() != null) {
             String titleEn = "Order Update";
