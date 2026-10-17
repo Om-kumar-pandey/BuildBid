@@ -374,10 +374,7 @@ const PERSONAS = {
       responseRate: "—",
       completionRate: "—"
     },
-    services: [
-      { id: 1, name: "Site Structural Inspection & Audit", price: "₹3,500", type: "Per Visit", duration: "1 Day", desc: "Comprehensive on-site load and RCC structural soundness evaluation with report.", active: true },
-      { id: 2, name: "BOQ & Material Quantity Estimation", price: "₹8,000", type: "Per Project", duration: "3 Days", desc: "Exhaustive Bill of Quantities itemized by cement bags, TMT rebars, aggregate, and labor milestones.", active: true }
-    ],
+    services: [],
     requests: [],
     projects: [],
     documents: []
@@ -411,9 +408,7 @@ const PERSONAS = {
       responseRate: "—",
       completionRate: "—"
     },
-    services: [
-      { id: 11, name: "Complete 3D Walkthrough & Moodboard", price: "₹28,000", type: "Per Apartment", duration: "7 Days", desc: "High-definition 4K renders of living, master bedroom, and kitchen with finishes specified.", active: true }
-    ],
+    services: [],
     requests: [],
     projects: [],
     documents: []
@@ -447,9 +442,7 @@ const PERSONAS = {
       responseRate: "—",
       completionRate: "—"
     },
-    services: [
-      { id: 21, name: "Complete Residential Conduit Wiring", price: "₹24", type: "Per Sq. Ft", duration: "5-7 Days", desc: "Laying ISI conduits, copper pull wiring, switchboard fixing, and loop testing.", active: true }
-    ],
+    services: [],
     requests: [],
     projects: [],
     documents: []
@@ -483,9 +476,7 @@ const PERSONAS = {
       responseRate: "—",
       completionRate: "—"
     },
-    services: [
-      { id: 31, name: "Concealed Bathroom Pipe Fitting", price: "₹6,500", type: "Per Bathroom", duration: "2 Days", desc: "Pressure-tested hot/cold lines with wall-hung commode chair bracket mounting.", active: true }
-    ],
+    services: [],
     requests: [],
     projects: [],
     documents: []
@@ -519,9 +510,7 @@ const PERSONAS = {
       responseRate: "—",
       completionRate: "—"
     },
-    services: [
-      { id: 41, name: "9-inch Red Brick / AAC Block Masonry", price: "₹18", type: "Per Sq. Ft", duration: "Team Work", desc: "Plumb line verified mortar bonding with expansion joint treatment.", active: true }
-    ],
+    services: [],
     requests: [],
     projects: [],
     documents: []
@@ -670,6 +659,7 @@ function syncIdentityWithStoredSession() {
     currentPro.isVerified = isVerified;
     currentPro.verificationStatus = cachedUser.verificationStatus || (isVerified ? 'VERIFIED' : 'NOT_REQUIRED');
 
+    if (Array.isArray(cachedUser.services)) currentPro.services = cachedUser.services;
     if (Array.isArray(cachedUser.documents)) currentPro.documents = cachedUser.documents;
     if (Array.isArray(cachedUser.requests)) currentPro.requests = cachedUser.requests;
     if (Array.isArray(cachedUser.projects)) currentPro.projects = cachedUser.projects;
@@ -738,28 +728,39 @@ async function fetchAndUpdateProfile() {
         });
         if (sRes.ok) {
           const sList = await sRes.json();
-          if (Array.isArray(sList) && sList.length > 0) {
+          if (Array.isArray(sList)) {
             currentPro.services = sList;
-            const liveDocs = [];
-            let anyVerified = false;
-            sList.forEach(s => {
-              if (s.verificationStatus === 'VERIFIED') anyVerified = true;
-              if (s.licenseNumber || s.qualificationTitle || s.documentName) {
-                liveDocs.push({
-                  title: s.qualificationTitle || s.serviceTitleEn || 'Professional Credential',
-                  issuer: s.issuingAuthority || 'Regulatory Board',
-                  idNumber: s.licenseNumber ? `LIC-••••-${s.licenseNumber.slice(-4)}` : 'On file',
-                  status: s.verificationStatus || 'PENDING',
-                  date: s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recent'
-                });
+            updateProHeroServicesUI(sList);
+            try {
+              const raw = localStorage.getItem("currentUser");
+              if (raw) {
+                const u = JSON.parse(raw);
+                u.services = sList;
+                localStorage.setItem("currentUser", JSON.stringify(u));
               }
-            });
-            if (anyVerified) {
-              currentPro.isVerified = true;
-              currentPro.verificationStatus = 'VERIFIED';
-            }
-            if (liveDocs.length > 0) {
-              currentPro.documents = liveDocs;
+            } catch (e) {}
+            if (sList.length > 0) {
+              const liveDocs = [];
+              let anyVerified = false;
+              sList.forEach(s => {
+                if (s.verificationStatus === 'VERIFIED') anyVerified = true;
+                if (s.licenseNumber || s.qualificationTitle || s.documentName) {
+                  liveDocs.push({
+                    title: s.qualificationTitle || s.serviceTitleEn || 'Professional Credential',
+                    issuer: s.issuingAuthority || 'Regulatory Board',
+                    idNumber: s.licenseNumber ? `LIC-••••-${s.licenseNumber.slice(-4)}` : 'On file',
+                    status: s.verificationStatus || 'PENDING',
+                    date: s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recent'
+                  });
+                }
+              });
+              if (anyVerified) {
+                currentPro.isVerified = true;
+                currentPro.verificationStatus = 'VERIFIED';
+              }
+              if (liveDocs.length > 0) {
+                currentPro.documents = liveDocs;
+              }
             }
           }
         }
@@ -1512,6 +1513,66 @@ function getHeroVerificationBadgeHtml(pro) {
   }
 }
 
+function renderProHeroServicesHtml(services) {
+  const list = Array.isArray(services) ? services : [];
+  const pillsHtml = list.map(s => {
+    const title = (s.serviceTitleEn || s.name || s.title || '').trim();
+    if (!title) return '';
+    return `<span class="pro-service-pill" title="${escapeHtml(title)}">${escapeHtml(title)}</span>`;
+  }).filter(Boolean).join('');
+
+  if (!pillsHtml) {
+    return `
+      <div class="pro-hero-services-section" id="proHeroServicesSection">
+        <span class="pro-services-label" title="My Service Catalog">
+          <i class="fa-solid fa-briefcase"></i> <span>Services:</span>
+        </span>
+        <span class="pro-services-empty">No services added to catalog yet</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="pro-hero-services-section" id="proHeroServicesSection">
+      <span class="pro-services-label" title="My Service Catalog">
+        <i class="fa-solid fa-briefcase"></i> <span>Services:</span>
+      </span>
+      <div class="pro-services-pills">
+        ${pillsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function updateProHeroServicesUI(services) {
+  const sec = document.getElementById('proHeroServicesSection');
+  if (!sec) return;
+  const list = Array.isArray(services) ? services : [];
+  const pillsHtml = list.map(s => {
+    const title = (s.serviceTitleEn || s.name || s.title || '').trim();
+    if (!title) return '';
+    return `<span class="pro-service-pill" title="${escapeHtml(title)}">${escapeHtml(title)}</span>`;
+  }).filter(Boolean).join('');
+
+  if (!pillsHtml) {
+    sec.innerHTML = `
+      <span class="pro-services-label" title="My Service Catalog">
+        <i class="fa-solid fa-briefcase"></i> <span>Services:</span>
+      </span>
+      <span class="pro-services-empty">No services added to catalog yet</span>
+    `;
+  } else {
+    sec.innerHTML = `
+      <span class="pro-services-label" title="My Service Catalog">
+        <i class="fa-solid fa-briefcase"></i> <span>Services:</span>
+      </span>
+      <div class="pro-services-pills">
+        ${pillsHtml}
+      </div>
+    `;
+  }
+}
+
 function renderDashboard(container) {
   const displayRole = (currentPro.type && currentPro.type.trim()) ? escapeHtml(currentPro.type) : 'Professional';
   const displayLoc = (currentPro.location && currentPro.location.trim()) ? escapeHtml(currentPro.location) : 'Location not specified';
@@ -1593,9 +1654,6 @@ function renderDashboard(container) {
         <div class="pro-hero-left">
           <div class="pro-hero-avatar-box">
             <img src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="pro-hero-avatar" id="proHeroAvatar" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
-            <button onclick="navigate('profile')" class="pro-avatar-camera-btn" title="Edit Profile & Photo">
-              <i class="fa-solid fa-camera"></i>
-            </button>
           </div>
           
           <div class="pro-hero-details">
@@ -1608,15 +1666,13 @@ function renderDashboard(container) {
                 : ''}
             </div>
 
-            <div class="pro-vip-tag" id="proMembershipBadge">
-              ${isVerifiedAccount 
-                ? '<i class="fa-solid fa-crown text-amber-500"></i> <span>Verified Service Partner</span>'
-                : (isPendingAccount 
-                  ? '<i class="fa-solid fa-clock text-amber-500"></i> <span>Verification In Review</span>'
-                  : '<i class="fa-solid fa-shield-halved text-sky-600"></i> <span>Licensed Professional Partner</span>')}
-            </div>
+            ${isVerifiedAccount 
+              ? '<div class="pro-vip-tag" id="proMembershipBadge"><i class="fa-solid fa-crown text-amber-500"></i> <span>Verified Service Partner</span></div>' 
+              : (isPendingAccount 
+                ? '<div class="pro-vip-tag" id="proMembershipBadge"><i class="fa-solid fa-clock text-amber-500"></i> <span>Verification In Review</span></div>' 
+                : '')}
 
-            <p class="pro-hero-role">${escapeHtml(displayRole).toUpperCase()} • BUILDBID PRO</p>
+            <p class="pro-hero-role">PROFESSIONAL · BUILDBID</p>
 
             <div class="pro-hero-meta-items">
               <span title="Operational Location">
@@ -1632,14 +1688,9 @@ function renderDashboard(container) {
                 <i class="fa-regular fa-calendar"></i> <span>Member since 2026</span>
               </span>
             </div>
-          </div>
-        </div>
 
-        <div class="pro-hero-right">
-          <button onclick="navigate('profile')" class="btn-pro-edit-profile" id="proEditProfileBtn" title="Edit Professional Profile">
-            <i class="fa-solid fa-pen"></i>
-            <span>Edit Profile</span>
-          </button>
+            ${renderProHeroServicesHtml(currentPro.services)}
+          </div>
         </div>
       </section>
 
@@ -3117,15 +3168,17 @@ async function renderServices(container) {
       });
       if (res.ok) {
         services = await res.json();
+        if (Array.isArray(services)) {
+          currentPro.services = services;
+          updateProHeroServicesUI(services);
+        }
       }
     } catch (e) {
       console.warn("Could not load services from backend, using cached state:", e);
     }
   }
 
-  // Fallback to local persona services if backend returned empty array initially and persona has services
-  const hasBackendServices = services && services.length > 0;
-  const listToRender = hasBackendServices ? services : currentPro.services;
+  const listToRender = (services && services.length > 0) ? services : (currentPro.services || []);
 
   if (!listToRender || listToRender.length === 0) {
     grid.innerHTML = `
@@ -3973,6 +4026,11 @@ async function toggleServiceActive(id) {
       if (res.ok) {
         const updated = await res.json();
         showToast(`Service "${updated.serviceTitleEn || ''}" is now ${updated.active ? 'active' : 'hidden'}`, 'info');
+        if (Array.isArray(currentPro.services)) {
+          const idx = currentPro.services.findIndex(x => x.id === id);
+          if (idx !== -1) currentPro.services[idx] = updated;
+          updateProHeroServicesUI(currentPro.services);
+        }
         navigate('services');
         return;
       }
@@ -4004,6 +4062,8 @@ async function deleteService(id) {
       });
       if (res.ok) {
         showToast('Service removed from catalog — सेवा सफलतापूर्वक हटा दी गई', 'info');
+        currentPro.services = (currentPro.services || []).filter(x => x.id !== id);
+        updateProHeroServicesUI(currentPro.services);
         navigate('services');
         return;
       }
@@ -4011,7 +4071,8 @@ async function deleteService(id) {
       console.warn("API delete error:", e);
     }
   }
-  currentPro.services = currentPro.services.filter(x => x.id !== id);
+  currentPro.services = (currentPro.services || []).filter(x => x.id !== id);
+  updateProHeroServicesUI(currentPro.services);
   showToast('Service removed from catalog', 'info');
   navigate('services');
 }
