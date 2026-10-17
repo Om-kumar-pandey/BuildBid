@@ -1451,6 +1451,10 @@ function navigate(route) {
     case 'reviews':
       renderReviews(container);
       break;
+    case 'settings':
+    case 'account-settings':
+      renderAccountSettings(container);
+      break;
     case 'my-requests':
       renderProfessionalMyRequests(container);
       fetchProfessionalRequests();
@@ -1465,6 +1469,12 @@ function navigate(route) {
     default:
       renderDashboard(container);
   }
+
+  try {
+    if (window.location.hash !== '#' + route) {
+      window.history.replaceState(null, '', '#' + route);
+    }
+  } catch (e) {}
 
   container.scrollTop = 0;
 }
@@ -3361,6 +3371,1148 @@ function renderProfile(container) {
   `;
 }
 
+/* =========================================================
+   ACCOUNT SETTINGS & PREFERENCES MODULE
+   Central Control for Professional Identity, Verification & Security
+   ========================================================= */
+
+let activeSettingsTab = 'personal';
+let settingsVerificationData = null;
+let isVerificationLoading = false;
+let settingsEmailCooldownTimer = null;
+let settingsPhoneCooldownTimer = null;
+let settingsEmailCooldownSec = 0;
+let settingsPhoneCooldownSec = 0;
+
+function renderAccountSettings(container) {
+  if (!container) container = document.getElementById('main-view');
+  if (!container) return;
+
+  const pro = currentPro || {};
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch (e) {}
+
+  const email = (cachedUser && cachedUser.email) || pro.email || "";
+  const phone = (cachedUser && cachedUser.phone) || pro.phone || "";
+  const location = (cachedUser && cachedUser.location) || pro.location || "";
+  const displayName = (cachedUser && (cachedUser.name || cachedUser.fullName)) || pro.name || "Professional";
+  const roleDisplay = pro.type || (cachedUser && cachedUser.category) || "Professional";
+  const avatarUrl = pro.avatar || (cachedUser && (cachedUser.profilePhotoUrl || cachedUser.profilePhoto)) || "hero-building.jpg";
+
+  container.innerHTML = `
+    <div class="space-y-6 max-w-[1700px] mx-auto pb-12">
+      <!-- Settings Header Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-float relative overflow-hidden border border-slate-700/60">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="flex items-center space-x-4">
+            <div class="relative flex-shrink-0">
+              <img id="settings-header-avatar" src="${escapeHtml(avatarUrl)}" alt="Avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-white/20 shadow-md" onerror="this.src='hero-building.jpg'">
+              <span class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] ring-2 ring-slate-900" title="Active Account">
+                <i class="fa-solid fa-check"></i>
+              </span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 id="settings-display-name" class="text-xl sm:text-2xl font-bold tracking-tight text-white">${escapeHtml(displayName)}</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-400/30">
+                  <i class="fa-solid fa-user-check text-[10px] mr-1"></i> ${escapeHtml(roleDisplay)}
+                </span>
+                <span id="settings-verified-badge-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${pro.isVerified ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-slate-700/60 text-slate-300 border border-slate-600/40'}">
+                  <i class="fa-solid ${pro.isVerified ? 'fa-circle-check text-emerald-400' : 'fa-shield text-slate-400'} text-[10px] mr-1"></i> ${pro.isVerified ? 'Verified Partner' : 'Standard Account'}
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
+                <span><i class="fa-solid fa-id-card text-slate-500 mr-1"></i> ID: <strong class="font-mono text-slate-300">${escapeHtml(pro.id || 'BBD-PRO-84920')}</strong></span>
+                <span>•</span>
+                <span><i class="fa-solid fa-envelope text-slate-500 mr-1"></i> ${escapeHtml(email || 'Email on file')}</span>
+                <span>•</span>
+                <span><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i> ${escapeHtml(location || 'Service Territory')}</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <button onclick="syncSettingsWithServer()" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/10 backdrop-blur-xs transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-arrows-rotate"></i> Sync Server Data
+            </button>
+            <button onclick="executeLogout()" class="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl border border-rose-400/30 backdrop-blur-xs transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-power-off"></i> Sign Out
+            </button>
+          </div>
+        </div>
+
+        <!-- Decorative Watermark Icon -->
+        <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none">
+          <i class="fa-solid fa-gear text-[180px]"></i>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs Bar -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-2 overflow-x-auto">
+        <div class="flex items-center space-x-1 min-w-max">
+          <button id="settings-tab-btn-personal" onclick="switchSettingsTab('personal')" class="settings-tab-btn ${activeSettingsTab === 'personal' ? 'active' : ''}">
+            <i class="fa-solid fa-user-pen"></i> Personal Information
+          </button>
+          <button id="settings-tab-btn-verification" onclick="switchSettingsTab('verification')" class="settings-tab-btn ${activeSettingsTab === 'verification' ? 'active' : ''}">
+            <i class="fa-solid fa-shield-halved"></i> Email & Mobile Verification
+            <span id="tab-verification-pill" class="ml-1 w-2 h-2 rounded-full ${pro.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+          </button>
+          <button id="settings-tab-btn-security" onclick="switchSettingsTab('security')" class="settings-tab-btn ${activeSettingsTab === 'security' ? 'active' : ''}">
+            <i class="fa-solid fa-lock"></i> Security & Login
+          </button>
+          <button id="settings-tab-btn-preferences" onclick="switchSettingsTab('preferences')" class="settings-tab-btn ${activeSettingsTab === 'preferences' ? 'active' : ''}">
+            <i class="fa-solid fa-sliders"></i> Professional Preferences
+          </button>
+          <button id="settings-tab-btn-notifications" onclick="switchSettingsTab('notifications')" class="settings-tab-btn ${activeSettingsTab === 'notifications' ? 'active' : ''}">
+            <i class="fa-solid fa-bell"></i> Notifications & Regional
+          </button>
+          <button id="settings-tab-btn-lifecycle" onclick="switchSettingsTab('lifecycle')" class="settings-tab-btn ${activeSettingsTab === 'lifecycle' ? 'active' : ''}">
+            <i class="fa-solid fa-database"></i> Account Data & Lifecycle
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div id="settings-tab-content" class="settings-panel">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  `;
+
+  renderCurrentSettingsTab();
+  loadSettingsVerificationAsync();
+}
+
+function switchSettingsTab(tabName) {
+  activeSettingsTab = tabName;
+  document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.getElementById(`settings-tab-btn-${tabName}`);
+  if (activeBtn) activeBtn.classList.add('active');
+  renderCurrentSettingsTab();
+}
+
+function renderCurrentSettingsTab() {
+  const contentEl = document.getElementById('settings-tab-content');
+  if (!contentEl) return;
+
+  switch (activeSettingsTab) {
+    case 'personal':
+      renderSettingsPersonalTab(contentEl);
+      break;
+    case 'verification':
+      renderSettingsVerificationTab(contentEl);
+      break;
+    case 'security':
+      renderSettingsSecurityTab(contentEl);
+      break;
+    case 'preferences':
+      renderSettingsPreferencesTab(contentEl);
+      break;
+    case 'notifications':
+      renderSettingsNotificationsTab(contentEl);
+      break;
+    case 'lifecycle':
+      renderSettingsLifecycleTab(contentEl);
+      break;
+    default:
+      renderSettingsPersonalTab(contentEl);
+  }
+}
+
+/* --- TAB 1: PERSONAL INFORMATION --- */
+function renderSettingsPersonalTab(container) {
+  const pro = currentPro || {};
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch (e) {}
+
+  const email = (cachedUser && cachedUser.email) || pro.email || "";
+  const phone = (cachedUser && cachedUser.phone) || pro.phone || "";
+  const location = (cachedUser && cachedUser.location) || pro.location || "";
+  const username = (cachedUser && cachedUser.username) || (email ? email.split('@')[0] : 'professional');
+  const name = (cachedUser && (cachedUser.name || cachedUser.fullName)) || pro.name || "Professional";
+  const about = (cachedUser && cachedUser.about) || pro.about || "Licensed professional providing engineering and architectural consultancy services through the BuildBid verified partner marketplace.";
+  const pincode = (cachedUser && cachedUser.pincode) || pro.pincode || "110001";
+  const skills = Array.isArray(pro.skills) ? pro.skills : ["Structural Analysis", "BOQ Estimation", "Site Inspection"];
+
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 sm:p-8 space-y-6">
+      <div class="border-b border-slate-100 pb-5">
+        <h3 class="text-base font-bold text-slate-900">Personal Information & Professional Details</h3>
+        <p class="text-xs text-slate-500 mt-1">Manage your identity details, professional bio, registered location, and public competencies.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1.5">Full Name / Business Title</label>
+          <input type="text" id="settings-input-name" value="${escapeHtml(name)}" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition">
+          <p class="text-[11px] text-slate-400 mt-1">Displayed to clients on quotation proposals and project contracts.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1.5">Username / Partner Handle</label>
+          <div class="flex items-center">
+            <span class="px-3 py-2.5 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-500 font-mono text-xs">@</span>
+            <input type="text" id="settings-input-username" value="${escapeHtml(username)}" readonly class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-r-xl text-slate-600 text-xs cursor-not-allowed">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Unique immutable identifier assigned to your authenticated account.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1.5">Operating City / Territory Base</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-location-dot"></i>
+            </span>
+            <input type="text" id="settings-input-location" value="${escapeHtml(location)}" placeholder="e.g. South Delhi, New Delhi" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Primary dispatch location for calculating project distance and service radius.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1.5">Base Postal Pincode</label>
+          <input type="text" id="settings-input-pincode" value="${escapeHtml(pincode)}" placeholder="e.g. 110001" maxlength="6" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition">
+          <p class="text-[11px] text-slate-400 mt-1">6-digit Indian PIN code for localized lead matching.</p>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block font-semibold text-slate-700 mb-1.5">Professional Summary & Scope of Practice</label>
+          <textarea id="settings-input-about" rows="3" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition leading-relaxed">${escapeHtml(about)}</textarea>
+          <p class="text-[11px] text-slate-400 mt-1">Summarize your professional qualifications, engineering specialties, and years of market experience.</p>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block font-semibold text-slate-700 mb-1.5">Verified Skills & Engineering Competencies</label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            ${skills.map(s => `
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs">
+                ${escapeHtml(s)}
+              </span>
+            `).join('')}
+          </div>
+          <p class="text-[11px] text-slate-400">Competencies are audited against regulatory licenses under <a href="javascript:void(0)" onclick="navigate('documents')" class="text-orange-600 hover:underline font-semibold">Documents & Licenses</a>.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-5 border-t border-slate-100 flex-wrap gap-4">
+        <p class="text-xs text-slate-400">Changes are synchronized with your active session.</p>
+        <button onclick="savePersonalInformation()" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-floppy-disk"></i> Save Personal Details
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function savePersonalInformation() {
+  const nameInput = document.getElementById('settings-input-name');
+  const locInput = document.getElementById('settings-input-location');
+  const pinInput = document.getElementById('settings-input-pincode');
+  const aboutInput = document.getElementById('settings-input-about');
+
+  const newName = nameInput ? nameInput.value.trim() : '';
+  const newLoc = locInput ? locInput.value.trim() : '';
+  const newPin = pinInput ? pinInput.value.trim() : '';
+  const newAbout = aboutInput ? aboutInput.value.trim() : '';
+
+  if (!newName) {
+    showToast('Please provide a valid account name.', 'warning');
+    return;
+  }
+
+  currentPro.name = newName;
+  if (newLoc) currentPro.location = newLoc;
+  if (newPin) currentPro.pincode = newPin;
+  if (newAbout) currentPro.about = newAbout;
+
+  // Persist to user session
+  try {
+    const raw = localStorage.getItem('currentUser') || localStorage.getItem('marketplaceUser');
+    let u = raw ? JSON.parse(raw) : {};
+    u.name = newName;
+    u.fullName = newName;
+    if (newLoc) u.location = newLoc;
+    if (newPin) u.pincode = newPin;
+    if (newAbout) u.about = newAbout;
+    localStorage.setItem('currentUser', JSON.stringify(u));
+  } catch (e) {}
+
+  syncIdentityWithStoredSession();
+  renderAccountSettings(document.getElementById('main-view'));
+  showToast('Personal information updated successfully.', 'success');
+}
+
+/* --- TAB 2: EMAIL & MOBILE VERIFICATION --- */
+async function loadSettingsVerificationAsync() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  isVerificationLoading = true;
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/status`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      settingsVerificationData = await res.json();
+      if (activeSettingsTab === 'verification') {
+        const contentEl = document.getElementById('settings-tab-content');
+        if (contentEl) renderSettingsVerificationTab(contentEl);
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load verification status:', e);
+  } finally {
+    isVerificationLoading = false;
+  }
+}
+
+function renderSettingsVerificationTab(container) {
+  const pro = currentPro || {};
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch (e) {}
+
+  const v = settingsVerificationData || {};
+  const email = v.email || (cachedUser && cachedUser.email) || pro.email || "";
+  const phone = v.phone || (cachedUser && cachedUser.phone) || pro.phone || "";
+  const isEmailVerified = Boolean(v.emailVerified || (cachedUser && cachedUser.emailVerified));
+  const isPhoneVerified = Boolean(v.phoneVerified || (cachedUser && cachedUser.phoneVerified));
+
+  container.innerHTML = `
+    <div class="space-y-6">
+      <!-- Overview Banner -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6">
+        <div class="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Email & Mobile Contact Verification</h3>
+            <p class="text-xs text-slate-500 mt-1">Verified contact credentials unlock direct client phone notifications, instant consultation booking, and official partner trust badges.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-bold ${isEmailVerified && isPhoneVerified ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}">
+              <i class="fa-solid ${isEmailVerified && isPhoneVerified ? 'fa-circle-check text-emerald-600' : 'fa-triangle-exclamation text-amber-600'} mr-1"></i>
+              ${isEmailVerified && isPhoneVerified ? 'Fully Verified Contact' : 'Verification Incomplete'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- EMAIL VERIFICATION CARD -->
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 flex flex-col justify-between space-y-5">
+          <div>
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl ${isEmailVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'} flex items-center justify-center text-lg">
+                  <i class="fa-solid fa-envelope"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-slate-900">Registered Email Address</h4>
+                  <p class="text-[11px] text-slate-400">Primary delivery for milestone escrow releases</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                <i class="fa-solid ${isEmailVerified ? 'fa-circle-check' : 'fa-clock'} mr-1"></i>
+                ${isEmailVerified ? 'Verified' : 'Unverified'}
+              </span>
+            </div>
+
+            <div class="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Account Email</span>
+              <p class="text-xs font-mono font-bold text-slate-800 mt-0.5">${escapeHtml(email || 'No email associated')}</p>
+              ${v.emailVerifiedAt ? `<span class="text-[10px] text-emerald-600 block mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Verified on ${escapeHtml(v.emailVerifiedAt)}</span>` : ''}
+            </div>
+
+            <!-- OTP Input Box (Shown when code sent) -->
+            <div id="email-otp-box" class="hidden mt-4 p-4 bg-orange-50/50 border border-orange-200 rounded-xl space-y-3">
+              <label class="block text-xs font-bold text-slate-800">Enter 6-Digit Email Verification Code</label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="settings-email-otp-input" maxlength="6" placeholder="123456" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono tracking-widest text-center font-bold text-slate-900 outline-none focus:border-orange-500">
+                <button onclick="submitSettingsEmailOtp()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg transition shadow-xs cursor-pointer flex-shrink-0">
+                  Verify Code
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-500">Code sent to your inbox. Check spam if not received.</p>
+            </div>
+
+            <!-- Change Email Section (Hidden by default) -->
+            <div id="email-change-box" class="hidden mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+              <label class="block text-xs font-bold text-slate-800">Enter New Email Address</label>
+              <div class="space-y-2">
+                <input type="email" id="settings-new-email-input" placeholder="new.partner@example.com" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 outline-none focus:border-orange-500">
+                <button onclick="submitSettingsEmailChangeRequest()" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition cursor-pointer">
+                  Send Verification Code to New Email
+                </button>
+              </div>
+            </div>
+
+            <!-- Email Change OTP Verification (Hidden by default) -->
+            <div id="email-change-verify-box" class="hidden mt-4 p-4 bg-orange-50/50 border border-orange-200 rounded-xl space-y-3">
+              <label class="block text-xs font-bold text-slate-800">Verify Code for New Email</label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="settings-change-email-otp" maxlength="6" placeholder="123456" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono tracking-widest text-center font-bold text-slate-900 outline-none focus:border-orange-500">
+                <button onclick="submitSettingsEmailChangeVerify()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition shadow-xs cursor-pointer flex-shrink-0">
+                  Confirm Change
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            ${!isEmailVerified ? `
+              <button id="btn-send-email-otp" onclick="sendSettingsEmailOtp()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Send Verification Code
+              </button>
+            ` : `
+              <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+                <i class="fa-solid fa-shield-check"></i> Email is cryptographically verified
+              </span>
+            `}
+            <button onclick="toggleSettingsBox('email-change-box')" class="text-xs text-slate-500 hover:text-orange-600 font-semibold underline cursor-pointer">
+              Change Email
+            </button>
+          </div>
+        </div>
+
+        <!-- MOBILE PHONE VERIFICATION CARD -->
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 flex flex-col justify-between space-y-5">
+          <div>
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl ${isPhoneVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'} flex items-center justify-center text-lg">
+                  <i class="fa-solid fa-mobile-screen"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-slate-900">Mobile Phone Number</h4>
+                  <p class="text-[11px] text-slate-400">Direct client consultation dispatch alerts</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isPhoneVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                <i class="fa-solid ${isPhoneVerified ? 'fa-circle-check' : 'fa-clock'} mr-1"></i>
+                ${isPhoneVerified ? 'Verified' : 'Unverified'}
+              </span>
+            </div>
+
+            <div class="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Registered Mobile</span>
+              <p class="text-xs font-mono font-bold text-slate-800 mt-0.5">${escapeHtml(phone || 'No phone registered')}</p>
+              ${v.phoneVerifiedAt ? `<span class="text-[10px] text-emerald-600 block mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Verified on ${escapeHtml(v.phoneVerifiedAt)}</span>` : ''}
+            </div>
+
+            <!-- Phone OTP Input Box -->
+            <div id="phone-otp-box" class="hidden mt-4 p-4 bg-orange-50/50 border border-orange-200 rounded-xl space-y-3">
+              <label class="block text-xs font-bold text-slate-800">Enter 6-Digit SMS Verification Code</label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="settings-phone-otp-input" maxlength="6" placeholder="123456" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono tracking-widest text-center font-bold text-slate-900 outline-none focus:border-orange-500">
+                <button onclick="submitSettingsPhoneOtp()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg transition shadow-xs cursor-pointer flex-shrink-0">
+                  Verify Phone
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-500">SMS code sent to your mobile handset via BuildBid partner gateway.</p>
+            </div>
+
+            <!-- Update Phone Form -->
+            <div id="phone-change-box" class="hidden mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+              <label class="block text-xs font-bold text-slate-800">Enter New Mobile Number</label>
+              <div class="space-y-2">
+                <div class="flex items-center">
+                  <span class="px-3 py-2 bg-slate-100 border border-r-0 border-slate-200 rounded-l-lg text-slate-600 font-mono text-xs">+91</span>
+                  <input type="tel" id="settings-new-phone-input" placeholder="9876543210" maxlength="10" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-r-lg text-xs text-slate-800 outline-none focus:border-orange-500">
+                </div>
+                <button onclick="submitSettingsPhoneChangeRequest()" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition cursor-pointer">
+                  Send SMS Code to New Mobile
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            ${!isPhoneVerified ? `
+              <button id="btn-send-phone-otp" onclick="sendSettingsPhoneOtp()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Send Mobile OTP
+              </button>
+            ` : `
+              <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+                <i class="fa-solid fa-shield-check"></i> Mobile number is active & verified
+              </span>
+            `}
+            <button onclick="toggleSettingsBox('phone-change-box')" class="text-xs text-slate-500 hover:text-orange-600 font-semibold underline cursor-pointer">
+              Update Number
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleSettingsBox(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('hidden');
+}
+
+async function sendSettingsEmailOtp() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  const btn = document.getElementById('btn-send-email-otp');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/email/send-otp`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      showToast(data.message || 'Verification code sent to your email.', 'success');
+      const box = document.getElementById('email-otp-box');
+      if (box) box.classList.remove('hidden');
+      startEmailCooldown(data.cooldownSeconds || 60);
+    } else {
+      showToast(data.error || 'Could not send verification code.', 'error');
+      if (btn) btn.disabled = false;
+    }
+  } catch (e) {
+    showToast('Network error while requesting verification OTP.', 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function submitSettingsEmailOtp() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  const input = document.getElementById('settings-email-otp-input');
+  const otp = input ? input.value.trim() : '';
+
+  if (!otp || otp.length < 6) {
+    showToast('Please enter the 6-digit verification code.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/email/verify-otp`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ otp: otp })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      showToast('Email verified successfully!', 'success');
+      currentPro.isVerified = true;
+      currentPro.verificationStatus = 'VERIFIED';
+      await loadSettingsVerificationAsync();
+      syncIdentityWithStoredSession();
+      renderAccountSettings(document.getElementById('main-view'));
+    } else {
+      showToast(data.error || 'Invalid or expired verification code.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error during email verification.', 'error');
+  }
+}
+
+let pendingNewEmail = '';
+async function submitSettingsEmailChangeRequest() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  const input = document.getElementById('settings-new-email-input');
+  const newEmail = input ? input.value.trim() : '';
+
+  if (!newEmail || !newEmail.includes('@')) {
+    showToast('Please enter a valid email address.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/email/request-change`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ newEmail: newEmail })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      pendingNewEmail = newEmail;
+      showToast(data.message || 'Verification code sent to new email.', 'success');
+      const changeBox = document.getElementById('email-change-box');
+      const verifyBox = document.getElementById('email-change-verify-box');
+      if (changeBox) changeBox.classList.add('hidden');
+      if (verifyBox) verifyBox.classList.remove('hidden');
+    } else {
+      showToast(data.error || 'Could not initiate email change.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error while requesting email change.', 'error');
+  }
+}
+
+async function submitSettingsEmailChangeVerify() {
+  const token = getCleanToken();
+  if (!token || !pendingNewEmail) return;
+
+  const input = document.getElementById('settings-change-email-otp');
+  const otp = input ? input.value.trim() : '';
+
+  if (!otp || otp.length < 6) {
+    showToast('Please enter the 6-digit verification code.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/email/verify-change`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ newEmail: pendingNewEmail, otp: otp })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      showToast('Email updated and verified successfully!', 'success');
+      currentPro.email = pendingNewEmail;
+      await loadSettingsVerificationAsync();
+      syncIdentityWithStoredSession();
+      renderAccountSettings(document.getElementById('main-view'));
+    } else {
+      showToast(data.error || 'Verification code failed.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error during email change confirmation.', 'error');
+  }
+}
+
+async function sendSettingsPhoneOtp() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  const btn = document.getElementById('btn-send-phone-otp');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/phone/send-otp`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      showToast(data.message || 'SMS verification code sent.', 'success');
+      const box = document.getElementById('phone-otp-box');
+      if (box) box.classList.remove('hidden');
+      startPhoneCooldown(data.cooldownSeconds || 60);
+    } else {
+      showToast(data.error || 'Could not send phone OTP.', 'error');
+      if (btn) btn.disabled = false;
+    }
+  } catch (e) {
+    showToast('Network error during mobile OTP request.', 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function submitSettingsPhoneOtp() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  const input = document.getElementById('settings-phone-otp-input');
+  const otp = input ? input.value.trim() : '';
+
+  if (!otp || otp.length < 6) {
+    showToast('Please enter the 6-digit SMS verification code.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/phone/verify-otp`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ otp: otp })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      showToast('Mobile number verified successfully!', 'success');
+      await loadSettingsVerificationAsync();
+      syncIdentityWithStoredSession();
+      renderAccountSettings(document.getElementById('main-view'));
+    } else {
+      showToast(data.error || 'Invalid or expired phone verification code.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error verifying mobile code.', 'error');
+  }
+}
+
+let pendingNewPhone = '';
+async function submitSettingsPhoneChangeRequest() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  const input = document.getElementById('settings-new-phone-input');
+  const newPhone = input ? input.value.trim() : '';
+
+  if (!newPhone || newPhone.length < 10) {
+    showToast('Please enter a valid 10-digit mobile number.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/verification/phone/send-otp`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ phone: newPhone })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      pendingNewPhone = newPhone;
+      showToast(data.message || 'Verification code sent to new mobile.', 'success');
+      const changeBox = document.getElementById('phone-change-box');
+      const otpBox = document.getElementById('phone-otp-box');
+      if (changeBox) changeBox.classList.add('hidden');
+      if (otpBox) otpBox.classList.remove('hidden');
+    } else {
+      showToast(data.error || 'Could not send verification code.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error requesting phone verification.', 'error');
+  }
+}
+
+function startEmailCooldown(sec) {
+  settingsEmailCooldownSec = sec;
+  clearInterval(settingsEmailCooldownTimer);
+  const btn = document.getElementById('btn-send-email-otp');
+  if (!btn) return;
+  btn.disabled = true;
+  settingsEmailCooldownTimer = setInterval(() => {
+    settingsEmailCooldownSec--;
+    if (settingsEmailCooldownSec <= 0) {
+      clearInterval(settingsEmailCooldownTimer);
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Resend Code`;
+    } else {
+      btn.innerHTML = `<i class="fa-solid fa-clock mr-1"></i> Resend (${settingsEmailCooldownSec}s)`;
+    }
+  }, 1000);
+}
+
+function startPhoneCooldown(sec) {
+  settingsPhoneCooldownSec = sec;
+  clearInterval(settingsPhoneCooldownTimer);
+  const btn = document.getElementById('btn-send-phone-otp');
+  if (!btn) return;
+  btn.disabled = true;
+  settingsPhoneCooldownTimer = setInterval(() => {
+    settingsPhoneCooldownSec--;
+    if (settingsPhoneCooldownSec <= 0) {
+      clearInterval(settingsPhoneCooldownTimer);
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Resend OTP`;
+    } else {
+      btn.innerHTML = `<i class="fa-solid fa-clock mr-1"></i> Resend (${settingsPhoneCooldownSec}s)`;
+    }
+  }, 1000);
+}
+
+/* --- TAB 3: SECURITY & LOGIN --- */
+function renderSettingsSecurityTab(container) {
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch (e) {}
+
+  const email = (cachedUser && cachedUser.email) || currentPro.email || "partner@buildbid.com";
+  const passUpdate = (cachedUser && cachedUser.passwordUpdatedAt) ? new Date(cachedUser.passwordUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Original Sign-up';
+
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 sm:p-8 space-y-6">
+      <div class="border-b border-slate-100 pb-5">
+        <h3 class="text-base font-bold text-slate-900">Security Credentials & Active Sessions</h3>
+        <p class="text-xs text-slate-500 mt-1">Review active cryptographic keys, stateless authentication session security, and account access protection.</p>
+      </div>
+
+      <!-- Security Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+          <div class="flex items-center space-x-3 text-slate-700 mb-2">
+            <i class="fa-solid fa-key text-orange-600 text-base"></i>
+            <h4 class="text-xs font-bold text-slate-900">Password Security</h4>
+          </div>
+          <p class="text-xs text-slate-600">Salted BCrypt hashing on file.</p>
+          <span class="text-[11px] text-slate-400 mt-2 block">Last updated: <strong>${escapeHtml(passUpdate)}</strong></span>
+        </div>
+
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+          <div class="flex items-center space-x-3 text-slate-700 mb-2">
+            <i class="fa-solid fa-shield-halved text-emerald-600 text-base"></i>
+            <h4 class="text-xs font-bold text-slate-900">Session Protection</h4>
+          </div>
+          <p class="text-xs text-slate-600">Stateless JWT authorization with server-side validation.</p>
+          <span class="text-[11px] text-emerald-600 font-semibold mt-2 block"><i class="fa-solid fa-circle-check mr-1"></i> Active Session Encrypted</span>
+        </div>
+
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+          <div class="flex items-center space-x-3 text-slate-700 mb-2">
+            <i class="fa-solid fa-fingerprint text-blue-600 text-base"></i>
+            <h4 class="text-xs font-bold text-slate-900">Multi-Factor Shield</h4>
+          </div>
+          <p class="text-xs text-slate-600">Dual-channel OTP verification enabled via Email & SMS.</p>
+          <span class="text-[11px] text-slate-400 mt-2 block">Gateway: BuildBid Cryptographic Auth</span>
+        </div>
+      </div>
+
+      <!-- Transparency & Policy Notice -->
+      <div class="p-4 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-slate-700 space-y-2">
+        <div class="flex items-center space-x-2 font-bold text-blue-900">
+          <i class="fa-solid fa-circle-info text-blue-600"></i>
+          <span>Professional Credential Reset Notice</span>
+        </div>
+        <p class="leading-relaxed text-slate-600">
+          In compliance with BuildBid partner escrow security, direct password modification endpoints (<code class="bg-blue-100 text-blue-800 px-1 py-0.5 rounded font-mono text-[11px]">/api/customer/security/password</code>) are restricted exclusively to Customer role accounts on this server. To reset or update your professional authentication password, please use the self-service credential recovery workflow on the login page or contact dedicated partner support.
+        </p>
+      </div>
+
+      <!-- Active Device Session -->
+      <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-slate-200/70 flex items-center justify-center text-slate-700 text-base">
+            <i class="fa-solid fa-laptop"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-slate-900">Current Active Device Session</h4>
+            <p class="text-[11px] text-slate-500 font-mono">Authenticated via: ${escapeHtml(email)}</p>
+          </div>
+        </div>
+        <button onclick="executeLogout()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out from this Device
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/* --- TAB 4: PROFESSIONAL PREFERENCES --- */
+function renderSettingsPreferencesTab(container) {
+  const pro = currentPro || {};
+  const currentRadius = pro.serviceRadius || 25;
+  const isAvailable = pro.available !== false;
+
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 sm:p-8 space-y-6">
+      <div class="border-b border-slate-100 pb-5">
+        <h3 class="text-base font-bold text-slate-900">Professional Preferences & Dispatch Territory</h3>
+        <p class="text-xs text-slate-500 mt-1">Configure consultation availability, dispatch radius, and workspace preferences.</p>
+      </div>
+
+      <div class="space-y-6 text-xs">
+        <!-- Direct Consultations Toggle -->
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <h4 class="font-bold text-slate-900">Accepting Direct Client Consultations</h4>
+            <p class="text-slate-500 text-[11px] mt-0.5">When active, your profile is discoverable in direct hire search and clients can initiate inquiries.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="settings-pref-available" ${isAvailable ? 'checked' : ''} class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+        <!-- Service Area Radius Selection -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-2">Maximum Dispatch & Travel Radius</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            ${[10, 25, 50, 100].map(km => `
+              <label class="flex items-center p-3 rounded-xl border ${currentRadius === km ? 'border-orange-500 bg-orange-50/40 text-orange-950 font-bold' : 'border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold'} cursor-pointer transition">
+                <input type="radio" name="settings-radius" value="${km}" ${currentRadius === km ? 'checked' : ''} class="mr-2 text-orange-600 focus:ring-orange-500">
+                <span>${km} km Radius</span>
+              </label>
+            `).join('')}
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1.5">Lead matching filters client inquiries according to this territory radius.</p>
+        </div>
+
+        <!-- Consultation Modes -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-2">Accepted Consultation Modes</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="flex items-center p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" checked class="mr-2.5 rounded text-orange-600 focus:ring-orange-500">
+              <div>
+                <span class="font-bold text-slate-800 block">On-Site Inspections</span>
+                <span class="text-[10px] text-slate-400">Physical visits to job sites</span>
+              </div>
+            </label>
+            <label class="flex items-center p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" checked class="mr-2.5 rounded text-orange-600 focus:ring-orange-500">
+              <div>
+                <span class="font-bold text-slate-800 block">Virtual Consultation</span>
+                <span class="text-[10px] text-slate-400">Video call & drawing review</span>
+              </div>
+            </label>
+            <label class="flex items-center p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" checked class="mr-2.5 rounded text-orange-600 focus:ring-orange-500">
+              <div>
+                <span class="font-bold text-slate-800 block">Emergency Visits</span>
+                <span class="text-[10px] text-slate-400">Urgent structural assessments</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Deep-dive Shortcuts -->
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-2">
+            <button onclick="navigate('services')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-toolbox text-slate-500"></i> Services Catalog
+            </button>
+            <button onclick="navigate('documents')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-shield-halved text-slate-500"></i> Regulatory Documents
+            </button>
+          </div>
+          <button onclick="saveProfessionalPreferences()" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-floppy-disk"></i> Save Preferences
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveProfessionalPreferences() {
+  const availInput = document.getElementById('settings-pref-available');
+  const radiusInput = document.querySelector('input[name="settings-radius"]:checked');
+
+  if (availInput) currentPro.available = availInput.checked;
+  if (radiusInput) currentPro.serviceRadius = parseInt(radiusInput.value, 10);
+
+  try {
+    const raw = localStorage.getItem('currentUser') || localStorage.getItem('marketplaceUser');
+    let u = raw ? JSON.parse(raw) : {};
+    u.available = currentPro.available;
+    u.serviceRadius = currentPro.serviceRadius;
+    localStorage.setItem('currentUser', JSON.stringify(u));
+  } catch (e) {}
+
+  showToast('Professional preferences saved successfully.', 'success');
+}
+
+/* --- TAB 5: NOTIFICATIONS & REGIONAL --- */
+function renderSettingsNotificationsTab(container) {
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 sm:p-8 space-y-6">
+      <div class="border-b border-slate-100 pb-5 flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Notifications & Regional Language Preferences</h3>
+          <p class="text-xs text-slate-500 mt-1">Configure notification delivery frequency and display localization.</p>
+        </div>
+        <button onclick="markAllSettingsNotificationsRead()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-check-double text-slate-500"></i> Mark All Notifications Read
+        </button>
+      </div>
+
+      <div class="space-y-5 text-xs">
+        <div>
+          <h4 class="font-bold text-slate-900 mb-2">Notification Delivery Channels</h4>
+          <div class="space-y-3">
+            <label class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+              <div>
+                <span class="font-bold text-slate-800 block">In-App Lead Alerts</span>
+                <span class="text-[11px] text-slate-500">Real-time alerts for incoming client requests and requirement postings.</span>
+              </div>
+              <input type="checkbox" checked class="rounded text-orange-600 focus:ring-orange-500 w-4 h-4">
+            </label>
+
+            <label class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+              <div>
+                <span class="font-bold text-slate-800 block">Milestone Payment Notices</span>
+                <span class="text-[11px] text-slate-500">Instant SMS and email notifications upon escrow funding and release.</span>
+              </div>
+              <input type="checkbox" checked class="rounded text-orange-600 focus:ring-orange-500 w-4 h-4">
+            </label>
+
+            <label class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+              <div>
+                <span class="font-bold text-slate-800 block">Weekly Performance Digest</span>
+                <span class="text-[11px] text-slate-500">Summary of client profile views, active contracts, and rating updates.</span>
+              </div>
+              <input type="checkbox" checked class="rounded text-orange-600 focus:ring-orange-500 w-4 h-4">
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100">
+          <h4 class="font-bold text-slate-900 mb-2">Regional & Display Settings</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Preferred Language</label>
+              <select class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none">
+                <option value="en" selected>English (Primary)</option>
+                <option value="hi">हिंदी (Hindi)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Currency Format</label>
+              <input type="text" value="₹ INR (Indian Rupee)" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 cursor-not-allowed">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Marketplace Timezone</label>
+              <input type="text" value="IST (UTC+5:30) New Delhi" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 cursor-not-allowed">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex justify-end">
+          <button onclick="showToast('Notification and regional preferences saved.', 'success')" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-floppy-disk"></i> Save Preferences
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function markAllSettingsNotificationsRead() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/notifications/mark-all-read`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      showToast('All notifications marked as read.', 'success');
+      const badge = document.getElementById('notif-badge');
+      if (badge) badge.classList.add('hidden');
+    }
+  } catch (e) {
+    showToast('Failed to update notifications.', 'error');
+  }
+}
+
+/* --- TAB 6: ACCOUNT DATA & LIFECYCLE --- */
+function renderSettingsLifecycleTab(container) {
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 sm:p-8 space-y-6">
+      <div class="border-b border-slate-100 pb-5">
+        <h3 class="text-base font-bold text-slate-900">Account Data Governance & Partner Lifecycle</h3>
+        <p class="text-xs text-slate-500 mt-1">Review BuildBid regulatory data isolation, statement records, and partner account deactivation terms.</p>
+      </div>
+
+      <div class="space-y-6 text-xs">
+        <!-- Account Data Export -->
+        <div class="p-5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900">Escrow Statements & Financial Records</h4>
+                <p class="text-slate-500 text-[11px]">Download verified earnings statements, client invoices, and transaction histories.</p>
+              </div>
+            </div>
+            <button onclick="navigate('earnings')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-wallet"></i> View Statements
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400">
+            Note: Customer-specific data export (<code class="font-mono text-slate-600">/api/customer/download-data</code>) is restricted to Customer accounts. Service Provider and Professional transaction ledgers are fully accessible under the dedicated <a href="javascript:void(0)" onclick="navigate('earnings')" class="text-orange-600 hover:underline font-semibold">Earnings & Payments</a> console.
+          </p>
+        </div>
+
+        <!-- Account Deactivation Policy -->
+        <div class="p-5 bg-rose-50/50 rounded-xl border border-rose-200/80 space-y-3">
+          <div class="flex items-start justify-between flex-wrap gap-4">
+            <div class="flex items-start space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900">Partner Account Closure & Deactivation Protocol</h4>
+                <p class="text-slate-600 text-[11px] mt-0.5 leading-relaxed">
+                  To protect ongoing construction works and client escrow deposits, Professional accounts cannot be deleted self-service while active service contracts or pending milestones exist.
+                </p>
+              </div>
+            </div>
+            <button onclick="showToast('Helpline 1800-BUILDBID: Dedicated Partner support ready.', 'info')" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5 flex-shrink-0">
+              <i class="fa-solid fa-phone"></i> Contact Partner Helpline
+            </button>
+          </div>
+          <div class="p-3 bg-white/70 rounded-lg border border-rose-200/50 text-[11px] text-slate-500">
+            <strong>Deactivation Policy Requirements:</strong>
+            <ul class="list-disc list-inside mt-1 space-y-0.5">
+              <li>All active project works must be formally completed or handed over.</li>
+              <li>Escrow milestones must have zero pending disputes.</li>
+              <li>Unpublished services will be archived from the BuildBid master catalog.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function syncSettingsWithServer() {
+  showToast('Synchronizing account credentials with server...', 'info');
+  await fetchAndUpdateProfile();
+  await loadSettingsVerificationAsync();
+  renderAccountSettings(document.getElementById('main-view'));
+  showToast('Account data synchronized successfully.', 'success');
+}
+
 function renderDocuments(container) {
   const hasDocs = Array.isArray(currentPro.documents) && currentPro.documents.length > 0;
 
@@ -4162,7 +5314,7 @@ window.addEventListener('DOMContentLoaded', () => {
   fetchProfessionalOrdersCount();
 
   const hash = (window.location.hash || '').replace('#', '').trim();
-  const validRoutes = ['dashboard', 'find-work', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages', 'my-requests', 'my-orders'];
+  const validRoutes = ['dashboard', 'find-work', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages', 'reviews', 'my-requests', 'my-orders', 'settings', 'account-settings'];
   if (hash && validRoutes.includes(hash)) {
     navigate(hash);
   } else {

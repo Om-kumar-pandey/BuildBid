@@ -592,6 +592,46 @@ aside.w-\[280px\] .nav-link.active [class*="bg-"] {
   color: #ffffff;
 }
 
+/* Sidebar Account Settings Container (Pinned at bottom of navigation) */
+aside.w-\[280px\] .sidebar-settings-container,
+aside.border-r .sidebar-settings-container {
+  background-color: #0b1329 !important;
+  border-top: 1px solid #1e293b !important;
+}
+
+aside.w-\[280px\] .sidebar-settings-container .nav-link,
+aside.border-r .sidebar-settings-container .nav-link {
+  color: #cbd5e1;
+}
+
+aside.w-\[280px\] .sidebar-settings-container .nav-link i,
+aside.border-r .sidebar-settings-container .nav-link i {
+  color: #94a3b8;
+}
+
+aside.w-\[280px\] .sidebar-settings-container .nav-link:hover,
+aside.border-r .sidebar-settings-container .nav-link:hover {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+aside.w-\[280px\] .sidebar-settings-container .nav-link:hover i,
+aside.border-r .sidebar-settings-container .nav-link:hover i {
+  color: #ffffff;
+}
+
+aside.w-\[280px\] .sidebar-settings-container .nav-link.active,
+aside.border-r .sidebar-settings-container .nav-link.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-left: 3px solid #3b82f6;
+}
+
+aside.w-\[280px\] .sidebar-settings-container .nav-link.active i,
+aside.border-r .sidebar-settings-container .nav-link.active i {
+  color: #ffffff;
+}
+
 /* Quick Help & Support Footer Card */
 aside.w-\[280px\] > div:last-child,
 aside.border-r > div:last-child {
@@ -668,7 +708,50 @@ aside.border-r #sidebar-logout-btn:hover i {
 }
 
 /* =========================================================
-   6. ACCESSIBILITY: REDUCED MOTION PREFERENCE
+   6. ACCOUNT SETTINGS STYLES
+   ========================================================= */
+.settings-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.settings-tab-btn:hover {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.settings-tab-btn.active {
+  color: #ea580c;
+  border-color: #ea580c;
+}
+
+.settings-tab-btn i {
+  font-size: 14px;
+}
+
+.settings-tab-btn.active i {
+  color: #ea580c;
+}
+
+.settings-panel {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   7. ACCESSIBILITY: REDUCED MOTION PREFERENCE
    ========================================================= */
 @media (prefers-reduced-motion: reduce) {
   *,
