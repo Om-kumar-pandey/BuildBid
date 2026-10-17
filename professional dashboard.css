@@ -198,103 +198,205 @@ button.bg-orange-600:active,
 }
 
 /* =========================================================
-   4. SIDEBAR NAVIGATION & LIGHT BLUE THEME
-   BuildBid Blue Brand Palette (Option A)
+   4. SIDEBAR NAVIGATION & DARK THEME (Option B)
+   Exact Material Seller Dashboard Dark Visual Styling
+   Reference: seller-dashboard.html & seller-dashboard.css
    ========================================================= */
 
 /* Sidebar Container */
 aside.w-\[280px\],
 aside.border-r {
-  background-color: #eff6ff;
-  border-right-color: #dbeafe;
+  background-color: #0f172a; /* Material Seller bg-slate-900 / --buildslate-900 */
+  border-right-color: #1e293b; /* Material Seller border-slate-800 */
+  color: #cbd5e1; /* Material Seller text-slate-300 */
+}
+
+/* Sidebar Scrollbar Track and Thumb */
+aside.w-\[280px\] ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+aside.w-\[280px\] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+aside.w-\[280px\] ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Sidebar Header (Logo Bar) */
 aside.w-\[280px\] > div:first-child,
 aside.border-r > div:first-child {
-  background-color: #eff6ff;
-  border-bottom-color: #dbeafe;
+  background-color: #020617; /* Material Seller header bg-slate-950 */
+  border-bottom-color: #1e293b; /* Material Seller header border-slate-800 */
 }
 
+/* Sidebar Header Logo Text & Subtitle */
+aside.w-\[280px\] .h-16 span.font-extrabold,
+aside.w-\[280px\] .h-16 a span:first-child {
+  color: #ffffff; /* Material Seller logo text-white */
+}
+
+aside.w-\[280px\] .h-16 span.text-slate-500,
+aside.w-\[280px\] .h-16 a span:last-child {
+  color: #94a3b8; /* Material Seller text-slate-400 */
+}
+
+/* Sidebar Header Version Badge */
 aside.w-\[280px\] .h-16 span.rounded {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: #1e293b; /* Material Seller bg-slate-800 */
+  color: #94a3b8; /* Material Seller text-slate-400 */
+  border: 1px solid #334155; /* border-slate-700 */
 }
 
 /* Sidebar Profile Mini-Card */
 aside.w-\[280px\] > div:nth-child(2),
 aside.border-r > div:nth-child(2),
 .sidebar-profile-card {
-  background-color: rgba(219, 234, 254, 0.35);
-  border-bottom-color: #dbeafe;
+  background-color: rgba(2, 6, 23, 0.45); /* Material Seller bg-slate-950 tint */
+  border-bottom-color: #1e293b; /* Material Seller border-slate-800 */
   transition: background-color 0.2s ease;
 }
 
 aside.w-\[280px\] > div:nth-child(2):hover,
 .sidebar-profile-card:hover {
-  background-color: rgba(219, 234, 254, 0.55);
+  background-color: rgba(2, 6, 23, 0.7);
+}
+
+aside.w-\[280px\] #side-name {
+  color: #ffffff; /* Material Seller high-contrast white */
+}
+
+aside.w-\[280px\] #side-role {
+  color: #fb923c; /* Readable high-contrast amber/orange on dark */
+}
+
+aside.w-\[280px\] #side-loc,
+aside.w-\[280px\] > div:nth-child(2) .text-slate-500 {
+  color: #94a3b8; /* Material Seller text-slate-400 */
 }
 
 /* Sidebar Section Category Labels */
 aside.w-\[280px\] .uppercase.tracking-wider,
 aside.border-r .uppercase.tracking-wider {
-  color: #1e40af;
+  color: #64748b; /* Material Seller section headers text-slate-500 */
 }
 
 /* Sidebar Navigation Links */
+aside.w-\[280px\] .nav-link,
+aside.border-r .nav-link,
 .nav-link {
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-left: 3px solid transparent;
-  color: #1e3a8a;
+  color: #cbd5e1; /* Material Seller text-slate-300 */
 }
 
+aside.w-\[280px\] .nav-link i,
+aside.border-r .nav-link i,
 .nav-link i {
-  color: #2563eb;
+  color: #94a3b8; /* Material Seller text-slate-400 */
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
 /* Hover State */
+aside.w-\[280px\] .nav-link:hover,
+aside.border-r .nav-link:hover,
 .nav-link:hover {
-  background-color: #dbeafe;
-  color: #1d4ed8;
+  background-color: #1e293b; /* Material Seller hover:bg-slate-800 */
+  color: #ffffff; /* Material Seller hover:text-white */
   transform: translateX(2px);
 }
 
+aside.w-\[280px\] .nav-link:hover i,
+aside.border-r .nav-link:hover i,
 .nav-link:hover i {
-  color: #1d4ed8;
+  color: #ffffff; /* Material Seller hover:text-white */
   transform: scale(1.08);
 }
 
 /* Active State */
+aside.w-\[280px\] .nav-link.active,
+aside.border-r .nav-link.active,
 .nav-link.active {
-  background-color: #dbeafe;
-  color: #2563eb;
+  background-color: #2563eb; /* Material Seller active bg-blue-600 / --buildblue-600 */
+  color: #ffffff; /* Material Seller active text-white */
   font-weight: 600;
-  border-left: 3px solid #2563eb;
+  border-left: 3px solid #3b82f6; /* Material Seller --buildblue-500 accent */
   border-right: none;
-  box-shadow: inset 0 1px 2px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.12);
 }
 
+aside.w-\[280px\] .nav-link.active i,
+aside.border-r .nav-link.active i,
 .nav-link.active i {
-  color: #2563eb;
+  color: #ffffff; /* Material Seller active text-white */
+}
+
+/* Badges inside nav links */
+aside.w-\[280px\] .nav-link .bg-slate-100 {
+  background-color: #1e293b;
+  color: #cbd5e1;
+}
+
+aside.w-\[280px\] .nav-link.active .bg-slate-100,
+aside.w-\[280px\] .nav-link.active [class*="bg-"] {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 /* Quick Help & Support Footer Card */
 aside.w-\[280px\] > div:last-child,
 aside.border-r > div:last-child {
-  background-color: #eff6ff;
-  border-top-color: #dbeafe;
+  background-color: #020617; /* Material Seller footer bg-slate-950 */
+  border-top-color: #1e293b; /* Material Seller border-slate-800 */
 }
 
 aside.w-\[280px\] > div:last-child > div,
 aside.border-r > div:last-child > div {
-  border-color: #dbeafe;
+  background-color: #0f172a; /* Material Seller bg-slate-900 */
+  border-color: #1e293b; /* Material Seller border-slate-800 */
 }
 
+aside.w-\[280px\] > div:last-child > div span.font-bold {
+  color: #ffffff;
+}
+
+aside.w-\[280px\] > div:last-child > div p {
+  color: #94a3b8; /* Material Seller text-slate-400 */
+}
+
+aside.w-\[280px\] > div:last-child > div button {
+  background-color: #1e293b; /* Material Seller bg-slate-800 */
+  color: #ffffff;
+  border: 1px solid #334155; /* border-slate-700 */
+}
+
+aside.w-\[280px\] > div:last-child > div button:hover {
+  background-color: #334155;
+}
+
+/* Sidebar Logout Button */
 aside.w-\[280px\] #sidebar-logout-btn,
 aside.border-r #sidebar-logout-btn {
-  border-color: #dbeafe;
+  background-color: #0f172a; /* Material Seller bg-slate-900 */
+  border-color: #1e293b; /* Material Seller border-slate-800 */
+  color: #f87171; /* Material Seller text-red-400 */
+}
+
+aside.w-\[280px\] #sidebar-logout-btn i,
+aside.border-r #sidebar-logout-btn i {
+  color: #f87171; /* Material Seller text-red-400 */
+}
+
+aside.w-\[280px\] #sidebar-logout-btn:hover,
+aside.border-r #sidebar-logout-btn:hover {
+  background-color: #1e293b; /* Material Seller hover:bg-slate-800 */
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5; /* Material Seller hover:text-red-300 */
+}
+
+aside.w-\[280px\] #sidebar-logout-btn:hover i,
+aside.border-r #sidebar-logout-btn:hover i {
+  color: #fca5a5; /* Material Seller hover:text-red-300 */
 }
 
 /* =========================================================
