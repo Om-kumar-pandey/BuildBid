@@ -142,48 +142,6 @@
           </div>
         </div>
 
-        <!-- Dynamic Overview Metrics -->
-        <div class="pro-settings-overview-metrics">
-          <div class="pro-settings-metric-box">
-            <div class="pro-settings-metric-icon pro-settings-metric-icon-emerald">
-              <i class="fa-solid fa-chart-pie"></i>
-            </div>
-            <div class="pro-settings-metric-info">
-              <span class="pro-settings-metric-label">Profile Completion</span>
-              <span class="pro-settings-metric-val" id="metric-completion">85% Complete</span>
-            </div>
-          </div>
-
-          <div class="pro-settings-metric-box">
-            <div class="pro-settings-metric-icon pro-settings-metric-icon-orange">
-              <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            <div class="pro-settings-metric-info">
-              <span class="pro-settings-metric-label">Identity Verification</span>
-              <span class="pro-settings-metric-val" id="metric-verification">Verified Pro</span>
-            </div>
-          </div>
-
-          <div class="pro-settings-metric-box">
-            <div class="pro-settings-metric-icon pro-settings-metric-icon-blue">
-              <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            <div class="pro-settings-metric-info">
-              <span class="pro-settings-metric-label">Security Model</span>
-              <span class="pro-settings-metric-val">Stateless Bearer JWT</span>
-            </div>
-          </div>
-
-          <div class="pro-settings-metric-box">
-            <div class="pro-settings-metric-icon pro-settings-metric-icon-amber">
-              <i class="fa-solid fa-user-lock"></i>
-            </div>
-            <div class="pro-settings-metric-info">
-              <span class="pro-settings-metric-label">Security Health</span>
-              <span class="pro-settings-metric-val">Active (BCrypt)</span>
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- Network / Loading State Alert Container -->
@@ -464,7 +422,7 @@
            ============================================================ -->
       <section class="pro-settings-panel" id="sec-security-login" role="tabpanel" aria-labelledby="tab-security-login">
 
-        <!-- Status Card: Current Security & Login Status -->
+        <!-- Change Password Interactive Card -->
         <div class="pro-settings-card">
           <div class="pro-settings-card-header">
             <div class="pro-settings-card-title-wrap">
@@ -472,78 +430,21 @@
                 <i class="fa-solid fa-shield-halved" style="color: var(--pro-slate-800);"></i>
                 4. Security &amp; Login
               </h2>
-              <p class="pro-settings-card-desc">
-                Review your cryptographic credentials, master password health, and cross-device session security.
-              </p>
             </div>
             <span class="pro-settings-badge pro-settings-badge-verified" id="pro-settings-security-top-badge">
               <i class="fa-solid fa-lock"></i> BCrypt Encrypted
             </span>
           </div>
 
-          <!-- Real-Time Security Health Tiles (No fabricated sessions or fake IPs) -->
-          <div class="pro-settings-grid-3">
-            <div class="pro-settings-feature-row" style="background-color: var(--pro-slate-50); border: 1px solid var(--pro-slate-200); border-radius: var(--pro-radius-lg); padding: 16px; margin: 0;">
-              <div class="pro-settings-feature-info">
-                <div class="pro-settings-feature-icon" style="background-color: var(--pro-orange-100); color: var(--pro-orange-600);">
-                  <i class="fa-solid fa-key"></i>
-                </div>
-                <div class="pro-settings-feature-text">
-                  <h4 style="font-size: 13px; margin: 0 0 2px 0;">Master Password</h4>
-                  <p style="font-size: 11.5px; margin: 0; color: var(--pro-slate-500);">
-                    <span id="pro-settings-security-pwd-status">Active &amp; Hashed</span>
-                  </p>
-                  <p style="font-size: 11px; margin: 4px 0 0 0; color: var(--pro-slate-400);">
-                    Last changed: <strong id="pro-settings-security-last-changed" style="color: var(--pro-slate-600);">Checking...</strong>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div class="pro-settings-feature-row" style="background-color: var(--pro-slate-50); border: 1px solid var(--pro-slate-200); border-radius: var(--pro-radius-lg); padding: 16px; margin: 0;">
-              <div class="pro-settings-feature-info">
-                <div class="pro-settings-feature-icon" style="background-color: var(--pro-blue-100); color: var(--pro-blue-600);">
-                  <i class="fa-solid fa-id-badge"></i>
-                </div>
-                <div class="pro-settings-feature-text">
-                  <h4 style="font-size: 13px; margin: 0 0 2px 0;">Authentication Model</h4>
-                  <p style="font-size: 11.5px; margin: 0; color: var(--pro-slate-500);">Stateless Cryptographic JWT</p>
-                  <p style="font-size: 11px; margin: 4px 0 0 0; color: var(--pro-emerald-600); font-weight: 500;">
-                    <i class="fa-solid fa-circle-check"></i> Standard Bearer Token
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div class="pro-settings-feature-row" style="background-color: var(--pro-slate-50); border: 1px solid var(--pro-slate-200); border-radius: var(--pro-radius-lg); padding: 16px; margin: 0;">
-              <div class="pro-settings-feature-info">
-                <div class="pro-settings-feature-icon" style="background-color: var(--pro-emerald-100); color: var(--pro-emerald-600);">
-                  <i class="fa-solid fa-shield-virus"></i>
-                </div>
-                <div class="pro-settings-feature-text">
-                  <h4 style="font-size: 13px; margin: 0 0 2px 0;">Session Revocation</h4>
-                  <p style="font-size: 11.5px; margin: 0; color: var(--pro-slate-500);">Cross-Device Invalidation</p>
-                  <p style="font-size: 11px; margin: 4px 0 0 0; color: var(--pro-slate-500);">
-                    Updating password invalidates tokens globally
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Change Password Interactive Card -->
-        <div class="pro-settings-card">
-          <div class="pro-settings-card-header">
-            <div class="pro-settings-card-title-wrap">
-              <h3 class="pro-settings-card-title" style="font-size: 16px;">
-                <i class="fa-solid fa-key" style="color: var(--pro-orange-600);"></i>
-                Change Password
-              </h3>
-              <p class="pro-settings-card-desc">
-                Update your login password. We recommend choosing a strong password of at least 8 characters. For your security, all existing sessions will be invalidated and you will be asked to log in again.
-              </p>
-            </div>
+          <!-- Change Password Sub-Section -->
+          <div class="pro-settings-card-title-wrap" style="margin-bottom: 20px;">
+            <h3 class="pro-settings-card-title" style="font-size: 16px;">
+              <i class="fa-solid fa-key" style="color: var(--pro-orange-600);"></i>
+              Change Password
+            </h3>
+            <p class="pro-settings-card-desc">
+              Update your login password. We recommend choosing a strong password of at least 8 characters. For your security, all existing sessions will be invalidated and you will be asked to log in again.
+            </p>
           </div>
 
           <form id="pro-settings-security-password-form" novalidate autocomplete="off">
