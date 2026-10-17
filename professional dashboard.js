@@ -548,6 +548,165 @@ function getCleanToken() {
   return token;
 }
 
+// ============================================================
+// AUTHENTICATED PROFILE AVATAR MANAGEMENT & GLOBAL SYNCHRONIZATION
+// ============================================================
+let currentAvatarBlobUrl = null;
+let avatarLoadRequestId = 0;
+let activeAvatarFetchPromise = null;
+
+function revokeCurrentAvatarBlobUrl() {
+  if (currentAvatarBlobUrl && currentAvatarBlobUrl.startsWith('blob:')) {
+    try {
+      URL.revokeObjectURL(currentAvatarBlobUrl);
+    } catch (e) {
+      console.warn('[BuildBid Pro] Error revoking avatar blob URL:', e);
+    }
+    currentAvatarBlobUrl = null;
+  }
+}
+
+function updateAllAvatarElements(avatarUrl) {
+  const fallbackUrl = getProfessionalFallbackAvatar(currentPro.type);
+  const safeUrl = avatarUrl || fallbackUrl;
+  currentPro.avatar = safeUrl;
+
+  const sideAvatar = document.getElementById('side-avatar');
+  if (sideAvatar) {
+    sideAvatar.src = safeUrl;
+    sideAvatar.onerror = function() { this.src = fallbackUrl; };
+  }
+
+  const topAvatar = document.getElementById('top-avatar');
+  if (topAvatar) {
+    topAvatar.src = safeUrl;
+    topAvatar.onerror = function() { this.src = fallbackUrl; };
+  }
+
+  const heroAvatar = document.getElementById('proHeroAvatar');
+  if (heroAvatar) {
+    heroAvatar.src = safeUrl;
+    heroAvatar.onerror = function() { this.src = fallbackUrl; };
+  }
+
+  const profileAvatar = document.getElementById('proProfileTabAvatar');
+  if (profileAvatar) {
+    profileAvatar.src = safeUrl;
+    profileAvatar.onerror = function() { this.src = fallbackUrl; };
+  }
+
+  const settingsAvatar = document.getElementById('settings-header-avatar');
+  if (settingsAvatar) {
+    settingsAvatar.src = safeUrl;
+    settingsAvatar.onerror = function() { this.src = fallbackUrl; };
+  }
+}
+
+async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
+  const token = getCleanToken();
+  const fallbackUrl = getProfessionalFallbackAvatar(currentPro.type);
+
+  if (!token) {
+    revokeCurrentAvatarBlobUrl();
+    updateAllAvatarElements(fallbackUrl);
+    return;
+  }
+
+  if (activeAvatarFetchPromise && !forceRefresh) {
+    return activeAvatarFetchPromise;
+  }
+
+  const thisRequestId = ++avatarLoadRequestId;
+  activeAvatarFetchPromise = (async () => {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/professional/profile/photo`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (thisRequestId !== avatarLoadRequestId) return;
+
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.startsWith('image/')) {
+          console.warn('[BuildBid Pro] Non-image response for avatar:', contentType);
+          revokeCurrentAvatarBlobUrl();
+          updateAllAvatarElements(fallbackUrl);
+          return;
+        }
+
+        const blob = await res.blob();
+        if (thisRequestId !== avatarLoadRequestId) return;
+
+        revokeCurrentAvatarBlobUrl();
+        currentAvatarBlobUrl = URL.createObjectURL(blob);
+        updateAllAvatarElements(currentAvatarBlobUrl);
+      } else if (res.status === 404) {
+        revokeCurrentAvatarBlobUrl();
+        updateAllAvatarElements(fallbackUrl);
+      } else if (res.status === 401 || res.status === 403) {
+        console.warn('[BuildBid Pro] Unauthorized photo fetch (HTTP ' + res.status + ')');
+        revokeCurrentAvatarBlobUrl();
+        updateAllAvatarElements(fallbackUrl);
+      } else {
+        if (!currentAvatarBlobUrl) {
+          updateAllAvatarElements(fallbackUrl);
+        }
+      }
+    } catch (err) {
+      if (thisRequestId !== avatarLoadRequestId) return;
+      console.warn('[BuildBid Pro] Network error loading photo:', err);
+      if (!currentAvatarBlobUrl) {
+        updateAllAvatarElements(fallbackUrl);
+      }
+    } finally {
+      activeAvatarFetchPromise = null;
+    }
+  })();
+
+  return activeAvatarFetchPromise;
+}
+
+// Global Avatar Synchronization Listener (in-window)
+window.addEventListener('buildbid:avatar-sync', function (event) {
+  const detail = event && event.detail ? event.detail : {};
+  const photoUrl = detail.photoUrl;
+
+  if (!photoUrl) {
+    revokeCurrentAvatarBlobUrl();
+    updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
+    try {
+      const raw = localStorage.getItem('currentUser');
+      if (raw) {
+        const u = JSON.parse(raw);
+        delete u.profilePhotoUrl;
+        delete u.profilePhoto;
+        delete u.avatarUrl;
+        localStorage.setItem('currentUser', JSON.stringify(u));
+      }
+    } catch (e) {}
+  } else {
+    loadAuthenticatedProfilePhoto(true);
+  }
+});
+
+// Cross-tab synchronization listener (storage signal)
+window.addEventListener('storage', function (e) {
+  if (e.key === 'buildbid_avatar_sync_signal' && e.newValue) {
+    try {
+      const payload = JSON.parse(e.newValue);
+      window.dispatchEvent(new CustomEvent('buildbid:avatar-sync', { detail: payload }));
+    } catch (err) {}
+  }
+});
+
+// Object URL garbage collection on unload
+window.addEventListener('beforeunload', function () {
+  revokeCurrentAvatarBlobUrl();
+});
+
 function applyProfessionalIdentity(name, location, type, photoUrl) {
   if (name && name.trim()) {
     currentPro.name = name.trim();
@@ -564,35 +723,27 @@ function applyProfessionalIdentity(name, location, type, photoUrl) {
   }
 
   // Profile image resolution:
-  // IF professional has uploaded/set a profile image: show actual image.
-  // ELSE: show professional-role default avatar/icon.
-  // Never show random stock person or stock URLs.
-  let resolvedAvatar = "";
-  const candidateUrl = (photoUrl || currentPro.profilePhotoUrl || currentPro.photoUrl || currentPro.avatar || "").toString().trim();
+  const candidateUrl = (photoUrl || currentPro.profilePhotoUrl || currentPro.photoUrl || "").toString().trim();
   const isInvalidStock = !candidateUrl || 
                          candidateUrl.includes("images.unsplash.com") || 
                          candidateUrl.includes("placehold.co") || 
                          candidateUrl.includes("via.placeholder");
 
-  if (!isInvalidStock && (candidateUrl.startsWith("http") || candidateUrl.startsWith("data:") || candidateUrl.startsWith("/"))) {
-    resolvedAvatar = candidateUrl;
+  if (!isInvalidStock && (candidateUrl === '/api/professional/profile/photo' || candidateUrl.startsWith('/api/'))) {
+    if (currentAvatarBlobUrl) {
+      updateAllAvatarElements(currentAvatarBlobUrl);
+    } else {
+      updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
+      loadAuthenticatedProfilePhoto();
+    }
+  } else if (!isInvalidStock && (candidateUrl.startsWith('data:') || candidateUrl.startsWith('blob:') || candidateUrl.startsWith('http'))) {
+    updateAllAvatarElements(candidateUrl);
   } else {
-    resolvedAvatar = getProfessionalFallbackAvatar(currentPro.type);
-  }
-
-  currentPro.avatar = resolvedAvatar;
-
-  // Update DOM elements
-  const sideAvatar = document.getElementById('side-avatar');
-  if (sideAvatar) {
-    sideAvatar.src = resolvedAvatar;
-    sideAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
-  }
-
-  const topAvatar = document.getElementById('top-avatar');
-  if (topAvatar) {
-    topAvatar.src = resolvedAvatar;
-    topAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
+    if (!currentAvatarBlobUrl) {
+      updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
+    } else {
+      updateAllAvatarElements(currentAvatarBlobUrl);
+    }
   }
 
   const sideBadge = document.getElementById('side-verified-badge');
@@ -649,7 +800,7 @@ function syncIdentityWithStoredSession() {
     const location = cachedUser.location || "";
     const rawType = cachedUser.category || cachedUser.profession || cachedUser.professionalType || cachedUser.type || "";
     const type = normalizeProfessionalType(rawType);
-    const photoUrl = cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.profilePhotoUrl || cachedUser.photoUrl || "";
+    const photoUrl = cachedUser.profilePhotoUrl || "";
 
     const isVerified = Boolean(
       cachedUser.isVerified || 
@@ -705,7 +856,7 @@ async function fetchAndUpdateProfile() {
       } catch (e) {}
       const rawType = (cachedUser && (cachedUser.category || cachedUser.profession || cachedUser.type)) || profile.category || profile.profession || profile.type || "";
       const type = normalizeProfessionalType(rawType);
-      const photoUrl = profile.profilePhotoUrl || profile.profilePhoto || profile.avatarUrl || (cachedUser && (cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.profilePhotoUrl)) || "";
+      const photoUrl = profile.profilePhotoUrl || "";
 
       const isVerified = Boolean(
         profile.verified || 
@@ -717,6 +868,11 @@ async function fetchAndUpdateProfile() {
       currentPro.verificationStatus = profile.verificationStatus || (isVerified ? 'VERIFIED' : 'NOT_REQUIRED');
 
       applyProfessionalIdentity(name, location, type, photoUrl);
+
+      if (!photoUrl && currentAvatarBlobUrl) {
+        revokeCurrentAvatarBlobUrl();
+        updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
+      }
 
       // Load services to check for real verification and documents
       try {
@@ -1363,11 +1519,7 @@ function switchPersona(newKey) {
   if (sideBadge) {
     sideBadge.classList.toggle('hidden', !(currentPro.isVerified || currentPro.verificationStatus === 'VERIFIED'));
   }
-  const sideAvatar = document.getElementById('side-avatar');
-  if (sideAvatar) {
-    sideAvatar.src = currentPro.avatar;
-    sideAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
-  }
+  updateAllAvatarElements(currentPro.avatar);
 
   const topGreeting = document.getElementById('top-greeting');
   if (topGreeting) topGreeting.innerHTML = `${getDynamicGreeting()}, ${escapeHtml(currentPro.name)} 👋`;
@@ -1375,11 +1527,6 @@ function switchPersona(newKey) {
   if (topRoleBadge) topRoleBadge.innerText = currentPro.type;
   const topName = document.getElementById('top-name');
   if (topName) topName.innerText = currentPro.name;
-  const topAvatar = document.getElementById('top-avatar');
-  if (topAvatar) {
-    topAvatar.src = currentPro.avatar;
-    topAvatar.onerror = function() { this.src = getProfessionalFallbackAvatar(currentPro.type); };
-  }
   const menuName = document.getElementById('menu-name');
   if (menuName) menuName.innerText = currentPro.name;
   const menuId = document.getElementById('menu-id');
@@ -1453,7 +1600,7 @@ function navigate(route) {
       break;
     case 'settings':
     case 'account-settings':
-      renderAccountSettings(container);
+      window.location.href = 'professional-account-setting.html';
       break;
     case 'my-requests':
       renderProfessionalMyRequests(container);
@@ -3330,7 +3477,7 @@ function renderProfile(container) {
         <div class="px-8 pb-8 relative">
           <div class="flex items-end justify-between -mt-14">
             <div class="flex items-end space-x-5">
-              <img src="${currentPro.avatar}" alt="Avatar" class="w-28 h-28 rounded-2xl object-cover ring-4 ring-white shadow-float">
+              <img id="proProfileTabAvatar" src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="w-28 h-28 rounded-2xl object-cover ring-4 ring-white shadow-float" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
               <div>
                 <h3 class="text-xl font-bold text-slate-900">${currentPro.name}</h3>
                 <p class="text-xs font-semibold text-orange-600">${currentPro.type} • ${currentPro.category}</p>
@@ -3400,7 +3547,7 @@ function renderAccountSettings(container) {
   const location = (cachedUser && cachedUser.location) || pro.location || "";
   const displayName = (cachedUser && (cachedUser.name || cachedUser.fullName)) || pro.name || "Professional";
   const roleDisplay = pro.type || (cachedUser && cachedUser.category) || "Professional";
-  const avatarUrl = pro.avatar || (cachedUser && (cachedUser.profilePhotoUrl || cachedUser.profilePhoto)) || "hero-building.jpg";
+  const avatarUrl = pro.avatar || getProfessionalFallbackAvatar(pro.type);
 
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto pb-12">
@@ -3409,7 +3556,7 @@ function renderAccountSettings(container) {
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div class="flex items-center space-x-4">
             <div class="relative flex-shrink-0">
-              <img id="settings-header-avatar" src="${escapeHtml(avatarUrl)}" alt="Avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-white/20 shadow-md" onerror="this.src='hero-building.jpg'">
+              <img id="settings-header-avatar" src="${escapeHtml(avatarUrl)}" alt="Avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-white/20 shadow-md" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
               <span class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] ring-2 ring-slate-900" title="Active Account">
                 <i class="fa-solid fa-check"></i>
               </span>

@@ -29,6 +29,8 @@ public interface UserVerificationRepository extends JpaRepository<UserVerificati
             UserVerification.VerificationType verificationType
     );
 
+    List<UserVerification> findByUserIdOrderByCreatedAtDesc(Long userId);
+
     void deleteByUserId(Long userId);
 
     void deleteByUserIdAndVerificationType(Long userId, UserVerification.VerificationType verificationType);

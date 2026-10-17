@@ -14,7 +14,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.repository.query.Param;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
@@ -103,7 +106,7 @@ public class MarketplaceBackendApplication {
     // USER ENTITY
     // ========================================================
 
-    @Entity
+    @Entity(name = "MarketplaceUser")
     @Table(name = "users")
     public static class MarketplaceUser {
 
@@ -237,6 +240,16 @@ public class MarketplaceBackendApplication {
         boolean existsByUsername(String username);
         boolean existsByEmail(String email);
         boolean existsByEmailIgnoreCase(String email);
+
+        @Modifying(clearAutomatically = true)
+        @Query("UPDATE MarketplaceUser u SET u.deletionAuthToken = NULL, u.deletionAuthExpiry = NULL " +
+               "WHERE u.id = :userId AND u.deletionAuthToken = :ticket AND u.deletionAuthExpiry > :now " +
+               "AND u.deleted = false AND u.enabled = true")
+        int consumeDeletionTicket(
+                @Param("userId") Long userId,
+                @Param("ticket") String ticket,
+                @Param("now") LocalDateTime now
+        );
     }
 
 
@@ -610,6 +623,10 @@ public class MarketplaceBackendApplication {
                             .requestMatchers("/api/security", "/api/security/**").hasRole("CUSTOMER")
                             .requestMatchers("/api/customer/account", "/api/customer/account/**").hasRole("CUSTOMER")
                             .requestMatchers("/api/customer/download-data", "/api/customer/download-data/**").hasRole("CUSTOMER")
+                            .requestMatchers("/api/professional/profile", "/api/professional/profile/**").hasAnyRole("PROFESSIONAL", "SERVICE_PROVIDER")
+                            .requestMatchers("/api/professional/security", "/api/professional/security/**").hasAnyRole("PROFESSIONAL", "SERVICE_PROVIDER")
+                            .requestMatchers("/api/professional/activity", "/api/professional/activity/**").hasAnyRole("PROFESSIONAL", "SERVICE_PROVIDER")
+                            .requestMatchers("/api/professional/account", "/api/professional/account/**").hasAnyRole("PROFESSIONAL", "SERVICE_PROVIDER")
                             .requestMatchers("/api/contractor/**").hasRole("CONTRACTOR")
                             .requestMatchers("/api/verification/**").authenticated()
                             .anyRequest().authenticated()

@@ -35,3 +35,20 @@ FROM information_schema.COLUMNS
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME IN ('material_orders', 'material_order_items')
   AND COLUMN_NAME IN ('quotation_id', 'material_id');
+
+-- ============================================================================
+-- BUILDBID PROFESSIONAL ACCOUNT SETTINGS — PROFILE PHOTO PERSISTENCE TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS professional_profile_photos (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL UNIQUE,
+    photo_data LONGBLOB NOT NULL,
+    content_type VARCHAR(50) NOT NULL,
+    file_name VARCHAR(255) NULL,
+    file_size BIGINT NOT NULL,
+    width INT NULL,
+    height INT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_pro_photo_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

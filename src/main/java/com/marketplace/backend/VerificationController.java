@@ -5,8 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -16,14 +19,27 @@ public class VerificationController {
 
     private final VerificationService verificationService;
     private final MarketplaceBackendApplication.UserRepository userRepository;
+    private final MarketplaceBackendApplication.JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Autowired
     public VerificationController(
             VerificationService verificationService,
-            MarketplaceBackendApplication.UserRepository userRepository
+            MarketplaceBackendApplication.UserRepository userRepository,
+            @Autowired(required = false) MarketplaceBackendApplication.JwtService jwtService,
+            @Autowired(required = false) UserDetailsService userDetailsService
     ) {
         this.verificationService = verificationService;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+    }
+
+    public VerificationController(
+            VerificationService verificationService,
+            MarketplaceBackendApplication.UserRepository userRepository
+    ) {
+        this(verificationService, userRepository, null, null);
     }
 
     private MarketplaceBackendApplication.MarketplaceUser getAuthenticatedUser(Authentication authentication) {
@@ -31,6 +47,9 @@ public class VerificationController {
             return null;
         }
         String principal = authentication.getName();
+        if (principal == null || principal.isBlank() || "anonymousUser".equalsIgnoreCase(principal)) {
+            return null;
+        }
         return userRepository.findByEmail(principal)
                 .or(() -> userRepository.findByUsername(principal))
                 .or(() -> userRepository.findByEmailIgnoreCase(principal))
@@ -146,11 +165,22 @@ public class VerificationController {
 
         try {
             verificationService.verifyEmailChange(user, request.newEmail(), request.otp());
-            return ResponseEntity.ok(Map.of(
-                    "message", "Email updated and verified successfully.",
-                    "email", user.getEmail(),
-                    "emailVerified", true
-            ));
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("message", "Email updated and verified successfully.");
+            response.put("email", user.getEmail());
+            response.put("emailVerified", true);
+
+            if (jwtService != null && userDetailsService != null) {
+                try {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+                    String newToken = jwtService.createToken(userDetails);
+                    response.put("token", newToken);
+                } catch (Exception ex) {
+                    // Refreshed token generation is an optional enhancement; do not fail the request
+                }
+            }
+
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
