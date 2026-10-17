@@ -1,0 +1,8 @@
+.git
+.gitignore
+.vscode
+target/
+/*.mp4
+!src/**
+scratch_edge_profile2/
+*.log
