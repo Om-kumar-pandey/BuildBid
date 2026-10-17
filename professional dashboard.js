@@ -1450,6 +1450,14 @@ function navigate(route) {
     case 'reviews':
       renderReviews(container);
       break;
+    case 'my-requests':
+      renderProfessionalMyRequests(container);
+      fetchProfessionalRequests();
+      break;
+    case 'my-orders':
+      renderProfessionalMyOrders(container);
+      fetchProfessionalOrders();
+      break;
     case 'buy-material':
       window.location.href = 'buy-material-select.html';
       break;
@@ -4164,8 +4172,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Asynchronously fetch accepted active works from backend
   fetchAndUpdateActiveWorks();
 
+  // Asynchronously fetch counts for Professional Material Requests & Orders
+  fetchProfessionalRequestsCount();
+  fetchProfessionalOrdersCount();
+
   const hash = (window.location.hash || '').replace('#', '').trim();
-  const validRoutes = ['dashboard', 'find-work', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages'];
+  const validRoutes = ['dashboard', 'find-work', 'requests', 'projects', 'schedule', 'earnings', 'services', 'portfolio', 'profile', 'documents', 'availability', 'messages', 'my-requests', 'my-orders'];
   if (hash && validRoutes.includes(hash)) {
     navigate(hash);
   } else {
@@ -4238,3 +4250,1245 @@ function showLogoutToast(callback, customTitle, customMessage) {
 
   setTimeout(navigateOnce, 1200);
 }
+
+/* =========================================================
+   PROFESSIONAL — MY REQUESTS & MY ORDERS MODULE
+   ========================================================= */
+
+let professionalRequests = [];
+let isProfessionalRequestsLoading = false;
+let professionalRequestsError = null;
+let proRequestSearchQuery = "";
+let proRequestTypeFilter = "ALL";
+let proRequestStatusFilter = "ALL";
+
+let professionalOrders = [];
+let isProfessionalOrdersLoading = false;
+let professionalOrdersError = null;
+let proOrderSearchQuery = "";
+let proOrderStatusFilter = "ALL";
+
+async function fetchProfessionalRequestsCount() {
+  const token = getCleanToken();
+  if (!token) return;
+  try {
+    const baseUrl = getApiBaseUrl();
+    let res = await fetch(`${baseUrl}/api/professional/my-requests`, {
+      headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+    });
+    if (!res.ok) {
+      res = await fetch(`${baseUrl}/api/customer/my-requests`, {
+        headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+      });
+    }
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        professionalRequests = data;
+        updateProfessionalMyRequestsBadge();
+      }
+    }
+  } catch (e) {
+    console.warn("Could not fetch professional requests count:", e);
+  }
+}
+
+async function fetchProfessionalOrdersCount() {
+  const token = getCleanToken();
+  if (!token) return;
+  try {
+    const baseUrl = getApiBaseUrl();
+    let res = await fetch(`${baseUrl}/api/material-orders/professional`, {
+      headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+    });
+    if (!res.ok) {
+      res = await fetch(`${baseUrl}/api/material-orders/buyer`, {
+        headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+      });
+    }
+    if (!res.ok) {
+      res = await fetch(`${baseUrl}/api/material-orders/customer`, {
+        headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+      });
+    }
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        professionalOrders = data.filter(o => isProfessionalAcceptedOrderStatus(o.orderStatus || o.status));
+        updateProfessionalMyOrdersBadge();
+      }
+    }
+  } catch (e) {
+    console.warn("Could not fetch professional orders count:", e);
+  }
+}
+
+function updateProfessionalMyRequestsBadge() {
+  const badge = document.getElementById('side-my-req-badge');
+  if (!badge) return;
+  const count = professionalRequests.length;
+  if (count > 0) {
+    badge.textContent = `${count}`;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function updateProfessionalMyOrdersBadge() {
+  const badge = document.getElementById('side-my-orders-badge');
+  if (!badge) return;
+  const count = professionalOrders.length;
+  if (count > 0) {
+    badge.textContent = `${count}`;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function isProfessionalAcceptedOrderStatus(status) {
+  if (!status) return false;
+  const s = String(status).trim().toUpperCase();
+  if (s === "WAITING_FOR_ACCEPTANCE" || s === "NEW" || s === "PENDING" || 
+      s === "DECLINED" || s === "REJECTED" || s === "CANCELLED" || s === "DRAFT") {
+    return false;
+  }
+  return true;
+}
+
+async function fetchProfessionalRequests() {
+  const token = getCleanToken();
+  isProfessionalRequestsLoading = true;
+  professionalRequestsError = null;
+
+  if (activeRoute === 'my-requests') {
+    const container = document.getElementById('main-view');
+    if (container) renderProfessionalMyRequests(container);
+  }
+
+  if (!token) {
+    isProfessionalRequestsLoading = false;
+    professionalRequestsError = "Authentication required. Please sign in to view your material requests.";
+    if (activeRoute === 'my-requests') {
+      const container = document.getElementById('main-view');
+      if (container) renderProfessionalMyRequests(container);
+    }
+    return;
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    let res = await fetch(`${baseUrl}/api/professional/my-requests`, {
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/json"
+      }
+    });
+    if (!res.ok) {
+      res = await fetch(`${baseUrl}/api/customer/my-requests`, {
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Accept": "application/json"
+        }
+      });
+    }
+
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const rawRequests = Array.isArray(data) ? data : [];
+
+    // For any MATERIAL_REQUIREMENT, fetch quotations
+    await Promise.all(rawRequests.map(async (req) => {
+      if (req.type === 'MATERIAL_REQUIREMENT') {
+        const matId = req.backendId || req.id;
+        try {
+          let qRes = await fetch(`${baseUrl}/api/professional/requests/MATERIAL_REQUIREMENT/${matId}/quotations`, {
+            headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+          });
+          if (!qRes.ok) {
+            qRes = await fetch(`${baseUrl}/api/customer/requests/MATERIAL_REQUIREMENT/${matId}/quotations`, {
+              headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
+            });
+          }
+          if (qRes.ok) {
+            const quotes = await qRes.json();
+            req.quotations = Array.isArray(quotes) ? quotes : [];
+          } else {
+            req.quotations = [];
+          }
+        } catch (e) {
+          req.quotations = [];
+        }
+      } else {
+        req.quotations = [];
+      }
+    }));
+
+    professionalRequests = rawRequests;
+    isProfessionalRequestsLoading = false;
+    updateProfessionalMyRequestsBadge();
+
+    // Trigger orders count update as well to keep them in sync
+    fetchProfessionalOrdersCount();
+
+  } catch (err) {
+    console.error("Failed to fetch professional requests:", err);
+    isProfessionalRequestsLoading = false;
+    professionalRequestsError = "Unable to load material requests from the server. Please check your connection.";
+  }
+
+  if (activeRoute === 'my-requests') {
+    const container = document.getElementById('main-view');
+    if (container) renderProfessionalMyRequests(container);
+  }
+}
+
+async function fetchProfessionalOrders() {
+  const token = getCleanToken();
+  isProfessionalOrdersLoading = true;
+  professionalOrdersError = null;
+
+  if (activeRoute === 'my-orders') {
+    const container = document.getElementById('main-view');
+    if (container) renderProfessionalMyOrders(container);
+  }
+
+  if (!token) {
+    isProfessionalOrdersLoading = false;
+    professionalOrdersError = "Authentication required. Please sign in to view your material orders.";
+    if (activeRoute === 'my-orders') {
+      const container = document.getElementById('main-view');
+      if (container) renderProfessionalMyOrders(container);
+    }
+    return;
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    let res = await fetch(`${baseUrl}/api/material-orders/professional`, {
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      res = await fetch(`${baseUrl}/api/material-orders/buyer`, {
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Accept": "application/json"
+        }
+      });
+    }
+
+    if (!res.ok) {
+      res = await fetch(`${baseUrl}/api/material-orders/customer`, {
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Accept": "application/json"
+        }
+      });
+    }
+
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const rawOrders = Array.isArray(data) ? data : [];
+
+    // Filter out unaccepted/waiting orders
+    professionalOrders = rawOrders.filter(o => isProfessionalAcceptedOrderStatus(o.orderStatus || o.status));
+    isProfessionalOrdersLoading = false;
+    updateProfessionalMyOrdersBadge();
+
+  } catch (err) {
+    console.error("Failed to fetch professional orders:", err);
+    isProfessionalOrdersLoading = false;
+    professionalOrdersError = "Unable to load material orders from the server. Please check your connection.";
+  }
+
+  if (activeRoute === 'my-orders') {
+    const container = document.getElementById('main-view');
+    if (container) renderProfessionalMyOrders(container);
+  }
+}
+
+function handleProRequestSearch(val) {
+  proRequestSearchQuery = (val || "").trim().toLowerCase();
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'my-requests') {
+    renderProfessionalMyRequests(container);
+  }
+}
+
+function setProRequestTypeFilter(filter) {
+  proRequestTypeFilter = filter;
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'my-requests') {
+    renderProfessionalMyRequests(container);
+  }
+}
+
+function setProRequestStatusFilter(filter) {
+  proRequestStatusFilter = filter;
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'my-requests') {
+    renderProfessionalMyRequests(container);
+  }
+}
+
+function getProDirectBuyTimelineHTML(req) {
+  const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
+  const isDeclined = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED");
+
+  if (isDeclined) {
+    return `
+      <div class="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 text-sm">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </div>
+          <div>
+            <div class="font-bold text-xs text-rose-900">Request Declined by Supplier / विक्रेता द्वारा अस्वीकृत</div>
+            <p class="text-[11px] text-rose-700 mt-0.5">Supplier (${escapeHtml(req.sellerName || req.targetSeller || 'Designated Supplier')}) was unable to fulfill this request. No payments were deducted. You can place a direct buy request with another verified seller or post a material requirement.</p>
+            <div class="mt-3">
+              <a href="buy-material-select.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition">
+                <i class="fa-solid fa-cart-shopping"></i> Explore Other Suppliers
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  let step = 1;
+  if (rawStatus.includes("DELIVERED") || rawStatus === "COMPLETED") step = 6;
+  else if (rawStatus.includes("OUT_FOR_DELIVERY")) step = 5;
+  else if (rawStatus.includes("READY_FOR_DISPATCH") || rawStatus.includes("DISPATCH")) step = 4;
+  else if (rawStatus.includes("PROCESSING")) step = 3;
+  else if (rawStatus.includes("ORDER_ACCEPTED") || rawStatus.includes("ACCEPTED")) step = 2;
+  else step = 1;
+
+  const phases = [
+    { num: 1, title: "Waiting", sub: "प्रतीक्षा" },
+    { num: 2, title: "Accepted", sub: "स्वीकृत" },
+    { num: 3, title: "Processing", sub: "प्रक्रिया" },
+    { num: 4, title: "Dispatched", sub: "भेजा गया" },
+    { num: 5, title: "Out for Delivery", sub: "रवाना" },
+    { num: 6, title: "Delivered", sub: "डिलीवर" }
+  ];
+
+  const isAccepted = step >= 2;
+
+  let timelineHtml = `
+    <div class="mt-4 pt-4 border-t border-slate-100">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fulfillment Timeline / आपूर्ति प्रगति</span>
+        <span class="text-[11px] font-semibold text-slate-700">Stage ${step} of 6</span>
+      </div>
+      <div class="grid grid-cols-6 gap-2 text-center">
+        ${phases.map(p => {
+          const isDone = step >= p.num;
+          const isCurrent = step === p.num;
+          const dotBg = isDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400';
+          const ring = isCurrent ? 'ring-4 ring-emerald-500/20 font-bold' : '';
+          return `
+            <div class="flex flex-col items-center">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${dotBg} ${ring} mb-1 transition">
+                ${isDone ? '<i class="fa-solid fa-check text-[9px]"></i>' : p.num}
+              </div>
+              <span class="text-[10px] font-semibold ${isDone ? 'text-slate-800' : 'text-slate-400'} leading-tight truncate w-full">${p.title}</span>
+              <span class="text-[9px] text-slate-400 leading-tight truncate w-full">${p.sub}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+  `;
+
+  if (isAccepted) {
+    timelineHtml += `
+      <div class="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 flex items-center justify-between flex-wrap gap-2.5">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+          <span class="text-xs font-semibold">Order Accepted & Allocated! Track live dispatch milestones in My Orders.</span>
+        </div>
+        <button onclick="navigate('my-orders')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-truck-ramp-box"></i> View in My Orders
+        </button>
+      </div>
+    `;
+  }
+
+  timelineHtml += `</div>`;
+  return timelineHtml;
+}
+
+function renderProfessionalMyRequests(container) {
+  const allReqs = Array.isArray(professionalRequests) ? professionalRequests : [];
+  
+  // Filter by Type
+  let filtered = allReqs;
+  if (proRequestTypeFilter === "DIRECT_BUY") {
+    filtered = filtered.filter(r => r.type === "DIRECT_BUY" || r.isDirectBuy);
+  } else if (proRequestTypeFilter === "MATERIAL_REQUIREMENT") {
+    filtered = filtered.filter(r => r.type === "MATERIAL_REQUIREMENT" || !r.isDirectBuy);
+  }
+
+  // Filter by Status
+  if (proRequestStatusFilter !== "ALL") {
+    filtered = filtered.filter(r => {
+      const raw = (r.rawStatus || r.status || "").toUpperCase();
+      if (proRequestStatusFilter === "WAITING_FOR_ACCEPTANCE") {
+        return raw.includes("WAITING") || raw === "NEW" || raw === "PENDING";
+      }
+      if (proRequestStatusFilter === "ACCEPTED") {
+        return raw === "ACCEPTED" || raw === "ORDER_ACCEPTED" || raw === "CONFIRMED" || raw === "ALLOCATED";
+      }
+      if (proRequestStatusFilter === "IN_PROGRESS") {
+        return raw === "PROCESSING" || raw === "READY_FOR_DISPATCH" || raw === "DISPATCHED" || raw === "OUT_FOR_DELIVERY";
+      }
+      if (proRequestStatusFilter === "DELIVERED") {
+        return raw === "DELIVERED" || raw === "COMPLETED";
+      }
+      if (proRequestStatusFilter === "DECLINED") {
+        return raw.includes("DECLINED") || raw.includes("REJECTED") || raw === "CANCELLED";
+      }
+      return true;
+    });
+  }
+
+  // Filter by Search Query
+  if (proRequestSearchQuery) {
+    const q = proRequestSearchQuery;
+    filtered = filtered.filter(r => {
+      const idMatch = (r.id || "").toLowerCase().includes(q);
+      const titleMatch = (r.materialName || r.title || "").toLowerCase().includes(q);
+      const sellerMatch = (r.sellerName || r.targetSeller || "").toLowerCase().includes(q);
+      const locMatch = (r.location || r.deliverySite || "").toLowerCase().includes(q);
+      return idMatch || titleMatch || sellerMatch || locMatch;
+    });
+  }
+
+  const totalCount = allReqs.length;
+  const directBuyCount = allReqs.filter(r => r.type === "DIRECT_BUY" || r.isDirectBuy).length;
+  const waitingCount = allReqs.filter(r => {
+    const raw = (r.rawStatus || r.status || "").toUpperCase();
+    return raw.includes("WAITING") || raw === "NEW" || raw === "PENDING";
+  }).length;
+  const acceptedCount = allReqs.filter(r => isProfessionalAcceptedOrderStatus(r.rawStatus || r.status)).length;
+
+  container.innerHTML = `
+    <div class="space-y-6 max-w-[1700px] mx-auto animate-fade-in">
+      <!-- Header Row -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-orange-600"></span>
+            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">My Requests / मेरे सामग्री अनुरोध</h2>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">Track your submitted material purchase requests and quotation requirements in real-time.</p>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <button onclick="fetchProfessionalRequests()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate text-slate-400"></i>
+            <span>Refresh / ताज़ा करें</span>
+          </button>
+          <a href="buy-material-select.html" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span>Buy Material / सामग्री खरीदें</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Metric Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Requests</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${totalCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">All procurement entries</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-base">
+            <i class="fa-solid fa-file-circle-check"></i>
+          </div>
+        </div>
+
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600">Direct Purchases</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${directBuyCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Instant seller orders</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+        </div>
+
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-600">Waiting Acceptance</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${waitingCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Pending seller review</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+        </div>
+
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Accepted & Confirmed</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${acceptedCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Ready in My Orders</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-truck-ramp-box"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Search Input -->
+        <div class="relative flex-1 max-w-md">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+          <input type="text" value="${escapeHtml(proRequestSearchQuery)}" oninput="handleProRequestSearch(this.value)" placeholder="Search by request ID, material, supplier..." class="w-full text-xs pl-8 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 transition">
+          ${proRequestSearchQuery ? `
+            <button onclick="handleProRequestSearch('')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs">&times;</button>
+          ` : ''}
+        </div>
+
+        <!-- Filter Selectors -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <!-- Type Filter -->
+          <select onchange="setProRequestTypeFilter(this.value)" class="text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500">
+            <option value="ALL" ${proRequestTypeFilter === 'ALL' ? 'selected' : ''}>All Request Types / सभी प्रकार</option>
+            <option value="DIRECT_BUY" ${proRequestTypeFilter === 'DIRECT_BUY' ? 'selected' : ''}>Direct Purchase / सीधा खरीद</option>
+            <option value="MATERIAL_REQUIREMENT" ${proRequestTypeFilter === 'MATERIAL_REQUIREMENT' ? 'selected' : ''}>Material Requirement / सामग्री आवश्यकता</option>
+          </select>
+
+          <!-- Status Filter -->
+          <select onchange="setProRequestStatusFilter(this.value)" class="text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-1 focus:ring-orange-500">
+            <option value="ALL" ${proRequestStatusFilter === 'ALL' ? 'selected' : ''}>All Statuses / सभी स्थितियां</option>
+            <option value="WAITING_FOR_ACCEPTANCE" ${proRequestStatusFilter === 'WAITING_FOR_ACCEPTANCE' ? 'selected' : ''}>Waiting for Acceptance</option>
+            <option value="ACCEPTED" ${proRequestStatusFilter === 'ACCEPTED' ? 'selected' : ''}>Accepted / Confirmed</option>
+            <option value="IN_PROGRESS" ${proRequestStatusFilter === 'IN_PROGRESS' ? 'selected' : ''}>In Progress (Processing / Dispatched / Out for Delivery)</option>
+            <option value="DELIVERED" ${proRequestStatusFilter === 'DELIVERED' ? 'selected' : ''}>Delivered / Completed</option>
+            <option value="DECLINED" ${proRequestStatusFilter === 'DECLINED' ? 'selected' : ''}>Declined / Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Content State Display -->
+      ${isProfessionalRequestsLoading ? `
+        <div class="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-subtle space-y-3">
+          <div class="inline-block animate-spin w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full mb-2"></div>
+          <h4 class="text-sm font-bold text-slate-800">Loading your material requests...</h4>
+          <p class="text-xs text-slate-500">Connecting to BuildBid procurement engine...</p>
+        </div>
+      ` : professionalRequestsError ? `
+        <div class="p-10 text-center bg-white rounded-2xl border border-rose-200 shadow-subtle space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-800">${escapeHtml(professionalRequestsError)}</h4>
+          <button onclick="fetchProfessionalRequests()" class="mt-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+            <i class="fa-solid fa-rotate-right mr-1"></i> Retry
+          </button>
+        </div>
+      ` : filtered.length === 0 ? `
+        <div class="p-16 text-center bg-white rounded-2xl border border-slate-200/90 shadow-subtle space-y-4">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl">
+            <i class="fa-solid fa-file-circle-check"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">No material requests found</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              ${proRequestSearchQuery || proRequestStatusFilter !== 'ALL' || proRequestTypeFilter !== 'ALL' 
+                ? 'No requests match your current search or filter criteria. Try resetting filters.' 
+                : 'You have not submitted any material purchase requests yet. You can purchase material directly from nearby verified suppliers or post a requirement.'}
+            </p>
+          </div>
+          <div class="pt-2">
+            <a href="buy-material-select.html" class="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+              <i class="fa-solid fa-cart-shopping"></i>
+              <span>Buy Material / सामग्री खरीदें</span>
+            </a>
+          </div>
+        </div>
+      ` : `
+        <div class="space-y-4">
+          ${filtered.map(req => {
+            const isDirectBuy = req.type === "DIRECT_BUY" || req.isDirectBuy;
+            const reqId = req.id || (isDirectBuy ? `DMR-${req.backendId}` : `MR-${req.backendId}`);
+            const dateStr = req.submittedDate || "Recently";
+            const rawStatus = (req.rawStatus || req.status || "WAITING_FOR_ACCEPTANCE").toUpperCase();
+
+            // Status Badge styling
+            let statusBadge = `bg-amber-50 text-amber-700 border-amber-200`;
+            let statusIcon = `fa-hourglass-half`;
+            if (rawStatus.includes("DELIVERED") || rawStatus === "COMPLETED") {
+              statusBadge = `bg-teal-50 text-teal-700 border-teal-200`;
+              statusIcon = `fa-circle-check`;
+            } else if (rawStatus.includes("OUT_FOR_DELIVERY")) {
+              statusBadge = `bg-indigo-50 text-indigo-700 border-indigo-200`;
+              statusIcon = `fa-truck-fast`;
+            } else if (rawStatus.includes("DISPATCH") || rawStatus.includes("PROCESSING")) {
+              statusBadge = `bg-blue-50 text-blue-700 border-blue-200`;
+              statusIcon = `fa-gear`;
+            } else if (rawStatus.includes("ACCEPTED") || rawStatus.includes("CONFIRMED")) {
+              statusBadge = `bg-emerald-50 text-emerald-700 border-emerald-200`;
+              statusIcon = `fa-check`;
+            } else if (rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED")) {
+              statusBadge = `bg-rose-50 text-rose-700 border-rose-200`;
+              statusIcon = `fa-ban`;
+            }
+
+            const sellerName = req.sellerName || req.targetSeller || "Designated Supplier";
+            const sellerLoc = req.sellerAddress || req.location || "Regional Supplier";
+            const sellerPhone = req.sellerPhone || "";
+
+            return `
+              <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 hover:shadow-card transition">
+                <!-- Card Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                  <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-sm font-extrabold text-slate-900 font-mono">${escapeHtml(reqId)}</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isDirectBuy ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}">
+                      ${isDirectBuy ? '<i class="fa-solid fa-bolt mr-1"></i> Direct Purchase' : '<i class="fa-solid fa-list-check mr-1"></i> Material Requirement'}
+                    </span>
+                    <span class="text-[11px] text-slate-400 flex items-center gap-1">
+                      <i class="fa-regular fa-clock"></i> ${escapeHtml(dateStr)}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold border ${statusBadge} inline-flex items-center gap-1.5">
+                      <i class="fa-solid ${statusIcon} text-[10px]"></i>
+                      <span>${escapeHtml(req.status || rawStatus)}</span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Materials & Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
+                  <!-- Item Info -->
+                  <div class="space-y-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Material & Volume</span>
+                    <div class="font-extrabold text-slate-900 text-sm">
+                      ${escapeHtml(req.materialName || (req.items && req.items.length ? req.items.map(i => i.materialName).join(", ") : "Construction Material"))}
+                    </div>
+                    <div class="text-slate-600">
+                      ${escapeHtml(req.quantity || (req.items && req.items.length ? req.items.map(i => `${i.quantity} ${i.unit || ''}`).join(", ") : "Quantity specified"))}
+                    </div>
+                    ${req.estimatedTotal ? `
+                      <div class="text-emerald-700 font-bold text-xs mt-1">
+                        Est. Total: ₹${Number(req.estimatedTotal).toLocaleString("en-IN")}
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <!-- Supplier Info -->
+                  <div class="space-y-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Designated Supplier</span>
+                    <div class="font-bold text-slate-900">${escapeHtml(sellerName)}</div>
+                    <div class="text-slate-500 text-[11px]"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${escapeHtml(sellerLoc)}</div>
+                    ${sellerPhone ? `
+                      <div class="text-[11px] text-slate-600 mt-0.5">
+                        <a href="tel:${escapeHtml(sellerPhone)}" class="text-orange-600 hover:underline inline-flex items-center gap-1 font-semibold">
+                          <i class="fa-solid fa-phone text-[10px]"></i> ${escapeHtml(sellerPhone)}
+                        </a>
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <!-- Delivery & Verification -->
+                  <div class="space-y-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Delivery Site</span>
+                    <div class="text-slate-800 font-medium">${escapeHtml(req.deliverySite || req.location || "Project Site")}</div>
+                    ${req.verificationCode ? `
+                      <div class="pt-1">
+                        <span class="text-[10px] text-slate-500 font-medium">Verification Code:</span>
+                        <span class="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 ml-1">${escapeHtml(req.verificationCode)}</span>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+
+                <!-- Direct Buy Timeline -->
+                ${isDirectBuy ? getProDirectBuyTimelineHTML(req) : ''}
+
+                <!-- Material Requirement Quotations List -->
+                ${!isDirectBuy && req.quotations && req.quotations.length ? `
+                  <div class="mt-4 pt-4 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Quotations Received (${req.quotations.length})</span>
+                    </div>
+                    <div class="space-y-2">
+                      ${req.quotations.map(q => {
+                        const qStatus = (q.status || "PENDING").toUpperCase();
+                        const isQAccepted = qStatus === "ACCEPTED";
+                        const isQRejected = qStatus === "REJECTED";
+                        return `
+                          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs">
+                            <div>
+                              <div class="font-bold text-slate-900">${escapeHtml(q.sellerName || q.providerName || "Verified Supplier")}</div>
+                              <div class="text-[11px] text-slate-500">Quoted: <strong class="text-slate-800">₹${Number(q.quotedAmount || q.totalAmount || 0).toLocaleString("en-IN")}</strong> • Delivery in ${escapeHtml(q.deliveryDays || "3-5")} Days</div>
+                              ${q.notes ? `<div class="text-[10px] text-slate-400 mt-0.5">"${escapeHtml(q.notes)}"</div>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2">
+                              ${isQAccepted ? `
+                                <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-xs">
+                                  <i class="fa-solid fa-check"></i> Accepted Quotation
+                                </span>
+                              ` : isQRejected ? `
+                                <span class="px-2.5 py-1 bg-rose-100 text-rose-800 font-bold rounded-lg text-xs">
+                                  <i class="fa-solid fa-xmark"></i> Rejected
+                                </span>
+                              ` : `
+                                <button onclick="handleAcceptProQuotation('${q.backendId || q.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-2xs transition">
+                                  Accept Quote
+                                </button>
+                                <button onclick="handleRejectProQuotation('${q.backendId || q.id}')" class="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 rounded-lg font-semibold text-xs transition">
+                                  Decline
+                                </button>
+                              `}
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function handleProOrderSearch(val) {
+  proOrderSearchQuery = (val || "").trim().toLowerCase();
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'my-orders') {
+    renderProfessionalMyOrders(container);
+  }
+}
+
+function setProOrderStatusFilter(filter) {
+  proOrderStatusFilter = filter;
+  const container = document.getElementById('main-view');
+  if (container && activeRoute === 'my-orders') {
+    renderProfessionalMyOrders(container);
+  }
+}
+
+function getProOrderStageIndex(status) {
+  const s = (status || "").toUpperCase();
+  if (s.includes("DELIVERED") || s.includes("COMPLETED")) return 4;
+  if (s.includes("OUT_FOR_DELIVERY")) return 3;
+  if (s.includes("DISPATCH") || s.includes("READY_FOR_DISPATCH")) return 2;
+  return 1; // PROCESSING / ACCEPTED
+}
+
+function getProOrderProgressBarHTML(status) {
+  const stage = getProOrderStageIndex(status);
+  const stages = [
+    { num: 1, label: "Processing", sub: "प्रक्रिया में", icon: "fa-solid fa-gear" },
+    { num: 2, label: "Dispatched", sub: "भेजा गया", icon: "fa-solid fa-box-open" },
+    { num: 3, label: "Out for Delivery", sub: "रवाना", icon: "fa-solid fa-truck-fast" },
+    { num: 4, label: "Delivered", sub: "डिलीवर", icon: "fa-solid fa-circle-check" }
+  ];
+
+  return `
+    <div class="py-3 px-4 bg-slate-50/80 rounded-xl border border-slate-100 my-4">
+      <div class="grid grid-cols-4 gap-2 text-center relative">
+        ${stages.map((st) => {
+          const isDone = stage >= st.num;
+          const isCurrent = stage === st.num;
+          const iconBg = isDone ? (st.num === 4 ? 'bg-teal-500 text-white' : 'bg-emerald-500 text-white') : 'bg-white text-slate-400 border border-slate-200';
+          const ring = isCurrent ? 'ring-4 ring-emerald-500/20' : '';
+          return `
+            <div class="flex flex-col items-center">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${iconBg} ${ring} shadow-2xs mb-1.5 transition">
+                <i class="${st.icon}"></i>
+              </div>
+              <span class="text-xs font-bold ${isDone ? 'text-slate-800' : 'text-slate-400'}">${st.label}</span>
+              <span class="text-[10px] text-slate-400">${st.sub}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderProfessionalMyOrders(container) {
+  const allOrders = Array.isArray(professionalOrders) ? professionalOrders : [];
+
+  // Filter by Status
+  let filtered = allOrders;
+  if (proOrderStatusFilter !== "ALL") {
+    filtered = filtered.filter(o => {
+      const stage = getProOrderStageIndex(o.orderStatus || o.status);
+      if (proOrderStatusFilter === "PROCESSING") return stage === 1;
+      if (proOrderStatusFilter === "DISPATCHED") return stage === 2;
+      if (proOrderStatusFilter === "OUT_FOR_DELIVERY") return stage === 3;
+      if (proOrderStatusFilter === "DELIVERED") return stage === 4;
+      return true;
+    });
+  }
+
+  // Filter by Search Query
+  if (proOrderSearchQuery) {
+    const q = proOrderSearchQuery;
+    filtered = filtered.filter(o => {
+      const codeMatch = (o.orderCode || o.orderId || "").toLowerCase().includes(q);
+      const titleMatch = (o.materialTitle || (o.items && o.items.map(i=>i.materialName).join(" ")) || "").toLowerCase().includes(q);
+      const sellerMatch = (o.sellerName || o.sellerBusinessName || "").toLowerCase().includes(q);
+      const siteMatch = (o.deliverySite || o.deliveryAddress || "").toLowerCase().includes(q);
+      return codeMatch || titleMatch || sellerMatch || siteMatch;
+    });
+  }
+
+  const totalOrders = allOrders.length;
+  const processingCount = allOrders.filter(o => getProOrderStageIndex(o.orderStatus || o.status) === 1).length;
+  const inTransitCount = allOrders.filter(o => [2, 3].includes(getProOrderStageIndex(o.orderStatus || o.status))).length;
+  const deliveredCount = allOrders.filter(o => getProOrderStageIndex(o.orderStatus || o.status) === 4).length;
+
+  container.innerHTML = `
+    <div class="space-y-6 max-w-[1700px] mx-auto animate-fade-in">
+      <!-- Header Row -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">My Orders / मेरे सामग्री ऑर्डर</h2>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">Track delivery, seller fulfillment, and dispatch milestones for your accepted material orders.</p>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <button onclick="fetchProfessionalOrders()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate text-slate-400"></i>
+            <span>Refresh / ताज़ा करें</span>
+          </button>
+          <button onclick="navigate('my-requests')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+            <i class="fa-solid fa-file-circle-check"></i>
+            <span>View My Requests</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Direct Payment Model Notice -->
+      <div class="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
+        <i class="fa-solid fa-shield-halved text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
+        <div class="leading-relaxed">
+          <strong class="font-bold">Direct Buyer-to-Supplier Settlement:</strong>
+          <span>BuildBid connects buyers directly with vetted material suppliers. Payment is settled directly between you and the designated seller upon material receipt and inspection. No platform deductions or third-party processing.</span>
+        </div>
+      </div>
+
+      <!-- Metric Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Confirmed Orders</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${totalOrders}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Accepted orders lifecycle</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-base">
+            <i class="fa-solid fa-boxes-packing"></i>
+          </div>
+        </div>
+
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600">Processing</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${processingCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Being packaged by seller</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-gear"></i>
+          </div>
+        </div>
+
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-600">In Transit</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${inTransitCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Dispatched / on route</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-truck-fast"></i>
+          </div>
+        </div>
+
+        <div class="pro-stat-card bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Delivered</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-0.5">${deliveredCount}</h3>
+            <p class="text-[10px] text-slate-500 mt-0.5">Completed site arrivals</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Search Input -->
+        <div class="relative flex-1 max-w-md">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+          <input type="text" value="${escapeHtml(proOrderSearchQuery)}" oninput="handleProOrderSearch(this.value)" placeholder="Search by order code, material, supplier, site..." class="w-full text-xs pl-8 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition">
+          ${proOrderSearchQuery ? `
+            <button onclick="handleProOrderSearch('')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs">&times;</button>
+          ` : ''}
+        </div>
+
+        <!-- Filter Selectors -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <select onchange="setProOrderStatusFilter(this.value)" class="text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <option value="ALL" ${proOrderStatusFilter === 'ALL' ? 'selected' : ''}>All Order Stages / सभी चरण</option>
+            <option value="PROCESSING" ${proOrderStatusFilter === 'PROCESSING' ? 'selected' : ''}>Stage 1: Processing / प्रक्रिया में</option>
+            <option value="DISPATCHED" ${proOrderStatusFilter === 'DISPATCHED' ? 'selected' : ''}>Stage 2: Dispatched / भेजा गया</option>
+            <option value="OUT_FOR_DELIVERY" ${proOrderStatusFilter === 'OUT_FOR_DELIVERY' ? 'selected' : ''}>Stage 3: Out for Delivery / रवाना</option>
+            <option value="DELIVERED" ${proOrderStatusFilter === 'DELIVERED' ? 'selected' : ''}>Stage 4: Delivered / डिलीवर हो गया</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Content Display -->
+      ${isProfessionalOrdersLoading ? `
+        <div class="p-12 text-center bg-white rounded-2xl border border-slate-200/90 shadow-subtle space-y-3">
+          <div class="inline-block animate-spin w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full mb-2"></div>
+          <h4 class="text-sm font-bold text-slate-800">Loading your material orders...</h4>
+          <p class="text-xs text-slate-500">Retrieving confirmed fulfillment records...</p>
+        </div>
+      ` : professionalOrdersError ? `
+        <div class="p-10 text-center bg-white rounded-2xl border border-rose-200 shadow-subtle space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-800">${escapeHtml(professionalOrdersError)}</h4>
+          <button onclick="fetchProfessionalOrders()" class="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+            <i class="fa-solid fa-rotate-right mr-1"></i> Retry
+          </button>
+        </div>
+      ` : filtered.length === 0 ? `
+        <div class="p-16 text-center bg-white rounded-2xl border border-slate-200/90 shadow-subtle space-y-4">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
+            <i class="fa-solid fa-truck-ramp-box"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">No confirmed material orders yet</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              ${proOrderSearchQuery || proOrderStatusFilter !== 'ALL' 
+                ? 'No orders match your filter criteria. Try resetting filters.' 
+                : 'When a supplier accepts your direct purchase request or confirms a quotation, your order will automatically appear here with live tracking.'}
+            </p>
+          </div>
+          <div class="pt-2 flex items-center justify-center gap-3">
+            <button onclick="navigate('my-requests')" class="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs">
+              Check My Requests
+            </button>
+            <a href="buy-material-select.html" class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+              <i class="fa-solid fa-cart-shopping"></i>
+              <span>Buy Material</span>
+            </a>
+          </div>
+        </div>
+      ` : `
+        <div class="space-y-4">
+          ${filtered.map(order => {
+            const orderCode = order.orderCode || order.orderId || `ORD-${order.id}`;
+            const rawStatus = (order.orderStatus || order.status || "CONFIRMED").toUpperCase();
+            const stage = getProOrderStageIndex(rawStatus);
+
+            let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+            let statusLabel = 'Processing / प्रक्रिया में';
+            if (stage === 4) {
+              statusBadge = 'bg-teal-50 text-teal-700 border-teal-200';
+              statusLabel = 'Delivered / डिलीवर हो गया';
+            } else if (stage === 3) {
+              statusBadge = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+              statusLabel = 'Out for Delivery / रवाना';
+            } else if (stage === 2) {
+              statusBadge = 'bg-sky-50 text-sky-700 border-sky-200';
+              statusLabel = 'Dispatched / भेजा गया';
+            }
+
+            const sellerName = order.sellerName || order.sellerBusinessName || "Verified Supplier";
+            const sellerPhone = order.sellerPhone || "";
+            const sellerLocation = order.sellerLocation || order.sellerAddress || "Regional Warehouse";
+            const deliverySite = order.deliverySite || order.deliveryAddress || "Project Site";
+            const orderedDate = order.orderedDate || (order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "Recently");
+
+            return `
+              <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 hover:shadow-card transition">
+                <!-- Order Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-sm font-extrabold text-slate-900 font-mono">${escapeHtml(orderCode)}</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${order.type === 'DIRECT_BUY' || String(orderCode).startsWith('DMR-') ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}">
+                      ${order.type === 'DIRECT_BUY' || String(orderCode).startsWith('DMR-') ? 'Direct Buy Order' : 'Multi-Seller Allocation'}
+                    </span>
+                    <span class="text-[11px] text-slate-400">
+                      <i class="fa-regular fa-calendar mr-1"></i> Ordered: ${escapeHtml(orderedDate)}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold border ${statusBadge} inline-flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full ${stage === 4 ? 'bg-teal-500' : 'bg-emerald-500 animate-pulse'}"></span>
+                      <span>${escapeHtml(statusLabel)}</span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 4-Stage Visual Progress Bar -->
+                ${getProOrderProgressBarHTML(rawStatus)}
+
+                <!-- Order Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-1">
+                  <!-- Materials & Scope -->
+                  <div class="space-y-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Materials Included</span>
+                    <div class="font-extrabold text-slate-900 text-sm">
+                      ${escapeHtml(order.materialTitle || (order.items && order.items.length ? order.items.map(i=>i.materialName).join(", ") : "Construction Material Supplies"))}
+                    </div>
+                    ${order.items && order.items.length ? `
+                      <div class="space-y-1 pt-1">
+                        ${order.items.slice(0, 3).map(it => `
+                          <div class="text-[11px] text-slate-600 flex justify-between pr-4">
+                            <span>• ${escapeHtml(it.materialName)}</span>
+                            <span class="font-semibold">${escapeHtml(it.quantity || '')} ${escapeHtml(it.unit || '')}</span>
+                          </div>
+                        `).join('')}
+                        ${order.items.length > 3 ? `<span class="text-[10px] text-slate-400">+ ${order.items.length - 3} more items</span>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <!-- Supplier Information -->
+                  <div class="space-y-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Supplier Information</span>
+                    <div class="font-bold text-slate-900">${escapeHtml(sellerName)}</div>
+                    <div class="text-slate-500 text-[11px]"><i class="fa-solid fa-warehouse text-slate-400 mr-1"></i>${escapeHtml(sellerLocation)}</div>
+                    ${sellerPhone ? `
+                      <div class="pt-1">
+                        <a href="tel:${escapeHtml(sellerPhone)}" class="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold transition">
+                          <i class="fa-solid fa-phone text-emerald-600 text-[10px]"></i> ${escapeHtml(sellerPhone)}
+                        </a>
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <!-- Delivery & Verification -->
+                  <div class="space-y-2">
+                    <div>
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Delivery Site</span>
+                      <div class="text-slate-800 font-medium">${escapeHtml(deliverySite)}</div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <i class="fa-regular fa-calendar-check text-orange-600"></i>
+                      <span class="text-slate-500">Expected Delivery:</span>
+                      <span class="font-bold text-slate-800">${escapeHtml(order.expectedDeliveryDate || 'Pending confirmation from seller')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Verification Code & Financial Summary Row -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    ${order.verificationCode ? `
+                      <div class="inline-flex items-center gap-2 p-1.5 px-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                        <i class="fa-solid fa-shield-halved text-emerald-600 text-xs"></i>
+                        <span class="text-slate-600 font-medium">Verification Code:</span>
+                        <span class="font-mono font-bold text-emerald-800 tracking-wider">${escapeHtml(order.verificationCode)}</span>
+                      </div>
+                    ` : `
+                      <span class="text-[11px] text-slate-400">Direct Purchase Fulfillment Order</span>
+                    `}
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    ${order.totalAmount ? `
+                      <div class="text-right">
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Total Payable</span>
+                        <div class="text-sm font-extrabold text-slate-900">₹${Number(order.totalAmount).toLocaleString("en-IN")}</div>
+                      </div>
+                    ` : ''}
+                    <button onclick="openProfessionalOrderTrackingModal('${escapeHtml(orderCode)}')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                      <i class="fa-solid fa-truck-fast"></i> Track Delivery
+                    </button>
+                    <button onclick="navigate('my-requests')" class="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold border border-slate-200 transition">
+                      View Request
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function openProfessionalOrderTrackingModal(orderCode) {
+  const order = professionalOrders.find(o => (o.orderCode || o.orderId || `ORD-${o.id}`) === orderCode);
+  if (!order) return;
+
+  const titleEl = document.getElementById('tracking-modal-title');
+  if (titleEl) titleEl.innerText = `Fulfillment & Tracking: ${order.orderCode || order.orderId}`;
+
+  const bodyEl = document.getElementById('tracking-modal-body');
+  if (!bodyEl) return;
+
+  const rawStatus = (order.orderStatus || order.status || "CONFIRMED").toUpperCase();
+  const stage = getProOrderStageIndex(rawStatus);
+
+  bodyEl.innerHTML = `
+    <div class="space-y-4">
+      <!-- Progress Bar -->
+      ${getProOrderProgressBarHTML(rawStatus)}
+
+      <!-- Details Summary -->
+      <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-500">Order Reference:</span>
+          <span class="font-mono font-bold text-slate-900">${escapeHtml(order.orderCode || order.orderId)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-500">Current Status:</span>
+          <span class="font-bold text-emerald-700">${escapeHtml(rawStatus)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-500">Expected Delivery Date:</span>
+          <span class="font-bold text-slate-900">${escapeHtml(order.expectedDeliveryDate || 'Pending confirmation from supplier')}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-500">Delivery Site:</span>
+          <span class="font-medium text-slate-800">${escapeHtml(order.deliverySite || order.deliveryAddress || 'Site Location')}</span>
+        </div>
+        ${order.verificationCode ? `
+          <div class="flex justify-between items-center pt-1 border-t border-slate-200">
+            <span class="text-slate-500">Delivery Verification Code:</span>
+            <span class="font-mono font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300">${escapeHtml(order.verificationCode)}</span>
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Supplier Box -->
+      <div class="p-3.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400">Supplier</span>
+          <h5 class="text-xs font-bold text-slate-900 mt-0.5">${escapeHtml(order.sellerName || order.sellerBusinessName || 'Verified Supplier')}</h5>
+          <p class="text-[11px] text-slate-500">${escapeHtml(order.sellerLocation || order.sellerAddress || 'Regional Warehouse')}</p>
+        </div>
+        ${order.sellerPhone ? `
+          <a href="tel:${escapeHtml(order.sellerPhone)}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+            <i class="fa-solid fa-phone"></i> Call
+          </a>
+        ` : ''}
+      </div>
+
+      <!-- Financial Totals -->
+      <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Material Subtotal:</span>
+          <span class="font-semibold text-slate-800">₹${Number(order.subtotal || order.materialAmount || 0).toLocaleString("en-IN")}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Transportation / Freight:</span>
+          <span class="font-semibold text-slate-800">₹${Number(order.freight || order.transportationAmount || 0).toLocaleString("en-IN")}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">GST / Tax:</span>
+          <span class="font-semibold text-slate-800">₹${Number(order.tax || order.taxGst || 0).toLocaleString("en-IN")}</span>
+        </div>
+        <div class="flex justify-between pt-1 border-t border-slate-200 text-sm font-extrabold text-slate-900">
+          <span>Total Payable:</span>
+          <span class="text-emerald-700">₹${Number(order.totalAmount || 0).toLocaleString("en-IN")}</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeModal('modal-order-tracking')" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-xs transition">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  openModal('modal-order-tracking');
+}
+
+async function handleAcceptProQuotation(quoteId) {
+  const token = getCleanToken();
+  if (!token) {
+    showToast("Please log in to accept quotations.", "error");
+    return;
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/quotations/${encodeURIComponent(quoteId)}/accept`, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.ok) {
+      showToast("Quotation accepted successfully! Order generated.", "success");
+      await fetchProfessionalRequests();
+      await fetchProfessionalOrders();
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.error || "Failed to accept quotation.", "error");
+    }
+  } catch (err) {
+    console.error("Error accepting quotation:", err);
+    showToast("Network error while accepting quotation.", "error");
+  }
+}
+
+async function handleRejectProQuotation(quoteId) {
+  const token = getCleanToken();
+  if (!token) {
+    showToast("Please log in to reject quotations.", "error");
+    return;
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/quotations/${encodeURIComponent(quoteId)}/reject`, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.ok) {
+      showToast("Quotation declined.", "info");
+      await fetchProfessionalRequests();
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.error || "Failed to decline quotation.", "error");
+    }
+  } catch (err) {
+    console.error("Error rejecting quotation:", err);
+    showToast("Network error while declining quotation.", "error");
+  }
+}
+

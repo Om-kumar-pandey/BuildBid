@@ -89,7 +89,10 @@ public class QuotationController {
      * Customer retrieves quotations for their own request.
      * Accessible ONLY by authenticated customer who owns the request.
      */
-    @GetMapping("/api/customer/requests/{requestType}/{requestId}/quotations")
+    @GetMapping({"/api/customer/requests/{requestType}/{requestId}/quotations",
+                 "/api/contractor/requests/{requestType}/{requestId}/quotations",
+                 "/api/professional/requests/{requestType}/{requestId}/quotations",
+                 "/api/requests/{requestType}/{requestId}/quotations"})
     public ResponseEntity<?> getCustomerRequestQuotations(
             @PathVariable("requestType") String requestType,
             @PathVariable("requestId") String requestId,
@@ -106,7 +109,7 @@ public class QuotationController {
 
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Customer account not found."));
+                    .body(Map.of("error", "Account not found."));
         }
 
         MarketplaceBackendApplication.MarketplaceUser customer = userOpt.get();
@@ -131,9 +134,12 @@ public class QuotationController {
     }
 
     /**
-     * Customer retrieves quotations by requestId alone.
+     * Customer/Buyer retrieves quotations by requestId alone.
      */
-    @GetMapping("/api/customer/requests/{requestId}/quotations")
+    @GetMapping({"/api/customer/requests/{requestId}/quotations",
+                 "/api/contractor/requests/{requestId}/quotations",
+                 "/api/professional/requests/{requestId}/quotations",
+                 "/api/requests/{requestId}/quotations"})
     public ResponseEntity<?> getCustomerRequestQuotationsById(
             @PathVariable("requestId") String requestId,
             Authentication authentication

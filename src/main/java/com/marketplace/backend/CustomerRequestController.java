@@ -24,7 +24,7 @@ import java.util.*;
  * MUST NEVER appear in My Requests.
  */
 @RestController
-@RequestMapping({"/api/customer", "/api/contractor"})
+@RequestMapping({"/api/customer", "/api/contractor", "/api/professional"})
 public class CustomerRequestController {
 
     private final MaterialRequestRepository materialRequestRepository;
@@ -61,8 +61,8 @@ public class CustomerRequestController {
     }
 
     /**
-     * GET /api/customer/my-requests
-     * Aggregates only genuine customer request submissions belonging to the logged-in customer.
+     * GET /api/customer/my-requests, /api/contractor/my-requests, /api/professional/my-requests
+     * Aggregates only genuine customer/buyer request submissions belonging to the logged-in user.
      * ZERO queries to ProjectRepository / projects table.
      */
     @GetMapping({"/my-requests", "/requests"})
@@ -78,10 +78,17 @@ public class CustomerRequestController {
 
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Customer account not found in system."));
+                    .body(Map.of("error", "User account not found in system."));
         }
 
         MarketplaceBackendApplication.MarketplaceUser customer = userOpt.get();
+
+        boolean isAllowedBuyer = isAllowedBuyer(customer);
+        if (!isAllowedBuyer) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Only Customer, Contractor, and Professional accounts can access My Requests."));
+        }
+
         List<Map<String, Object>> aggregatedRequests = new ArrayList<>();
 
         // 1. Material Requests (Direct Material Purchase & Material Requirements)
@@ -520,5 +527,15 @@ public class CustomerRequestController {
             return String.format(Locale.US, "%d", (long) qty);
         }
         return String.format(Locale.US, "%.1f", qty);
+    }
+
+    private boolean isAllowedBuyer(MarketplaceBackendApplication.MarketplaceUser user) {
+        if (user == null || user.getRoles() == null) {
+            return false;
+        }
+        return user.getRoles().contains(MarketplaceBackendApplication.Role.CUSTOMER) ||
+               user.getRoles().contains(MarketplaceBackendApplication.Role.CONTRACTOR) ||
+               user.getRoles().contains(MarketplaceBackendApplication.Role.PROFESSIONAL) ||
+               user.getRoles().contains(MarketplaceBackendApplication.Role.SERVICE_PROVIDER);
     }
 }

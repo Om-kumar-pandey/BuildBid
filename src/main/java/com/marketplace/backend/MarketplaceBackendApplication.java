@@ -598,7 +598,9 @@ public class MarketplaceBackendApplication {
                             .requestMatchers(HttpMethod.POST, "/api/direct-buy/matching-sellers").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/customer/projects/create", "/api/projects/create").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/customer/projects", "/api/customer/projects/**").authenticated()
-                            .requestMatchers("/api/customer/my-requests", "/api/customer/requests").authenticated()
+                            .requestMatchers("/api/customer/my-requests", "/api/customer/requests",
+                                             "/api/contractor/my-requests", "/api/contractor/requests",
+                                             "/api/professional/my-requests", "/api/professional/requests").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/projects", "/api/projects/**").permitAll()
                             .requestMatchers("/api/customer/hiring/**").permitAll()
                             .requestMatchers("/api/customer/profile", "/api/customer/profile/**").hasRole("CUSTOMER")
