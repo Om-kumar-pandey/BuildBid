@@ -1588,133 +1588,60 @@ function renderDashboard(container) {
 
   container.innerHTML = `
     <div class="space-y-7 max-w-[1700px] mx-auto">
-      <!-- TOP BLUE PROFESSIONAL HERO (Inspired by BuildBid Reference Image) -->
-      <div class="pro-hero-card mb-6">
-        <div class="pro-hero-glow-1"></div>
-        <div class="pro-hero-glow-2"></div>
-
-        <!-- Hero Header Row -->
-        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-sky-400/20">
-          <div class="flex items-center gap-3.5">
-            <div class="pro-hero-icon-box">
-              <i class="fa-solid fa-helmet-safety"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2.5 flex-wrap">
-                <h2 class="text-lg sm:text-xl font-extrabold text-white tracking-tight">
-                  ${getDynamicGreeting()}, <span class="text-sky-300 font-extrabold">${escapeHtml(currentPro.name)}</span>!
-                </h2>
-                ${getHeroVerificationBadgeHtml(currentPro)}
-              </div>
-              <p class="text-xs sm:text-[13px] text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
-                <span class="font-semibold text-sky-200">${displayRole} Workspace</span>
-                <span class="text-slate-500">•</span>
-                <span><i class="fa-solid fa-location-dot text-sky-400 text-[11px] mr-1"></i>${displayLoc}</span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Header Right Quick Actions -->
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <button onclick="navigate('find-work')" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition backdrop-blur-xs pro-btn">
-              <i class="fa-solid fa-magnifying-glass-location text-sky-400 text-xs"></i>
-              <span>Find Leads</span>
-            </button>
-            <button onclick="navigate('documents')" class="px-3.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 text-xs font-semibold flex items-center gap-2 transition backdrop-blur-xs pro-btn">
-              <i class="fa-solid fa-shield-check text-sky-300 text-xs"></i>
-              <span>Credentials</span>
-            </button>
-            <button onclick="window.location.href='add-new-service.html'" class="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm pro-btn">
-              <i class="fa-solid fa-plus text-xs"></i>
-              <span>Add Service</span>
+      <!-- PROFESSIONAL PROFILE HERO CARD (Custom Hero Background) -->
+      <section class="pro-profile-hero-banner mb-6">
+        <div class="pro-hero-left">
+          <div class="pro-hero-avatar-box">
+            <img src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="pro-hero-avatar" id="proHeroAvatar" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
+            <button onclick="navigate('profile')" class="pro-avatar-camera-btn" title="Edit Profile & Photo">
+              <i class="fa-solid fa-camera"></i>
             </button>
           </div>
-        </div>
-
-        <!-- 3 Feature Cards Row (Mirroring Reference Image Layout) -->
-        <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-          <!-- Card 1: Verified Credentials -->
-          <div class="pro-hero-feature-card">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2.5">
-                  <div class="pro-exp-icon pro-exp-emerald">
-                    <i class="fa-solid fa-shield-check"></i>
-                  </div>
-                  <div>
-                    <h3 class="text-sm font-bold text-slate-900 leading-snug">Trade Credentials</h3>
-                    <p class="text-[11px] text-slate-500">${card1Subtitle}</p>
-                  </div>
-                </div>
-                ${card1StatusBadge}
-              </div>
-              ${card1DetailsHtml}
+          
+          <div class="pro-hero-details">
+            <div class="pro-hero-title-row">
+              <h2 class="pro-hero-name">
+                ${getDynamicGreeting()}, <span class="pro-hero-name-highlight">${escapeHtml(currentPro.name)}</span>
+              </h2>
+              ${isVerifiedAccount 
+                ? '<i class="fa-solid fa-circle-check pro-badge-verified" title="Verified Professional Account"></i>' 
+                : ''}
             </div>
-            <button onclick="navigate('documents')" class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition pro-btn">
-              <span>${hasDocs ? 'View Credentials' : 'Manage Credentials'}</span>
-              <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </button>
-          </div>
 
-          <!-- Card 2: Client Work Leads -->
-          <div class="pro-hero-feature-card">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2.5">
-                  <div class="pro-exp-icon pro-exp-orange">
-                    <i class="fa-solid fa-inbox"></i>
-                  </div>
-                  <div>
-                    <h3 class="text-sm font-bold text-slate-900 leading-snug">Client Requests</h3>
-                    <p class="text-[11px] text-slate-500">Inbound Work Leads</p>
-                  </div>
-                </div>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-100 text-orange-800">${reqCount} Live ${reqCount === 1 ? 'Lead' : 'Leads'}</span>
-              </div>
-              <div class="my-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-slate-600 leading-relaxed">
-                <p>Direct quotation & site inspection requests in <strong>${locArea}</strong> area.</p>
-                <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Real-time lead notifications</p>
-              </div>
+            <div class="pro-vip-tag" id="proMembershipBadge">
+              ${isVerifiedAccount 
+                ? '<i class="fa-solid fa-crown text-amber-500"></i> <span>Verified Service Partner</span>'
+                : (isPendingAccount 
+                  ? '<i class="fa-solid fa-clock text-amber-500"></i> <span>Verification In Review</span>'
+                  : '<i class="fa-solid fa-shield-halved text-sky-600"></i> <span>Licensed Professional Partner</span>')}
             </div>
-            <button onclick="navigate('requests')" class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-2 transition shadow-sm pro-btn">
-              <span>Inspect Client Requests</span>
-              <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </button>
-          </div>
 
-          <!-- Card 3: Active Projects & Escrow Security -->
-          <div class="pro-hero-feature-card">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2.5">
-                  <div class="pro-exp-icon pro-exp-blue">
-                    <i class="fa-solid fa-building-shield"></i>
-                  </div>
-                  <div>
-                    <h3 class="text-sm font-bold text-slate-900 leading-snug">Escrow Security</h3>
-                    <p class="text-[11px] text-slate-500">Guaranteed Milestones</p>
-                  </div>
-                </div>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800">₹${pendingEscrow.toLocaleString('en-IN')} Escrow</span>
-              </div>
-              <div class="space-y-1.5 my-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                <div class="flex items-center justify-between text-slate-600">
-                  <span>Active Contracts:</span>
-                  <strong class="text-slate-800">${activePrjCount} In Progress</strong>
-                </div>
-                <div class="flex items-center justify-between text-slate-600">
-                  <span>Cleared Payouts:</span>
-                  <strong class="text-emerald-600">₹${totalEarnings.toLocaleString('en-IN')}</strong>
-                </div>
-              </div>
+            <p class="pro-hero-role">${escapeHtml(displayRole).toUpperCase()} • BUILDBID PRO</p>
+
+            <div class="pro-hero-meta-items">
+              <span title="Operational Location">
+                <i class="fa-solid fa-location-dot"></i> <span>${displayLoc}</span>
+              </span>
+              <span title="Operational Service Radius">
+                <i class="fa-solid fa-crosshairs"></i> <span>${currentPro.serviceRadius || 25} km Service Area</span>
+              </span>
+              <span class="pro-meta-status" title="Active Availability">
+                <span class="pro-live-dot"></span> <span>Available for Consultations</span>
+              </span>
+              <span>
+                <i class="fa-regular fa-calendar"></i> <span>Member since 2026</span>
+              </span>
             </div>
-            <button onclick="navigate('projects')" class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center gap-2 transition pro-btn">
-              <span>Track Active Milestones</span>
-              <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </button>
           </div>
         </div>
-      </div>
+
+        <div class="pro-hero-right">
+          <button onclick="navigate('profile')" class="btn-pro-edit-profile" id="proEditProfileBtn" title="Edit Professional Profile">
+            <i class="fa-solid fa-pen"></i>
+            <span>Edit Profile</span>
+          </button>
+        </div>
+      </section>
 
       <!-- 8 DESKTOP STATS CARDS GRID -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
