@@ -198,48 +198,103 @@ button.bg-orange-600:active,
 }
 
 /* =========================================================
-   4. SIDEBAR NAVIGATION INTERACTIONS
+   4. SIDEBAR NAVIGATION & LIGHT BLUE THEME
+   BuildBid Blue Brand Palette (Option A)
    ========================================================= */
+
+/* Sidebar Container */
+aside.w-\[280px\],
+aside.border-r {
+  background-color: #eff6ff;
+  border-right-color: #dbeafe;
+}
+
+/* Sidebar Header (Logo Bar) */
+aside.w-\[280px\] > div:first-child,
+aside.border-r > div:first-child {
+  background-color: #eff6ff;
+  border-bottom-color: #dbeafe;
+}
+
+aside.w-\[280px\] .h-16 span.rounded {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+/* Sidebar Profile Mini-Card */
+aside.w-\[280px\] > div:nth-child(2),
+aside.border-r > div:nth-child(2),
+.sidebar-profile-card {
+  background-color: rgba(219, 234, 254, 0.35);
+  border-bottom-color: #dbeafe;
+  transition: background-color 0.2s ease;
+}
+
+aside.w-\[280px\] > div:nth-child(2):hover,
+.sidebar-profile-card:hover {
+  background-color: rgba(219, 234, 254, 0.55);
+}
+
+/* Sidebar Section Category Labels */
+aside.w-\[280px\] .uppercase.tracking-wider,
+aside.border-r .uppercase.tracking-wider {
+  color: #1e40af;
+}
+
+/* Sidebar Navigation Links */
 .nav-link {
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-left: 3px solid transparent;
-}
-
-.nav-link:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
-  transform: translateX(2px);
+  color: #1e3a8a;
 }
 
 .nav-link i {
+  color: #2563eb;
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
+/* Hover State */
+.nav-link:hover {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  transform: translateX(2px);
+}
+
 .nav-link:hover i {
-  color: #ea580c;
+  color: #1d4ed8;
   transform: scale(1.08);
 }
 
+/* Active State */
 .nav-link.active {
-  background-color: #fff7ed;
-  color: #ea580c;
+  background-color: #dbeafe;
+  color: #2563eb;
   font-weight: 600;
-  border-left: 3px solid #ea580c;
+  border-left: 3px solid #2563eb;
   border-right: none;
-  box-shadow: inset 0 1px 2px rgba(234, 88, 12, 0.04);
+  box-shadow: inset 0 1px 2px rgba(37, 99, 235, 0.08);
 }
 
 .nav-link.active i {
-  color: #ea580c;
+  color: #2563eb;
 }
 
-/* Sidebar Mini Profile hover */
-.sidebar-profile-card {
-  transition: background-color 0.2s ease;
+/* Quick Help & Support Footer Card */
+aside.w-\[280px\] > div:last-child,
+aside.border-r > div:last-child {
+  background-color: #eff6ff;
+  border-top-color: #dbeafe;
 }
-.sidebar-profile-card:hover {
-  background-color: rgba(241, 245, 249, 0.95);
+
+aside.w-\[280px\] > div:last-child > div,
+aside.border-r > div:last-child > div {
+  border-color: #dbeafe;
+}
+
+aside.w-\[280px\] #sidebar-logout-btn,
+aside.border-r #sidebar-logout-btn {
+  border-color: #dbeafe;
 }
 
 /* =========================================================
