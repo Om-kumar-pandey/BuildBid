@@ -1280,8 +1280,8 @@ function createRequestCardHTML(req) {
   // Determine Main Section State
   let quotationSectionHTML = "";
   if (isDirectBuy) {
-    // FLOW A: DIRECT BUY NEVER RENDERS QUOTATION UI
-    quotationSectionHTML = getDirectBuyTimelineHTML(req);
+    // FLOW A: DIRECT BUY NEVER RENDERS QUOTATION UI NOR DIRECT PURCHASE FLOW CARD
+    quotationSectionHTML = "";
   } else if (isDirectHire) {
     // DIRECT HIRE HAS NO QUOTATION WORKFLOW WHATSOEVER
     quotationSectionHTML = "";
