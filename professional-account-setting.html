@@ -314,13 +314,10 @@
           </div>
 
           <div class="pro-settings-footer-note">
-            <div class="pro-settings-phase-notice">
-              <i class="fa-solid fa-circle-info"></i>
-              <span>UI Foundation active. Form persistence and profile synchronization will be enabled in Phase 2.</span>
-            </div>
-            <button type="button" class="pro-settings-btn pro-settings-btn-primary pro-settings-btn-disabled" disabled onclick="notifyPlannedFeature('Profile saving is planned for Phase 2 backend persistence.')">
+            <div id="pro-personal-info-feedback" class="pro-photo-feedback" role="status" aria-live="polite" style="display: none; margin-bottom: 8px;"></div>
+            <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-save-personal-info" onclick="savePersonalInformation()">
               <i class="fa-solid fa-floppy-disk"></i>
-              <span>Save Changes (Phase 2)</span>
+              <span>Save Changes</span>
             </button>
           </div>
         </div>

@@ -158,7 +158,8 @@
     const alertContainer = document.getElementById("pro-settings-alert-container");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/me`, {
+      let data = null;
+      let response = await fetch(`${API_BASE_URL}/api/professional/profile`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -173,9 +174,24 @@
       }
 
       if (response.ok) {
-        const data = await response.json();
-        currentProfile = data;
-        populateProfileUI(data);
+        data = await response.json();
+      } else {
+        // Fallback to /api/me
+        const meRes = await fetch(`${API_BASE_URL}/api/me`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+          }
+        });
+        if (meRes.ok) {
+          data = await meRes.json();
+        }
+      }
+
+      if (data) {
+        currentProfile = data.profile || data;
+        populateProfileUI(currentProfile);
         if (alertContainer) alertContainer.innerHTML = "";
         await loadSavedPhotoFromBackend(token);
       } else {
@@ -218,11 +234,13 @@
     if (!user) return;
 
     const name = user.name || user.fullName || user.username || "Professional";
+    const title = user.title || user.professionalTitle || "";
     const email = user.email || "";
     const phone = user.phone || user.phoneNumber || user.mobile || "";
     const location = user.location || user.city || "";
     const pincode = user.pincode || user.postalCode || "";
-    const profession = user.category || user.profession || user.professionalType || user.type || "Civil Engineer";
+    const bio = user.bio || user.about || user.aboutMe || "";
+    const profession = title || user.category || user.profession || user.professionalType || user.type || "Licensed Professional";
     const photoUrl = user.profilePhotoUrl || user.profilePhoto || user.avatarUrl || user.photoUrl || "";
     const isEmailVerified = Boolean(user.emailVerified !== undefined ? user.emailVerified : (user.verified || user.isVerified));
     const isVerified = Boolean(user.verified || user.isVerified || user.verificationStatus === "VERIFIED");
@@ -243,7 +261,10 @@
 
     // Personal Information Form
     const inputName = document.getElementById("pro-input-fullname");
-    if (inputName && name) inputName.value = name;
+    if (inputName) inputName.value = name;
+
+    const inputTitle = document.getElementById("pro-input-title");
+    if (inputTitle) inputTitle.value = title;
 
     const inputEmail = document.getElementById("pro-input-email");
     if (inputEmail && email) inputEmail.value = email;
@@ -252,10 +273,13 @@
     if (inputPhone && phone) inputPhone.value = phone;
 
     const inputLocation = document.getElementById("pro-input-location");
-    if (inputLocation && location) inputLocation.value = location;
+    if (inputLocation) inputLocation.value = location;
 
     const inputPincode = document.getElementById("pro-input-pincode");
-    if (inputPincode && pincode) inputPincode.value = pincode;
+    if (inputPincode) inputPincode.value = pincode;
+
+    const inputBio = document.getElementById("pro-input-bio");
+    if (inputBio) inputBio.value = bio;
 
     // Verification Displays
     const verifyEmail = document.getElementById("verify-email-display");
@@ -304,7 +328,7 @@
     if (phone) completedFields++;
     if (location) completedFields++;
     if (pincode) completedFields++;
-    if (isVerified) completedFields++;
+    if (bio || title) completedFields++;
 
     const percent = Math.min(100, Math.round((completedFields / totalFields) * 100));
     const completionEl = document.getElementById("metric-completion");
@@ -312,6 +336,185 @@
       completionEl.textContent = `${percent}% Complete`;
     }
   }
+
+  // ============================================================
+  // 5A. PERSONAL INFORMATION SAVE MODULE
+  // ============================================================
+  let isSavingPersonalInfo = false;
+
+  function setPersonalInfoFeedback(message, type = "") {
+    const feedback = document.getElementById("pro-personal-info-feedback");
+    if (!feedback) return;
+    if (!message) {
+      feedback.style.display = "none";
+      feedback.textContent = "";
+      feedback.className = "pro-photo-feedback";
+      return;
+    }
+    feedback.style.display = "block";
+    feedback.className = "pro-photo-feedback " + (type || "");
+    if (type === "error") {
+      feedback.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <span>${escapeHtml(message)}</span>`;
+    } else if (type === "success") {
+      feedback.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${escapeHtml(message)}</span>`;
+    } else if (type === "info") {
+      feedback.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>${escapeHtml(message)}</span>`;
+    } else {
+      feedback.textContent = message;
+    }
+  }
+
+  async function savePersonalInformation() {
+    if (isSavingPersonalInfo) return;
+
+    const token = getCleanToken();
+    if (!token) {
+      showToast("Authentication required. Please log in.", "error");
+      executeLogout();
+      return;
+    }
+
+    const nameInput = document.getElementById("pro-input-fullname");
+    const titleInput = document.getElementById("pro-input-title");
+    const locInput = document.getElementById("pro-input-location");
+    const pinInput = document.getElementById("pro-input-pincode");
+    const bioInput = document.getElementById("pro-input-bio");
+
+    const fullName = nameInput ? nameInput.value.trim() : "";
+    const title = titleInput ? titleInput.value.trim() : "";
+    const location = locInput ? locInput.value.trim() : "";
+    const pincode = pinInput ? pinInput.value.trim() : "";
+    const bio = bioInput ? bioInput.value.trim() : "";
+
+    // Client-side validations
+    if (!fullName || fullName.length < 2) {
+      setPersonalInfoFeedback("Full legal name is required (at least 2 characters).", "error");
+      showToast("Please provide a valid full name.", "warning");
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    if (fullName.length > 100) {
+      setPersonalInfoFeedback("Full name cannot exceed 100 characters.", "error");
+      showToast("Full name is too long.", "warning");
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    if (title && title.length > 150) {
+      setPersonalInfoFeedback("Professional title cannot exceed 150 characters.", "error");
+      showToast("Professional title is too long.", "warning");
+      if (titleInput) titleInput.focus();
+      return;
+    }
+
+    if (location && location.length > 150) {
+      setPersonalInfoFeedback("Operating city cannot exceed 150 characters.", "error");
+      showToast("Location is too long.", "warning");
+      if (locInput) locInput.focus();
+      return;
+    }
+
+    if (pincode && pincode.length > 20) {
+      setPersonalInfoFeedback("Base pincode cannot exceed 20 characters.", "error");
+      showToast("Pincode is too long.", "warning");
+      if (pinInput) pinInput.focus();
+      return;
+    }
+
+    if (bio && bio.length > 5000) {
+      setPersonalInfoFeedback("Bio cannot exceed 5000 characters.", "error");
+      showToast("Bio is too long.", "warning");
+      if (bioInput) bioInput.focus();
+      return;
+    }
+
+    isSavingPersonalInfo = true;
+    const saveBtn = document.getElementById("pro-btn-save-personal-info");
+    const originalBtnHtml = saveBtn ? saveBtn.innerHTML : "Save Changes";
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.classList.add("pro-settings-btn-disabled");
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving Changes...</span>`;
+    }
+
+    setPersonalInfoFeedback("Saving changes to database...", "info");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/professional/profile`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          fullName: fullName,
+          name: fullName,
+          title: title,
+          location: location,
+          pincode: pincode,
+          bio: bio
+        })
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        showToast("Session expired or unauthorized for professional settings.", "error");
+        executeLogout();
+        return;
+      }
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && (result.success !== false)) {
+        const updated = result.profile || result;
+        currentProfile = updated;
+        populateProfileUI(updated);
+
+        // Synchronize cached user in localStorage
+        try {
+          const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+          let u = raw ? JSON.parse(raw) : {};
+          u.name = updated.name || updated.fullName || fullName;
+          u.fullName = updated.fullName || updated.name || fullName;
+          u.title = updated.title || title;
+          u.location = updated.location || location;
+          u.pincode = updated.pincode || pincode;
+          u.bio = updated.bio || bio;
+          localStorage.setItem("currentUser", JSON.stringify(u));
+          localStorage.setItem("marketplaceUser", JSON.stringify(u));
+        } catch (e) {}
+
+        setPersonalInfoFeedback("Personal information saved successfully to database.", "success");
+        showToast("Personal information updated successfully.", "success");
+      } else {
+        const errorMsg = result.error || result.message || `Failed to save changes (HTTP ${response.status}).`;
+        setPersonalInfoFeedback(errorMsg, "error");
+        showToast(errorMsg, "error");
+      }
+    } catch (err) {
+      console.error("[BuildBid Pro] Save personal information network error:", err);
+      setPersonalInfoFeedback("Network error connecting to backend server. Please retry.", "error");
+      showToast("Unable to save changes due to network failure.", "error");
+    } finally {
+      isSavingPersonalInfo = false;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove("pro-settings-btn-disabled");
+        saveBtn.innerHTML = originalBtnHtml;
+      }
+    }
+  }
+
+  function initPersonalInformationModule() {
+    const saveBtn = document.getElementById("pro-btn-save-personal-info");
+    if (saveBtn && !saveBtn._proBound) {
+      saveBtn._proBound = true;
+      saveBtn.addEventListener("click", savePersonalInformation);
+    }
+  }
+
+  window.savePersonalInformation = savePersonalInformation;
 
   // ============================================================
   // 5B. PROFILE PHOTO MANAGEMENT MODULE (Phase 2 & 3 Persistence & Sync)
@@ -393,7 +596,9 @@
     avatarIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        if (photoUrl) {
+        if (savedPhotoBlobUrl) {
+          el.src = savedPhotoBlobUrl;
+        } else if (photoUrl && (photoUrl.startsWith("data:") || photoUrl.startsWith("blob:") || (photoUrl.startsWith("http") && !photoUrl.includes("images.unsplash.com")))) {
           el.src = photoUrl;
         } else {
           el.src = DEFAULT_AVATAR;
@@ -738,6 +943,12 @@
 
     pendingFile = file;
 
+    // Instant local preview in card and reveal pending photo action buttons
+    const tempUrl = URL.createObjectURL(file);
+    const mainPreview = document.getElementById("pro-settings-photo-preview");
+    if (mainPreview) mainPreview.src = tempUrl;
+    showPendingPhotoActions(true);
+
     // 3. Load into Image object and open Crop Interface
     setPhotoFeedback("Loading photo for adjustment...", "info");
     const reader = new FileReader();
@@ -873,7 +1084,12 @@
   }
 
   async function confirmAndSaveCroppedPhoto() {
-    if (isPhotoOperating || !croppedBlob) return;
+    if (isPhotoOperating) return;
+    if (!croppedBlob && !pendingFile) {
+      setPhotoFeedback("Please select an image file first.", "error");
+      showToast("Please choose an image file to upload.", "warning");
+      return;
+    }
 
     const token = getCleanToken();
     if (!token) {
@@ -882,21 +1098,29 @@
       return;
     }
 
-    const saveBtn = document.getElementById("pro-crop-confirm-save-btn");
-    const originalSaveHtml = saveBtn ? saveBtn.innerHTML : "Confirm & Save";
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving Photo...</span>`;
+    const modalSaveBtn = document.getElementById("pro-crop-confirm-save-btn");
+    const cardSaveBtn = document.getElementById("pro-photo-save-btn");
+    const originalModalSaveHtml = modalSaveBtn ? modalSaveBtn.innerHTML : "Confirm & Save";
+    const originalCardSaveHtml = cardSaveBtn ? cardSaveBtn.innerHTML : "Save Photo";
+
+    if (modalSaveBtn) {
+      modalSaveBtn.disabled = true;
+      modalSaveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving Photo...</span>`;
+    }
+    if (cardSaveBtn) {
+      cardSaveBtn.disabled = true;
+      cardSaveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving...</span>`;
     }
 
     setPhotoOperatingState(true);
-    setPhotoFeedback("Saving and verifying cropped photo on server...", "info");
+    setPhotoFeedback("Saving and verifying photo on server...", "info");
 
     const formData = new FormData();
+    const fileToUpload = croppedBlob || pendingFile;
     const fileName = (pendingFile && pendingFile.name)
-      ? pendingFile.name.replace(/\.[^/.]+$/, ".jpg")
+      ? (croppedBlob ? pendingFile.name.replace(/\.[^/.]+$/, ".jpg") : pendingFile.name)
       : "profile-photo.jpg";
-    formData.append("file", croppedBlob, fileName);
+    formData.append("file", fileToUpload, fileName);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/professional/profile/photo`, {
@@ -909,9 +1133,13 @@
 
       if (response.status === 401 || response.status === 403) {
         setPhotoOperatingState(false);
-        if (saveBtn) {
-          saveBtn.disabled = false;
-          saveBtn.innerHTML = originalSaveHtml;
+        if (modalSaveBtn) {
+          modalSaveBtn.disabled = false;
+          modalSaveBtn.innerHTML = originalModalSaveHtml;
+        }
+        if (cardSaveBtn) {
+          cardSaveBtn.disabled = false;
+          cardSaveBtn.innerHTML = originalCardSaveHtml;
         }
         showToast("Session expired or unauthorized for professional settings.", "error");
         executeLogout();
@@ -936,6 +1164,7 @@
         // Reload persisted photo with cache-buster
         await loadSavedPhotoFromBackend(token, true);
 
+        showPendingPhotoActions(false);
         setPhotoOperatingState(false);
         setPhotoFeedback("Profile photo saved and verified securely.", "success");
         showToast("Profile photo updated successfully.", "success");
@@ -945,9 +1174,13 @@
       } else {
         const errorMsg = result.error || result.message || `Upload failed (HTTP ${response.status}).`;
         setPhotoOperatingState(false);
-        if (saveBtn) {
-          saveBtn.disabled = false;
-          saveBtn.innerHTML = originalSaveHtml;
+        if (modalSaveBtn) {
+          modalSaveBtn.disabled = false;
+          modalSaveBtn.innerHTML = originalModalSaveHtml;
+        }
+        if (cardSaveBtn) {
+          cardSaveBtn.disabled = false;
+          cardSaveBtn.innerHTML = originalCardSaveHtml;
         }
         setPhotoFeedback(errorMsg, "error");
         showToast(errorMsg, "error");
@@ -955,9 +1188,13 @@
     } catch (err) {
       console.error("[BuildBid Pro] Photo upload network error:", err);
       setPhotoOperatingState(false);
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalSaveHtml;
+      if (modalSaveBtn) {
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.innerHTML = originalModalSaveHtml;
+      }
+      if (cardSaveBtn) {
+        cardSaveBtn.disabled = false;
+        cardSaveBtn.innerHTML = originalCardSaveHtml;
       }
       setPhotoFeedback("Network error connecting to backend. Your previous photo has been preserved.", "error");
       showToast("Unable to save photo due to network failure. Please retry.", "error");
@@ -966,6 +1203,15 @@
 
   function cancelPhotoSelection() {
     closePhotoCropModal();
+    const previewImg = document.getElementById("pro-settings-photo-preview");
+    if (previewImg) previewImg.src = savedPhotoBlobUrl || DEFAULT_AVATAR;
+    pendingFile = null;
+    croppedBlob = null;
+    croppedDataUrl = null;
+    const fileInput = document.getElementById("pro-photo-file-input");
+    if (fileInput) fileInput.value = "";
+    showPendingPhotoActions(false);
+    setPhotoFeedback("", "");
   }
 
   function triggerPhotoFileInput() {
@@ -3476,6 +3722,9 @@
 
     // 2. Setup navigation
     setupNavigationEvents();
+
+    // 2A. Setup Personal Information module
+    initPersonalInformationModule();
 
     // 2B. Setup Profile Photo module
     initProfilePhotoModule();

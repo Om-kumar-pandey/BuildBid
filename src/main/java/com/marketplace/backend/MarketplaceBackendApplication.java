@@ -185,6 +185,15 @@ public class MarketplaceBackendApplication {
         @Column(name = "deletion_auth_expiry")
         private LocalDateTime deletionAuthExpiry;
 
+        @Column(name = "title", length = 150)
+        private String title;
+
+        @Column(name = "pincode", length = 20)
+        private String pincode;
+
+        @Column(name = "bio", columnDefinition = "TEXT")
+        private String bio;
+
         public Long getId() { return id; }
         public String getName() { return name; }
         public String getUsername() { return username; }
@@ -206,6 +215,9 @@ public class MarketplaceBackendApplication {
         public LocalDateTime getDeactivatedAt() { return deactivatedAt; }
         public String getDeletionAuthToken() { return deletionAuthToken; }
         public LocalDateTime getDeletionAuthExpiry() { return deletionAuthExpiry; }
+        public String getTitle() { return title; }
+        public String getPincode() { return pincode; }
+        public String getBio() { return bio; }
 
         public void setName(String name) { this.name = name; }
         public void setUsername(String username) { this.username = username; }
@@ -226,6 +238,9 @@ public class MarketplaceBackendApplication {
         public void setDeactivatedAt(LocalDateTime deactivatedAt) { this.deactivatedAt = deactivatedAt; }
         public void setDeletionAuthToken(String deletionAuthToken) { this.deletionAuthToken = deletionAuthToken; }
         public void setDeletionAuthExpiry(LocalDateTime deletionAuthExpiry) { this.deletionAuthExpiry = deletionAuthExpiry; }
+        public void setTitle(String title) { this.title = title; }
+        public void setPincode(String pincode) { this.pincode = pincode; }
+        public void setBio(String bio) { this.bio = bio; }
     }
 
 
@@ -981,6 +996,10 @@ public class MarketplaceBackendApplication {
             profile.put("email", user.getEmail() != null ? user.getEmail() : "");
             profile.put("phone", user.getPhone() != null ? user.getPhone() : "");
             profile.put("location", user.getLocation() != null ? user.getLocation() : "");
+            profile.put("title", user.getTitle() != null ? user.getTitle() : "");
+            profile.put("pincode", user.getPincode() != null ? user.getPincode() : "");
+            profile.put("bio", user.getBio() != null ? user.getBio() : "");
+            profile.put("about", user.getBio() != null ? user.getBio() : "");
             profile.put("profilePhotoUrl", user.getProfilePhotoUrl() != null ? user.getProfilePhotoUrl() : "");
             profile.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : "");
             profile.put("roles", user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));

@@ -52,3 +52,11 @@ CREATE TABLE IF NOT EXISTS professional_profile_photos (
     updated_at DATETIME NULL,
     CONSTRAINT fk_pro_photo_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- BUILDBID PROFESSIONAL ACCOUNT SETTINGS — PERSONAL INFORMATION COLUMNS
+-- ============================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS title VARCHAR(150) NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS pincode VARCHAR(20) NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NULL;
+

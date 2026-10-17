@@ -23,16 +23,26 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/professional/profile")
 public class ProfessionalProfileController {
 
+    private final ProfessionalProfileService profileService;
     private final ProfessionalProfilePhotoService photoService;
     private final MarketplaceBackendApplication.UserRepository userRepository;
 
     @Autowired
     public ProfessionalProfileController(
+            ProfessionalProfileService profileService,
             ProfessionalProfilePhotoService photoService,
             MarketplaceBackendApplication.UserRepository userRepository
     ) {
+        this.profileService = profileService;
         this.photoService = photoService;
         this.userRepository = userRepository;
+    }
+
+    public ProfessionalProfileController(
+            ProfessionalProfilePhotoService photoService,
+            MarketplaceBackendApplication.UserRepository userRepository
+    ) {
+        this(new ProfessionalProfileService(userRepository), photoService, userRepository);
     }
 
     /**
@@ -60,6 +70,92 @@ public class ProfessionalProfileController {
         }
         return user.getRoles().contains(MarketplaceBackendApplication.Role.PROFESSIONAL)
                 || user.getRoles().contains(MarketplaceBackendApplication.Role.SERVICE_PROVIDER);
+    }
+
+    /**
+     * Retrieve the authenticated professional's profile details.
+     */
+    @GetMapping
+    public ResponseEntity<?> getProfile(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a professional."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser user = getAuthenticatedUser(authentication);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "User not found or unauthenticated."));
+        }
+
+        if (!isProfessional(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Only registered professionals can access this profile."));
+        }
+
+        try {
+            ProfessionalProfileService.ProfessionalProfileDto profile = profileService.getProfile(user);
+            return ResponseEntity.ok(profile);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred while retrieving profile."));
+        }
+    }
+
+    /**
+     * Update the authenticated professional's personal information details.
+     */
+    @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateProfile(
+            @RequestBody ProfessionalProfileService.ProfessionalProfileUpdateRequest request,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please log in as a professional."));
+        }
+
+        MarketplaceBackendApplication.MarketplaceUser user = getAuthenticatedUser(authentication);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "User not found or unauthenticated."));
+        }
+
+        if (!isProfessional(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Only registered professionals can perform this action."));
+        }
+
+        try {
+            ProfessionalProfileService.ProfessionalProfileDto updated = profileService.updateProfile(user, request);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "Personal information updated successfully.");
+            response.put("id", updated.id());
+            response.put("name", updated.name());
+            response.put("fullName", updated.fullName());
+            response.put("username", updated.username());
+            response.put("email", updated.email());
+            response.put("phone", updated.phone());
+            response.put("title", updated.title());
+            response.put("location", updated.location());
+            response.put("pincode", updated.pincode());
+            response.put("bio", updated.bio());
+            response.put("profilePhotoUrl", updated.profilePhotoUrl());
+            response.put("emailVerified", updated.emailVerified());
+            response.put("phoneVerified", updated.phoneVerified());
+            response.put("roles", updated.roles());
+            response.put("profile", updated);
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred while saving personal information."));
+        }
     }
 
     /**
