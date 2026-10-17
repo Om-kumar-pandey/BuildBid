@@ -186,6 +186,119 @@
   };
 
   // ============================================================
+  // 4B. DYNAMIC SERVICE CATALOG DISPLAY HELPERS
+  // ============================================================
+  let currentServices = [];
+
+  function extractValidServices(serviceList) {
+    if (!Array.isArray(serviceList)) return [];
+    const valid = [];
+    const seenIds = new Set();
+    const seenNames = new Set();
+
+    for (const s of serviceList) {
+      if (!s || typeof s !== "object") continue;
+      const rawName = s.serviceTitleEn || s.serviceName || s.masterServiceTitleEn || (s.masterService && s.masterService.titleEn) || s.name || s.title || "";
+      if (typeof rawName !== "string") continue;
+      const cleanName = rawName.trim();
+      if (!cleanName) continue;
+
+      const id = s.id !== undefined && s.id !== null ? s.id : s.serviceId;
+      if (id !== undefined && id !== null) {
+        const idKey = String(id);
+        if (seenIds.has(idKey)) continue;
+        seenIds.add(idKey);
+      }
+
+      const nameKey = cleanName.toLowerCase();
+      if (seenNames.has(nameKey)) continue;
+      seenNames.add(nameKey);
+
+      valid.push({
+        ...s,
+        displayName: cleanName
+      });
+    }
+    return valid;
+  }
+
+  function computeServiceSubtitle(serviceList) {
+    const valid = extractValidServices(serviceList);
+    if (!valid || valid.length === 0) {
+      return "No service";
+    }
+    const firstService = valid[0].displayName;
+    if (valid.length === 1) {
+      return firstService;
+    }
+    const additional = valid.length - 1;
+    return `${firstService} +${additional}`;
+  }
+
+  function updateServiceSubtitle(services) {
+    const navRole = document.getElementById("pro-settings-nav-role");
+    if (!navRole) return;
+    const text = computeServiceSubtitle(services);
+    navRole.textContent = text;
+    navRole.title = text;
+  }
+
+  function getCachedServices() {
+    try {
+      const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (Array.isArray(u.services)) {
+          return u.services;
+        }
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  async function fetchProfessionalServices() {
+    const token = getCleanToken();
+    if (!token) {
+      updateServiceSubtitle(getCachedServices());
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/professional/services`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.services) ? data.services : []);
+        currentServices = list;
+        updateServiceSubtitle(list);
+
+        // Synchronize with currentUser cache
+        try {
+          const raw = localStorage.getItem("currentUser");
+          if (raw) {
+            const u = JSON.parse(raw);
+            u.services = list;
+            localStorage.setItem("currentUser", JSON.stringify(u));
+          }
+        } catch (e) {}
+        return;
+      }
+
+      // If non-200, fallback to cached services or "No service"
+      updateServiceSubtitle(getCachedServices());
+    } catch (err) {
+      console.warn("[BuildBid Pro] Service catalog fetch error:", err);
+      updateServiceSubtitle(getCachedServices());
+    }
+  }
+
+  // ============================================================
   // 5. FETCH & POPULATE PROFILE DATA
   // ============================================================
   async function fetchProfessionalProfile() {
@@ -231,6 +344,7 @@
         populateProfileUI(currentProfile);
         if (alertContainer) alertContainer.innerHTML = "";
         await loadSavedPhotoFromBackend(token);
+        await fetchProfessionalServices();
       } else {
         throw new Error(`Server returned HTTP ${response.status}`);
       }
@@ -264,6 +378,8 @@
 
     if (cachedUser) {
       populateProfileUI(cachedUser);
+    } else {
+      updateServiceSubtitle([]);
     }
   }
 
@@ -271,13 +387,11 @@
     if (!user) return;
 
     const name = user.name || user.fullName || user.username || "Professional";
-    const title = user.title || user.professionalTitle || "";
     const email = user.email || "";
     const phone = user.phone || user.phoneNumber || user.mobile || "";
     const location = user.location || user.city || "";
     const pincode = user.pincode || user.postalCode || "";
     const bio = user.bio || user.about || user.aboutMe || "";
-    const profession = title || user.category || user.profession || user.professionalType || user.type || "Licensed Professional";
     const photoUrl = user.profilePhotoUrl || user.profilePhoto || user.avatarUrl || user.photoUrl || "";
     const isEmailVerified = Boolean(user.emailVerified !== undefined ? user.emailVerified : (user.verified || user.isVerified));
     const isVerified = Boolean(user.verified || user.isVerified || user.verificationStatus === "VERIFIED");
@@ -286,8 +400,14 @@
     const navName = document.getElementById("pro-settings-nav-name");
     if (navName) navName.textContent = name;
 
-    const navRole = document.getElementById("pro-settings-nav-role");
-    if (navRole) navRole.textContent = profession;
+    // Service catalog dynamic subtitle (never hardcode Civil Engineer or generic role)
+    if (Array.isArray(user.services)) {
+      updateServiceSubtitle(user.services);
+    } else if (currentServices && currentServices.length > 0) {
+      updateServiceSubtitle(currentServices);
+    } else {
+      updateServiceSubtitle(getCachedServices());
+    }
 
     // Avatar previews: check cached data URL first, then remote/api url
     const cachedAvatar = getValidProCachedAvatar();
@@ -319,9 +439,6 @@
     // Personal Information Form
     const inputName = document.getElementById("pro-input-fullname");
     if (inputName) inputName.value = name;
-
-    const inputTitle = document.getElementById("pro-input-title");
-    if (inputTitle) inputTitle.value = title;
 
     const inputEmail = document.getElementById("pro-input-email");
     if (inputEmail && email) inputEmail.value = email;
@@ -385,7 +502,7 @@
     if (phone) completedFields++;
     if (location) completedFields++;
     if (pincode) completedFields++;
-    if (bio || title) completedFields++;
+    if (bio) completedFields++;
 
     const percent = Math.min(100, Math.round((completedFields / totalFields) * 100));
     const completionEl = document.getElementById("metric-completion");
@@ -396,7 +513,6 @@
     // Baseline tracking for dirty change detection
     originalPersonalInfo = {
       fullName: normalizeFieldValue(name),
-      title: normalizeFieldValue(title),
       location: normalizeFieldValue(location),
       pincode: normalizeFieldValue(pincode),
       bio: normalizeFieldValue(bio)
@@ -417,14 +533,12 @@
 
   function getPersonalInfoFormValues() {
     const nameInput = document.getElementById("pro-input-fullname");
-    const titleInput = document.getElementById("pro-input-title");
     const locInput = document.getElementById("pro-input-location");
     const pinInput = document.getElementById("pro-input-pincode");
     const bioInput = document.getElementById("pro-input-bio");
 
     return {
       fullName: normalizeFieldValue(nameInput ? nameInput.value : ""),
-      title: normalizeFieldValue(titleInput ? titleInput.value : ""),
       location: normalizeFieldValue(locInput ? locInput.value : ""),
       pincode: normalizeFieldValue(pinInput ? pinInput.value : ""),
       bio: normalizeFieldValue(bioInput ? bioInput.value : "")
@@ -436,7 +550,6 @@
     const current = getPersonalInfoFormValues();
     return (
       current.fullName !== originalPersonalInfo.fullName ||
-      current.title !== originalPersonalInfo.title ||
       current.location !== originalPersonalInfo.location ||
       current.pincode !== originalPersonalInfo.pincode ||
       current.bio !== originalPersonalInfo.bio
@@ -514,13 +627,11 @@
 
     const currentValues = getPersonalInfoFormValues();
     const fullName = currentValues.fullName;
-    const title = currentValues.title;
     const location = currentValues.location;
     const pincode = currentValues.pincode;
     const bio = currentValues.bio;
 
     const nameInput = document.getElementById("pro-input-fullname");
-    const titleInput = document.getElementById("pro-input-title");
     const locInput = document.getElementById("pro-input-location");
     const pinInput = document.getElementById("pro-input-pincode");
     const bioInput = document.getElementById("pro-input-bio");
@@ -537,13 +648,6 @@
       setPersonalInfoFeedback("Full name cannot exceed 100 characters.", "error");
       showToast("Full name is too long.", "warning");
       if (nameInput) nameInput.focus();
-      return;
-    }
-
-    if (title && title.length > 150) {
-      setPersonalInfoFeedback("Professional title cannot exceed 150 characters.", "error");
-      showToast("Professional title is too long.", "warning");
-      if (titleInput) titleInput.focus();
       return;
     }
 
@@ -590,7 +694,7 @@
         body: JSON.stringify({
           fullName: fullName,
           name: fullName,
-          title: title,
+          title: currentProfile && currentProfile.title !== undefined ? currentProfile.title : undefined,
           location: location,
           pincode: pincode,
           bio: bio
@@ -613,7 +717,6 @@
         // Update baseline form values from confirmed server response
         originalPersonalInfo = {
           fullName: normalizeFieldValue(updated.fullName || updated.name || fullName),
-          title: normalizeFieldValue(updated.title !== undefined ? updated.title : title),
           location: normalizeFieldValue(updated.location !== undefined ? updated.location : location),
           pincode: normalizeFieldValue(updated.pincode !== undefined ? updated.pincode : pincode),
           bio: normalizeFieldValue(updated.bio !== undefined ? updated.bio : bio)
@@ -671,7 +774,6 @@
 
     const fieldIds = [
       "pro-input-fullname",
-      "pro-input-title",
       "pro-input-location",
       "pro-input-pincode",
       "pro-input-bio"
@@ -3827,7 +3929,6 @@
   const ALL_SECTIONS = [
     "personal-info",
     "verification",
-    "credentials",
     "security-login",
     "account-activity",
     "deactivation-deletion"
@@ -3900,6 +4001,8 @@
       const hash = (window.location.hash || "").replace("#", "").trim();
       if (hash && ALL_SECTIONS.includes(hash)) {
         switchSection(hash, false);
+      } else if (hash === "credentials" || (hash && !ALL_SECTIONS.includes(hash))) {
+        switchSection("personal-info", true);
       }
     });
 
@@ -3978,9 +4081,29 @@
     const initialHash = (window.location.hash || "").replace("#", "").trim();
     if (initialHash && ALL_SECTIONS.includes(initialHash)) {
       switchSection(initialHash, false);
+    } else if (initialHash === "credentials" || (initialHash && !ALL_SECTIONS.includes(initialHash))) {
+      switchSection("personal-info", true);
     } else {
       switchSection("personal-info", false);
     }
+
+    // Dynamic service subtitle immediate initialization and external listeners
+    updateServiceSubtitle(getCachedServices());
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === "currentUser" || e.key === "marketplaceUser") {
+        updateServiceSubtitle(getCachedServices());
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      fetchProfessionalServices();
+    });
+
+    // Expose helpers globally
+    window.refreshProfessionalServices = fetchProfessionalServices;
+    window.computeServiceSubtitle = computeServiceSubtitle;
+    window.extractValidServices = extractValidServices;
 
     // 4. Fetch authenticated profile data & verification status & security status & activity & deactivation status
     fetchProfessionalProfile().then(() => {

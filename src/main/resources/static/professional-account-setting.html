@@ -50,7 +50,7 @@
           <img id="pro-settings-nav-avatar" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%20width%3D%22120%22%20height%3D%22120%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22bgGrad%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%230f172a%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%231e3a8a%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2228%22%20fill%3D%22url(%23bgGrad)%22%2F%3E%3Ccircle%20cx%3D%2260%22%20cy%3D%2246%22%20r%3D%2220%22%20fill%3D%22%23cbd5e1%22%2F%3E%3Cpath%20d%3D%22M%2032%2098%20C%2032%2076%2044%2072%2060%2072%20C%2076%2072%2088%2076%2088%2098%20Z%22%20fill%3D%22%23cbd5e1%22%2F%3E%3C%2Fsvg%3E" alt="Avatar" class="pro-settings-user-avatar">
           <div class="pro-settings-user-info">
             <span class="pro-settings-user-name" id="pro-settings-nav-name">Professional</span>
-            <span class="pro-settings-user-role" id="pro-settings-nav-role">Professional</span>
+            <span class="pro-settings-user-role" id="pro-settings-nav-role">No service</span>
           </div>
         </div>
 
@@ -71,11 +71,10 @@
        ============================================================ -->
   <div class="pro-settings-layout">
 
-    <!-- 6-Section Navigation Sidebar -->
+    <!-- Settings Navigation Sidebar -->
     <aside class="pro-settings-sidebar" id="pro-settings-sidebar" role="navigation" aria-label="Settings Sections">
       <div class="pro-settings-sidebar-header">
         <h2 class="pro-settings-sidebar-title">Settings Menu</h2>
-        <p class="pro-settings-sidebar-subtitle">6 Account &amp; Security Controls</p>
       </div>
 
       <!-- Category 1: Identity & Profile -->
@@ -93,12 +92,6 @@
               <i class="fa-solid fa-shield-halved pro-settings-nav-icon"></i>
               <span>2. Email &amp; Mobile Verification</span>
               <span class="pro-settings-nav-badge pro-settings-nav-badge-verified" id="badge-nav-verify">Active</span>
-            </button>
-          </li>
-          <li class="pro-settings-nav-item" role="presentation">
-            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false" data-section="credentials" id="tab-credentials">
-              <i class="fa-solid fa-id-card pro-settings-nav-icon"></i>
-              <span>3. Professional Profile &amp; Credentials</span>
             </button>
           </li>
         </ul>
@@ -214,7 +207,7 @@
             <span class="pro-settings-badge pro-settings-badge-verified"><i class="fa-solid fa-circle-check"></i> Active</span>
           </div>
 
-          <!-- Profile Photo Interactive Component (Phase 2 Real Persistence) -->
+          <!-- Profile Photo Interactive Component -->
           <div class="pro-settings-photo-area" id="pro-photo-area">
             <input type="file" id="pro-photo-file-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" class="pro-photo-hidden-input" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;" aria-label="Upload profile picture file" onchange="handlePhotoFileSelected(event)">
             <div class="pro-settings-avatar-wrap">
@@ -262,18 +255,10 @@
           </div>
 
           <!-- Form Fields -->
-          <div class="pro-settings-grid-2">
-            <div class="pro-settings-form-group">
-              <label class="pro-settings-label" for="pro-input-fullname">Full Name</label>
-              <input type="text" id="pro-input-fullname" class="pro-settings-input" placeholder="Enter your full legal name" value="Professional">
-              <span class="pro-settings-help-text">Displayed on consultation proposals and client contracts.</span>
-            </div>
-
-            <div class="pro-settings-form-group">
-              <label class="pro-settings-label" for="pro-input-title">Professional Title</label>
-              <input type="text" id="pro-input-title" class="pro-settings-input" placeholder="e.g. Civil Engineer & Structural Auditor" value="Licensed Professional">
-              <span class="pro-settings-help-text">Your primary specialization visible to clients.</span>
-            </div>
+          <div class="pro-settings-form-group" style="margin-bottom: 18px;">
+            <label class="pro-settings-label" for="pro-input-fullname">Full Name</label>
+            <input type="text" id="pro-input-fullname" class="pro-settings-input" placeholder="Enter your full legal name" value="Professional">
+            <span class="pro-settings-help-text">Displayed on consultation proposals and client contracts.</span>
           </div>
 
           <div class="pro-settings-grid-2">
@@ -473,78 +458,6 @@
         </div>
       </section>
 
-      <!-- ============================================================
-           SECTION 3: PROFESSIONAL PROFILE & CREDENTIALS
-           ============================================================ -->
-      <section class="pro-settings-panel" id="sec-credentials" role="tabpanel" aria-labelledby="tab-credentials">
-        <div class="pro-settings-card">
-          <div class="pro-settings-card-header">
-            <div class="pro-settings-card-title-wrap">
-              <h2 class="pro-settings-card-title">
-                <i class="fa-solid fa-id-card" style="color: var(--pro-blue-600);"></i>
-                3. Professional Profile & Credentials
-              </h2>
-              <p class="pro-settings-card-desc">
-                Manage your government registrations, council licenses, degrees, and certified technical credentials.
-              </p>
-            </div>
-            <span class="pro-settings-badge pro-settings-badge-planned">Credentials Registry</span>
-          </div>
-
-          <div class="pro-settings-grid-2">
-            <div class="pro-settings-form-group">
-              <label class="pro-settings-label" for="pro-cred-profession">Primary Profession</label>
-              <select id="pro-cred-profession" class="pro-settings-select">
-                <option value="Civil Engineer">Civil Engineer</option>
-                <option value="Architect">Architect</option>
-                <option value="Structural Engineer">Structural Engineer</option>
-                <option value="Interior Designer">Interior Designer</option>
-                <option value="Electrical Consultant">Electrical Consultant</option>
-                <option value="Plumbing Engineer">Plumbing Engineer</option>
-              </select>
-            </div>
-
-            <div class="pro-settings-form-group">
-              <label class="pro-settings-label" for="pro-cred-experience">Years of Experience</label>
-              <input type="number" id="pro-cred-experience" class="pro-settings-input" placeholder="e.g. 8" value="5" min="0" max="60">
-            </div>
-          </div>
-
-          <div class="pro-settings-grid-2">
-            <div class="pro-settings-form-group">
-              <label class="pro-settings-label" for="pro-cred-license">Council / License Registration Number</label>
-              <input type="text" id="pro-cred-license" class="pro-settings-input" placeholder="e.g. CA/2018/98432 or IEI-M-48291" value="">
-            </div>
-
-            <div class="pro-settings-form-group">
-              <label class="pro-settings-label" for="pro-cred-authority">Issuing Board / Authority</label>
-              <input type="text" id="pro-cred-authority" class="pro-settings-input" placeholder="e.g. Council of Architecture / Institution of Engineers" value="">
-            </div>
-          </div>
-
-          <!-- Credentials Upload Placeholder -->
-          <div class="pro-settings-empty-state" style="margin-top: 14px;">
-            <div class="pro-settings-empty-icon">
-              <i class="fa-solid fa-file-shield"></i>
-            </div>
-            <h4 class="pro-settings-empty-title">Verified Credentials Ledger</h4>
-            <p class="pro-settings-empty-desc">
-              Uploaded degree certificates, municipal licenses, and trade insurances are verified cryptographically.
-            </p>
-            <button type="button" class="pro-settings-btn pro-settings-btn-secondary" style="margin-top: 14px;" onclick="notifyPlannedFeature('Document upload is planned for Phase 2.')">
-              <i class="fa-solid fa-cloud-arrow-up"></i>
-              <span>Upload Credential Document (Phase 2)</span>
-            </button>
-          </div>
-
-          <div class="pro-settings-footer-note">
-            <div class="pro-settings-phase-notice">
-              <i class="fa-solid fa-circle-info"></i>
-              <span>Credential verification document uploads will be fully operational in Phase 2.</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <!-- ============================================================
            SECTION 4: SECURITY & LOGIN
