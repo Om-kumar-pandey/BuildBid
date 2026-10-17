@@ -240,6 +240,25 @@ public class ProfessionalPersonalInformationSecurityAndPersistenceTest {
     }
 
     @Test
+    @DisplayName("PUT /api/professional/profile: Unchanged values do not invoke repository save or pointless DB update")
+    void testUnchangedProfileUpdateDoesNotInvokeRepositorySave() {
+        ProfessionalProfileService.ProfessionalProfileUpdateRequest req =
+                new ProfessionalProfileService.ProfessionalProfileUpdateRequest(
+                        "Professional Alpha  ",
+                        null,
+                        "Senior Structural Engineer",
+                        "Mumbai",
+                        "400001",
+                        "Experienced in RCC design and site supervision."
+                );
+
+        ResponseEntity<?> res = profileController.updateProfile(req, authProA);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+
+        verify(userRepository, never()).save(proUserA);
+    }
+
+    @Test
     @DisplayName("PUT /api/professional/profile: Partial update leaves untouched fields intact")
     void testPartialUpdatePreservesUntouchedFields() {
         assertEquals("Senior Structural Engineer", proUserA.getTitle());

@@ -12,7 +12,7 @@
   // ============================================================
   function getApiBaseUrl() {
     if (typeof window !== "undefined" && window.location) {
-      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      if (window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         return "http://localhost:8080";
       }
     }
@@ -46,6 +46,41 @@
       }
     }
     return token;
+  }
+
+  function getProCacheOwnerIdentifier() {
+    try {
+      const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+      if (!raw) return null;
+      const u = JSON.parse(raw);
+      const identifier = u.email || u.username || u.id;
+      return identifier ? String(identifier).trim().toLowerCase() : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getValidProCachedAvatar() {
+    try {
+      const token = getCleanToken();
+      if (!token) {
+        localStorage.removeItem("buildbid_pro_avatar_cache");
+        localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+        return null;
+      }
+      const currentOwner = getProCacheOwnerIdentifier();
+      const storedOwner = localStorage.getItem("buildbid_pro_avatar_cache_owner");
+      const cachedAvatar = localStorage.getItem("buildbid_pro_avatar_cache");
+      if (!cachedAvatar) return null;
+      if (!currentOwner || !storedOwner || currentOwner !== storedOwner.toLowerCase()) {
+        localStorage.removeItem("buildbid_pro_avatar_cache");
+        localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+        return null;
+      }
+      return cachedAvatar;
+    } catch (e) {
+      return null;
+    }
   }
 
   function enforceProfessionalAuthGuard() {
@@ -141,6 +176,8 @@
     localStorage.removeItem("customerUser");
     localStorage.removeItem("buildbid_user");
     localStorage.removeItem("buildbid_current_user");
+    localStorage.removeItem("buildbid_pro_avatar_cache");
+    localStorage.removeItem("buildbid_pro_avatar_cache_owner");
     sessionStorage.clear();
     showToast("Signed out successfully. Redirecting...", "info");
     setTimeout(() => {
@@ -252,11 +289,31 @@
     const navRole = document.getElementById("pro-settings-nav-role");
     if (navRole) navRole.textContent = profession;
 
-    if (photoUrl && (photoUrl.startsWith("data:") || photoUrl.startsWith("blob:") || (photoUrl.startsWith("http") && !photoUrl.includes("images.unsplash.com")))) {
-      const navAvatar = document.getElementById("pro-settings-nav-avatar");
-      if (navAvatar) navAvatar.src = photoUrl;
-      const previewAvatar = document.getElementById("pro-settings-photo-preview");
-      if (previewAvatar) previewAvatar.src = photoUrl;
+    // Avatar previews: check cached data URL first, then remote/api url
+    const cachedAvatar = getValidProCachedAvatar();
+    const navAvatar = document.getElementById("pro-settings-nav-avatar");
+    const previewAvatar = document.getElementById("pro-settings-photo-preview");
+
+    if (cachedAvatar) {
+      if (navAvatar) navAvatar.src = cachedAvatar;
+      if (previewAvatar) previewAvatar.src = cachedAvatar;
+      hasSavedPhoto = true;
+      const removeBtn = document.getElementById("pro-photo-remove-btn");
+      if (removeBtn) {
+        removeBtn.disabled = false;
+        removeBtn.classList.remove("pro-settings-btn-disabled");
+      }
+    } else if (photoUrl && (photoUrl.startsWith("/api/") || photoUrl.startsWith("data:") || photoUrl.startsWith("blob:") || (photoUrl.startsWith("http") && !photoUrl.includes("images.unsplash.com")))) {
+      if (!photoUrl.startsWith("/api/")) {
+        if (navAvatar) navAvatar.src = photoUrl;
+        if (previewAvatar) previewAvatar.src = photoUrl;
+        hasSavedPhoto = true;
+        const removeBtn = document.getElementById("pro-photo-remove-btn");
+        if (removeBtn) {
+          removeBtn.disabled = false;
+          removeBtn.classList.remove("pro-settings-btn-disabled");
+        }
+      }
     }
 
     // Personal Information Form
@@ -335,12 +392,68 @@
     if (completionEl) {
       completionEl.textContent = `${percent}% Complete`;
     }
+
+    // Baseline tracking for dirty change detection
+    originalPersonalInfo = {
+      fullName: normalizeFieldValue(name),
+      title: normalizeFieldValue(title),
+      location: normalizeFieldValue(location),
+      pincode: normalizeFieldValue(pincode),
+      bio: normalizeFieldValue(bio)
+    };
+    updatePersonalInfoSaveButtonState();
   }
 
   // ============================================================
-  // 5A. PERSONAL INFORMATION SAVE MODULE
+  // 5A. PERSONAL INFORMATION SAVE MODULE (Dirty Checking & Zero Waste)
   // ============================================================
   let isSavingPersonalInfo = false;
+  let originalPersonalInfo = null;
+
+  function normalizeFieldValue(val) {
+    if (val === null || val === undefined) return "";
+    return String(val).trim();
+  }
+
+  function getPersonalInfoFormValues() {
+    const nameInput = document.getElementById("pro-input-fullname");
+    const titleInput = document.getElementById("pro-input-title");
+    const locInput = document.getElementById("pro-input-location");
+    const pinInput = document.getElementById("pro-input-pincode");
+    const bioInput = document.getElementById("pro-input-bio");
+
+    return {
+      fullName: normalizeFieldValue(nameInput ? nameInput.value : ""),
+      title: normalizeFieldValue(titleInput ? titleInput.value : ""),
+      location: normalizeFieldValue(locInput ? locInput.value : ""),
+      pincode: normalizeFieldValue(pinInput ? pinInput.value : ""),
+      bio: normalizeFieldValue(bioInput ? bioInput.value : "")
+    };
+  }
+
+  function hasPersonalInfoChanges() {
+    if (!originalPersonalInfo) return false;
+    const current = getPersonalInfoFormValues();
+    return (
+      current.fullName !== originalPersonalInfo.fullName ||
+      current.title !== originalPersonalInfo.title ||
+      current.location !== originalPersonalInfo.location ||
+      current.pincode !== originalPersonalInfo.pincode ||
+      current.bio !== originalPersonalInfo.bio
+    );
+  }
+
+  function updatePersonalInfoSaveButtonState() {
+    const saveBtn = document.getElementById("pro-btn-save-personal-info");
+    if (!saveBtn) return;
+    const hasChanges = hasPersonalInfoChanges() || Boolean(pendingFile || croppedBlob);
+    saveBtn.disabled = !hasChanges;
+    if (!hasChanges) {
+      saveBtn.classList.add("pro-settings-btn-disabled");
+    } else {
+      saveBtn.classList.remove("pro-settings-btn-disabled");
+    }
+  }
 
   function setPersonalInfoFeedback(message, type = "") {
     const feedback = document.getElementById("pro-personal-info-feedback");
@@ -367,6 +480,22 @@
   async function savePersonalInformation() {
     if (isSavingPersonalInfo) return;
 
+    const hasChanges = hasPersonalInfoChanges();
+    const hasPendingPhoto = Boolean(pendingFile || croppedBlob);
+
+    // Unchanged submission guard: do not make HTTP request, do not show success toast
+    if (!hasChanges && !hasPendingPhoto) {
+      setPersonalInfoFeedback("No changes to save.", "info");
+      setTimeout(() => {
+        const fb = document.getElementById("pro-personal-info-feedback");
+        if (fb && fb.textContent && fb.textContent.includes("No changes to save")) {
+          fb.style.display = "none";
+          fb.textContent = "";
+        }
+      }, 2500);
+      return;
+    }
+
     const token = getCleanToken();
     if (!token) {
       showToast("Authentication required. Please log in.", "error");
@@ -374,17 +503,27 @@
       return;
     }
 
+    // If a photo was selected or cropped but not yet saved, upload it first
+    if (hasPendingPhoto) {
+      await confirmAndSaveCroppedPhoto();
+      if (!hasChanges) {
+        updatePersonalInfoSaveButtonState();
+        return;
+      }
+    }
+
+    const currentValues = getPersonalInfoFormValues();
+    const fullName = currentValues.fullName;
+    const title = currentValues.title;
+    const location = currentValues.location;
+    const pincode = currentValues.pincode;
+    const bio = currentValues.bio;
+
     const nameInput = document.getElementById("pro-input-fullname");
     const titleInput = document.getElementById("pro-input-title");
     const locInput = document.getElementById("pro-input-location");
     const pinInput = document.getElementById("pro-input-pincode");
     const bioInput = document.getElementById("pro-input-bio");
-
-    const fullName = nameInput ? nameInput.value.trim() : "";
-    const title = titleInput ? titleInput.value.trim() : "";
-    const location = locInput ? locInput.value.trim() : "";
-    const pincode = pinInput ? pinInput.value.trim() : "";
-    const bio = bioInput ? bioInput.value.trim() : "";
 
     // Client-side validations
     if (!fullName || fullName.length < 2) {
@@ -471,22 +610,40 @@
         currentProfile = updated;
         populateProfileUI(updated);
 
+        // Update baseline form values from confirmed server response
+        originalPersonalInfo = {
+          fullName: normalizeFieldValue(updated.fullName || updated.name || fullName),
+          title: normalizeFieldValue(updated.title !== undefined ? updated.title : title),
+          location: normalizeFieldValue(updated.location !== undefined ? updated.location : location),
+          pincode: normalizeFieldValue(updated.pincode !== undefined ? updated.pincode : pincode),
+          bio: normalizeFieldValue(updated.bio !== undefined ? updated.bio : bio)
+        };
+
         // Synchronize cached user in localStorage
         try {
           const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
           let u = raw ? JSON.parse(raw) : {};
           u.name = updated.name || updated.fullName || fullName;
           u.fullName = updated.fullName || updated.name || fullName;
-          u.title = updated.title || title;
-          u.location = updated.location || location;
-          u.pincode = updated.pincode || pincode;
-          u.bio = updated.bio || bio;
+          u.title = updated.title !== undefined ? updated.title : title;
+          u.location = updated.location !== undefined ? updated.location : location;
+          u.pincode = updated.pincode !== undefined ? updated.pincode : pincode;
+          u.bio = updated.bio !== undefined ? updated.bio : bio;
           localStorage.setItem("currentUser", JSON.stringify(u));
           localStorage.setItem("marketplaceUser", JSON.stringify(u));
         } catch (e) {}
 
         setPersonalInfoFeedback("Personal information saved successfully to database.", "success");
-        showToast("Personal information updated successfully.", "success");
+        setTimeout(() => {
+          const fb = document.getElementById("pro-personal-info-feedback");
+          if (fb && fb.textContent && fb.textContent.includes("Personal information saved successfully")) {
+            fb.style.display = "none";
+            fb.textContent = "";
+          }
+        }, 3500);
+
+        showToast("Personal information saved successfully.", "success");
+        updatePersonalInfoSaveButtonState();
       } else {
         const errorMsg = result.error || result.message || `Failed to save changes (HTTP ${response.status}).`;
         setPersonalInfoFeedback(errorMsg, "error");
@@ -499,9 +656,8 @@
     } finally {
       isSavingPersonalInfo = false;
       if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.classList.remove("pro-settings-btn-disabled");
         saveBtn.innerHTML = originalBtnHtml;
+        updatePersonalInfoSaveButtonState();
       }
     }
   }
@@ -512,6 +668,25 @@
       saveBtn._proBound = true;
       saveBtn.addEventListener("click", savePersonalInformation);
     }
+
+    const fieldIds = [
+      "pro-input-fullname",
+      "pro-input-title",
+      "pro-input-location",
+      "pro-input-pincode",
+      "pro-input-bio"
+    ];
+
+    fieldIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el._dirtyBound) {
+        el._dirtyBound = true;
+        el.addEventListener("input", updatePersonalInfoSaveButtonState);
+        el.addEventListener("change", updatePersonalInfoSaveButtonState);
+      }
+    });
+
+    updatePersonalInfoSaveButtonState();
   }
 
   window.savePersonalInformation = savePersonalInformation;
@@ -600,6 +775,8 @@
           el.src = savedPhotoBlobUrl;
         } else if (photoUrl && (photoUrl.startsWith("data:") || photoUrl.startsWith("blob:") || (photoUrl.startsWith("http") && !photoUrl.includes("images.unsplash.com")))) {
           el.src = photoUrl;
+        } else if (getValidProCachedAvatar()) {
+          el.src = getValidProCachedAvatar();
         } else {
           el.src = DEFAULT_AVATAR;
         }
@@ -685,14 +862,57 @@
             removeBtn.disabled = false;
             removeBtn.classList.remove("pro-settings-btn-disabled");
           }
+
+          // Cache base64 data URL in localStorage for zero-flash hydration across pages
+          try {
+            const reader = new FileReader();
+            reader.onloadend = function () {
+              if (reader.result) {
+                try {
+                  localStorage.setItem("buildbid_pro_avatar_cache", reader.result);
+                  const owner = getProCacheOwnerIdentifier();
+                  if (owner) localStorage.setItem("buildbid_pro_avatar_cache_owner", owner);
+                } catch (e) {}
+              }
+            };
+            reader.readAsDataURL(blob);
+          } catch (e) {}
         } else if (response.status === 404) {
           hasSavedPhoto = false;
           if (savedPhotoBlobUrl) {
             URL.revokeObjectURL(savedPhotoBlobUrl);
             savedPhotoBlobUrl = null;
           }
+          try {
+            localStorage.removeItem("buildbid_pro_avatar_cache");
+            localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+          } catch (e) {}
           if (previewAvatar) previewAvatar.src = DEFAULT_AVATAR;
           if (navAvatar) navAvatar.src = DEFAULT_AVATAR;
+          ["side-avatar", "proHeroAvatar", "top-avatar", "proProfileTabAvatar", "settings-header-avatar"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.src = DEFAULT_AVATAR;
+          });
+          if (removeBtn) {
+            removeBtn.disabled = true;
+            removeBtn.classList.add("pro-settings-btn-disabled");
+          }
+        } else if (response.status === 401 || response.status === 403) {
+          hasSavedPhoto = false;
+          if (savedPhotoBlobUrl) {
+            URL.revokeObjectURL(savedPhotoBlobUrl);
+            savedPhotoBlobUrl = null;
+          }
+          try {
+            localStorage.removeItem("buildbid_pro_avatar_cache");
+            localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+          } catch (e) {}
+          if (previewAvatar) previewAvatar.src = DEFAULT_AVATAR;
+          if (navAvatar) navAvatar.src = DEFAULT_AVATAR;
+          ["side-avatar", "proHeroAvatar", "top-avatar", "proProfileTabAvatar", "settings-header-avatar"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.src = DEFAULT_AVATAR;
+          });
           if (removeBtn) {
             removeBtn.disabled = true;
             removeBtn.classList.add("pro-settings-btn-disabled");
@@ -942,6 +1162,7 @@
     }
 
     pendingFile = file;
+    updatePersonalInfoSaveButtonState();
 
     // Instant local preview in card and reveal pending photo action buttons
     const tempUrl = URL.createObjectURL(file);
@@ -962,6 +1183,7 @@
         setPhotoFeedback("Selected image could not be decoded. Please choose a valid image file.", "error");
         showToast("Malformed or corrupt image file.", "error");
         pendingFile = null;
+        updatePersonalInfoSaveButtonState();
         e.target.value = "";
       };
       img.src = evt.target.result;
@@ -970,6 +1192,7 @@
       setPhotoFeedback("Failed to read image file from device.", "error");
       showToast("File reading error.", "error");
       pendingFile = null;
+      updatePersonalInfoSaveButtonState();
       e.target.value = "";
     };
     reader.readAsDataURL(file);
@@ -1006,13 +1229,14 @@
     croppedBlob = null;
     croppedDataUrl = null;
     pendingFile = null;
+    updatePersonalInfoSaveButtonState();
 
     const fileInput = document.getElementById("pro-photo-file-input");
     if (fileInput) fileInput.value = "";
 
     // Keep currently saved photo in preview
     const previewImg = document.getElementById("pro-settings-photo-preview");
-    if (previewImg) previewImg.src = savedPhotoBlobUrl || DEFAULT_AVATAR;
+    if (previewImg) previewImg.src = savedPhotoBlobUrl || getValidProCachedAvatar() || DEFAULT_AVATAR;
 
     setPhotoFeedback("", "");
   }
@@ -1113,7 +1337,7 @@
     }
 
     setPhotoOperatingState(true);
-    setPhotoFeedback("Saving and verifying photo on server...", "info");
+    setPhotoFeedback("Uploading photo...", "info");
 
     const formData = new FormData();
     const fileToUpload = croppedBlob || pendingFile;
@@ -1161,16 +1385,17 @@
         const fileInput = document.getElementById("pro-photo-file-input");
         if (fileInput) fileInput.value = "";
 
-        // Reload persisted photo with cache-buster
+        // Reload persisted photo from backend with cache-buster
         await loadSavedPhotoFromBackend(token, true);
 
         showPendingPhotoActions(false);
         setPhotoOperatingState(false);
-        setPhotoFeedback("Profile photo saved and verified securely.", "success");
+        setPhotoFeedback("", ""); // Clear inline feedback; no misleading or permanent inline success banner
         showToast("Profile photo updated successfully.", "success");
 
         // Dispatch authoritative synchronization event
         dispatchAvatarSyncEvent(result.photoUrl || "/api/professional/profile/photo", Date.now());
+        updatePersonalInfoSaveButtonState();
       } else {
         const errorMsg = result.error || result.message || `Upload failed (HTTP ${response.status}).`;
         setPhotoOperatingState(false);
@@ -1204,7 +1429,7 @@
   function cancelPhotoSelection() {
     closePhotoCropModal();
     const previewImg = document.getElementById("pro-settings-photo-preview");
-    if (previewImg) previewImg.src = savedPhotoBlobUrl || DEFAULT_AVATAR;
+    if (previewImg) previewImg.src = savedPhotoBlobUrl || getValidProCachedAvatar() || DEFAULT_AVATAR;
     pendingFile = null;
     croppedBlob = null;
     croppedDataUrl = null;
@@ -1212,6 +1437,7 @@
     if (fileInput) fileInput.value = "";
     showPendingPhotoActions(false);
     setPhotoFeedback("", "");
+    updatePersonalInfoSaveButtonState();
   }
 
   function triggerPhotoFileInput() {
@@ -1287,7 +1513,13 @@
           URL.revokeObjectURL(pendingBlobUrl);
           pendingBlobUrl = null;
         }
+        try {
+          localStorage.removeItem("buildbid_pro_avatar_cache");
+          localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+        } catch (e) {}
         pendingFile = null;
+        croppedBlob = null;
+        croppedDataUrl = null;
         hasSavedPhoto = false;
 
         const previewImg = document.getElementById("pro-settings-photo-preview");
@@ -1309,11 +1541,12 @@
 
         showPendingPhotoActions(false);
         setPhotoOperatingState(false);
-        setPhotoFeedback("Profile photo removed.", "success");
+        setPhotoFeedback("", "");
         showToast("Profile photo removed successfully.", "info");
 
         // Dispatch global synchronization event
         dispatchAvatarSyncEvent(null, Date.now());
+        updatePersonalInfoSaveButtonState();
       } else {
         const errorMsg = result.error || result.message || "Failed to remove profile photo.";
         setPhotoOperatingState(false);

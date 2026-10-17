@@ -97,6 +97,8 @@ public class ProfessionalProfileService {
             throw new IllegalArgumentException("Update payload cannot be null.");
         }
 
+        boolean changed = false;
+
         // 1. Full name validation
         String rawName = request.resolveRawName();
         if (rawName != null) {
@@ -107,7 +109,10 @@ public class ProfessionalProfileService {
             if (trimmedName.length() > 100) {
                 throw new IllegalArgumentException("Full name cannot exceed 100 characters.");
             }
-            user.setName(trimmedName);
+            if (!normalize(user.getName()).equals(trimmedName)) {
+                user.setName(trimmedName);
+                changed = true;
+            }
         }
 
         // 2. Title validation
@@ -116,7 +121,10 @@ public class ProfessionalProfileService {
             if (trimmedTitle.length() > 150) {
                 throw new IllegalArgumentException("Professional title cannot exceed 150 characters.");
             }
-            user.setTitle(trimmedTitle);
+            if (!normalize(user.getTitle()).equals(trimmedTitle)) {
+                user.setTitle(trimmedTitle);
+                changed = true;
+            }
         }
 
         // 3. Operating City / Location validation
@@ -125,7 +133,10 @@ public class ProfessionalProfileService {
             if (trimmedLocation.length() > 150) {
                 throw new IllegalArgumentException("Location cannot exceed 150 characters.");
             }
-            user.setLocation(trimmedLocation);
+            if (!normalize(user.getLocation()).equals(trimmedLocation)) {
+                user.setLocation(trimmedLocation);
+                changed = true;
+            }
         }
 
         // 4. Pincode validation
@@ -134,7 +145,10 @@ public class ProfessionalProfileService {
             if (trimmedPincode.length() > 20) {
                 throw new IllegalArgumentException("Base pincode cannot exceed 20 characters.");
             }
-            user.setPincode(trimmedPincode);
+            if (!normalize(user.getPincode()).equals(trimmedPincode)) {
+                user.setPincode(trimmedPincode);
+                changed = true;
+            }
         }
 
         // 5. Bio validation
@@ -143,11 +157,18 @@ public class ProfessionalProfileService {
             if (trimmedBio.length() > 5000) {
                 throw new IllegalArgumentException("Professional bio cannot exceed 5000 characters.");
             }
-            user.setBio(trimmedBio);
+            if (!normalize(user.getBio()).equals(trimmedBio)) {
+                user.setBio(trimmedBio);
+                changed = true;
+            }
         }
 
-        MarketplaceBackendApplication.MarketplaceUser saved = userRepository.save(user);
+        MarketplaceBackendApplication.MarketplaceUser saved = changed ? userRepository.save(user) : user;
         return mapToDto(saved);
+    }
+
+    private String normalize(String s) {
+        return s == null ? "" : s.trim();
     }
 
     private ProfessionalProfileDto mapToDto(MarketplaceBackendApplication.MarketplaceUser user) {

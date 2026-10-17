@@ -300,6 +300,41 @@ function createDefaultProfessional(name, type, location) {
   };
 }
 
+function getProCacheOwnerIdentifier() {
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    const identifier = u.email || u.username || u.id;
+    return identifier ? String(identifier).trim().toLowerCase() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function getValidProCachedAvatar() {
+  try {
+    const token = getCleanToken();
+    if (!token) {
+      localStorage.removeItem("buildbid_pro_avatar_cache");
+      localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+      return null;
+    }
+    const currentOwner = getProCacheOwnerIdentifier();
+    const storedOwner = localStorage.getItem("buildbid_pro_avatar_cache_owner");
+    const cachedAvatar = localStorage.getItem("buildbid_pro_avatar_cache");
+    if (!cachedAvatar) return null;
+    if (!currentOwner || !storedOwner || currentOwner !== storedOwner.toLowerCase()) {
+      localStorage.removeItem("buildbid_pro_avatar_cache");
+      localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+      return null;
+    }
+    return cachedAvatar;
+  } catch (e) {
+    return null;
+  }
+}
+
 function initializeCurrentProfessional() {
   let cachedUser = null;
   try {
@@ -307,13 +342,21 @@ function initializeCurrentProfessional() {
     if (raw) cachedUser = JSON.parse(raw);
   } catch (e) {}
 
+  const cachedAvatar = getValidProCachedAvatar();
+
   if (cachedUser) {
     const name = cachedUser.name || cachedUser.fullName || cachedUser.username || "Professional";
     const location = cachedUser.location || "";
     const rawType = cachedUser.category || cachedUser.profession || cachedUser.professionalType || cachedUser.type || "";
     const type = normalizeProfessionalType(rawType);
-    const photoUrl = cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.profilePhotoUrl || cachedUser.photoUrl || "";
+    const photoUrl = cachedUser.profilePhotoUrl || cachedUser.profilePhoto || cachedUser.avatarUrl || cachedUser.photoUrl || "";
     const pro = createDefaultProfessional(name, type, location);
+
+    if (cachedAvatar) {
+      pro.avatar = cachedAvatar;
+    } else if (photoUrl && (photoUrl.startsWith("data:") || photoUrl.startsWith("blob:") || (photoUrl.startsWith("http") && !photoUrl.includes("images.unsplash.com")))) {
+      pro.avatar = photoUrl;
+    }
 
     if (cachedUser.id) pro.id = 'BBD-PRO-' + cachedUser.id;
     if (cachedUser.isVerified || cachedUser.verified || cachedUser.verificationStatus === 'VERIFIED') {
@@ -519,7 +562,7 @@ const PERSONAS = {
 
 function getApiBaseUrl() {
   if (typeof window !== 'undefined' && window.location) {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:8080';
     }
   }
@@ -608,6 +651,10 @@ async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
 
   if (!token) {
     revokeCurrentAvatarBlobUrl();
+    try {
+      localStorage.removeItem("buildbid_pro_avatar_cache");
+      localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+    } catch (e) {}
     updateAllAvatarElements(fallbackUrl);
     return;
   }
@@ -646,23 +693,50 @@ async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
         revokeCurrentAvatarBlobUrl();
         currentAvatarBlobUrl = URL.createObjectURL(blob);
         updateAllAvatarElements(currentAvatarBlobUrl);
+
+        // Cache base64 in localStorage for zero-flash hydration across pages
+        try {
+          const reader = new FileReader();
+          reader.onloadend = function () {
+            if (reader.result) {
+              try {
+                localStorage.setItem("buildbid_pro_avatar_cache", reader.result);
+                const owner = getProCacheOwnerIdentifier();
+                if (owner) {
+                  localStorage.setItem("buildbid_pro_avatar_cache_owner", owner);
+                }
+              } catch (e) {}
+            }
+          };
+          reader.readAsDataURL(blob);
+        } catch (e) {}
       } else if (res.status === 404) {
         revokeCurrentAvatarBlobUrl();
+        try {
+          localStorage.removeItem("buildbid_pro_avatar_cache");
+          localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+        } catch (e) {}
         updateAllAvatarElements(fallbackUrl);
       } else if (res.status === 401 || res.status === 403) {
         console.warn('[BuildBid Pro] Unauthorized photo fetch (HTTP ' + res.status + ')');
         revokeCurrentAvatarBlobUrl();
+        try {
+          localStorage.removeItem("buildbid_pro_avatar_cache");
+          localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+        } catch (e) {}
         updateAllAvatarElements(fallbackUrl);
       } else {
         if (!currentAvatarBlobUrl) {
-          updateAllAvatarElements(fallbackUrl);
+          const cached = getValidProCachedAvatar();
+          updateAllAvatarElements(cached || fallbackUrl);
         }
       }
     } catch (err) {
       if (thisRequestId !== avatarLoadRequestId) return;
       console.warn('[BuildBid Pro] Network error loading photo:', err);
       if (!currentAvatarBlobUrl) {
-        updateAllAvatarElements(fallbackUrl);
+        const cached = getValidProCachedAvatar();
+        updateAllAvatarElements(cached || fallbackUrl);
       }
     } finally {
       activeAvatarFetchPromise = null;
@@ -679,6 +753,10 @@ window.addEventListener('buildbid:avatar-sync', function (event) {
 
   if (!photoUrl) {
     revokeCurrentAvatarBlobUrl();
+    try {
+      localStorage.removeItem("buildbid_pro_avatar_cache");
+      localStorage.removeItem("buildbid_pro_avatar_cache_owner");
+    } catch (e) {}
     updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
     try {
       const raw = localStorage.getItem('currentUser');
@@ -726,27 +804,25 @@ function applyProfessionalIdentity(name, location, type, photoUrl) {
   }
 
   // Profile image resolution:
+  const cachedAvatar = getValidProCachedAvatar();
   const candidateUrl = (photoUrl || currentPro.profilePhotoUrl || currentPro.photoUrl || "").toString().trim();
   const isInvalidStock = !candidateUrl || 
                          candidateUrl.includes("images.unsplash.com") || 
                          candidateUrl.includes("placehold.co") || 
                          candidateUrl.includes("via.placeholder");
 
-  if (!isInvalidStock && (candidateUrl === '/api/professional/profile/photo' || candidateUrl.startsWith('/api/'))) {
-    if (currentAvatarBlobUrl) {
-      updateAllAvatarElements(currentAvatarBlobUrl);
-    } else {
-      updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
-      loadAuthenticatedProfilePhoto();
-    }
+  if (currentAvatarBlobUrl) {
+    updateAllAvatarElements(currentAvatarBlobUrl);
+  } else if (cachedAvatar) {
+    updateAllAvatarElements(cachedAvatar);
+    loadAuthenticatedProfilePhoto();
+  } else if (!isInvalidStock && (candidateUrl === '/api/professional/profile/photo' || candidateUrl.startsWith('/api/'))) {
+    updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
+    loadAuthenticatedProfilePhoto();
   } else if (!isInvalidStock && (candidateUrl.startsWith('data:') || candidateUrl.startsWith('blob:') || candidateUrl.startsWith('http'))) {
     updateAllAvatarElements(candidateUrl);
   } else {
-    if (!currentAvatarBlobUrl) {
-      updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
-    } else {
-      updateAllAvatarElements(currentAvatarBlobUrl);
-    }
+    updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
   }
 
   const sideBadge = document.getElementById('side-verified-badge');
@@ -1221,6 +1297,8 @@ function executeLogout() {
   localStorage.removeItem("customerUser");
   localStorage.removeItem("buildbid_user");
   localStorage.removeItem("buildbid_current_user");
+  localStorage.removeItem("buildbid_pro_avatar_cache");
+  localStorage.removeItem("buildbid_pro_avatar_cache_owner");
   sessionStorage.removeItem("pendingRedirect");
   sessionStorage.removeItem("userData");
   sessionStorage.removeItem("currentUser");
@@ -2195,6 +2273,12 @@ function renderDashboard(container) {
       </div>
     </div>
   `;
+
+  // Ensure hero avatar is immediately in sync with currentPro.avatar
+  const heroAvatar = document.getElementById('proHeroAvatar');
+  if (heroAvatar && currentPro.avatar) {
+    heroAvatar.src = currentPro.avatar;
+  }
 }
 
 /* =========================================================
