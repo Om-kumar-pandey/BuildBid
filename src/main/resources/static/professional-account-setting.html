@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -216,7 +216,7 @@
 
           <!-- Profile Photo Interactive Component (Phase 2 Real Persistence) -->
           <div class="pro-settings-photo-area" id="pro-photo-area">
-            <input type="file" id="pro-photo-file-input" accept="image/jpeg,image/png,image/webp" style="display: none;" aria-label="Upload profile picture file">
+            <input type="file" id="pro-photo-file-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style="display: none;" aria-label="Upload profile picture file">
             <div class="pro-settings-avatar-wrap">
               <img id="pro-settings-photo-preview" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%20width%3D%22120%22%20height%3D%22120%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22bgGrad%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%230f172a%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%231e3a8a%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2228%22%20fill%3D%22url(%23bgGrad)%22%2F%3E%3Ccircle%20cx%3D%2260%22%20cy%3D%2246%22%20r%3D%2220%22%20fill%3D%22%23cbd5e1%22%2F%3E%3Cpath%20d%3D%22M%2032%2098%20C%2032%2076%2044%2072%2060%2072%20C%2076%2072%2088%2076%2088%2098%20Z%22%20fill%3D%22%23cbd5e1%22%2F%3E%3C%2Fsvg%3E" alt="Professional Profile Photo Preview" class="pro-settings-avatar-preview">
               <button type="button" class="pro-settings-avatar-badge" id="pro-photo-badge-btn" title="Choose new profile photo" aria-label="Choose new profile photo">
@@ -229,7 +229,7 @@
             <div class="pro-settings-photo-controls">
               <h3 class="pro-settings-photo-title">Professional Profile Photo</h3>
               <p class="pro-settings-photo-desc">
-                Upload a professional headshot. Supported formats: JPEG, PNG, or WebP up to 5MB. Persists securely across sessions.
+                Upload a professional headshot. Supported formats: JPG, JPEG, PNG, or WebP up to 5MB. Persists securely across sessions.
               </p>
 
               <!-- Default Actions -->
@@ -1122,6 +1122,111 @@
           <button type="button" class="pro-settings-btn pro-settings-btn-danger" id="pro-btn-finalize-del" style="background-color: var(--pro-rose-600); color: white; border: none;">
             <i class="fa-solid fa-trash-can"></i>
             <span>Permanently Delete My Account Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: PROFESSIONAL PROFILE PHOTO CROP & PREVIEW
+       ============================================================ -->
+  <div class="pro-settings-modal-overlay" id="modal-pro-crop" role="dialog" aria-modal="true" aria-labelledby="modal-pro-crop-title" style="display: none;">
+    <div class="pro-settings-modal-card pro-crop-modal-card">
+      <!-- Modal Header -->
+      <div class="pro-crop-header">
+        <div class="pro-crop-header-title-wrap">
+          <div class="pro-crop-header-icon">
+            <i class="fa-solid fa-crop-simple"></i>
+          </div>
+          <div>
+            <h3 class="pro-settings-modal-title" id="modal-pro-crop-title" style="margin: 0; font-size: 16px;">Adjust Profile Photo</h3>
+            <p class="pro-settings-modal-desc" id="modal-pro-crop-desc" style="margin: 2px 0 0; font-size: 11px;">
+              Reposition, zoom, and crop your professional headshot.
+            </p>
+          </div>
+        </div>
+        <button type="button" class="pro-crop-close-btn" id="pro-crop-x-btn" onclick="closePhotoCropModal()" aria-label="Close Crop Modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Step 1: Crop Workspace -->
+      <div id="pro-crop-step-crop" class="pro-crop-step">
+        <div class="pro-crop-viewport-wrap">
+          <canvas id="pro-crop-canvas" width="340" height="340" class="pro-crop-canvas"></canvas>
+        </div>
+
+        <!-- Zoom & Rotate Toolbar -->
+        <div class="pro-crop-tools">
+          <div class="pro-crop-zoom-group">
+            <button type="button" class="pro-crop-tool-btn" id="pro-crop-zoom-out" title="Zoom Out" aria-label="Zoom Out">
+              <i class="fa-solid fa-magnifying-glass-minus"></i>
+            </button>
+            <input type="range" id="pro-crop-zoom-slider" min="0.5" max="3" step="0.01" value="1" class="pro-crop-slider" aria-label="Zoom Level">
+            <button type="button" class="pro-crop-tool-btn" id="pro-crop-zoom-in" title="Zoom In" aria-label="Zoom In">
+              <i class="fa-solid fa-magnifying-glass-plus"></i>
+            </button>
+          </div>
+
+          <div class="pro-crop-action-group">
+            <button type="button" class="pro-crop-tool-btn pro-crop-tool-btn-labeled" id="pro-crop-rotate-btn" title="Rotate 90 degrees">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>Rotate 90°</span>
+            </button>
+            <button type="button" class="pro-crop-tool-btn pro-crop-tool-btn-labeled" id="pro-crop-reset-btn" title="Reset view">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="pro-crop-instructions">
+          <i class="fa-solid fa-hand-pointer"></i> Drag to reposition. Use the slider or mouse wheel to zoom.
+        </p>
+
+        <!-- Crop Step Actions -->
+        <div class="pro-settings-modal-actions" style="margin-top: 14px;">
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" onclick="closePhotoCropModal()">
+            Cancel
+          </button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-crop-continue-btn" onclick="proceedToCropPreview()">
+            <span>Continue to Preview</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Preview & Confirm -->
+      <div id="pro-crop-step-preview" class="pro-crop-step" style="display: none;">
+        <div class="pro-crop-preview-box">
+          <div class="pro-crop-avatar-preview-wrap">
+            <img id="pro-crop-preview-result" src="" alt="Cropped Headshot Preview" class="pro-crop-result-img">
+            <div class="pro-crop-verified-chip" title="Verified Pro Preview">
+              <i class="fa-solid fa-check"></i>
+            </div>
+          </div>
+          <div class="pro-crop-meta-badge">
+            <i class="fa-solid fa-circle-check text-emerald-500"></i>
+            <span id="pro-crop-preview-meta">512 × 512 px · Standard Square / Circular Crop</span>
+          </div>
+          <p class="pro-crop-preview-note">
+            This photo will be displayed on your main Professional Dashboard, hero greeting card, and top navigation header.
+          </p>
+        </div>
+
+        <!-- Preview Step Actions -->
+        <div class="pro-settings-modal-actions" style="margin-top: 16px;">
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-crop-back-btn" onclick="backToCropStep()">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Crop</span>
+          </button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" onclick="closePhotoCropModal()">
+            Cancel
+          </button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-crop-confirm-save-btn" onclick="confirmAndSaveCroppedPhoto()">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Confirm &amp; Save</span>
           </button>
         </div>
       </div>

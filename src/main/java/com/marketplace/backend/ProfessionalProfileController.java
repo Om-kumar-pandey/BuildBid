@@ -63,13 +63,34 @@ public class ProfessionalProfileController {
     }
 
     /**
-     * Upload or update profile picture for the authenticated professional.
-     * Supports both standard multipart/form-data file uploads and JSON base64 payloads.
+     * Upload or update profile picture via multipart/form-data file upload.
      */
-    @PostMapping(value = "/photo", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
-    public ResponseEntity<?> uploadPhoto(
+    @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadPhotoMultipart(
             @RequestParam(value = "file", required = false) MultipartFile file,
+            Authentication authentication
+    ) {
+        return uploadPhoto(file, null, authentication);
+    }
+
+    /**
+     * Upload or update profile picture via JSON base64 payload.
+     */
+    @PostMapping(value = "/photo", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> uploadPhotoJson(
             @RequestBody(required = false) Map<String, String> jsonBody,
+            Authentication authentication
+    ) {
+        return uploadPhoto(null, jsonBody, authentication);
+    }
+
+    /**
+     * Upload or update profile picture for the authenticated professional.
+     * Central delegator supporting both multipart and JSON payloads.
+     */
+    public ResponseEntity<?> uploadPhoto(
+            MultipartFile file,
+            Map<String, String> jsonBody,
             Authentication authentication
     ) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -191,7 +212,7 @@ public class ProfessionalProfileController {
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .contentLength(photo.getFileSize())
-                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate().mustRevalidate())
+                .cacheControl(CacheControl.noCache().cachePrivate().mustRevalidate())
                 .eTag(etag)
                 .body(photo.getPhotoData());
     }

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BuildBid - Professional Account Settings Controller
  * File: professional-account-setting.js
  * Phase 1: New UI Foundation, 14 Sections Navigation & Security Guard
@@ -418,11 +418,14 @@
     const thisRequestId = ++photoLoadRequestId;
     activePhotoFetchPromise = (async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/professional/profile/photo`, {
+        const url = `${API_BASE_URL}/api/professional/profile/photo${force ? '?t=' + Date.now() : ''}`;
+        const response = await fetch(url, {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${token}`
-          }
+            "Authorization": `Bearer ${token}`,
+            "Cache-Control": "no-cache"
+          },
+          cache: "no-cache"
         });
 
         if (thisRequestId !== photoLoadRequestId) return;
@@ -476,16 +479,218 @@
     return activePhotoFetchPromise;
   }
 
+  // ============================================================
+  // CROP & PREVIEW STATE & ENGINE
+  // ============================================================
+  let cropSourceImage = null;
+  let cropCanvas = null;
+  let cropCtx = null;
+  let cropState = {
+    panX: 0,
+    panY: 0,
+    zoom: 1,
+    minZoom: 0.2,
+    maxZoom: 3,
+    rotation: 0
+  };
+  let isCropDragging = false;
+  let dragStartPos = { x: 0, y: 0 };
+  let cropStartPan = { x: 0, y: 0 };
+  let croppedBlob = null;
+  let croppedDataUrl = null;
+
+  function initCropCanvas() {
+    cropCanvas = document.getElementById("pro-crop-canvas");
+    if (!cropCanvas) return;
+    cropCtx = cropCanvas.getContext("2d");
+
+    function getEventPos(e) {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: e.clientX, y: e.clientY };
+    }
+
+    function onPointerDown(e) {
+      if (!cropSourceImage) return;
+      isCropDragging = true;
+      dragStartPos = getEventPos(e);
+      cropStartPan = { x: cropState.panX, y: cropState.panY };
+      if (e.cancelable && e.type.startsWith("touch")) e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!isCropDragging || !cropSourceImage) return;
+      const currentPos = getEventPos(e);
+      cropState.panX = cropStartPan.x + (currentPos.x - dragStartPos.x);
+      cropState.panY = cropStartPan.y + (currentPos.y - dragStartPos.y);
+      drawCropCanvas();
+      if (e.cancelable && e.type.startsWith("touch")) e.preventDefault();
+    }
+
+    function onPointerUp() {
+      isCropDragging = false;
+    }
+
+    cropCanvas.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("mousemove", onPointerMove);
+    window.addEventListener("mouseup", onPointerUp);
+
+    cropCanvas.addEventListener("touchstart", onPointerDown, { passive: false });
+    window.addEventListener("touchmove", onPointerMove, { passive: false });
+    window.addEventListener("touchend", onPointerUp);
+    window.addEventListener("touchcancel", onPointerUp);
+
+    // Mouse wheel zoom
+    cropCanvas.addEventListener("wheel", function (e) {
+      if (!cropSourceImage) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+      setCropZoom(cropState.zoom + delta);
+    }, { passive: false });
+
+    // Slider
+    const slider = document.getElementById("pro-crop-zoom-slider");
+    if (slider) {
+      slider.addEventListener("input", function (e) {
+        setCropZoom(parseFloat(e.target.value));
+      });
+    }
+
+    // Zoom buttons
+    const zoomInBtn = document.getElementById("pro-crop-zoom-in");
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener("click", () => setCropZoom(cropState.zoom + 0.1));
+    }
+    const zoomOutBtn = document.getElementById("pro-crop-zoom-out");
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener("click", () => setCropZoom(cropState.zoom - 0.1));
+    }
+
+    // Rotate button
+    const rotateBtn = document.getElementById("pro-crop-rotate-btn");
+    if (rotateBtn) {
+      rotateBtn.addEventListener("click", function () {
+        cropState.rotation = (cropState.rotation + 90) % 360;
+        drawCropCanvas();
+      });
+    }
+
+    // Reset button
+    const resetBtn = document.getElementById("pro-crop-reset-btn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", resetCropState);
+    }
+  }
+
+  function setCropZoom(newZoom) {
+    cropState.zoom = Math.max(cropState.minZoom, Math.min(cropState.maxZoom, newZoom));
+    const slider = document.getElementById("pro-crop-zoom-slider");
+    if (slider) slider.value = cropState.zoom;
+    drawCropCanvas();
+  }
+
+  function resetCropState() {
+    if (!cropSourceImage) return;
+    const minDim = Math.min(cropSourceImage.width, cropSourceImage.height) || 1;
+    const fitZoom = 260 / minDim;
+    cropState.zoom = Math.max(0.4, Math.min(3, fitZoom));
+    cropState.minZoom = Math.max(0.1, fitZoom * 0.5);
+    cropState.maxZoom = Math.max(3, fitZoom * 3);
+    cropState.panX = 0;
+    cropState.panY = 0;
+    cropState.rotation = 0;
+    const slider = document.getElementById("pro-crop-zoom-slider");
+    if (slider) {
+      slider.min = cropState.minZoom;
+      slider.max = cropState.maxZoom;
+      slider.value = cropState.zoom;
+    }
+    drawCropCanvas();
+  }
+
+  function drawCropCanvas() {
+    if (!cropCanvas || !cropCtx) return;
+    const w = cropCanvas.width;
+    const h = cropCanvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const R = 130; // 260px diameter circle
+
+    cropCtx.clearRect(0, 0, w, h);
+
+    if (cropSourceImage) {
+      cropCtx.save();
+      cropCtx.translate(cx + cropState.panX, cy + cropState.panY);
+      cropCtx.rotate((cropState.rotation * Math.PI) / 180);
+      cropCtx.scale(cropState.zoom, cropState.zoom);
+      cropCtx.drawImage(
+        cropSourceImage,
+        -cropSourceImage.width / 2,
+        -cropSourceImage.height / 2
+      );
+      cropCtx.restore();
+    }
+
+    // Dark outer mask outside circle
+    cropCtx.save();
+    cropCtx.fillStyle = "rgba(11, 17, 32, 0.72)";
+    cropCtx.beginPath();
+    cropCtx.rect(0, 0, w, h);
+    cropCtx.arc(cx, cy, R, 0, Math.PI * 2, true);
+    cropCtx.fill();
+    cropCtx.restore();
+
+    // Circular crop border
+    cropCtx.save();
+    cropCtx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+    cropCtx.lineWidth = 2.5;
+    cropCtx.beginPath();
+    cropCtx.arc(cx, cy, R, 0, Math.PI * 2);
+    cropCtx.stroke();
+    cropCtx.restore();
+
+    // Grid guide lines (clipped inside circle)
+    cropCtx.save();
+    cropCtx.beginPath();
+    cropCtx.arc(cx, cy, R, 0, Math.PI * 2);
+    cropCtx.clip();
+    cropCtx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+    cropCtx.lineWidth = 1;
+    cropCtx.beginPath();
+    cropCtx.moveTo(cx - R / 3, cy - R);
+    cropCtx.lineTo(cx - R / 3, cy + R);
+    cropCtx.moveTo(cx + R / 3, cy - R);
+    cropCtx.lineTo(cx + R / 3, cy + R);
+    cropCtx.moveTo(cx - R, cy - R / 3);
+    cropCtx.lineTo(cx + R, cy - R / 3);
+    cropCtx.moveTo(cx - R, cy + R / 3);
+    cropCtx.lineTo(cx + R, cy + R / 3);
+    cropCtx.stroke();
+    cropCtx.restore();
+  }
+
   function handlePhotoFileSelected(e) {
     if (isPhotoOperating) return;
     const file = e.target && e.target.files && e.target.files[0];
     if (!file) return;
 
-    // 1. Client-side MIME validation
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type.toLowerCase())) {
-      setPhotoFeedback("Invalid image format. Supported formats: JPEG, PNG, or WebP.", "error");
-      showToast("Unsupported image format. Please select JPEG, PNG, or WebP.", "error");
+    // 1. Client-side MIME and Extension validation (JPG, JPEG, PNG, WebP)
+    const ext = (file.name || "").split(".").pop().toLowerCase();
+    const validExtensions = ["jpg", "jpeg", "png", "webp"];
+    const validMimes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/pjpeg",
+      "image/png",
+      "image/webp"
+    ];
+    const hasValidType = file.type ? validMimes.includes(file.type.toLowerCase()) : false;
+    const hasValidExt = validExtensions.includes(ext);
+
+    if (!hasValidType && !hasValidExt) {
+      setPhotoFeedback("Unsupported format. Please select a valid JPG, JPEG, PNG, or WebP image.", "error");
+      showToast("Unsupported image format. Please select JPG, JPEG, PNG, or WebP.", "error");
       e.target.value = "";
       return;
     }
@@ -501,46 +706,149 @@
 
     if (file.size === 0) {
       setPhotoFeedback("Selected file is empty.", "error");
+      showToast("Selected file is empty (0 bytes).", "error");
       e.target.value = "";
       return;
     }
 
-    // 3. Setup temporary local preview
-    if (pendingBlobUrl) {
-      URL.revokeObjectURL(pendingBlobUrl);
-    }
-    pendingBlobUrl = URL.createObjectURL(file);
     pendingFile = file;
 
-    const previewImg = document.getElementById("pro-settings-photo-preview");
-    if (previewImg) previewImg.src = pendingBlobUrl;
-
-    showPendingPhotoActions(true);
-    setPhotoFeedback(`Selected: ${file.name} (${Math.round(file.size / 1024)} KB). Click "Save Photo" to persist.`, "info");
+    // 3. Load into Image object and open Crop Interface
+    setPhotoFeedback("Loading photo for adjustment...", "info");
+    const reader = new FileReader();
+    reader.onload = function (evt) {
+      const img = new Image();
+      img.onload = function () {
+        cropSourceImage = img;
+        openPhotoCropModal();
+      };
+      img.onerror = function () {
+        setPhotoFeedback("Selected image could not be decoded. Please choose a valid image file.", "error");
+        showToast("Malformed or corrupt image file.", "error");
+        pendingFile = null;
+        e.target.value = "";
+      };
+      img.src = evt.target.result;
+    };
+    reader.onerror = function () {
+      setPhotoFeedback("Failed to read image file from device.", "error");
+      showToast("File reading error.", "error");
+      pendingFile = null;
+      e.target.value = "";
+    };
+    reader.readAsDataURL(file);
   }
 
-  function cancelPhotoSelection() {
-    if (isPhotoOperating) return;
-    if (pendingBlobUrl) {
-      URL.revokeObjectURL(pendingBlobUrl);
-      pendingBlobUrl = null;
-    }
+  function openPhotoCropModal() {
+    const modal = document.getElementById("modal-pro-crop");
+    if (!modal) return;
+
+    if (!cropCanvas) initCropCanvas();
+
+    resetCropState();
+
+    const cropStep = document.getElementById("pro-crop-step-crop");
+    const prevStep = document.getElementById("pro-crop-step-preview");
+    if (cropStep) cropStep.style.display = "block";
+    if (prevStep) prevStep.style.display = "none";
+
+    const titleEl = document.getElementById("modal-pro-crop-title");
+    const descEl = document.getElementById("modal-pro-crop-desc");
+    if (titleEl) titleEl.textContent = "Adjust Profile Photo";
+    if (descEl) descEl.textContent = "Reposition, zoom, and crop your professional headshot.";
+
+    modal.style.display = "flex";
+    drawCropCanvas();
+    setPhotoFeedback("", "");
+  }
+
+  function closePhotoCropModal() {
+    const modal = document.getElementById("modal-pro-crop");
+    if (modal) modal.style.display = "none";
+
+    cropSourceImage = null;
+    croppedBlob = null;
+    croppedDataUrl = null;
     pendingFile = null;
 
     const fileInput = document.getElementById("pro-photo-file-input");
     if (fileInput) fileInput.value = "";
 
+    // Keep currently saved photo in preview
     const previewImg = document.getElementById("pro-settings-photo-preview");
-    if (previewImg) {
-      previewImg.src = savedPhotoBlobUrl || DEFAULT_AVATAR;
-    }
+    if (previewImg) previewImg.src = savedPhotoBlobUrl || DEFAULT_AVATAR;
 
-    showPendingPhotoActions(false);
     setPhotoFeedback("", "");
   }
 
-  async function savePendingPhoto() {
-    if (isPhotoOperating || !pendingFile) return;
+  function proceedToCropPreview() {
+    if (!cropSourceImage || !cropCanvas) return;
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = 512;
+    outCanvas.height = 512;
+    const outCtx = outCanvas.getContext("2d");
+    outCtx.imageSmoothingEnabled = true;
+    outCtx.imageSmoothingQuality = "high";
+
+    const cx = cropCanvas.width / 2;
+    const cy = cropCanvas.height / 2;
+    const R = 130;
+    const scale = 512 / (2 * R);
+
+    outCtx.save();
+    outCtx.translate(256, 256);
+    outCtx.scale(scale, scale);
+    outCtx.translate(cropState.panX, cropState.panY);
+    outCtx.rotate((cropState.rotation * Math.PI) / 180);
+    outCtx.scale(cropState.zoom, cropState.zoom);
+    outCtx.drawImage(
+      cropSourceImage,
+      -cropSourceImage.width / 2,
+      -cropSourceImage.height / 2
+    );
+    outCtx.restore();
+
+    croppedDataUrl = outCanvas.toDataURL("image/jpeg", 0.92);
+    outCanvas.toBlob(function (blob) {
+      croppedBlob = blob;
+
+      const previewImg = document.getElementById("pro-crop-preview-result");
+      if (previewImg) previewImg.src = croppedDataUrl;
+
+      const metaEl = document.getElementById("pro-crop-preview-meta");
+      if (metaEl && blob) {
+        metaEl.textContent = `512 × 512 px · JPEG (${Math.round(blob.size / 1024)} KB)`;
+      }
+
+      const cropStep = document.getElementById("pro-crop-step-crop");
+      const prevStep = document.getElementById("pro-crop-step-preview");
+      if (cropStep) cropStep.style.display = "none";
+      if (prevStep) prevStep.style.display = "block";
+
+      const titleEl = document.getElementById("modal-pro-crop-title");
+      const descEl = document.getElementById("modal-pro-crop-desc");
+      if (titleEl) titleEl.textContent = "Confirm Profile Photo";
+      if (descEl) descEl.textContent = "Review your cropped photo before saving permanently.";
+    }, "image/jpeg", 0.92);
+  }
+
+  function backToCropStep() {
+    const cropStep = document.getElementById("pro-crop-step-crop");
+    const prevStep = document.getElementById("pro-crop-step-preview");
+    if (cropStep) cropStep.style.display = "block";
+    if (prevStep) prevStep.style.display = "none";
+
+    const titleEl = document.getElementById("modal-pro-crop-title");
+    const descEl = document.getElementById("modal-pro-crop-desc");
+    if (titleEl) titleEl.textContent = "Adjust Profile Photo";
+    if (descEl) descEl.textContent = "Reposition, zoom, and crop your professional headshot.";
+
+    drawCropCanvas();
+  }
+
+  async function confirmAndSaveCroppedPhoto() {
+    if (isPhotoOperating || !croppedBlob) return;
 
     const token = getCleanToken();
     if (!token) {
@@ -549,11 +857,21 @@
       return;
     }
 
+    const saveBtn = document.getElementById("pro-crop-confirm-save-btn");
+    const originalSaveHtml = saveBtn ? saveBtn.innerHTML : "Confirm & Save";
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving Photo...</span>`;
+    }
+
     setPhotoOperatingState(true);
-    setPhotoFeedback("Uploading and validating photo on server...", "info");
+    setPhotoFeedback("Saving and verifying cropped photo on server...", "info");
 
     const formData = new FormData();
-    formData.append("file", pendingFile);
+    const fileName = (pendingFile && pendingFile.name)
+      ? pendingFile.name.replace(/\.[^/.]+$/, ".jpg")
+      : "profile-photo.jpg";
+    formData.append("file", croppedBlob, fileName);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/professional/profile/photo`, {
@@ -566,6 +884,10 @@
 
       if (response.status === 401 || response.status === 403) {
         setPhotoOperatingState(false);
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = originalSaveHtml;
+        }
         showToast("Session expired or unauthorized for professional settings.", "error");
         executeLogout();
         return;
@@ -574,37 +896,59 @@
       const result = await response.json().catch(() => ({}));
 
       if (response.ok && result.success) {
-        if (pendingBlobUrl) {
-          URL.revokeObjectURL(pendingBlobUrl);
-          pendingBlobUrl = null;
-        }
+        // Close modal first
+        const modal = document.getElementById("modal-pro-crop");
+        if (modal) modal.style.display = "none";
+
+        cropSourceImage = null;
+        croppedBlob = null;
+        croppedDataUrl = null;
         pendingFile = null;
 
         const fileInput = document.getElementById("pro-photo-file-input");
         if (fileInput) fileInput.value = "";
 
+        // Reload persisted photo with cache-buster
         await loadSavedPhotoFromBackend(token, true);
 
-        showPendingPhotoActions(false);
         setPhotoOperatingState(false);
         setPhotoFeedback("Profile photo saved and verified securely.", "success");
         showToast("Profile photo updated successfully.", "success");
 
-        // Dispatch global synchronization event
+        // Dispatch authoritative synchronization event
         dispatchAvatarSyncEvent(result.photoUrl || "/api/professional/profile/photo", Date.now());
       } else {
         const errorMsg = result.error || result.message || `Upload failed (HTTP ${response.status}).`;
         setPhotoOperatingState(false);
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = originalSaveHtml;
+        }
         setPhotoFeedback(errorMsg, "error");
         showToast(errorMsg, "error");
       }
     } catch (err) {
       console.error("[BuildBid Pro] Photo upload network error:", err);
       setPhotoOperatingState(false);
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalSaveHtml;
+      }
       setPhotoFeedback("Network error connecting to backend. Your previous photo has been preserved.", "error");
       showToast("Unable to save photo due to network failure. Please retry.", "error");
     }
   }
+
+  function cancelPhotoSelection() {
+    closePhotoCropModal();
+  }
+
+  // Expose modal handlers to window for inline onclick compatibility
+  window.openPhotoCropModal = openPhotoCropModal;
+  window.closePhotoCropModal = closePhotoCropModal;
+  window.proceedToCropPreview = proceedToCropPreview;
+  window.backToCropStep = backToCropStep;
+  window.confirmAndSaveCroppedPhoto = confirmAndSaveCroppedPhoto;
 
   async function removeProfilePhoto() {
     if (isPhotoOperating || !hasSavedPhoto) return;
@@ -687,6 +1031,7 @@
   }
 
   function initProfilePhotoModule() {
+    initCropCanvas();
     const fileInput = document.getElementById("pro-photo-file-input");
     const chooseBtn = document.getElementById("pro-photo-choose-btn");
     const badgeBtn = document.getElementById("pro-photo-badge-btn");
@@ -704,7 +1049,7 @@
       fileInput.addEventListener("change", handlePhotoFileSelected);
     }
     if (saveBtn) {
-      saveBtn.addEventListener("click", savePendingPhoto);
+      saveBtn.addEventListener("click", confirmAndSaveCroppedPhoto);
     }
     if (cancelBtn) {
       cancelBtn.addEventListener("click", cancelPhotoSelection);

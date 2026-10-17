@@ -619,11 +619,14 @@ async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
   const thisRequestId = ++avatarLoadRequestId;
   activeAvatarFetchPromise = (async () => {
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/professional/profile/photo`, {
+      const fetchUrl = `${getApiBaseUrl()}/api/professional/profile/photo${forceRefresh ? '?t=' + Date.now() : ''}`;
+      const res = await fetch(fetchUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-cache'
       });
 
       if (thisRequestId !== avatarLoadRequestId) return;

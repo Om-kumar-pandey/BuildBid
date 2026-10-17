@@ -511,4 +511,33 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         assertFalse(sanitized2.contains(":"));
         assertEquals("cmd.exe", sanitized2);
     }
+
+    @Test
+    @DisplayName("uploadPhotoMultipart endpoint delegates cleanly without HTTP 415 mismatch")
+    void testUploadPhotoMultipartMethodDirect() {
+        Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
+        MockMultipartFile file = new MockMultipartFile("file", "headshot.jpg", "image/jpeg", validJpegBytes);
+
+        ResponseEntity<?> response = photoController.uploadPhotoMultipart(file, authA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
+        assertEquals(true, body.get("success"));
+        assertEquals("image/jpeg", body.get("contentType"));
+    }
+
+    @Test
+    @DisplayName("uploadPhotoJson endpoint delegates cleanly with base64 payload")
+    void testUploadPhotoJsonMethodDirect() {
+        Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
+        String b64 = Base64.getEncoder().encodeToString(validPngBytes);
+        Map<String, String> json = Map.of("photo", "data:image/png;base64," + b64);
+
+        ResponseEntity<?> response = photoController.uploadPhotoJson(json, authA);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
+        assertEquals(true, body.get("success"));
+        assertEquals("image/png", body.get("contentType"));
+    }
 }
