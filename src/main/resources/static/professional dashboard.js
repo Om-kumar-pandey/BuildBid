@@ -1678,14 +1678,11 @@ function renderDashboard(container) {
               <span title="Operational Location">
                 <i class="fa-solid fa-location-dot"></i> <span>${displayLoc}</span>
               </span>
-              <span title="Operational Service Radius">
-                <i class="fa-solid fa-crosshairs"></i> <span>${currentPro.serviceRadius || 25} km Service Area</span>
-              </span>
-              <span class="pro-meta-status" title="Active Availability">
-                <span class="pro-live-dot"></span> <span>Available for Consultations</span>
-              </span>
               <span>
                 <i class="fa-regular fa-calendar"></i> <span>Member since 2026</span>
+              </span>
+              <span title="Operational Service Radius">
+                <i class="fa-solid fa-crosshairs"></i> <span>${currentPro.serviceRadius || 25} km Service Area</span>
               </span>
             </div>
 
