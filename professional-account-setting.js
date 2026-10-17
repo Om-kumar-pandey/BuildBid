@@ -380,19 +380,40 @@
       version: version || Date.now()
     };
 
-    // 1. Dispatch in current window document
+    // 1. Direct synchronization across all dashboard avatar elements if present in DOM
+    const avatarIds = [
+      "pro-settings-nav-avatar",
+      "pro-settings-photo-preview",
+      "side-avatar",
+      "proHeroAvatar",
+      "top-avatar",
+      "proProfileTabAvatar",
+      "settings-header-avatar"
+    ];
+    avatarIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (photoUrl) {
+          el.src = photoUrl;
+        } else {
+          el.src = DEFAULT_AVATAR;
+        }
+      }
+    });
+
+    // 2. Dispatch in current window document
     try {
       window.dispatchEvent(new CustomEvent("buildbid:avatar-sync", { detail: payload }));
     } catch (e) {
       console.warn("[BuildBid Pro] Error dispatching custom avatar event:", e);
     }
 
-    // 2. Broadcast cross-tab synchronization signal
+    // 3. Broadcast cross-tab synchronization signal
     try {
       localStorage.setItem("buildbid_avatar_sync_signal", JSON.stringify(payload));
     } catch (e) {}
 
-    // 3. Keep cached user reference clean in localStorage
+    // 4. Keep cached user reference clean in localStorage
     try {
       const raw = localStorage.getItem("currentUser");
       if (raw) {
@@ -450,6 +471,10 @@
           savedPhotoBlobUrl = URL.createObjectURL(blob);
           if (previewAvatar) previewAvatar.src = savedPhotoBlobUrl;
           if (navAvatar) navAvatar.src = savedPhotoBlobUrl;
+          ["side-avatar", "proHeroAvatar", "top-avatar", "proProfileTabAvatar", "settings-header-avatar"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.src = savedPhotoBlobUrl;
+          });
           hasSavedPhoto = true;
           if (removeBtn) {
             removeBtn.disabled = false;
@@ -943,12 +968,34 @@
     closePhotoCropModal();
   }
 
-  // Expose modal handlers to window for inline onclick compatibility
+  function triggerPhotoFileInput() {
+    if (isPhotoOperating) return;
+    const fileInput = document.getElementById("pro-photo-file-input");
+    if (!fileInput) {
+      console.error("[BuildBid Pro] Photo file input element not found in DOM.");
+      setPhotoFeedback("Photo input component could not be found.", "error");
+      showToast("Unable to open photo picker.", "error");
+      return;
+    }
+    fileInput.value = "";
+    try {
+      fileInput.click();
+    } catch (err) {
+      console.error("[BuildBid Pro] Error triggering file input click:", err);
+      setPhotoFeedback("Failed to open file picker.", "error");
+      showToast("Could not open system file picker.", "error");
+    }
+  }
+
+  // Expose modal and photo action handlers to window for inline onclick compatibility
+  window.triggerPhotoFileInput = triggerPhotoFileInput;
+  window.handlePhotoFileSelected = handlePhotoFileSelected;
   window.openPhotoCropModal = openPhotoCropModal;
   window.closePhotoCropModal = closePhotoCropModal;
   window.proceedToCropPreview = proceedToCropPreview;
   window.backToCropStep = backToCropStep;
   window.confirmAndSaveCroppedPhoto = confirmAndSaveCroppedPhoto;
+  window.removeProfilePhoto = removeProfilePhoto;
 
   async function removeProfilePhoto() {
     if (isPhotoOperating || !hasSavedPhoto) return;
@@ -1003,6 +1050,11 @@
         const navAvatar = document.getElementById("pro-settings-nav-avatar");
         if (navAvatar) navAvatar.src = DEFAULT_AVATAR;
 
+        ["side-avatar", "proHeroAvatar", "top-avatar", "proProfileTabAvatar", "settings-header-avatar"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.src = DEFAULT_AVATAR;
+        });
+
         const removeBtn = document.getElementById("pro-photo-remove-btn");
         if (removeBtn) {
           removeBtn.disabled = true;
@@ -1039,22 +1091,28 @@
     const cancelBtn = document.getElementById("pro-photo-cancel-btn");
     const removeBtn = document.getElementById("pro-photo-remove-btn");
 
-    if (chooseBtn && fileInput) {
-      chooseBtn.addEventListener("click", () => fileInput.click());
+    if (chooseBtn && !chooseBtn._proBound) {
+      chooseBtn._proBound = true;
+      chooseBtn.addEventListener("click", triggerPhotoFileInput);
     }
-    if (badgeBtn && fileInput) {
-      badgeBtn.addEventListener("click", () => fileInput.click());
+    if (badgeBtn && !badgeBtn._proBound) {
+      badgeBtn._proBound = true;
+      badgeBtn.addEventListener("click", triggerPhotoFileInput);
     }
-    if (fileInput) {
+    if (fileInput && !fileInput._proBound) {
+      fileInput._proBound = true;
       fileInput.addEventListener("change", handlePhotoFileSelected);
     }
-    if (saveBtn) {
+    if (saveBtn && !saveBtn._proBound) {
+      saveBtn._proBound = true;
       saveBtn.addEventListener("click", confirmAndSaveCroppedPhoto);
     }
-    if (cancelBtn) {
+    if (cancelBtn && !cancelBtn._proBound) {
+      cancelBtn._proBound = true;
       cancelBtn.addEventListener("click", cancelPhotoSelection);
     }
-    if (removeBtn) {
+    if (removeBtn && !removeBtn._proBound) {
+      removeBtn._proBound = true;
       removeBtn.addEventListener("click", removeProfilePhoto);
     }
 
@@ -3412,7 +3470,7 @@
   // ============================================================
   // 7. INITIALIZATION
   // ============================================================
-  document.addEventListener("DOMContentLoaded", () => {
+  function initSettingsPage() {
     // 1. Guard check
     if (!enforceProfessionalAuthGuard()) return;
 
@@ -3449,6 +3507,12 @@
       fetchAccountActivity();
       fetchDeactivationStatus();
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initSettingsPage);
+  } else {
+    initSettingsPage();
+  }
 
 })();
