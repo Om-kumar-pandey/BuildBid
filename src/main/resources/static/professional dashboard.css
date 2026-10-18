@@ -592,75 +592,11 @@ aside.w-\[280px\] .nav-link.active [class*="bg-"] {
   color: #ffffff;
 }
 
-/* Sidebar Account Settings Container (Pinned at bottom of navigation) */
-aside.w-\[280px\] .sidebar-settings-container,
-aside.border-r .sidebar-settings-container {
-  background-color: #0b1329 !important;
-  border-top: 1px solid #1e293b !important;
-}
-
-aside.w-\[280px\] .sidebar-settings-container .nav-link,
-aside.border-r .sidebar-settings-container .nav-link {
-  color: #cbd5e1;
-}
-
-aside.w-\[280px\] .sidebar-settings-container .nav-link i,
-aside.border-r .sidebar-settings-container .nav-link i {
-  color: #94a3b8;
-}
-
-aside.w-\[280px\] .sidebar-settings-container .nav-link:hover,
-aside.border-r .sidebar-settings-container .nav-link:hover {
-  background-color: #1e293b;
-  color: #ffffff;
-}
-
-aside.w-\[280px\] .sidebar-settings-container .nav-link:hover i,
-aside.border-r .sidebar-settings-container .nav-link:hover i {
-  color: #ffffff;
-}
-
-aside.w-\[280px\] .sidebar-settings-container .nav-link.active,
-aside.border-r .sidebar-settings-container .nav-link.active {
-  background-color: #2563eb;
-  color: #ffffff;
-  border-left: 3px solid #3b82f6;
-}
-
-aside.w-\[280px\] .sidebar-settings-container .nav-link.active i,
-aside.border-r .sidebar-settings-container .nav-link.active i {
-  color: #ffffff;
-}
-
-/* Quick Help & Support Footer Card */
+/* Sidebar Footer Container */
 aside.w-\[280px\] > div:last-child,
 aside.border-r > div:last-child {
   background-color: #020617; /* Material Seller footer bg-slate-950 */
   border-top-color: #1e293b; /* Material Seller border-slate-800 */
-}
-
-aside.w-\[280px\] > div:last-child > div,
-aside.border-r > div:last-child > div {
-  background-color: #0f172a; /* Material Seller bg-slate-900 */
-  border-color: #1e293b; /* Material Seller border-slate-800 */
-}
-
-aside.w-\[280px\] > div:last-child > div span.font-bold {
-  color: #ffffff;
-}
-
-aside.w-\[280px\] > div:last-child > div p {
-  color: #94a3b8; /* Material Seller text-slate-400 */
-}
-
-aside.w-\[280px\] > div:last-child > div button {
-  background-color: #1e293b; /* Material Seller bg-slate-800 */
-  color: #ffffff;
-  border: 1px solid #334155; /* border-slate-700 */
-}
-
-aside.w-\[280px\] > div:last-child > div button:hover {
-  background-color: #334155;
 }
 
 /* Sidebar Logout Button */
