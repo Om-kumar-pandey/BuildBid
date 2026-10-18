@@ -1455,6 +1455,19 @@ async function initSellerDashboard() {
         }
     }
 
+    // 5d. Fetch dynamic seller deliveries & sync active deliveries badge
+    if (typeof loadSellerDeliveries === 'function') {
+        try {
+            await loadSellerDeliveries();
+        } catch (err) {
+            console.warn("Seller Dashboard: Error in loadSellerDeliveries:", err);
+        }
+    }
+
+    if (typeof setupTransportModalSyncListeners === 'function') {
+        setupTransportModalSyncListeners();
+    }
+
     // 6. Check URL hash or query params (e.g. #invoices, ?from=invoice)
     const urlParams = new URLSearchParams(window.location.search);
     const shouldOpenInvoice = urlParams.get("openInvoice") === "true" || window.location.hash === "#invoices";
@@ -2347,6 +2360,9 @@ function switchTab(tabId) {
     }
     if (tabId === 'hired-professionals' && typeof loadSellerHiredProfessionals === 'function') {
         loadSellerHiredProfessionals();
+    }
+    if ((tabId === 'deliveries' || tabId === 'dashboard') && typeof loadSellerDeliveries === 'function') {
+        loadSellerDeliveries();
     }
 }
 
@@ -5507,3 +5523,937 @@ function setSellerElementText(elementId, text) {
     const el = document.getElementById(elementId);
     if (el) el.textContent = text;
 }
+
+/* ==========================================================================
+   PHASE 3: SELLER DELIVERIES & LOGISTICS MANAGEMENT
+   ========================================================================== */
+
+let sellerDeliveriesCache = [];
+let activeDeliveryStatusFilter = 'all';
+let deliverySearchQuery = '';
+let _deliveriesReqSeq = 0;
+
+/**
+ * Loads authentic seller deliveries from canonical /api/deliveries/seller endpoint
+ */
+async function loadSellerDeliveries() {
+    const seq = ++_deliveriesReqSeq;
+    const tbody = document.getElementById("sellerDeliveriesTbody");
+    const token = getCleanToken();
+    const API_BASE_URL = getApiBaseUrl();
+
+    if (tbody && (!sellerDeliveriesCache || sellerDeliveriesCache.length === 0)) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-8 text-center text-slate-500" role="status" aria-live="polite">
+                    <div class="flex flex-col items-center justify-center space-y-2 py-4">
+                        <i class="fa-solid fa-circle-notch fa-spin text-blue-600 text-3xl" aria-hidden="true"></i>
+                        <div class="space-y-0.5 text-center">
+                            <p class="font-semibold text-slate-700 text-sm">Please wait…</p>
+                            <p class="text-xs text-slate-400">Loading live delivery records…</p>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    if (!token) {
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="p-8 text-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-lock text-slate-300 text-2xl mb-2 block"></i>
+                        Please log in to manage your shipments and logistics.
+                    </td>
+                </tr>
+            `;
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/deliveries/seller`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (seq !== _deliveriesReqSeq) return;
+
+        if (response.status === 401 || response.status === 403) {
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-rose-500 text-xs">
+                            <i class="fa-solid fa-circle-exclamation text-rose-400 text-2xl mb-2 block"></i>
+                            Your session has expired. Please refresh the page or log in again.
+                        </td>
+                    </tr>
+                `;
+            }
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        sellerDeliveriesCache = Array.isArray(data) ? data : [];
+
+        updateDeliveriesOverviewKPIs(sellerDeliveriesCache);
+        renderSellerDeliveries();
+    } catch (err) {
+        if (seq !== _deliveriesReqSeq) return;
+        console.error("Seller Deliveries: Error fetching records:", err);
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="p-8 text-center text-slate-500 text-xs">
+                        <div class="flex flex-col items-center justify-center space-y-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-2xl"></i>
+                            <p class="font-semibold text-slate-700">Unable to load deliveries</p>
+                            <p class="text-slate-400 max-w-sm">${escapeSellerHtml(err.message || 'Network communication error')}</p>
+                            <button type="button" onclick="loadSellerDeliveries()" class="mt-2 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer">
+                                <i class="fa-solid fa-arrows-rotate mr-1"></i> Try Again
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+/**
+ * Recalculates and updates Deliveries KPI counts and filter badges
+ */
+function updateDeliveriesOverviewKPIs(deliveries) {
+    const list = Array.isArray(deliveries) ? deliveries : [];
+
+    let total = list.length;
+    let processing = 0;
+    let inTransit = 0;
+    let outForDelivery = 0;
+    let delivered = 0;
+    let delayed = 0;
+    let active = 0;
+
+    list.forEach(d => {
+        const s = (d.status || '').toUpperCase();
+        if (s === 'PROCESSING') {
+            processing++;
+            active++;
+        } else if (s === 'READY_TO_DISPATCH' || s === 'DISPATCHED' || s === 'IN_TRANSIT') {
+            inTransit++;
+            active++;
+        } else if (s === 'OUT_FOR_DELIVERY') {
+            outForDelivery++;
+            active++;
+        } else if (s === 'DELIVERED') {
+            delivered++;
+        } else if (s === 'DELAYED' || s === 'DELIVERY_FAILED') {
+            delayed++;
+            active++;
+        } else if (s !== 'RETURNED' && s !== 'CANCELLED') {
+            active++;
+        }
+    });
+
+    setSellerElementText('kpi-deliveries-total', String(total));
+    setSellerElementText('kpi-deliveries-processing', String(processing));
+    setSellerElementText('kpi-deliveries-transit', String(inTransit));
+    setSellerElementText('kpi-deliveries-out', String(outForDelivery));
+    setSellerElementText('kpi-deliveries-delivered', String(delivered));
+    setSellerElementText('kpi-deliveries-delayed', String(delayed));
+
+    setSellerElementText('count-pill-all', `(${total})`);
+    setSellerElementText('count-pill-active', `(${active})`);
+    setSellerElementText('count-pill-processing', `(${processing})`);
+    setSellerElementText('count-pill-transit', `(${inTransit})`);
+    setSellerElementText('count-pill-out', `(${outForDelivery})`);
+    setSellerElementText('count-pill-delivered', `(${delivered})`);
+    setSellerElementText('count-pill-delayed', `(${delayed})`);
+
+    const badge = document.getElementById('nav-deliveries-badge');
+    if (badge) {
+        if (active > 0) {
+            badge.textContent = String(active);
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Filter delivery rows by status category
+ */
+function filterDeliveriesByStatus(statusKey) {
+    activeDeliveryStatusFilter = statusKey;
+
+    const filterBtnMap = {
+        'all': 'filter-btn-all',
+        'active': 'filter-btn-active',
+        'PROCESSING': 'filter-btn-processing',
+        'TRANSIT': 'filter-btn-transit',
+        'OUT_FOR_DELIVERY': 'filter-btn-out',
+        'DELIVERED': 'filter-btn-delivered',
+        'DELAYED': 'filter-btn-delayed'
+    };
+
+    Object.entries(filterBtnMap).forEach(([key, btnId]) => {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        if (key === statusKey) {
+            btn.className = 'px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-sm transition-all cursor-pointer flex items-center space-x-1';
+        } else {
+            btn.className = 'px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1';
+        }
+    });
+
+    renderSellerDeliveries();
+}
+
+/**
+ * Handle delivery search input
+ */
+function handleDeliveriesSearch(val) {
+    deliverySearchQuery = (val || '').toLowerCase().trim();
+    renderSellerDeliveries();
+}
+
+/**
+ * Filter helper returning active filtered array
+ */
+function getFilteredDeliveries() {
+    let list = Array.isArray(sellerDeliveriesCache) ? [...sellerDeliveriesCache] : [];
+
+    if (activeDeliveryStatusFilter === 'active') {
+        list = list.filter(d => {
+            const s = (d.status || '').toUpperCase();
+            return s !== 'DELIVERED' && s !== 'RETURNED' && s !== 'CANCELLED';
+        });
+    } else if (activeDeliveryStatusFilter === 'PROCESSING') {
+        list = list.filter(d => (d.status || '').toUpperCase() === 'PROCESSING');
+    } else if (activeDeliveryStatusFilter === 'TRANSIT') {
+        list = list.filter(d => {
+            const s = (d.status || '').toUpperCase();
+            return s === 'READY_TO_DISPATCH' || s === 'DISPATCHED' || s === 'IN_TRANSIT';
+        });
+    } else if (activeDeliveryStatusFilter === 'OUT_FOR_DELIVERY') {
+        list = list.filter(d => (d.status || '').toUpperCase() === 'OUT_FOR_DELIVERY');
+    } else if (activeDeliveryStatusFilter === 'DELIVERED') {
+        list = list.filter(d => (d.status || '').toUpperCase() === 'DELIVERED');
+    } else if (activeDeliveryStatusFilter === 'DELAYED') {
+        list = list.filter(d => {
+            const s = (d.status || '').toUpperCase();
+            return s === 'DELAYED' || s === 'DELIVERY_FAILED';
+        });
+    }
+
+    if (deliverySearchQuery) {
+        list = list.filter(d => {
+            const trk = (d.trackingNumber || '').toLowerCase();
+            const ord = (d.orderCode || '').toLowerCase();
+            const buyer = (d.buyerName || '').toLowerCase();
+            const phone = (d.contactNumber || d.driverPhone || '').toLowerCase();
+            const carrier = (d.carrierName || '').toLowerCase();
+            const vehicle = (d.vehicleNumber || '').toLowerCase();
+            const driver = (d.driverName || '').toLowerCase();
+            const addr = (d.deliveryAddress || '').toLowerCase();
+            const project = (d.projectName || '').toLowerCase();
+            const city = (d.city || '').toLowerCase();
+            let itemsStr = '';
+            if (Array.isArray(d.items)) {
+                itemsStr = d.items.map(i => (i.materialName || '').toLowerCase()).join(' ');
+            }
+            return trk.includes(deliverySearchQuery) ||
+                ord.includes(deliverySearchQuery) ||
+                buyer.includes(deliverySearchQuery) ||
+                phone.includes(deliverySearchQuery) ||
+                carrier.includes(deliverySearchQuery) ||
+                vehicle.includes(deliverySearchQuery) ||
+                driver.includes(deliverySearchQuery) ||
+                addr.includes(deliverySearchQuery) ||
+                project.includes(deliverySearchQuery) ||
+                city.includes(deliverySearchQuery) ||
+                itemsStr.includes(deliverySearchQuery);
+        });
+    }
+
+    return list;
+}
+
+/**
+ * Status badge markup generator matching BuildBid design tokens
+ */
+function getDeliveryStatusBadgeHtml(status) {
+    const s = (status || 'PROCESSING').toUpperCase();
+    switch (s) {
+        case 'PROCESSING':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200"><i class="fa-solid fa-gears text-[9px] mr-1"></i>Stage 1 • Processing</span>`;
+        case 'READY_TO_DISPATCH':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200"><i class="fa-solid fa-boxes-packing text-[9px] mr-1"></i>Stage 2 • Ready</span>`;
+        case 'DISPATCHED':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-truck text-[9px] mr-1"></i>Stage 2 • Dispatched</span>`;
+        case 'IN_TRANSIT':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-truck-moving text-[9px] mr-1"></i>Stage 2 • In Transit</span>`;
+        case 'OUT_FOR_DELIVERY':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200"><i class="fa-solid fa-truck-fast text-[9px] mr-1"></i>Stage 3 • Out for Delivery</span>`;
+        case 'DELIVERED':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check text-[9px] mr-1"></i>Stage 4 • Delivered</span>`;
+        case 'DELAYED':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-triangle-exclamation text-[9px] mr-1"></i>Delayed</span>`;
+        case 'DELIVERY_FAILED':
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200"><i class="fa-solid fa-circle-xmark text-[9px] mr-1"></i>Failed Attempt</span>`;
+        default:
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">${escapeSellerHtml(s)}</span>`;
+    }
+}
+
+/**
+ * Builds valid action buttons based on DeliveryStatus state machine
+ */
+function getDeliveryActionButtonsHtml(delivery) {
+    const s = (delivery.status || 'PROCESSING').toUpperCase();
+    const id = delivery.id;
+    let buttons = [];
+
+    if (s === 'PROCESSING') {
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'READY_TO_DISPATCH')" class="px-2.5 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-boxes-packing text-[10px]"></i><span>Pack / Ready</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DISPATCHED')" class="px-2.5 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck text-[10px]"></i><span>Dispatch</span></button>`);
+    } else if (s === 'READY_TO_DISPATCH') {
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DISPATCHED')" class="px-2.5 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck text-[10px]"></i><span>Dispatch</span></button>`);
+    } else if (s === 'DISPATCHED') {
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'IN_TRANSIT')" class="px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck-moving text-[10px]"></i><span>In Transit</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'OUT_FOR_DELIVERY')" class="px-2.5 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck-fast text-[10px]"></i><span>Out for Delivery</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DELAYED')" class="px-2 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer" title="Report Delay"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i><span>Delay</span></button>`);
+    } else if (s === 'IN_TRANSIT') {
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'OUT_FOR_DELIVERY')" class="px-2.5 py-1.5 bg-purple-600 text-white hover:bg-purple-700 rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck-fast text-[10px]"></i><span>Out for Delivery</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DELIVERED')" class="px-2.5 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-shield-check text-[10px]"></i><span>Deliver</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DELAYED')" class="px-2 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer" title="Report Delay"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i><span>Delay</span></button>`);
+    } else if (s === 'OUT_FOR_DELIVERY') {
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DELIVERED')" class="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 cursor-pointer"><i class="fa-solid fa-shield-check text-xs"></i><span>Complete Delivery</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DELAYED')" class="px-2 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer" title="Report Delay"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i><span>Delay</span></button>`);
+    } else if (s === 'DELAYED') {
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'IN_TRANSIT')" class="px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck-moving text-[10px]"></i><span>Resume Transit</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'OUT_FOR_DELIVERY')" class="px-2.5 py-1.5 bg-purple-600 text-white hover:bg-purple-700 rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-truck-fast text-[10px]"></i><span>Out for Delivery</span></button>`);
+        buttons.push(`<button type="button" onclick="openDeliveryStatusModal(${id}, 'DELIVERED')" class="px-2.5 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-semibold transition-all shadow-xs flex items-center space-x-1 cursor-pointer"><i class="fa-solid fa-shield-check text-[10px]"></i><span>Deliver</span></button>`);
+    } else if (s === 'DELIVERED') {
+        buttons.push(`<span class="inline-flex items-center space-x-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-bold text-[11px] border border-emerald-200"><i class="fa-solid fa-circle-check text-emerald-600"></i><span>Drop-off Confirmed</span></span>`);
+    }
+
+    if (s !== 'DELIVERED' && s !== 'RETURNED') {
+        buttons.push(`<button type="button" onclick="openDeliveryTransportModal(${id})" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all cursor-pointer" title="Edit Carrier, Vehicle & Driver Logistics"><i class="fa-solid fa-truck-ramp-box text-xs text-blue-600"></i></button>`);
+    }
+
+    buttons.push(`<button type="button" onclick="openDeliveryHistoryModal(${id})" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all cursor-pointer" title="Inspect Order Details & Chronological Status History"><i class="fa-solid fa-clock-rotate-left text-xs text-slate-600"></i></button>`);
+
+    return `<div class="flex items-center justify-end flex-wrap gap-1.5">${buttons.join('')}</div>`;
+}
+
+/**
+ * Renders filtered deliveries into the main deliveries table body
+ */
+function renderSellerDeliveries() {
+    const tbody = document.getElementById("sellerDeliveriesTbody");
+    if (!tbody) return;
+
+    const list = getFilteredDeliveries();
+
+    if (list.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="p-12 text-center text-slate-500">
+                    <div class="flex flex-col items-center justify-center space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-xl shadow-xs">
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="font-bold text-slate-700 text-sm">No shipments found</p>
+                            <p class="text-xs text-slate-400 max-w-sm">No deliveries match your current filter or search criteria. Orders will appear here as buyers confirm material requirements.</p>
+                        </div>
+                        ${deliverySearchQuery || activeDeliveryStatusFilter !== 'all' ? `
+                            <button type="button" onclick="filterDeliveriesByStatus('all'); document.getElementById('deliveriesSearchInput').value = ''; handleDeliveriesSearch('');" class="mt-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                                Clear Filters & Search
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = list.map(d => {
+        let itemsSummary = 'Direct Material Supply';
+        if (Array.isArray(d.items) && d.items.length > 0) {
+            const first = d.items[0];
+            itemsSummary = `${first.materialName || 'Material'} (${first.quantity || 1} ${first.unit || 'units'})`;
+            if (d.items.length > 1) {
+                itemsSummary += ` +${d.items.length - 1} more`;
+            }
+        }
+
+        let locSummary = d.city || '';
+        if (d.state) locSummary += (locSummary ? ', ' : '') + d.state;
+        if (d.pinCode) locSummary += (locSummary ? ' - ' : '') + d.pinCode;
+        if (!locSummary && d.deliveryAddress) locSummary = d.deliveryAddress;
+
+        const carrier = d.carrierName || 'Fleet Unassigned';
+        const vehicle = d.vehicleNumber ? `<span class="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">${escapeSellerHtml(d.vehicleNumber)}</span>` : '';
+        const driver = d.driverName ? `<div class="text-[10px] text-slate-500 truncate max-w-[140px] mt-0.5"><i class="fa-solid fa-user-ninja text-[9px] text-slate-400 mr-1"></i>${escapeSellerHtml(d.driverName)}</div>` : '';
+
+        const etaDisplay = formatExpectedDeliveryDateForDisplay(d.estimatedDeliveryDate);
+        let etaHtml = `<span class="text-xs font-semibold text-slate-800">${escapeSellerHtml(etaDisplay || 'Pending schedule')}</span>`;
+        if ((d.status || '').toUpperCase() === 'DELAYED') {
+            etaHtml += `<div class="text-[10px] font-bold text-rose-600 mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Delay Reported</div>`;
+        }
+
+        return `
+            <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3.5 align-middle">
+                    <div class="font-mono font-bold text-blue-600 text-xs">${escapeSellerHtml(d.trackingNumber || 'TRK-PENDING')}</div>
+                    <div class="text-[11px] text-slate-500 font-mono mt-0.5">ORD: ${escapeSellerHtml(d.orderCode || 'ORD-000')}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">${escapeSellerHtml(d.createdAtFormatted || formatSellerProDateTime(d.createdAt))}</div>
+                </td>
+                <td class="p-3.5 align-middle">
+                    <div class="font-bold text-slate-800 text-xs">${escapeSellerHtml(d.buyerName || 'Verified Buyer')}</div>
+                    <div class="text-[11px] text-slate-500"><i class="fa-solid fa-phone text-[10px] text-slate-400 mr-1"></i>${escapeSellerHtml(d.contactNumber || 'Via Order')}</div>
+                    <div class="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5" title="${escapeSellerHtml(d.deliveryAddress || '')}"><i class="fa-solid fa-location-dot text-[10px] text-slate-400 mr-1"></i>${escapeSellerHtml(locSummary || 'Standard drop-off')}</div>
+                </td>
+                <td class="p-3.5 align-middle">
+                    <div class="font-semibold text-slate-800 text-xs">${escapeSellerHtml(itemsSummary)}</div>
+                    <div class="text-xs font-bold text-slate-900 mt-0.5">${formatSellerCurrency(d.totalAmount)}</div>
+                </td>
+                <td class="p-3.5 align-middle">
+                    <div class="text-xs font-semibold text-slate-700 flex items-center space-x-1.5">
+                        <span>${escapeSellerHtml(carrier)}</span>
+                        ${vehicle}
+                    </div>
+                    ${driver}
+                    ${d.trackingUrl && d.trackingUrl.startsWith('http') ? `
+                        <a href="${escapeSellerHtml(d.trackingUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 text-[10px] text-blue-600 hover:underline mt-0.5 font-semibold">
+                            <span>Live Tracking</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+                        </a>
+                    ` : ''}
+                </td>
+                <td class="p-3.5 align-middle">
+                    ${etaHtml}
+                </td>
+                <td class="p-3.5 align-middle">
+                    ${getDeliveryStatusBadgeHtml(d.status)}
+                </td>
+                <td class="p-3.5 align-middle text-right">
+                    ${getDeliveryActionButtonsHtml(d)}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Opens delivery status transition confirmation modal
+ */
+function openDeliveryStatusModal(deliveryId, targetStatus) {
+    const d = (sellerDeliveriesCache || []).find(item => String(item.id) === String(deliveryId));
+    if (!d) return;
+
+    document.getElementById('statusModalDeliveryId').value = d.id;
+    document.getElementById('statusModalTargetStatus').value = targetStatus;
+    document.getElementById('statusModalTrackingNumber').textContent = d.trackingNumber || 'TRK-0000';
+    document.getElementById('statusModalOrderCode').textContent = d.orderCode || 'ORD-0000';
+
+    const titleElem = document.getElementById('statusModalTitle');
+    const subElem = document.getElementById('statusModalSubtitle');
+    const badgeElem = document.getElementById('statusModalTargetBadge');
+    const iconElem = document.getElementById('statusModalIcon');
+    const iconContainer = document.getElementById('statusModalIconContainer');
+    const verifSection = document.getElementById('statusModalVerificationSection');
+    const verifInput = document.getElementById('deliveryVerificationCodeInput');
+    const delaySection = document.getElementById('statusModalDelaySection');
+    const notesInput = document.getElementById('statusModalNotes');
+    const errBanner = document.getElementById('statusModalError');
+
+    if (errBanner) errBanner.classList.add('hidden');
+    if (notesInput) notesInput.value = '';
+
+    badgeElem.className = 'inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold';
+    iconContainer.className = 'w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base border';
+
+    if (targetStatus === 'READY_TO_DISPATCH') {
+        titleElem.textContent = 'Mark Ready for Dispatch';
+        subElem.textContent = 'Confirm material packaging and vehicle loading';
+        badgeElem.textContent = 'READY FOR DISPATCH';
+        badgeElem.classList.add('bg-sky-100', 'text-sky-800');
+        iconContainer.classList.add('bg-sky-500/20', 'text-sky-400', 'border-sky-500/30');
+        iconElem.className = 'fa-solid fa-boxes-packing';
+        verifSection.classList.add('hidden');
+        delaySection.classList.add('hidden');
+    } else if (targetStatus === 'DISPATCHED') {
+        titleElem.textContent = 'Dispatch Material Order';
+        subElem.textContent = 'Confirm vehicle has left your warehouse / premises';
+        badgeElem.textContent = 'ORDER DISPATCHED';
+        badgeElem.classList.add('bg-blue-100', 'text-blue-800');
+        iconContainer.classList.add('bg-blue-500/20', 'text-blue-400', 'border-blue-500/30');
+        iconElem.className = 'fa-solid fa-truck';
+        verifSection.classList.add('hidden');
+        delaySection.classList.add('hidden');
+    } else if (targetStatus === 'IN_TRANSIT') {
+        titleElem.textContent = 'Mark In Transit';
+        subElem.textContent = 'Shipment is actively travelling to buyer site';
+        badgeElem.textContent = 'IN TRANSIT';
+        badgeElem.classList.add('bg-indigo-100', 'text-indigo-800');
+        iconContainer.classList.add('bg-indigo-500/20', 'text-indigo-400', 'border-indigo-500/30');
+        iconElem.className = 'fa-solid fa-truck-moving';
+        verifSection.classList.add('hidden');
+        delaySection.classList.add('hidden');
+    } else if (targetStatus === 'OUT_FOR_DELIVERY') {
+        titleElem.textContent = 'Mark Out for Delivery';
+        subElem.textContent = 'Driver is in the vicinity for final unloading';
+        badgeElem.textContent = 'OUT FOR DELIVERY';
+        badgeElem.classList.add('bg-purple-100', 'text-purple-800');
+        iconContainer.classList.add('bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+        iconElem.className = 'fa-solid fa-truck-fast';
+        verifSection.classList.add('hidden');
+        delaySection.classList.add('hidden');
+    } else if (targetStatus === 'DELIVERED') {
+        titleElem.textContent = 'Confirm Order Delivery';
+        subElem.textContent = 'Requires recipient delivery verification code';
+        badgeElem.textContent = 'DELIVERED (STAGE 4)';
+        badgeElem.classList.add('bg-emerald-100', 'text-emerald-800');
+        iconContainer.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
+        iconElem.className = 'fa-solid fa-shield-check';
+        verifSection.classList.remove('hidden');
+        delaySection.classList.add('hidden');
+        if (verifInput) {
+            verifInput.value = '';
+            setTimeout(() => verifInput.focus(), 150);
+        }
+    } else if (targetStatus === 'DELAYED') {
+        titleElem.textContent = 'Report Delivery Delay';
+        subElem.textContent = 'Notify buyer with an exception reason';
+        badgeElem.textContent = 'DELAYED';
+        badgeElem.classList.add('bg-rose-100', 'text-rose-800');
+        iconContainer.classList.add('bg-rose-500/20', 'text-rose-400', 'border-rose-500/30');
+        iconElem.className = 'fa-solid fa-triangle-exclamation';
+        verifSection.classList.add('hidden');
+        delaySection.classList.remove('hidden');
+    }
+
+    openModal('deliveryStatusModal');
+}
+
+/**
+ * Submits status transition to backend PUT /api/deliveries/{id}/status
+ */
+async function submitDeliveryStatusTransition() {
+    const deliveryId = document.getElementById('statusModalDeliveryId').value;
+    const targetStatus = document.getElementById('statusModalTargetStatus').value;
+    const notes = document.getElementById('statusModalNotes').value.trim();
+    const verifInput = document.getElementById('deliveryVerificationCodeInput');
+    const delayReasonSelect = document.getElementById('statusModalDelayReason');
+    const errBanner = document.getElementById('statusModalError');
+    const errText = document.getElementById('statusModalErrorText');
+    const confirmBtn = document.getElementById('statusModalConfirmBtn');
+    const spinner = document.getElementById('statusModalSpinner');
+
+    let verificationCode = null;
+    let delayReason = null;
+
+    if (targetStatus === 'DELIVERED') {
+        verificationCode = (verifInput ? verifInput.value : '').trim();
+        if (!verificationCode) {
+            if (errBanner && errText) {
+                errText.textContent = 'Delivery verification code is mandatory. Please ask the recipient customer for their code.';
+                errBanner.classList.remove('hidden');
+            }
+            if (verifInput) verifInput.focus();
+            return;
+        }
+    }
+
+    if (targetStatus === 'DELAYED') {
+        delayReason = (delayReasonSelect ? delayReasonSelect.value : '').trim();
+    }
+
+    const payload = {
+        status: targetStatus,
+        verificationCode: verificationCode || null,
+        reason: delayReason || null,
+        notes: notes || null
+    };
+
+    try {
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+        if (errBanner) errBanner.classList.add('hidden');
+
+        const token = getCleanToken();
+        const API_BASE_URL = getApiBaseUrl();
+
+        const response = await fetch(`${API_BASE_URL}/api/deliveries/${deliveryId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || errData.error || `Server rejected transition (HTTP ${response.status})`);
+        }
+
+        closeModal('deliveryStatusModal');
+        showToast(`Delivery status updated to ${targetStatus}`);
+        await loadSellerDeliveries();
+        if (typeof loadSellerOrders === 'function') {
+            loadSellerOrders().catch(() => {});
+        }
+    } catch (err) {
+        console.error('Delivery status transition error:', err);
+        if (errBanner && errText) {
+            errText.textContent = err.message || 'Failed to update delivery status.';
+            errBanner.classList.remove('hidden');
+        }
+    } finally {
+        if (confirmBtn) confirmBtn.disabled = false;
+        if (spinner) spinner.classList.add('hidden');
+    }
+}
+
+/**
+ * Opens Transport & Logistics Details modal
+ */
+function openDeliveryTransportModal(deliveryId) {
+    const d = (sellerDeliveriesCache || []).find(item => String(item.id) === String(deliveryId));
+    if (!d) return;
+
+    document.getElementById('transportModalDeliveryId').value = d.id;
+    document.getElementById('transportModalTrackingNumber').textContent = d.trackingNumber || 'TRK-0000';
+    document.getElementById('transportModalOrderCode').textContent = d.orderCode || 'ORD-0000';
+
+    document.getElementById('transportCarrierInput').value = d.carrierName || '';
+    document.getElementById('transportVehicleInput').value = d.vehicleNumber || '';
+    document.getElementById('transportDriverNameInput').value = d.driverName || '';
+    document.getElementById('transportDriverPhoneInput').value = d.driverPhone || '';
+    document.getElementById('transportTrackingUrlInput').value = d.trackingUrl || '';
+    document.getElementById('transportNotesInput').value = d.currentNotes || '';
+
+    const manualDateInput = document.getElementById('transportManualDate');
+    const datePicker = document.getElementById('transportDatePicker');
+    if (d.estimatedDeliveryDate) {
+        const comp = parseExpectedDeliveryDateToComponents(d.estimatedDeliveryDate);
+        if (comp) {
+            manualDateInput.value = comp.display;
+            datePicker.value = comp.iso;
+        } else {
+            manualDateInput.value = d.estimatedDeliveryDate;
+            datePicker.value = '';
+        }
+    } else {
+        manualDateInput.value = '';
+        datePicker.value = '';
+    }
+
+    const errBanner = document.getElementById('transportModalError');
+    if (errBanner) errBanner.classList.add('hidden');
+
+    openModal('deliveryTransportModal');
+}
+
+/**
+ * Triggers native calendar picker for transport modal
+ */
+function triggerTransportDatePicker() {
+    const picker = document.getElementById('transportDatePicker');
+    const manualInput = document.getElementById('transportManualDate');
+    if (!picker) return;
+
+    if (manualInput && manualInput.value) {
+        const val = validateStrictExpectedDeliveryDate(manualInput.value);
+        if (val.valid) {
+            picker.value = val.iso;
+        }
+    }
+
+    if (typeof picker.showPicker === 'function') {
+        try {
+            picker.showPicker();
+            return;
+        } catch (e) {}
+    }
+    picker.focus();
+    picker.click();
+}
+
+/**
+ * Setup two-way sync for Transport Date picker
+ */
+let _transportModalSyncInitialized = false;
+function setupTransportModalSyncListeners() {
+    if (_transportModalSyncInitialized) return;
+    _transportModalSyncInitialized = true;
+
+    const picker = document.getElementById('transportDatePicker');
+    const manualInput = document.getElementById('transportManualDate');
+    const errContainer = document.getElementById('transportModalError');
+
+    if (picker && manualInput) {
+        picker.addEventListener('change', () => {
+            if (picker.value) {
+                const parts = picker.value.split('-');
+                if (parts.length === 3) {
+                    const [y, m, d] = parts;
+                    manualInput.value = `${d}/${m}/${y}`;
+                    if (errContainer) errContainer.classList.add('hidden');
+                }
+            }
+        });
+
+        manualInput.addEventListener('input', () => {
+            if (errContainer) errContainer.classList.add('hidden');
+            let v = manualInput.value.replace(/[^\d\/]/g, '');
+            if (v.length === 2 && !v.includes('/')) v += '/';
+            else if (v.length === 5 && v.split('/').length === 2) v += '/';
+            if (v !== manualInput.value) manualInput.value = v;
+
+            if (manualInput.value.length === 10) {
+                const val = validateStrictExpectedDeliveryDate(manualInput.value);
+                if (val.valid && picker) {
+                    picker.value = val.iso;
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Submits transport & logistics updates to PUT /api/deliveries/{id}/details
+ */
+async function submitDeliveryTransportDetails() {
+    const deliveryId = document.getElementById('transportModalDeliveryId').value;
+    const carrierName = document.getElementById('transportCarrierInput').value.trim();
+    const vehicleNumber = document.getElementById('transportVehicleInput').value.trim();
+    const driverName = document.getElementById('transportDriverNameInput').value.trim();
+    const driverPhone = document.getElementById('transportDriverPhoneInput').value.trim();
+    const trackingUrl = document.getElementById('transportTrackingUrlInput').value.trim();
+    const manualDate = document.getElementById('transportManualDate').value.trim();
+    const notes = document.getElementById('transportNotesInput').value.trim();
+
+    const errBanner = document.getElementById('transportModalError');
+    const errText = document.getElementById('transportModalErrorText');
+    const saveBtn = document.getElementById('transportModalSaveBtn');
+    const spinner = document.getElementById('transportModalSpinner');
+
+    if (manualDate) {
+        const val = validateStrictExpectedDeliveryDate(manualDate);
+        if (!val.valid) {
+            if (errBanner && errText) {
+                errText.textContent = val.error;
+                errBanner.classList.remove('hidden');
+            }
+            return;
+        }
+    }
+
+    const payload = {
+        carrierName: carrierName || null,
+        vehicleNumber: vehicleNumber || null,
+        driverName: driverName || null,
+        driverPhone: driverPhone || null,
+        trackingUrl: trackingUrl || null,
+        estimatedDeliveryDate: manualDate || null,
+        currentNotes: notes || null
+    };
+
+    try {
+        if (saveBtn) saveBtn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+        if (errBanner) errBanner.classList.add('hidden');
+
+        const token = getCleanToken();
+        const API_BASE_URL = getApiBaseUrl();
+        const response = await fetch(`${API_BASE_URL}/api/deliveries/${deliveryId}/details`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(errBody.message || errBody.error || `Server returned HTTP ${response.status}`);
+        }
+
+        closeModal('deliveryTransportModal');
+        showToast('Logistics and transport details updated successfully');
+        await loadSellerDeliveries();
+    } catch (err) {
+        if (errBanner && errText) {
+            errText.textContent = err.message || 'Failed to update transport details.';
+            errBanner.classList.remove('hidden');
+        }
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
+        if (spinner) spinner.classList.add('hidden');
+    }
+}
+
+/**
+ * Opens delivery details modal with materials breakdown & chronological status history
+ */
+async function openDeliveryHistoryModal(deliveryId) {
+    const d = (sellerDeliveriesCache || []).find(item => String(item.id) === String(deliveryId));
+    if (!d) return;
+
+    setSellerElementText('historyModalTrackingNumber', d.trackingNumber || 'TRK-0000');
+    setSellerElementText('historyModalOrderCode', `Order ${d.orderCode || 'ORD-0000'}`);
+
+    const statusBadge = document.getElementById('historyModalStatusBadge');
+    if (statusBadge) {
+        statusBadge.textContent = d.status || 'PROCESSING';
+    }
+
+    setSellerElementText('historyModalCustomerName', d.buyerName || 'Verified Buyer');
+    setSellerElementText('historyModalCustomerPhone', d.contactNumber || 'Contact via Order');
+
+    let fullAddr = d.deliveryAddress || 'Delivery Address Provided';
+    if (d.projectName) fullAddr = `${d.projectName}, ${fullAddr}`;
+    if (d.city || d.state || d.pinCode) {
+        const locParts = [d.city, d.state, d.pinCode].filter(Boolean).join(', ');
+        fullAddr = `${fullAddr} (${locParts})`;
+    }
+    setSellerElementText('historyModalDeliveryAddress', fullAddr);
+
+    setSellerElementText('historyModalCarrier', d.carrierName || 'Fleet / Not Assigned');
+    setSellerElementText('historyModalVehicle', d.vehicleNumber || 'Unassigned');
+    setSellerElementText('historyModalDriver', d.driverName ? `${d.driverName} (${d.driverPhone || 'No Phone'})` : 'Not Assigned');
+    setSellerElementText('historyModalEta', formatExpectedDeliveryDateForDisplay(d.estimatedDeliveryDate) || 'Pending Confirmation');
+
+    const trackLinkContainer = document.getElementById('historyModalTrackingLinkContainer');
+    const trackLink = document.getElementById('historyModalTrackingLink');
+    if (trackLinkContainer && trackLink) {
+        if (d.trackingUrl && d.trackingUrl.startsWith('http')) {
+            trackLink.href = d.trackingUrl;
+            trackLinkContainer.classList.remove('hidden');
+        } else {
+            trackLinkContainer.classList.add('hidden');
+        }
+    }
+
+    const editLogisticsBtn = document.getElementById('historyModalUpdateLogisticsBtn');
+    if (editLogisticsBtn) {
+        editLogisticsBtn.onclick = () => {
+            closeModal('deliveryDetailsHistoryModal');
+            openDeliveryTransportModal(d.id);
+        };
+    }
+
+    const itemsTbody = document.getElementById('historyModalItemsTbody');
+    if (itemsTbody) {
+        if (Array.isArray(d.items) && d.items.length > 0) {
+            itemsTbody.innerHTML = d.items.map(i => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-2.5 font-semibold text-slate-800">${escapeSellerHtml(i.materialName || 'Material Item')}</td>
+                    <td class="p-2.5 text-slate-600">${i.quantity != null ? i.quantity : '1'} ${escapeSellerHtml(i.unit || 'Units')}</td>
+                    <td class="p-2.5 text-slate-600">${formatSellerCurrency(i.unitPrice)}</td>
+                    <td class="p-2.5 text-right font-bold text-slate-800">${formatSellerCurrency(i.subtotal)}</td>
+                </tr>
+            `).join('');
+        } else {
+            itemsTbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="p-3 text-center text-slate-500">
+                        1 Material Shipment Package • Total Order Value: <span class="font-bold text-slate-800">${formatSellerCurrency(d.totalAmount)}</span>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    const timelineContainer = document.getElementById('historyModalTimelineContainer');
+    if (timelineContainer) {
+        timelineContainer.innerHTML = `
+            <div class="text-slate-400 py-3 flex items-center space-x-2">
+                <i class="fa-solid fa-circle-notch fa-spin text-blue-600"></i>
+                <span>Loading chronological audit events...</span>
+            </div>
+        `;
+    }
+
+    openModal('deliveryDetailsHistoryModal');
+
+    try {
+        const token = getCleanToken();
+        const API_BASE_URL = getApiBaseUrl();
+        const res = await fetch(`${API_BASE_URL}/api/deliveries/${d.id}/history`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (res.ok) {
+            const historyList = await res.json();
+            if (timelineContainer) {
+                if (Array.isArray(historyList) && historyList.length > 0) {
+                    timelineContainer.innerHTML = historyList.map((h, idx) => {
+                        const isLatest = idx === historyList.length - 1;
+                        const dotColor = isLatest ? 'bg-blue-600 ring-4 ring-blue-100' : 'bg-slate-300';
+                        const timeStr = h.changedDateFormatted || formatSellerProDateTime(h.changedAt);
+                        const prevStatus = h.previousStatus ? `<span class="text-slate-400">${escapeSellerHtml(h.previousStatus)}</span> &rarr; ` : '';
+                        const actorText = h.actorRole ? `Recorded by ${escapeSellerHtml(h.actorRole)}` : 'System event';
+
+                        return `
+                            <div class="relative pl-6 pb-2">
+                                <span class="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full ${dotColor}"></span>
+                                <div class="flex items-center justify-between">
+                                    <div class="font-bold text-slate-800 text-xs">
+                                        ${prevStatus}<span class="text-blue-600">${escapeSellerHtml(h.newStatus)}</span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 font-mono">${escapeSellerHtml(timeStr)}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">${actorText}</div>
+                                ${h.reason ? `<div class="mt-1 p-2 bg-rose-50 border border-rose-200 rounded text-rose-700 text-[11px]"><i class="fa-solid fa-circle-info mr-1"></i><strong>Reason:</strong> ${escapeSellerHtml(h.reason)}</div>` : ''}
+                                ${h.notes ? `<div class="mt-1 p-2 bg-slate-50 border border-slate-200 rounded text-slate-600 text-[11px]"><i class="fa-solid fa-note-sticky mr-1 text-slate-400"></i>${escapeSellerHtml(h.notes)}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    timelineContainer.innerHTML = `
+                        <div class="text-slate-400 py-2 text-xs">No historical transitions recorded yet for this shipment.</div>
+                    `;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to load delivery history:', e);
+        if (timelineContainer) {
+            timelineContainer.innerHTML = `
+                <div class="text-rose-500 py-2 text-xs">Unable to load audit history from server.</div>
+            `;
+        }
+    }
+}
+
+// Window global bindings for inline HTML event handlers
+window.loadSellerDeliveries = loadSellerDeliveries;
+window.filterDeliveriesByStatus = filterDeliveriesByStatus;
+window.handleDeliveriesSearch = handleDeliveriesSearch;
+window.openDeliveryStatusModal = openDeliveryStatusModal;
+window.submitDeliveryStatusTransition = submitDeliveryStatusTransition;
+window.openDeliveryTransportModal = openDeliveryTransportModal;
+window.submitDeliveryTransportDetails = submitDeliveryTransportDetails;
+window.triggerTransportDatePicker = triggerTransportDatePicker;
+window.openDeliveryHistoryModal = openDeliveryHistoryModal;
+

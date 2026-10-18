@@ -99,6 +99,9 @@ public class MaterialOrder {
     @Column(name = "delivery_status", nullable = false, length = 50)
     private String deliveryStatus = "PENDING";
 
+    @Column(name = "verification_code", length = 50)
+    private String verificationCode;
+
     // Audit Timestamps
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -312,6 +315,20 @@ public class MaterialOrder {
 
     public void setDeliveryStatus(String deliveryStatus) {
         this.deliveryStatus = deliveryStatus;
+    }
+
+    public String getVerificationCode() {
+        if (verificationCode != null && !verificationCode.isBlank()) {
+            return verificationCode;
+        }
+        if (materialRequest != null && materialRequest.getVerificationCode() != null && !materialRequest.getVerificationCode().isBlank()) {
+            return materialRequest.getVerificationCode();
+        }
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
     }
 
     public LocalDateTime getCreatedAt() {

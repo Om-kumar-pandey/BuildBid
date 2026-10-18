@@ -80,6 +80,7 @@
                         <i class="fa-solid fa-truck-fast w-5 text-center"></i>
                         <span>Deliveries</span>
                     </div>
+                    <span id="nav-deliveries-badge" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-medium"></span>
                 </a>
 
                 <a href="#invoices" onclick="switchTab('invoices')" id="nav-invoices" class="nav-link flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
@@ -612,27 +613,188 @@
                     </div>
                 </div>
 
-                <!-- TAB 6: DELIVERIES -->
+                <!-- TAB 6: DELIVERIES & LOGISTICS -->
                 <div id="tab-deliveries" class="tab-content hidden space-y-6">
-                    <div class="flex items-center justify-between">
+                    <!-- Tab Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center space-x-2">
-                                <h1 class="text-xl font-bold text-slate-800">Delivery & Logistics</h1>
-                                <span class="bg-amber-100 text-amber-800 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Preview Mode</span>
+                                <h1 class="text-xl font-bold text-slate-800">Deliveries & Logistics</h1>
+                                <span class="bg-blue-100 text-blue-800 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Live Fulfillment</span>
                             </div>
-                            <p class="text-xs text-slate-500">Coordinate dispatch trucks, assign logistics partners, and track site drop-offs in real-time.</p>
+                            <p class="text-xs text-slate-500">Track shipments, assign transport partners, manage delivery vehicles, and complete real-time order drop-offs.</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button type="button" onclick="loadSellerDeliveries()" class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 shadow-sm transition-all flex items-center space-x-2 cursor-pointer">
+                                <i class="fa-solid fa-arrows-rotate text-blue-600"></i>
+                                <span>Refresh Deliveries</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm text-center">
-                        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 text-2xl">
-                            <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i>
+                    <!-- KPI CARDS GRID -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <!-- KPI Card 1: Total -->
+                        <div onclick="filterDeliveriesByStatus('all')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total</span>
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-truck-ramp-box text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-baseline justify-between">
+                                <h3 id="kpi-deliveries-total" class="text-xl font-bold text-slate-800">—</h3>
+                                <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">All</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5 truncate">Total orders tracked</p>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-800 mb-1">Logistics & Delivery Tracking Preview</h3>
-                        <p class="text-xs text-slate-500 max-w-md mx-auto mb-4">Preview mode — live vehicle dispatch, driver assignment, and GPS tracking are not available in this module yet. Connected logistics integration will be enabled in an upcoming release.</p>
-                        <div class="inline-flex items-center space-x-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium">
-                            <i class="fa-solid fa-circle-info text-slate-400"></i>
-                            <span>Active accepted orders can be tracked and fulfilled under the Orders tab.</span>
+
+                        <!-- KPI Card 2: Processing -->
+                        <div onclick="filterDeliveriesByStatus('PROCESSING')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Processing</span>
+                                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-gears text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-baseline justify-between">
+                                <h3 id="kpi-deliveries-processing" class="text-xl font-bold text-slate-800">—</h3>
+                                <span class="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Pending</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5 truncate">Preparing orders</p>
+                        </div>
+
+                        <!-- KPI Card 3: In Transit -->
+                        <div onclick="filterDeliveriesByStatus('TRANSIT')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">In Transit</span>
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-truck-moving text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-baseline justify-between">
+                                <h3 id="kpi-deliveries-transit" class="text-xl font-bold text-slate-800">—</h3>
+                                <span class="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-full">Moving</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5 truncate">Dispatched & on way</p>
+                        </div>
+
+                        <!-- KPI Card 4: Out for Delivery -->
+                        <div onclick="filterDeliveriesByStatus('OUT_FOR_DELIVERY')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-purple-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Out for Delivery</span>
+                                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-truck-fast text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-baseline justify-between">
+                                <h3 id="kpi-deliveries-out" class="text-xl font-bold text-slate-800">—</h3>
+                                <span class="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full">Arriving</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5 truncate">Final drop-off stage</p>
+                        </div>
+
+                        <!-- KPI Card 5: Delivered -->
+                        <div onclick="filterDeliveriesByStatus('DELIVERED')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Delivered</span>
+                                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-circle-check text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-baseline justify-between">
+                                <h3 id="kpi-deliveries-delivered" class="text-xl font-bold text-slate-800">—</h3>
+                                <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">Fulfilled</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5 truncate">Verified drop-offs</p>
+                        </div>
+
+                        <!-- KPI Card 6: Delayed -->
+                        <div onclick="filterDeliveriesByStatus('DELAYED')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-rose-400 transition-all cursor-pointer group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Delayed</span>
+                                <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-600 group-hover:text-white transition-all">
+                                    <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-baseline justify-between">
+                                <h3 id="kpi-deliveries-delayed" class="text-xl font-bold text-slate-800">—</h3>
+                                <span class="text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-full">Attention</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5 truncate">Exceptions reported</p>
+                        </div>
+                    </div>
+
+                    <!-- SEARCH & STATUS FILTERS BAR -->
+                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div class="relative flex-1 max-w-md">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                            </span>
+                            <input type="text" id="deliveriesSearchInput" oninput="handleDeliveriesSearch(this.value)" placeholder="Search tracking #, order code, customer, driver, vehicle..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                        </div>
+
+                        <div class="flex items-center flex-wrap gap-1.5 text-xs font-semibold" id="deliveriesFilterPills">
+                            <button type="button" onclick="filterDeliveriesByStatus('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-sm transition-all cursor-pointer flex items-center space-x-1">
+                                <span>All</span>
+                                <span id="count-pill-all" class="ml-1 opacity-90 text-[11px]">(0)</span>
+                            </button>
+                            <button type="button" onclick="filterDeliveriesByStatus('active')" id="filter-btn-active" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1">
+                                <span>Active</span>
+                                <span id="count-pill-active" class="ml-1 text-slate-500 text-[11px]">(0)</span>
+                            </button>
+                            <button type="button" onclick="filterDeliveriesByStatus('PROCESSING')" id="filter-btn-processing" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1">
+                                <span>Processing</span>
+                                <span id="count-pill-processing" class="ml-1 text-slate-500 text-[11px]">(0)</span>
+                            </button>
+                            <button type="button" onclick="filterDeliveriesByStatus('TRANSIT')" id="filter-btn-transit" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1">
+                                <span>In Transit</span>
+                                <span id="count-pill-transit" class="ml-1 text-slate-500 text-[11px]">(0)</span>
+                            </button>
+                            <button type="button" onclick="filterDeliveriesByStatus('OUT_FOR_DELIVERY')" id="filter-btn-out" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1">
+                                <span>Out for Delivery</span>
+                                <span id="count-pill-out" class="ml-1 text-slate-500 text-[11px]">(0)</span>
+                            </button>
+                            <button type="button" onclick="filterDeliveriesByStatus('DELIVERED')" id="filter-btn-delivered" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1">
+                                <span>Delivered</span>
+                                <span id="count-pill-delivered" class="ml-1 text-slate-500 text-[11px]">(0)</span>
+                            </button>
+                            <button type="button" onclick="filterDeliveriesByStatus('DELAYED')" id="filter-btn-delayed" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center space-x-1">
+                                <span>Exceptions</span>
+                                <span id="count-pill-delayed" class="ml-1 text-slate-500 text-[11px]">(0)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- DELIVERIES TABLE -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                        <th class="p-3.5">Shipment & Order</th>
+                                        <th class="p-3.5">Destination & Customer</th>
+                                        <th class="p-3.5">Materials & Value</th>
+                                        <th class="p-3.5">Carrier & Vehicle</th>
+                                        <th class="p-3.5">Expected Delivery</th>
+                                        <th class="p-3.5">Status</th>
+                                        <th class="p-3.5 text-right">Fulfillment Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sellerDeliveriesTbody" class="divide-y divide-slate-100 text-slate-700">
+                                    <tr>
+                                        <td colspan="7" class="p-8 text-center text-slate-500" role="status" aria-live="polite">
+                                            <div class="flex flex-col items-center justify-center space-y-2 py-4">
+                                                <i class="fa-solid fa-circle-notch fa-spin seller-spinner-icon text-blue-600 text-3xl" aria-hidden="true"></i>
+                                                <div class="space-y-0.5 text-center">
+                                                    <p class="font-semibold text-slate-700 text-sm">Please wait…</p>
+                                                    <p class="text-xs text-slate-400">Loading live delivery records…</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1903,6 +2065,344 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DELIVERY STATUS TRANSITION -->
+    <div id="deliveryStatusModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 transform transition-all">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div id="statusModalIconContainer" class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-base border border-blue-500/30">
+                        <i id="statusModalIcon" class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white" id="statusModalTitle">Update Delivery Status</h3>
+                        <p class="text-xs text-slate-300" id="statusModalSubtitle">Confirm fulfillment stage transition</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('deliveryStatusModal')" class="text-slate-400 hover:text-white text-lg transition-colors p-1" aria-label="Close modal">&times;</button>
+            </div>
+
+            <!-- Modal Form -->
+            <form id="deliveryStatusForm" onsubmit="event.preventDefault(); submitDeliveryStatusTransition();" class="p-6 space-y-4">
+                <input type="hidden" id="statusModalDeliveryId" value="">
+                <input type="hidden" id="statusModalTargetStatus" value="">
+
+                <!-- Shipment Reference Card -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Shipment & Order</span>
+                        <div class="flex items-center space-x-2 mt-0.5">
+                            <span id="statusModalTrackingNumber" class="text-xs font-bold text-blue-600 font-mono">TRK-0000</span>
+                            <span class="text-slate-300">•</span>
+                            <span id="statusModalOrderCode" class="text-xs font-semibold text-slate-700 font-mono">ORD-0000</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Target State</span>
+                        <span id="statusModalTargetBadge" class="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">DISPATCHED</span>
+                    </div>
+                </div>
+
+                <!-- VERIFICATION CODE SECTION (Required for DELIVERED) -->
+                <div id="statusModalVerificationSection" class="hidden space-y-2 p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                    <div class="flex items-start space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-shield-halved text-xs"></i>
+                        </div>
+                        <div>
+                            <label for="deliveryVerificationCodeInput" class="block text-xs font-bold text-emerald-950">
+                                Delivery Verification Code <span class="text-rose-500">*</span>
+                            </label>
+                            <p class="text-[11px] text-emerald-800 leading-snug mt-0.5">
+                                Ask the recipient customer for the 6-digit confirmation code displayed on their order tracking screen.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <input type="text" 
+                            id="deliveryVerificationCodeInput" 
+                            name="verificationCode"
+                            placeholder="Enter 6-digit code (e.g. BB-DEL-123456)" 
+                            autocomplete="off"
+                            maxlength="50"
+                            class="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg text-xs font-mono font-bold text-slate-900 placeholder-slate-400 tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all uppercase">
+                    </div>
+                </div>
+
+                <!-- DELAY REASON SECTION (For DELAYED) -->
+                <div id="statusModalDelaySection" class="hidden space-y-2">
+                    <label for="statusModalDelayReason" class="block text-xs font-bold text-slate-700">
+                        Reason for Delay <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="statusModalDelayReason" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="Traffic Congestion & Road Diversion">Traffic Congestion & Road Diversion</option>
+                        <option value="Inclement Weather / Heavy Rain">Inclement Weather / Heavy Rain</option>
+                        <option value="Vehicle Breakdown or Mechanical Issue">Vehicle Breakdown or Mechanical Issue</option>
+                        <option value="Site Unreachable / Access Restricted">Site Unreachable / Access Restricted</option>
+                        <option value="Customer Requested Reschedule">Customer Requested Reschedule</option>
+                        <option value="Material Loading / Packaging Delay">Material Loading / Packaging Delay</option>
+                        <option value="Other Logistics Delay">Other Logistics Delay</option>
+                    </select>
+                </div>
+
+                <!-- NOTES SECTION -->
+                <div class="space-y-1.5">
+                    <label for="statusModalNotes" class="block text-xs font-bold text-slate-700">
+                        Fulfillment Notes <span class="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <textarea id="statusModalNotes" rows="2" placeholder="Add dispatch notes, site drop-off remarks, or instructions..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"></textarea>
+                </div>
+
+                <!-- Error Message Banner -->
+                <div id="statusModalError" class="hidden p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm flex-shrink-0 mt-0.5"></i>
+                    <span id="statusModalErrorText" class="font-medium"></span>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-2 flex items-center justify-end space-x-3">
+                    <button type="button" onclick="closeModal('deliveryStatusModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" id="statusModalConfirmBtn" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all flex items-center space-x-2 cursor-pointer">
+                        <i id="statusModalSpinner" class="fa-solid fa-circle-notch fa-spin text-xs hidden"></i>
+                        <span id="statusModalConfirmText">Confirm Transition</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: UPDATE TRANSPORT & LOGISTICS -->
+    <div id="deliveryTransportModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="transportModalTitle">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 transform transition-all">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-base border border-blue-500/30">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white" id="transportModalTitle">Transport & Logistics Details</h3>
+                        <p class="text-xs text-slate-300">Assign carrier, driver contact, vehicle & tracking URL</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('deliveryTransportModal')" class="text-slate-400 hover:text-white text-lg transition-colors p-1" aria-label="Close modal">&times;</button>
+            </div>
+
+            <!-- Modal Form -->
+            <form id="deliveryTransportForm" onsubmit="event.preventDefault(); submitDeliveryTransportDetails();" class="p-6 space-y-4">
+                <input type="hidden" id="transportModalDeliveryId" value="">
+
+                <!-- Shipment Reference Card -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Shipment Reference</span>
+                        <span id="transportModalTrackingNumber" class="text-xs font-bold text-blue-600 font-mono">TRK-0000</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Order Code</span>
+                        <span id="transportModalOrderCode" class="text-xs font-bold text-slate-800 font-mono">ORD-0000</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <!-- Carrier Name -->
+                    <div>
+                        <label for="transportCarrierInput" class="block text-xs font-bold text-slate-700 mb-1">Carrier / Transporter</label>
+                        <input type="text" id="transportCarrierInput" placeholder="e.g. In-House Fleet, Delhivery, VRL" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+
+                    <!-- Vehicle Number -->
+                    <div>
+                        <label for="transportVehicleInput" class="block text-xs font-bold text-slate-700 mb-1">Vehicle Registration #</label>
+                        <input type="text" id="transportVehicleInput" placeholder="e.g. UP16-AB-1234, DL-01-9999" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+
+                    <!-- Driver Name -->
+                    <div>
+                        <label for="transportDriverNameInput" class="block text-xs font-bold text-slate-700 mb-1">Driver Name</label>
+                        <input type="text" id="transportDriverNameInput" placeholder="e.g. Ramesh Kumar" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+
+                    <!-- Driver Phone -->
+                    <div>
+                        <label for="transportDriverPhoneInput" class="block text-xs font-bold text-slate-700 mb-1">Driver Phone Number</label>
+                        <input type="text" id="transportDriverPhoneInput" placeholder="e.g. +91 98765 43210" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Tracking URL -->
+                <div>
+                    <label for="transportTrackingUrlInput" class="block text-xs font-bold text-slate-700 mb-1">Live Tracking URL / Link <span class="text-slate-400 font-normal">(Optional)</span></label>
+                    <input type="url" id="transportTrackingUrlInput" placeholder="https://..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+
+                <!-- Expected Delivery Date with Calendar Picker -->
+                <div>
+                    <label for="transportManualDate" class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Expected Delivery Commitment</span>
+                        <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Format: DD/MM/YYYY</span>
+                    </label>
+                    <div class="relative flex items-center">
+                        <input type="text" 
+                            id="transportManualDate" 
+                            placeholder="DD/MM/YYYY" 
+                            maxlength="10"
+                            autocomplete="off"
+                            class="w-full pl-3 pr-10 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono">
+                        <button type="button" 
+                            onclick="triggerTransportDatePicker()"
+                            aria-label="Open calendar date picker"
+                            class="absolute right-1.5 p-1.5 text-slate-400 hover:text-blue-600 rounded-lg transition-colors cursor-pointer flex items-center justify-center">
+                            <i class="fa-regular fa-calendar-days text-sm text-blue-600"></i>
+                        </button>
+                        <input type="date" 
+                            id="transportDatePicker" 
+                            tabindex="-1"
+                            aria-hidden="true"
+                            class="sr-only"
+                            style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
+                    </div>
+                </div>
+
+                <!-- Current Notes -->
+                <div>
+                    <label for="transportNotesInput" class="block text-xs font-bold text-slate-700 mb-1">Logistics / Gate Instructions</label>
+                    <textarea id="transportNotesInput" rows="2" placeholder="e.g. Heavy truck gate entry on Sector 62 side..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"></textarea>
+                </div>
+
+                <!-- Error Message Banner -->
+                <div id="transportModalError" class="hidden p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm flex-shrink-0 mt-0.5"></i>
+                    <span id="transportModalErrorText" class="font-medium"></span>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-2 flex items-center justify-end space-x-3">
+                    <button type="button" onclick="closeModal('deliveryTransportModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" id="transportModalSaveBtn" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all flex items-center space-x-2 cursor-pointer">
+                        <i id="transportModalSpinner" class="fa-solid fa-circle-notch fa-spin text-xs hidden"></i>
+                        <span id="transportModalSaveText">Save Transport Details</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DELIVERY DETAILS & STATUS TIMELINE -->
+    <div id="deliveryDetailsHistoryModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform transition-all">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-slate-800 flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-base border border-blue-500/30">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-bold text-sm text-white" id="historyModalTrackingNumber">TRK-0000</h3>
+                            <span id="historyModalStatusBadge" class="bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 rounded-full font-bold">PROCESSING</span>
+                        </div>
+                        <p class="text-xs text-slate-300" id="historyModalOrderCode">Order ORD-0000</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('deliveryDetailsHistoryModal')" class="text-slate-400 hover:text-white text-lg transition-colors p-1" aria-label="Close modal">&times;</button>
+            </div>
+
+            <!-- Modal Content (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 text-xs">
+                <!-- Overview Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <!-- Customer & Drop-off -->
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Customer & Drop-off Site</span>
+                        <div class="font-bold text-slate-800" id="historyModalCustomerName">—</div>
+                        <div class="text-slate-600 flex items-center space-x-1.5" id="historyModalCustomerPhoneContainer">
+                            <i class="fa-solid fa-phone text-slate-400 text-[10px]"></i>
+                            <span id="historyModalCustomerPhone">—</span>
+                        </div>
+                        <div class="text-slate-600 flex items-start space-x-1.5">
+                            <i class="fa-solid fa-location-dot text-slate-400 text-[10px] mt-0.5"></i>
+                            <span id="historyModalDeliveryAddress" class="leading-relaxed">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Transport & Dates -->
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Transport & Schedule</span>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Carrier:</span>
+                            <span class="font-bold text-slate-800" id="historyModalCarrier">—</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Vehicle:</span>
+                            <span class="font-mono font-bold text-slate-800" id="historyModalVehicle">—</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Driver:</span>
+                            <span class="font-semibold text-slate-800" id="historyModalDriver">—</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Expected Delivery:</span>
+                            <span class="font-bold text-blue-600" id="historyModalEta">—</span>
+                        </div>
+                        <div id="historyModalTrackingLinkContainer" class="hidden pt-1 border-t border-slate-200">
+                            <a id="historyModalTrackingLink" href="#" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-semibold flex items-center space-x-1">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>Open Live Carrier Tracking</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Materials / Items Breakdown -->
+                <div class="space-y-2">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Materials In Delivery</span>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                                <tr>
+                                    <th class="p-2.5">Material</th>
+                                    <th class="p-2.5">Quantity</th>
+                                    <th class="p-2.5">Unit Price</th>
+                                    <th class="p-2.5 text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyModalItemsTbody" class="divide-y divide-slate-100">
+                                <tr><td colspan="4" class="p-3 text-center text-slate-400">Loading item breakdown...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Chronological Status History Timeline -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Chronological Status History</span>
+                        <span class="text-[10px] text-slate-400 font-medium">Server-verified audit log</span>
+                    </div>
+                    <div id="historyModalTimelineContainer" class="relative pl-6 space-y-4 border-l-2 border-slate-200 ml-3">
+                        <div class="text-slate-400 py-2">Loading status history...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between flex-shrink-0">
+                <button type="button" id="historyModalUpdateLogisticsBtn" class="px-3.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl font-semibold text-xs text-slate-700 transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-truck-ramp-box text-blue-600"></i>
+                    <span>Edit Logistics</span>
+                </button>
+                <button type="button" onclick="closeModal('deliveryDetailsHistoryModal')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-all shadow-sm">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
 

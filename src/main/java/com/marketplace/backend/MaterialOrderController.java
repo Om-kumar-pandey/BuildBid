@@ -156,6 +156,11 @@ public class MaterialOrderController {
      * PUT /api/material-orders/{id}/status
      * Body: { "status": "PROCESSING" }
      */
+    /**
+     * Unified status transition endpoint (Phase 4E).
+     * PUT /api/material-orders/{id}/status
+     * Body: { "status": "PROCESSING", "verificationCode": "..." }
+     */
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateOrderStatus(
             @PathVariable("id") Long id,
@@ -166,8 +171,9 @@ public class MaterialOrderController {
         if ("DIRECT_BUY".equalsIgnoreCase(sourceType) && directBuyController != null) {
             return directBuyController.updateDirectBuyStatus(id, body, authentication);
         }
-        String targetStatus = body != null && body.get("status") != null ? body.get("status").toString() : null;
-        return handleStatusTransition(id, targetStatus, authentication);
+        String targetStatus = body != null && body.get("status") != null ? body.get("status").toString().trim() : null;
+        String verificationCode = body != null && body.get("verificationCode") != null ? body.get("verificationCode").toString().trim() : null;
+        return handleStatusTransition(id, targetStatus, verificationCode, authentication);
     }
 
     @PostMapping("/allocate")
@@ -217,7 +223,7 @@ public class MaterialOrderController {
 
     @PutMapping("/{id}/accept")
     public ResponseEntity<?> acceptOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "ORDER_ACCEPTED", authentication);
+        return handleStatusTransition(id, "ORDER_ACCEPTED", null, authentication);
     }
 
     @PutMapping("/{id}/expected-delivery")
@@ -261,35 +267,42 @@ public class MaterialOrderController {
 
     @PutMapping("/{id}/process")
     public ResponseEntity<?> processOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "PROCESSING", authentication);
+        return handleStatusTransition(id, "PROCESSING", null, authentication);
     }
 
     @PutMapping("/{id}/dispatch")
     public ResponseEntity<?> dispatchOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "DISPATCHED", authentication);
+        return handleStatusTransition(id, "DISPATCHED", null, authentication);
     }
 
     @PutMapping("/{id}/out-for-delivery")
     public ResponseEntity<?> outForDeliveryOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "OUT_FOR_DELIVERY", authentication);
+        return handleStatusTransition(id, "OUT_FOR_DELIVERY", null, authentication);
     }
 
     @PutMapping("/{id}/delivered")
-    public ResponseEntity<?> deliverOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "DELIVERED", authentication);
+    public ResponseEntity<?> deliverOrder(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestParam(value = "verificationCode", required = false) String codeParam,
+            Authentication authentication
+    ) {
+        String code = body != null && body.get("verificationCode") != null
+                ? body.get("verificationCode").toString().trim() : codeParam;
+        return handleStatusTransition(id, "DELIVERED", code, authentication);
     }
 
     @PutMapping("/{id}/complete")
     public ResponseEntity<?> completeOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "COMPLETED", authentication);
+        return handleStatusTransition(id, "COMPLETED", null, authentication);
     }
 
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return handleStatusTransition(id, "CANCELLED", authentication);
+        return handleStatusTransition(id, "CANCELLED", null, authentication);
     }
 
-    private ResponseEntity<?> handleStatusTransition(Long id, String targetStatus, Authentication authentication) {
+    private ResponseEntity<?> handleStatusTransition(Long id, String targetStatus, String verificationCode, Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Unauthorized. Please log in to update order status."));
@@ -307,9 +320,15 @@ public class MaterialOrderController {
         }
 
         try {
-            MaterialOrder updated = materialOrderService.updateOrderStatus(id, targetStatus, user);
+            MaterialOrder updated = materialOrderService.updateOrderStatus(id, targetStatus, verificationCode, user);
             return ResponseEntity.ok(materialOrderService.toResponseMap(updated));
         } catch (NoSuchElementException e) {
+            if (directBuyController != null) {
+                Map<String, Object> fallbackBody = new HashMap<>();
+                fallbackBody.put("status", targetStatus);
+                if (verificationCode != null) fallbackBody.put("verificationCode", verificationCode);
+                return directBuyController.updateDirectBuyStatus(id, fallbackBody, authentication);
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         } catch (SecurityException e) {

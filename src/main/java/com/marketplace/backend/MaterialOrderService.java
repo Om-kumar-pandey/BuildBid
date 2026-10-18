@@ -36,6 +36,8 @@ public class MaterialOrderService {
     private final QuotationRepository quotationRepository;
     private final NotificationService notificationService;
     private SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository;
+    private DeliveryService deliveryService;
+    private DeliveryRepository deliveryRepository;
 
     @Autowired
     public MaterialOrderService(
@@ -59,6 +61,16 @@ public class MaterialOrderService {
     @Autowired(required = false)
     public void setSellerMaterialRequestActionRepository(SellerMaterialRequestActionRepository sellerMaterialRequestActionRepository) {
         this.sellerMaterialRequestActionRepository = sellerMaterialRequestActionRepository;
+    }
+
+    @Autowired(required = false)
+    public void setDeliveryService(@org.springframework.context.annotation.Lazy DeliveryService deliveryService) {
+        this.deliveryService = deliveryService;
+    }
+
+    @Autowired(required = false)
+    public void setDeliveryRepository(DeliveryRepository deliveryRepository) {
+        this.deliveryRepository = deliveryRepository;
     }
 
     public MaterialOrderService(
@@ -159,6 +171,7 @@ public class MaterialOrderService {
         order.setOrderStatus("CONFIRMED");
         order.setPaymentStatus("PENDING");
         order.setDeliveryStatus("PENDING");
+        order.setVerificationCode(materialRequest.getVerificationCode());
 
         order.setCreatedAt(now);
         order.setUpdatedAt(now);
@@ -200,8 +213,9 @@ public class MaterialOrderService {
             }
         }
 
+        MaterialOrder savedOrder;
         try {
-            return materialOrderRepository.save(order);
+            savedOrder = materialOrderRepository.save(order);
         } catch (DataIntegrityViolationException dive) {
             Optional<MaterialOrder> retry = materialOrderRepository.findFirstByMaterialRequestIdAndSellerId(
                     materialRequest.getId(), seller.getId()
@@ -211,6 +225,15 @@ public class MaterialOrderService {
             }
             throw dive;
         }
+
+        if (deliveryService != null) {
+            try {
+                deliveryService.getOrCreateDeliveryForOrder(savedOrder);
+            } catch (Exception e) {
+                log.warn("Delivery creation hook failed for order {}: {}", savedOrder.getOrderCode(), e.getMessage());
+            }
+        }
+        return savedOrder;
     }
 
     /**
@@ -315,6 +338,9 @@ public class MaterialOrderService {
         order.setOrderStatus("CONFIRMED");
         order.setPaymentStatus("PENDING");
         order.setDeliveryStatus("PENDING");
+        if (order.getVerificationCode() == null || order.getVerificationCode().isBlank()) {
+            order.setVerificationCode(String.format("BB-ORD-%06d", new java.security.SecureRandom().nextInt(900000) + 100000));
+        }
 
         order.setCreatedAt(now);
         order.setUpdatedAt(now);
@@ -350,8 +376,9 @@ public class MaterialOrderService {
             }
         }
 
+        MaterialOrder savedOrder;
         try {
-            return materialOrderRepository.save(order);
+            savedOrder = materialOrderRepository.save(order);
         } catch (DataIntegrityViolationException dive) {
             // Concurrent race condition protected by DB unique constraint
             Optional<MaterialOrder> existing = materialOrderRepository.findByQuotationId(quotation.getId());
@@ -360,6 +387,15 @@ public class MaterialOrderService {
             }
             throw dive;
         }
+
+        if (deliveryService != null) {
+            try {
+                deliveryService.getOrCreateDeliveryForOrder(savedOrder);
+            } catch (Exception e) {
+                log.warn("Delivery creation hook failed for order {}: {}", savedOrder.getOrderCode(), e.getMessage());
+            }
+        }
+        return savedOrder;
     }
 
     public static boolean isAcceptedOrderStatus(String status) {
@@ -591,10 +627,16 @@ public class MaterialOrderService {
         map.put("status", rawStatus);
         map.put("rawStatus", rawStatus);
 
-        LocalDateTime createdAt = mr.getCreatedAt() != null ? mr.getCreatedAt() : LocalDateTime.now(IST_ZONE);
-        map.put("createdAt", mr.getCreatedAt() != null ? mr.getCreatedAt().toString() : null);
-        map.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
-        map.put("submittedTimestamp", createdAt.atZone(IST_ZONE).toInstant().toEpochMilli());
+        LocalDateTime createdAt = mr.getCreatedAt();
+        if (createdAt != null) {
+            map.put("createdAt", createdAt.toString());
+            map.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
+            map.put("submittedTimestamp", createdAt.atZone(IST_ZONE).toInstant().toEpochMilli());
+        } else {
+            map.put("createdAt", null);
+            map.put("submittedDate", "Recently");
+            map.put("submittedTimestamp", 0L);
+        }
 
         return map;
     }
@@ -1138,6 +1180,16 @@ public class MaterialOrderService {
      */
     @Transactional
     public MaterialOrder updateOrderStatus(Long orderId, String targetStatus, MarketplaceBackendApplication.MarketplaceUser caller) {
+        return updateOrderStatus(orderId, targetStatus, null, caller);
+    }
+
+    @Transactional
+    public MaterialOrder updateOrderStatus(
+            Long orderId,
+            String targetStatus,
+            String verificationCode,
+            MarketplaceBackendApplication.MarketplaceUser caller
+    ) {
         if (orderId == null) {
             throw new IllegalArgumentException("Valid order ID is required.");
         }
@@ -1163,6 +1215,9 @@ public class MaterialOrderService {
 
         String currentStatus = order.getOrderStatus() != null ? order.getOrderStatus().trim().toUpperCase() : "CONFIRMED";
         String normalizedTarget = targetStatus.trim().toUpperCase();
+        if ("READY_TO_DISPATCH".equals(normalizedTarget)) {
+            normalizedTarget = "READY_FOR_DISPATCH";
+        }
 
         // Check if already in terminal state or already in requested state
         if ("COMPLETED".equals(currentStatus)) {
@@ -1197,6 +1252,11 @@ public class MaterialOrderService {
                 order.setUpdatedAt(now);
                 updateItemStatuses(order, "ORDER_ACCEPTED");
                 MaterialOrder acceptedOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        deliveryService.getOrCreateDeliveryForOrder(acceptedOrder);
+                    } catch (Exception ignored) {}
+                }
                 if (notificationService != null && order.getBuyer() != null) {
                     notificationService.createNotification(
                             order.getBuyer(),
@@ -1218,10 +1278,21 @@ public class MaterialOrderService {
                     throw new SecurityException("Access denied. Only the fulfilling seller can transition order to PROCESSING.");
                 }
                 order.setOrderStatus("PROCESSING");
+                order.setDeliveryStatus("PROCESSING");
                 order.setProcessedAt(now);
                 order.setUpdatedAt(now);
                 updateItemStatuses(order, "PROCESSING");
                 MaterialOrder processingOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(processingOrder);
+                        if (del.getStatus() != DeliveryStatus.PROCESSING) {
+                            del.setStatus(DeliveryStatus.PROCESSING);
+                            del.setUpdatedAt(now);
+                            deliveryRepository.save(del);
+                        }
+                    } catch (Exception ignored) {}
+                }
                 if (notificationService != null && order.getBuyer() != null) {
                     notificationService.createNotification(
                             order.getBuyer(),
@@ -1243,10 +1314,21 @@ public class MaterialOrderService {
                     throw new SecurityException("Only fulfilling seller can mark order as READY_FOR_DISPATCH.");
                 }
                 order.setOrderStatus("READY_FOR_DISPATCH");
-                order.setDeliveryStatus("READY_FOR_DISPATCH");
+                order.setDeliveryStatus("READY_TO_DISPATCH");
                 order.setUpdatedAt(now);
                 updateItemStatuses(order, "READY_FOR_DISPATCH");
                 MaterialOrder readyOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(readyOrder);
+                        if (del.getStatus() != DeliveryStatus.READY_TO_DISPATCH) {
+                            del.setStatus(DeliveryStatus.READY_TO_DISPATCH);
+                            del.setUpdatedAt(now);
+                            del.addStatusHistory(new DeliveryStatusHistory(del, DeliveryStatus.PROCESSING, DeliveryStatus.READY_TO_DISPATCH, caller, "SELLER", "Ready for dispatch", "Order ready for dispatch"));
+                            deliveryRepository.save(del);
+                        }
+                    } catch (Exception ignored) {}
+                }
                 if (notificationService != null && order.getBuyer() != null) {
                     notificationService.createNotification(
                             order.getBuyer(),
@@ -1268,6 +1350,17 @@ public class MaterialOrderService {
                     throw new SecurityException("Access denied. Only the fulfilling seller can dispatch an order.");
                 }
                 MaterialOrder dispatchedOrder = executeDispatch(order, now);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(dispatchedOrder);
+                        if (del.getStatus() != DeliveryStatus.DISPATCHED && del.getStatus() != DeliveryStatus.IN_TRANSIT) {
+                            del.setStatus(DeliveryStatus.DISPATCHED);
+                            del.setUpdatedAt(now);
+                            del.addStatusHistory(new DeliveryStatusHistory(del, DeliveryStatus.READY_TO_DISPATCH, DeliveryStatus.DISPATCHED, caller, "SELLER", "Dispatched", "Order departed from warehouse"));
+                            deliveryRepository.save(del);
+                        }
+                    } catch (Exception ignored) {}
+                }
                 if (notificationService != null && order.getBuyer() != null) {
                     notificationService.createNotification(
                             order.getBuyer(),
@@ -1281,9 +1374,49 @@ public class MaterialOrderService {
                 }
                 return dispatchedOrder;
 
+            case "IN_TRANSIT":
+                if (!"DISPATCHED".equals(currentStatus) && !"READY_FOR_DISPATCH".equals(currentStatus) && !"PROCESSING".equals(currentStatus) && !"DELAYED".equals(currentStatus)) {
+                    throw new IllegalStateException("Invalid order transition: Order must be DISPATCHED before IN_TRANSIT (current: " + currentStatus + ").");
+                }
+                if (!isSeller) {
+                    throw new SecurityException("Access denied. Only the fulfilling seller can update order to IN_TRANSIT.");
+                }
+                if (!"DISPATCHED".equals(currentStatus) && !"DELAYED".equals(currentStatus)) {
+                    order = executeDispatch(order, now);
+                }
+                order.setOrderStatus("IN_TRANSIT");
+                order.setDeliveryStatus("IN_TRANSIT");
+                order.setUpdatedAt(now);
+                updateItemStatuses(order, "IN_TRANSIT");
+                MaterialOrder inTransitOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(inTransitOrder);
+                        if (del.getStatus() != DeliveryStatus.IN_TRANSIT) {
+                            del.setStatus(DeliveryStatus.IN_TRANSIT);
+                            del.setUpdatedAt(now);
+                            del.addStatusHistory(new DeliveryStatusHistory(del, DeliveryStatus.DISPATCHED, DeliveryStatus.IN_TRANSIT, caller, "SELLER", "In transit", "Shipment in transit"));
+                            deliveryRepository.save(del);
+                        }
+                    } catch (Exception ignored) {}
+                }
+                if (notificationService != null && order.getBuyer() != null) {
+                    notificationService.createNotification(
+                            order.getBuyer(),
+                            "In Transit",
+                            "रास्ते में",
+                            "Your material order " + order.getOrderCode() + " is in transit to the delivery site.",
+                            "आपका सामग्री ऑर्डर " + order.getOrderCode() + " डिलीवरी स्थल के लिए रास्ते में है।",
+                            "IN_TRANSIT",
+                            order.getOrderCode()
+                    );
+                }
+                syncLinkedMaterialRequest(order, "IN_TRANSIT", now);
+                return inTransitOrder;
+
             case "OUT_FOR_DELIVERY":
-                if (!"DISPATCHED".equals(currentStatus) && !"READY_FOR_DISPATCH".equals(currentStatus) && !"PROCESSING".equals(currentStatus)) {
-                    throw new IllegalStateException("Invalid order transition: Order must be DISPATCHED or READY_FOR_DISPATCH before OUT_FOR_DELIVERY (current: " + currentStatus + ").");
+                if (!"DISPATCHED".equals(currentStatus) && !"READY_FOR_DISPATCH".equals(currentStatus) && !"PROCESSING".equals(currentStatus) && !"IN_TRANSIT".equals(currentStatus)) {
+                    throw new IllegalStateException("Invalid order transition: Order must be DISPATCHED or IN_TRANSIT before OUT_FOR_DELIVERY (current: " + currentStatus + ").");
                 }
                 if (!isSeller) {
                     throw new SecurityException("Access denied. Only the fulfilling seller can mark order as OUT_FOR_DELIVERY.");
@@ -1293,6 +1426,17 @@ public class MaterialOrderService {
                 order.setUpdatedAt(now);
                 updateItemStatuses(order, "OUT_FOR_DELIVERY");
                 MaterialOrder outOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(outOrder);
+                        if (del.getStatus() != DeliveryStatus.OUT_FOR_DELIVERY) {
+                            del.setStatus(DeliveryStatus.OUT_FOR_DELIVERY);
+                            del.setUpdatedAt(now);
+                            del.addStatusHistory(new DeliveryStatusHistory(del, DeliveryStatus.IN_TRANSIT, DeliveryStatus.OUT_FOR_DELIVERY, caller, "SELLER", "Out for delivery", "Out for delivery"));
+                            deliveryRepository.save(del);
+                        }
+                    } catch (Exception ignored) {}
+                }
                 if (notificationService != null && order.getBuyer() != null) {
                     notificationService.createNotification(
                             order.getBuyer(),
@@ -1307,19 +1451,73 @@ public class MaterialOrderService {
                 syncLinkedMaterialRequest(order, "OUT_FOR_DELIVERY", now);
                 return outOrder;
 
+            case "DELAYED":
+                if (!"DISPATCHED".equals(currentStatus) && !"IN_TRANSIT".equals(currentStatus) && !"OUT_FOR_DELIVERY".equals(currentStatus)) {
+                    throw new IllegalStateException("Invalid order transition: Order must be in transit or out for delivery before DELAYED (current: " + currentStatus + ").");
+                }
+                if (!isSeller) {
+                    throw new SecurityException("Access denied. Only the fulfilling seller can record a delay.");
+                }
+                order.setDeliveryStatus("DELAYED");
+                order.setUpdatedAt(now);
+                MaterialOrder delayedOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(delayedOrder);
+                        del.setStatus(DeliveryStatus.DELAYED);
+                        del.setUpdatedAt(now);
+                        del.addStatusHistory(new DeliveryStatusHistory(del, DeliveryStatus.fromString(currentStatus), DeliveryStatus.DELAYED, caller, "SELLER", "Shipment delayed", "Delivery delayed"));
+                        deliveryRepository.save(del);
+                    } catch (Exception ignored) {}
+                }
+                if (notificationService != null && order.getBuyer() != null) {
+                    notificationService.createNotification(
+                            order.getBuyer(),
+                            "Delivery Delayed",
+                            "डिलीवरी में देरी",
+                            "Your material order " + order.getOrderCode() + " delivery is delayed.",
+                            "आपके सामग्री ऑर्डर " + order.getOrderCode() + " की डिलीवरी में देरी हुई है।",
+                            "DELAYED",
+                            order.getOrderCode()
+                    );
+                }
+                return delayedOrder;
+
             case "DELIVERED":
-                if (!"OUT_FOR_DELIVERY".equals(currentStatus) && !"DISPATCHED".equals(currentStatus)) {
+                if (!"OUT_FOR_DELIVERY".equals(currentStatus) && !"DISPATCHED".equals(currentStatus) && !"IN_TRANSIT".equals(currentStatus)) {
                     throw new IllegalStateException("Invalid order transition: Order must be OUT_FOR_DELIVERY before DELIVERED (current: " + currentStatus + ").");
                 }
                 if (!isSeller) {
                     throw new SecurityException("Access denied. Only the fulfilling seller can mark order as DELIVERED.");
                 }
+
+                // Strictly validate confirmation code if order has a verification code assigned
+                String expectedCode = order.getVerificationCode();
+                if (expectedCode != null && !expectedCode.isBlank()) {
+                    if (verificationCode == null || verificationCode.trim().isBlank()) {
+                        throw new IllegalArgumentException("Delivery verification code is required to mark order as DELIVERED. / डिलीवरी सत्यापन कोड आवश्यक है।");
+                    }
+                    if (!expectedCode.trim().equalsIgnoreCase(verificationCode.trim())) {
+                        throw new IllegalArgumentException("Invalid delivery verification code. / अमान्य डिलीवरी सत्यापन कोड।");
+                    }
+                }
+
                 order.setOrderStatus("DELIVERED");
                 order.setDeliveryStatus("DELIVERED");
                 order.setDeliveredAt(now);
                 order.setUpdatedAt(now);
                 updateItemStatuses(order, "DELIVERED");
                 MaterialOrder deliveredOrder = materialOrderRepository.save(order);
+                if (deliveryService != null) {
+                    try {
+                        Delivery del = deliveryService.getOrCreateDeliveryForOrder(deliveredOrder);
+                        del.setStatus(DeliveryStatus.DELIVERED);
+                        del.setActualDeliveryDate(now);
+                        del.setUpdatedAt(now);
+                        del.addStatusHistory(new DeliveryStatusHistory(del, DeliveryStatus.fromString(currentStatus), DeliveryStatus.DELIVERED, caller, "SELLER", "Delivered", "Delivery verified and completed"));
+                        deliveryRepository.save(del);
+                    } catch (Exception ignored) {}
+                }
                 if (notificationService != null && order.getBuyer() != null) {
                     notificationService.createNotification(
                             order.getBuyer(),
@@ -1616,10 +1814,16 @@ public class MaterialOrderService {
         map.put("orderStatus", order.getOrderStatus());
         map.put("paymentStatus", order.getPaymentStatus());
         map.put("deliveryStatus", order.getDeliveryStatus());
-        LocalDateTime createdAt = order.getCreatedAt() != null ? order.getCreatedAt() : LocalDateTime.now(IST_ZONE);
-        map.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
-        map.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
-        map.put("submittedTimestamp", createdAt.atZone(IST_ZONE).toInstant().toEpochMilli());
+        LocalDateTime createdAt = order.getCreatedAt() != null ? order.getCreatedAt() : order.getConfirmedAt();
+        if (createdAt != null) {
+            map.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : createdAt.toString());
+            map.put("submittedDate", createdAt.format(DISPLAY_DATE_FORMATTER));
+            map.put("submittedTimestamp", createdAt.atZone(IST_ZONE).toInstant().toEpochMilli());
+        } else {
+            map.put("createdAt", null);
+            map.put("submittedDate", "Recently");
+            map.put("submittedTimestamp", 0L);
+        }
         map.put("confirmedAt", order.getConfirmedAt() != null ? order.getConfirmedAt().toString() : null);
         map.put("processedAt", order.getProcessedAt() != null ? order.getProcessedAt().toString() : null);
         map.put("dispatchedAt", order.getDispatchedAt() != null ? order.getDispatchedAt().toString() : null);

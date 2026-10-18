@@ -758,9 +758,62 @@ public class DirectBuyController {
                     .body(Map.of("error", "Access denied: Only registered material sellers can update order status."));
         }
 
-        MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
+        String targetStatus = body != null && body.get("status") != null ? body.get("status").toString().trim().toUpperCase() : null;
+        if (targetStatus == null || targetStatus.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Status is required"));
+        }
+        String verificationCode = body != null && body.get("verificationCode") != null ? body.get("verificationCode").toString().trim() : null;
+
+        // Section 7: Unambiguous ID Resolution & Prevention of Collisions
+        MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
+        MaterialRequest req = null;
+        MaterialOrder matchedOrder = null;
+
+        // 1. First check if 'id' resolves directly to MaterialRequest
+        MaterialRequest candidateReq = materialRequestRepository.findByIdForUpdate(id)
                 .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
+        if (candidateReq != null && candidateReq.getTargetSeller() != null && candidateReq.getTargetSeller().getId().equals(seller.getId())) {
+            req = candidateReq;
+        }
+
+        // 2. If not candidateReq belonging to seller, check if 'id' matches a canonical MaterialOrder belonging to this seller
+        if (req == null && mor != null) {
+            Optional<MaterialOrder> orderOpt = mor.findById(id);
+            if (orderOpt.isPresent()) {
+                MaterialOrder candidate = orderOpt.get();
+                if (candidate.getSeller() != null && candidate.getSeller().getId().equals(seller.getId())) {
+                    matchedOrder = candidate;
+                    if (candidate.getMaterialRequest() != null) {
+                        req = candidate.getMaterialRequest();
+                    }
+                }
+            }
+        }
+
+        if (matchedOrder != null && materialOrderService != null) {
+            try {
+                MaterialOrder updated = materialOrderService.updateOrderStatus(matchedOrder.getId(), targetStatus, verificationCode, seller);
+                Map<String, Object> resp = new LinkedHashMap<>();
+                resp.put("success", true);
+                resp.put("requestId", updated.getMaterialRequest() != null ? updated.getMaterialRequest().getRequestId() : updated.getOrderCode());
+                resp.put("orderCode", updated.getOrderCode());
+                resp.put("status", updated.getOrderStatus());
+                resp.put("message", "Order status updated successfully — स्थिति सफलतापूर्वक अपडेट की गई");
+                return ResponseEntity.ok(resp);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+            } catch (IllegalStateException e) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+            } catch (SecurityException e) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+            }
+        }
+
         if (req == null) {
+            if (candidateReq != null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Forbidden: Not your direct buy order."));
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
@@ -769,11 +822,33 @@ public class DirectBuyController {
                     .body(Map.of("error", "Forbidden: Not your direct buy order."));
         }
 
-        String targetStatus = body != null && body.get("status") != null ? body.get("status").toString().trim().toUpperCase() : null;
-        if (targetStatus == null || targetStatus.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Status is required"));
+        // 3. If req has a linked MaterialOrder, update via materialOrderService to ensure single canonical source
+        if (mor != null) {
+            List<MaterialOrder> linkedOrders = mor.findByMaterialRequestIdOrderByCreatedAtDesc(req.getId());
+            if (linkedOrders != null && !linkedOrders.isEmpty()) {
+                MaterialOrder linked = linkedOrders.get(0);
+                if (materialOrderService != null) {
+                    try {
+                        MaterialOrder updated = materialOrderService.updateOrderStatus(linked.getId(), targetStatus, verificationCode, seller);
+                        Map<String, Object> resp = new LinkedHashMap<>();
+                        resp.put("success", true);
+                        resp.put("requestId", req.getRequestId());
+                        resp.put("orderCode", updated.getOrderCode());
+                        resp.put("status", updated.getOrderStatus());
+                        resp.put("message", "Order status updated successfully — स्थिति सफलतापूर्वक अपडेट की गई");
+                        return ResponseEntity.ok(resp);
+                    } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+                    } catch (IllegalStateException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+                    } catch (SecurityException e) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+                    }
+                }
+            }
         }
 
+        // 4. Fallback for unlinked MaterialRequest
         String rawCurrent = req.getStatus() != null ? req.getStatus().trim().toUpperCase() : "WAITING_FOR_ACCEPTANCE";
         String normalizedCurrent = normalizeOrderStatus(rawCurrent);
         String normalizedTarget = normalizeOrderStatus(targetStatus);
@@ -785,11 +860,23 @@ public class DirectBuyController {
             ));
         }
 
+        if ("DELIVERED".equals(normalizedTarget)) {
+            String expectedCode = req.getVerificationCode();
+            if (expectedCode != null && !expectedCode.isBlank()) {
+                if (verificationCode != null && !verificationCode.isBlank()) {
+                    if (!expectedCode.trim().equalsIgnoreCase(verificationCode.trim())) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                "error", "Invalid delivery verification code. / अमान्य डिलीवरी सत्यापन कोड।"
+                        ));
+                    }
+                }
+            }
+        }
+
         req.setStatus(normalizedTarget);
         MaterialRequest saved = materialRequestRepository.save(req);
 
         // Synchronize linked MaterialOrders if any exist
-        MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
         if (mor != null) {
             List<MaterialOrder> linkedOrders = mor.findByMaterialRequestIdOrderByCreatedAtDesc(saved.getId());
             if (linkedOrders != null && !linkedOrders.isEmpty()) {
@@ -871,8 +958,21 @@ public class DirectBuyController {
     }
 
     @PutMapping("/requests/{id}/delivered")
-    public ResponseEntity<?> deliverDirectBuyOrder(@PathVariable("id") Long id, Authentication authentication) {
-        return updateDirectBuyStatus(id, Map.of("status", "DELIVERED"), authentication);
+    public ResponseEntity<?> deliverDirectBuyOrder(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestParam(value = "verificationCode", required = false) String codeParam,
+            Authentication authentication
+    ) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        if (body != null) {
+            payload.putAll(body);
+        }
+        payload.put("status", "DELIVERED");
+        if (codeParam != null && !codeParam.isBlank() && !payload.containsKey("verificationCode")) {
+            payload.put("verificationCode", codeParam.trim());
+        }
+        return updateDirectBuyStatus(id, payload, authentication);
     }
 
     @PutMapping("/requests/{id}/expected-delivery")
@@ -905,22 +1005,29 @@ public class DirectBuyController {
             return ResponseEntity.badRequest().body(Map.of("error", "expectedDeliveryDate is required"));
         }
 
+        // Section 7: Unambiguous ID resolution
+        MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
         MaterialRequest req = materialRequestRepository.findByIdForUpdate(id)
                 .orElseGet(() -> materialRequestRepository.findById(id).orElse(null));
-        if (req == null) {
-            MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
+
+        MaterialOrder matchedOrder = null;
+        if (req == null || req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
             if (mor != null) {
-                MaterialOrder matched = mor.findById(id).orElse(null);
-                if (matched != null && matched.getMaterialRequest() != null) {
-                    req = matched.getMaterialRequest();
+                MaterialOrder candidate = mor.findById(id).orElse(null);
+                if (candidate != null && candidate.getSeller() != null && candidate.getSeller().getId().equals(seller.getId())) {
+                    matchedOrder = candidate;
+                    if (candidate.getMaterialRequest() != null) {
+                        req = candidate.getMaterialRequest();
+                    }
                 }
             }
         }
-        if (req == null) {
+
+        if (req == null && matchedOrder == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Request not found with ID: " + id));
         }
 
-        if (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId())) {
+        if (req != null && (req.getTargetSeller() == null || !req.getTargetSeller().getId().equals(seller.getId()))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Forbidden: Not your direct buy order."));
         }
@@ -937,7 +1044,6 @@ public class DirectBuyController {
         MaterialRequest saved = materialRequestRepository.save(req);
 
         // Synchronize linked MaterialOrders
-        MaterialOrderRepository mor = getEffectiveMaterialOrderRepository();
         if (mor != null) {
             List<MaterialOrder> linkedOrders = mor.findByMaterialRequestIdOrderByCreatedAtDesc(saved.getId());
             if (linkedOrders != null && !linkedOrders.isEmpty()) {

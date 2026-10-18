@@ -175,7 +175,7 @@ async function loadCustomerOrders() {
 
     if (Array.isArray(data)) {
       data.forEach(item => {
-        const rawStatus = (item.orderStatus || item.rawStatus || item.status || "CONFIRMED").toUpperCase();
+        const rawStatus = extractOrderStatus(item);
         
         // Strict Business Rule: Filter out any unaccepted/waiting orders
         if (!isAcceptedStatus(rawStatus)) {
@@ -229,10 +229,21 @@ async function loadCustomerOrders() {
    STATUS MAPPING & 5-STAGE PIPELINE HELPERS
    ========================================================= */
 
+function extractOrderStatus(item) {
+  if (!item) return "CONFIRMED";
+  const candidates = [item.deliveryStatus, item.orderStatus, item.rawStatus, item.status];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) {
+      return c.trim().toUpperCase();
+    }
+  }
+  return "CONFIRMED";
+}
+
 function isAcceptedStatus(status) {
   if (!status) return false;
   const s = String(status).trim().toUpperCase();
-  if (s === "WAITING_FOR_ACCEPTANCE" || s === "NEW" || s === "CANCELLED" || 
+  if (!s || s === "WAITING_FOR_ACCEPTANCE" || s === "NEW" || s === "CANCELLED" || 
       s === "DECLINED" || s === "REJECTED" || s === "EXPIRED" || s === "DRAFT" || s === "UNACCEPTED") {
     return false;
   }
@@ -247,55 +258,119 @@ function isAcceptedStatus(status) {
  * 4 = Delivered
  */
 function getStageIndex(status) {
-  const s = (status || "").toUpperCase();
+  const s = (typeof status === "string" ? status.trim() : "").toUpperCase();
   if (s.includes("DELIVERED") || (s.includes("COMPLETED") && !s.includes("PROCESSING")) || s.includes("डिलीवर")) return 4;
   if (s.includes("OUT_FOR_DELIVERY") || s.includes("OUT FOR DELIVERY") || s.includes("रवाना") || s.includes("निकल चुका")) return 3;
-  if (s.includes("DISPATCHED") || s.includes("DISPATCH") || s.includes("भेजा")) return 2;
+  if (s.includes("IN_TRANSIT") || s.includes("TRANSIT") || s.includes("DISPATCHED") || s.includes("DISPATCH") || s.includes("READY_TO_DISPATCH") || s.includes("READY_FOR_DISPATCH") || s.includes("DELAYED") || s.includes("RETURNED") || s.includes("भेजा") || s.includes("रास्ते")) return 2;
   // PROCESSING, PROCESSED, ACCEPTED, ORDER_ACCEPTED, CONFIRMED
   return 1;
 }
 
 function getStatusDetails(status) {
   const step = getStageIndex(status);
-  switch (step) {
-    case 4:
-      return {
-        step: 4,
-        titleEn: "Delivered",
-        titleHi: "डिलीवर हो गया",
-        badgeClass: "status-delivered",
-        icon: "fa-solid fa-circle-check",
-        stateTag: "— COMPLETED"
-      };
-    case 3:
+  const s = (typeof status === "string" ? status.trim() : "").toUpperCase();
+
+  if (step === 4) {
+    return {
+      step: 4,
+      titleEn: "Delivered",
+      titleHi: "डिलीवर हो गया",
+      badgeClass: "status-delivered",
+      icon: "fa-solid fa-circle-check",
+      stateTag: "— COMPLETED",
+      substatus: "DELIVERED"
+    };
+  }
+
+  if (step === 3) {
+    if (s.includes("FAILED")) {
       return {
         step: 3,
-        titleEn: "Out for Delivery",
-        titleHi: "डिलीवरी के लिए निकल चुका है",
-        badgeClass: "status-transit",
-        icon: "fa-solid fa-truck-fast",
-        stateTag: "— CURRENT"
+        titleEn: "Delivery Failed",
+        titleHi: "डिलीवरी असफल",
+        badgeClass: "status-delayed",
+        icon: "fa-solid fa-circle-xmark",
+        stateTag: "— FAILED",
+        substatus: "DELIVERY_FAILED"
       };
-    case 2:
+    }
+    return {
+      step: 3,
+      titleEn: "Out for Delivery",
+      titleHi: "डिलीवरी के लिए निकल चुका है",
+      badgeClass: "status-transit",
+      icon: "fa-solid fa-truck-fast",
+      stateTag: "— CURRENT",
+      substatus: "OUT_FOR_DELIVERY"
+    };
+  }
+
+  if (step === 2) {
+    if (s.includes("IN_TRANSIT") || s.includes("TRANSIT") || s.includes("रास्ते")) {
       return {
         step: 2,
-        titleEn: "Order Dispatched",
-        titleHi: "ऑर्डर भेजा गया",
-        badgeClass: "status-dispatch",
-        icon: "fa-solid fa-box-open",
-        stateTag: "— CURRENT"
+        titleEn: "In Transit",
+        titleHi: "रास्ते में",
+        badgeClass: "status-transit",
+        icon: "fa-solid fa-truck-moving",
+        stateTag: "— CURRENT",
+        substatus: "IN_TRANSIT"
       };
-    case 1:
-    default:
+    }
+    if (s.includes("READY_TO_DISPATCH") || s.includes("READY_FOR_DISPATCH") || s.includes("READY")) {
       return {
-        step: 1,
-        titleEn: "Processing",
-        titleHi: "प्रक्रिया में",
-        badgeClass: "status-processing",
-        icon: "fa-solid fa-gear",
-        stateTag: "— CURRENT"
+        step: 2,
+        titleEn: "Ready for Dispatch",
+        titleHi: "भेजने के लिए तैयार",
+        badgeClass: "status-dispatch",
+        icon: "fa-solid fa-box",
+        stateTag: "— CURRENT",
+        substatus: "READY_TO_DISPATCH"
       };
+    }
+    if (s.includes("DELAYED") || s.includes("विलंबित") || s.includes("देरी")) {
+      return {
+        step: 2,
+        titleEn: "Delayed",
+        titleHi: "विलंबित / देरी",
+        badgeClass: "status-delayed",
+        icon: "fa-solid fa-triangle-exclamation",
+        stateTag: "— DELAYED",
+        substatus: "DELAYED"
+      };
+    }
+    if (s.includes("RETURNED")) {
+      return {
+        step: 2,
+        titleEn: "Returned",
+        titleHi: "वापस लौटा दिया गया",
+        badgeClass: "status-dispatch",
+        icon: "fa-solid fa-arrow-rotate-left",
+        stateTag: "— RETURNED",
+        substatus: "RETURNED"
+      };
+    }
+    return {
+      step: 2,
+      titleEn: "Order Dispatched",
+      titleHi: "ऑर्डर भेजा गया",
+      badgeClass: "status-dispatch",
+      icon: "fa-solid fa-box-open",
+      stateTag: "— CURRENT",
+      substatus: "DISPATCHED"
+    };
   }
+
+  // step === 1
+  return {
+    step: 1,
+    titleEn: "Processing",
+    titleHi: "प्रक्रिया में",
+    badgeClass: "status-processing",
+    icon: "fa-solid fa-gear",
+    stateTag: "— CURRENT",
+    substatus: "PROCESSING"
+  };
 }
 
 function formatTimestampIST(val) {
@@ -372,8 +447,8 @@ function renderOrders() {
       const rawStatus = (o.status || "").toUpperCase();
       if (statusFilter === "PROCESSING" || statusFilter === "ACCEPTED") {
         if (step !== 1 && !rawStatus.includes("ACCEPT") && !rawStatus.includes("CONFIRM") && !rawStatus.includes("PROCESS")) return false;
-      } else if (statusFilter === "DISPATCHED" || statusFilter === "READY_FOR_DISPATCH") {
-        if (step !== 2 && !rawStatus.includes("DISPATCH") && !rawStatus.includes("READY")) return false;
+      } else if (statusFilter === "DISPATCHED" || statusFilter === "READY_FOR_DISPATCH" || statusFilter === "IN_TRANSIT") {
+        if (step !== 2 && !rawStatus.includes("DISPATCH") && !rawStatus.includes("READY") && !rawStatus.includes("TRANSIT")) return false;
       } else if (statusFilter === "OUT_FOR_DELIVERY") {
         if (step !== 3 && !rawStatus.includes("OUT_FOR_DELIVERY") && !rawStatus.includes("OUT FOR DELIVERY")) return false;
       } else if (statusFilter === "DELIVERED" || statusFilter === "COMPLETED") {
@@ -430,7 +505,15 @@ function createOrderCardHTML(order) {
   // Exactly 4 Visible Progress Stages
   const stages = [
     { step: 1, titleEn: "Processing", titleHi: "प्रक्रिया में" },
-    { step: 2, titleEn: "Order Dispatched", titleHi: "ऑर्डर भेजा गया" },
+    {
+      step: 2,
+      titleEn: (currentStep === 2 && statusInfo.substatus === "IN_TRANSIT") ? "In Transit" :
+               (currentStep === 2 && statusInfo.substatus === "READY_TO_DISPATCH") ? "Ready for Dispatch" :
+               (currentStep === 2 && statusInfo.substatus === "DELAYED") ? "Delayed" : "Order Dispatched",
+      titleHi: (currentStep === 2 && statusInfo.substatus === "IN_TRANSIT") ? "रास्ते में" :
+               (currentStep === 2 && statusInfo.substatus === "READY_TO_DISPATCH") ? "भेजने के लिए तैयार" :
+               (currentStep === 2 && statusInfo.substatus === "DELAYED") ? "विलंबित" : "ऑर्डर भेजा गया"
+    },
     { step: 3, titleEn: "Out for Delivery", titleHi: "डिलीवरी के लिए निकल चुका है" },
     { step: 4, titleEn: "Delivered", titleHi: "डिलीवर हो गया" }
   ];

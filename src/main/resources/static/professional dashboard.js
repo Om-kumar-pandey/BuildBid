@@ -316,7 +316,7 @@ function initializeCurrentProfessional() {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
     if (raw) cachedUser = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   const cachedAvatar = getValidProCachedAvatar();
 
@@ -546,10 +546,10 @@ function getApiBaseUrl() {
 }
 
 function getCleanToken() {
-  let token = localStorage.getItem("token") || 
-              localStorage.getItem("authToken") || 
-              localStorage.getItem("marketplaceToken") || 
-              sessionStorage.getItem("token") || "";
+  let token = localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("marketplaceToken") ||
+    sessionStorage.getItem("token") || "";
   if (!token) return "";
   token = String(token).trim();
   let changed = true;
@@ -593,7 +593,7 @@ function updateAllAvatarElements(avatarUrl) {
   const sideAvatar = document.getElementById('side-avatar');
   if (sideAvatar) {
     sideAvatar.src = safeUrl;
-    sideAvatar.onerror = function() {
+    sideAvatar.onerror = function () {
       if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
         this.src = fallbackUrl;
       } else {
@@ -605,7 +605,7 @@ function updateAllAvatarElements(avatarUrl) {
   const topAvatar = document.getElementById('top-avatar');
   if (topAvatar) {
     topAvatar.src = safeUrl;
-    topAvatar.onerror = function() {
+    topAvatar.onerror = function () {
       if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
         this.src = fallbackUrl;
       } else {
@@ -617,7 +617,7 @@ function updateAllAvatarElements(avatarUrl) {
   const heroAvatar = document.getElementById('proHeroAvatar');
   if (heroAvatar) {
     heroAvatar.src = safeUrl;
-    heroAvatar.onerror = function() {
+    heroAvatar.onerror = function () {
       if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
         this.src = fallbackUrl;
       } else {
@@ -629,7 +629,7 @@ function updateAllAvatarElements(avatarUrl) {
   const profileAvatar = document.getElementById('proProfileTabAvatar');
   if (profileAvatar) {
     profileAvatar.src = safeUrl;
-    profileAvatar.onerror = function() {
+    profileAvatar.onerror = function () {
       if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
         this.src = fallbackUrl;
       } else {
@@ -641,7 +641,7 @@ function updateAllAvatarElements(avatarUrl) {
   const settingsAvatar = document.getElementById('settings-header-avatar');
   if (settingsAvatar) {
     settingsAvatar.src = safeUrl;
-    settingsAvatar.onerror = function() {
+    settingsAvatar.onerror = function () {
       if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
         this.src = fallbackUrl;
       } else {
@@ -660,7 +660,7 @@ async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
     try {
       localStorage.removeItem("buildbid_pro_avatar_cache");
       localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-    } catch (e) {}
+    } catch (e) { }
     updateAllAvatarElements(fallbackUrl);
     return;
   }
@@ -711,17 +711,17 @@ async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
                 if (owner) {
                   localStorage.setItem("buildbid_pro_avatar_cache_owner", owner);
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           };
           reader.readAsDataURL(blob);
-        } catch (e) {}
+        } catch (e) { }
       } else if (res.status === 404) {
         revokeCurrentAvatarBlobUrl();
         try {
           localStorage.removeItem("buildbid_pro_avatar_cache");
           localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-        } catch (e) {}
+        } catch (e) { }
         updateAllAvatarElements(fallbackUrl);
       } else if (res.status === 401 || res.status === 403) {
         console.warn('[BuildBid Pro] Unauthorized photo fetch (HTTP ' + res.status + ')');
@@ -729,7 +729,7 @@ async function loadAuthenticatedProfilePhoto(forceRefresh = false) {
         try {
           localStorage.removeItem("buildbid_pro_avatar_cache");
           localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-        } catch (e) {}
+        } catch (e) { }
         updateAllAvatarElements(fallbackUrl);
       } else {
         if (!currentAvatarBlobUrl) {
@@ -762,7 +762,7 @@ window.addEventListener('buildbid:avatar-sync', function (event) {
     try {
       localStorage.removeItem("buildbid_pro_avatar_cache");
       localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-    } catch (e) {}
+    } catch (e) { }
     updateAllAvatarElements(getProfessionalFallbackAvatar(currentPro.type));
     try {
       const raw = localStorage.getItem('currentUser');
@@ -773,7 +773,7 @@ window.addEventListener('buildbid:avatar-sync', function (event) {
         delete u.avatarUrl;
         localStorage.setItem('currentUser', JSON.stringify(u));
       }
-    } catch (e) {}
+    } catch (e) { }
   } else {
     loadAuthenticatedProfilePhoto(true);
   }
@@ -785,7 +785,7 @@ window.addEventListener('storage', function (e) {
     try {
       const payload = JSON.parse(e.newValue);
       window.dispatchEvent(new CustomEvent('buildbid:avatar-sync', { detail: payload }));
-    } catch (err) {}
+    } catch (err) { }
   }
 });
 
@@ -812,10 +812,10 @@ function applyProfessionalIdentity(name, location, type, photoUrl) {
   // Profile image resolution:
   const cachedAvatar = getValidProCachedAvatar();
   const candidateUrl = (photoUrl || currentPro.profilePhotoUrl || currentPro.photoUrl || "").toString().trim();
-  const isInvalidStock = !candidateUrl || 
-                         candidateUrl.includes("images.unsplash.com") || 
-                         candidateUrl.includes("placehold.co") || 
-                         candidateUrl.includes("via.placeholder");
+  const isInvalidStock = !candidateUrl ||
+    candidateUrl.includes("images.unsplash.com") ||
+    candidateUrl.includes("placehold.co") ||
+    candidateUrl.includes("via.placeholder");
 
   if (currentAvatarBlobUrl) {
     updateAllAvatarElements(currentAvatarBlobUrl);
@@ -878,7 +878,7 @@ function syncIdentityWithStoredSession() {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
     if (raw) cachedUser = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   if (cachedUser) {
     const name = cachedUser.name || cachedUser.fullName || cachedUser.username || "Professional";
@@ -888,8 +888,8 @@ function syncIdentityWithStoredSession() {
     const photoUrl = cachedUser.profilePhotoUrl || "";
 
     const isVerified = Boolean(
-      cachedUser.isVerified || 
-      cachedUser.verified || 
+      cachedUser.isVerified ||
+      cachedUser.verified ||
       cachedUser.verificationStatus === 'VERIFIED'
     );
     currentPro.isVerified = isVerified;
@@ -938,14 +938,14 @@ async function fetchAndUpdateProfile() {
       try {
         const raw = localStorage.getItem("currentUser");
         if (raw) cachedUser = JSON.parse(raw);
-      } catch (e) {}
+      } catch (e) { }
       const rawType = (cachedUser && (cachedUser.category || cachedUser.profession || cachedUser.type)) || profile.category || profile.profession || profile.type || "";
       const type = normalizeProfessionalType(rawType);
       const photoUrl = profile.profilePhotoUrl || "";
 
       const isVerified = Boolean(
-        profile.verified || 
-        profile.isVerified || 
+        profile.verified ||
+        profile.isVerified ||
         profile.verificationStatus === 'VERIFIED' ||
         (cachedUser && (cachedUser.isVerified || cachedUser.verified || cachedUser.verificationStatus === 'VERIFIED'))
       );
@@ -979,7 +979,7 @@ async function fetchAndUpdateProfile() {
                 u.services = sList;
                 localStorage.setItem("currentUser", JSON.stringify(u));
               }
-            } catch (e) {}
+            } catch (e) { }
             if (sList.length > 0) {
               const liveDocs = [];
               let anyVerified = false;
@@ -1326,7 +1326,7 @@ function getInitialPersonaKey() {
       if (cat.includes("plumb")) return "plumber";
       if (cat.includes("mason") || cat.includes("mistri")) return "mason";
     }
-  } catch (e) {}
+  } catch (e) { }
   return "civil_engineer";
 }
 
@@ -1708,7 +1708,7 @@ function navigate(route) {
     if (window.location.hash !== '#' + route) {
       window.history.replaceState(null, '', '#' + route);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   container.scrollTop = 0;
 }
@@ -1821,18 +1821,18 @@ function renderDashboard(container) {
   const displayRole = (currentPro.type && currentPro.type.trim()) ? escapeHtml(currentPro.type) : 'Professional';
   const displayLoc = (currentPro.location && currentPro.location.trim()) ? escapeHtml(currentPro.location) : 'Location not specified';
   const locArea = (currentPro.location && currentPro.location.trim()) ? escapeHtml(currentPro.location.split(',')[0].trim()) : 'your service';
-  
+
   // Real request counts
   const reqCount = (currentPro.requests && Array.isArray(currentPro.requests)) ? currentPro.requests.length : 0;
-  
+
   // Real stats
   const pendingEscrow = typeof currentPro.stats?.pendingPayments === 'number' ? currentPro.stats.pendingPayments : 0;
   const totalEarnings = typeof currentPro.stats?.totalEarnings === 'number' ? currentPro.stats.totalEarnings : 0;
-  const activePrjCount = typeof currentPro.stats?.activeProjects === 'number' 
-    ? currentPro.stats.activeProjects 
+  const activePrjCount = typeof currentPro.stats?.activeProjects === 'number'
+    ? currentPro.stats.activeProjects
     : (Array.isArray(currentPro.projects) ? currentPro.projects.filter(p => p.status === 'Active').length : 0);
-  const completedPrjCount = typeof currentPro.stats?.completedProjects === 'number' 
-    ? currentPro.stats.completedProjects 
+  const completedPrjCount = typeof currentPro.stats?.completedProjects === 'number'
+    ? currentPro.stats.completedProjects
     : (Array.isArray(currentPro.projects) ? currentPro.projects.filter(p => p.status === 'Completed').length : 0);
 
   // Credentials / Documents logic for Card 1
@@ -1905,16 +1905,16 @@ function renderDashboard(container) {
               <h2 class="pro-hero-name">
                 ${getDynamicGreeting()}, <span class="pro-hero-name-highlight">${escapeHtml(currentPro.name)}</span>
               </h2>
-              ${isVerifiedAccount 
-                ? '<i class="fa-solid fa-circle-check pro-badge-verified" title="Verified Professional Account"></i>' 
-                : ''}
+              ${isVerifiedAccount
+      ? '<i class="fa-solid fa-circle-check pro-badge-verified" title="Verified Professional Account"></i>'
+      : ''}
             </div>
 
-            ${isVerifiedAccount 
-              ? '<div class="pro-vip-tag" id="proMembershipBadge"><i class="fa-solid fa-crown text-amber-500"></i> <span>Verified Service Partner</span></div>' 
-              : (isPendingAccount 
-                ? '<div class="pro-vip-tag" id="proMembershipBadge"><i class="fa-solid fa-clock text-amber-500"></i> <span>Verification In Review</span></div>' 
-                : '')}
+            ${isVerifiedAccount
+      ? '<div class="pro-vip-tag" id="proMembershipBadge"><i class="fa-solid fa-crown text-amber-500"></i> <span>Verified Service Partner</span></div>'
+      : (isPendingAccount
+        ? '<div class="pro-vip-tag" id="proMembershipBadge"><i class="fa-solid fa-clock text-amber-500"></i> <span>Verification In Review</span></div>'
+        : '')}
 
             <p class="pro-hero-role">PROFESSIONAL · BUILDBID</p>
 
@@ -1946,9 +1946,9 @@ function renderDashboard(container) {
           </div>
           <div class="mt-3 flex items-baseline justify-between">
             <span class="text-3xl font-extrabold text-slate-900">${currentPro.stats?.newRequests ?? 0}</span>
-            ${(currentPro.stats?.newRequests ?? 0) > 0 
-              ? '<span class="text-xs font-bold text-emerald-600">Active</span>' 
-              : '<span class="text-xs font-bold text-slate-400">None pending</span>'}
+            ${(currentPro.stats?.newRequests ?? 0) > 0
+      ? '<span class="text-xs font-bold text-emerald-600">Active</span>'
+      : '<span class="text-xs font-bold text-slate-400">None pending</span>'}
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Pending client bids in your area</p>
         </div>
@@ -1962,9 +1962,9 @@ function renderDashboard(container) {
           </div>
           <div class="mt-3 flex items-baseline justify-between">
             <span class="text-3xl font-extrabold text-slate-900">${activePrjCount < 10 ? '0' + activePrjCount : activePrjCount}</span>
-            ${activePrjCount > 0 
-              ? '<span class="text-xs font-bold text-blue-600">In Progress</span>' 
-              : '<span class="text-xs font-bold text-slate-400">0 Active</span>'}
+            ${activePrjCount > 0
+      ? '<span class="text-xs font-bold text-blue-600">In Progress</span>'
+      : '<span class="text-xs font-bold text-slate-400">0 Active</span>'}
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Milestones under execution</p>
         </div>
@@ -2126,9 +2126,9 @@ function renderDashboard(container) {
                 <span>No active projects in progress. Client milestones will appear here once contracts are awarded.</span>
               </div>
             ` : currentPro.projects.map(prj => {
-              const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
-              const isPast = isWorkScheduledDatePast(rawDate);
-              return `
+        const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
+        const isPast = isWorkScheduledDatePast(rawDate);
+        return `
               <div class="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3${isPast ? ' opacity-65' : ''}"${isPast ? ' style="opacity: 0.65;"' : ''}>
                 <div class="flex items-start justify-between">
                   <div>
@@ -2178,7 +2178,7 @@ function renderDashboard(container) {
                 </div>
               </div>
             `;
-            }).join('')}
+      }).join('')}
           </div>
         </div>
       </div>
@@ -2357,7 +2357,7 @@ async function fetchFindWorkRequirements() {
       updateSidebarFindWorkBadge(0);
     } else {
       let errBody = {};
-      try { errBody = await res.json(); } catch (_) {}
+      try { errBody = await res.json(); } catch (_) { }
       findWorkFetchError = errBody.error || `Unable to fetch opportunities from server (Status ${res.status}).`;
       console.warn("Could not fetch requirements from backend, status:", res.status);
     }
@@ -2527,7 +2527,7 @@ function applyFindWorkFilters() {
   // Specialty filter
   if (findWorkFilterSpecialty !== 'ALL') {
     filtered = filtered.filter(req => {
-      return (req.tradeRequirements || []).some(t => 
+      return (req.tradeRequirements || []).some(t =>
         (t.tradeRole || '').toLowerCase() === findWorkFilterSpecialty.toLowerCase()
       );
     });
@@ -2670,17 +2670,17 @@ function renderFindWorkCardHtml(req) {
             Details
           </button>
           ${req.hasApplied ? (() => {
-            const st = (req.applicationStatus || 'APPLIED').toUpperCase();
-            if (st === 'ACCEPTED') {
-              return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-circle-check text-emerald-600"></i> Accepted</span>';
-            } else if (st === 'SHORTLISTED') {
-              return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-star text-purple-600"></i> Shortlisted</span>';
-            } else if (st === 'REJECTED') {
-              return '<span class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-slate-400"></i> Not Selected</span>';
-            }
-            return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-paper-plane text-blue-500"></i> Applied</span>';
-          })() : (
-            primaryEligible && (primaryEligible.remainingQuantity <= 0 || primaryEligible.filled) ? `
+      const st = (req.applicationStatus || 'APPLIED').toUpperCase();
+      if (st === 'ACCEPTED') {
+        return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-circle-check text-emerald-600"></i> Accepted</span>';
+      } else if (st === 'SHORTLISTED') {
+        return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-star text-purple-600"></i> Shortlisted</span>';
+      } else if (st === 'REJECTED') {
+        return '<span class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-slate-400"></i> Not Selected</span>';
+      }
+      return '<span class="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs"><i class="fa-solid fa-paper-plane text-blue-500"></i> Applied</span>';
+    })() : (
+      primaryEligible && (primaryEligible.remainingQuantity <= 0 || primaryEligible.filled) ? `
               <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs cursor-not-allowed">Requirement Filled</button>
             ` : primaryEligible ? `
               <button onclick="openProposalModal('${escapeHtml(req.projectId)}', '${escapeHtml(primaryEligible.tradeRole)}', ${primaryEligible.offerAmount || 0}, '${escapeHtml(primaryEligible.offerType || 'PER_DAY')}')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm transition text-xs flex items-center gap-1.5">
@@ -2689,7 +2689,7 @@ function renderFindWorkCardHtml(req) {
             ` : `
               <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs cursor-not-allowed" title="Your verified profile does not match requested trades">Trade Not Eligible</button>
             `
-          )}
+    )}
         </div>
       </div>
     </div>
@@ -2815,13 +2815,13 @@ function renderRequirementDetailBody(body, d) {
         </span>
         <div class="space-y-2">
           ${reqTrades.map(t => {
-            const isEligible = !!t.eligible;
-            const isFilled = (t.remainingQuantity <= 0) || t.filled;
-            const offerText = (t.offerAmount && Number(t.offerAmount) > 0)
-              ? `₹${Number(t.offerAmount).toLocaleString('en-IN')}${t.offerType ? ' / ' + escapeHtml(t.offerType) : ''}`
-              : 'Open for Quotation';
+    const isEligible = !!t.eligible;
+    const isFilled = (t.remainingQuantity <= 0) || t.filled;
+    const offerText = (t.offerAmount && Number(t.offerAmount) > 0)
+      ? `₹${Number(t.offerAmount).toLocaleString('en-IN')}${t.offerType ? ' / ' + escapeHtml(t.offerType) : ''}`
+      : 'Open for Quotation';
 
-            return `
+    return `
               <div class="p-2.5 rounded-xl border ${isEligible ? (isFilled ? 'bg-slate-50 border-slate-200' : 'bg-orange-50/60 border-orange-200') : 'bg-slate-50/50 border-slate-200'} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="space-y-0.5">
                   <div class="flex items-center gap-1.5">
@@ -2840,7 +2840,7 @@ function renderRequirementDetailBody(body, d) {
                 </div>
               </div>
             `;
-          }).join('')}
+  }).join('')}
         </div>
       </div>
 
@@ -2853,12 +2853,12 @@ function renderRequirementDetailBody(body, d) {
               Your Submitted Quotation (#${escapeHtml(d.myApplication.applicationId)})
             </span>
             ${(() => {
-              const st = (d.myApplication.status || 'APPLIED').toUpperCase();
-              if (st === 'ACCEPTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Quotation Accepted</span>';
-              if (st === 'SHORTLISTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">Shortlisted</span>';
-              if (st === 'REJECTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Not Selected</span>';
-              return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">Application Submitted</span>';
-            })()}
+        const st = (d.myApplication.status || 'APPLIED').toUpperCase();
+        if (st === 'ACCEPTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Quotation Accepted</span>';
+        if (st === 'SHORTLISTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">Shortlisted</span>';
+        if (st === 'REJECTED') return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Not Selected</span>';
+        return '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">Application Submitted</span>';
+      })()}
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
             <div>
@@ -2907,7 +2907,7 @@ function renderRequirementDetailBody(body, d) {
             Close
           </button>
           ${!d.hasApplied ? (
-            firstEligible && (firstEligible.remainingQuantity > 0 && !firstEligible.filled) ? `
+      firstEligible && (firstEligible.remainingQuantity > 0 && !firstEligible.filled) ? `
               <button onclick="closeModal('modal-requirement-detail'); openProposalModal('${escapeHtml(d.projectId)}', '${escapeHtml(firstEligible.tradeRole)}', ${firstEligible.offerAmount || 0}, '${escapeHtml(firstEligible.offerType || 'PER_DAY')}')" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-xs transition text-xs flex items-center gap-1.5">
                 <span>Send Proposal / Quotation</span>
                 <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2921,7 +2921,7 @@ function renderRequirementDetailBody(body, d) {
                 Trade Not Eligible
               </button>
             `
-          ) : ''}
+    ) : ''}
         </div>
       </div>
     </div>
@@ -3134,7 +3134,7 @@ function renderProjects(container) {
           <p class="text-xs text-slate-500">Track execution and completion of your assigned client work.</p>
         </div>
         <span class="text-xs font-semibold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
-          Active Work: <strong class="text-slate-900">${(currentPro.projects || []).filter(p=>p.status==='Active').length} Active</strong>
+          Active Work: <strong class="text-slate-900">${(currentPro.projects || []).filter(p => p.status === 'Active').length} Active</strong>
         </span>
       </div>
 
@@ -3158,9 +3158,9 @@ function renderProjects(container) {
             </p>
           </div>
         ` : currentPro.projects.map(prj => {
-          const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
-          const isPast = prj.status !== 'Completed' && isWorkScheduledDatePast(rawDate);
-          return `
+    const rawDate = prj.scheduledDate || prj.deadline || prj.targetDate || prj.date;
+    const isPast = prj.status !== 'Completed' && isWorkScheduledDatePast(rawDate);
+    return `
           <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 space-y-4${isPast ? ' opacity-65' : ''}"${isPast ? ' style="opacity: 0.65;"' : ''}>
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
@@ -3192,7 +3192,7 @@ function renderProjects(container) {
             </div>
           </div>
         `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
   `;
@@ -3607,7 +3607,7 @@ function renderAccountSettings(container) {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
     if (raw) cachedUser = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   const email = (cachedUser && cachedUser.email) || pro.email || "";
   const phone = (cachedUser && cachedUser.phone) || pro.phone || "";
@@ -3742,7 +3742,7 @@ function renderSettingsPersonalTab(container) {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
     if (raw) cachedUser = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   const email = (cachedUser && cachedUser.email) || pro.email || "";
   const phone = (cachedUser && cachedUser.phone) || pro.phone || "";
@@ -3853,7 +3853,7 @@ function savePersonalInformation() {
     if (newPin) u.pincode = newPin;
     if (newAbout) u.about = newAbout;
     localStorage.setItem('currentUser', JSON.stringify(u));
-  } catch (e) {}
+  } catch (e) { }
 
   syncIdentityWithStoredSession();
   renderAccountSettings(document.getElementById('main-view'));
@@ -3894,7 +3894,7 @@ function renderSettingsVerificationTab(container) {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
     if (raw) cachedUser = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   const v = settingsVerificationData || {};
   const email = v.email || (cachedUser && cachedUser.email) || pro.email || "";
@@ -4381,7 +4381,7 @@ function renderSettingsSecurityTab(container) {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
     if (raw) cachedUser = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   const email = (cachedUser && cachedUser.email) || currentPro.email || "partner@buildbid.com";
   const passUpdate = (cachedUser && cachedUser.passwordUpdatedAt) ? new Date(cachedUser.passwordUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Original Sign-up';
@@ -4553,7 +4553,7 @@ function saveProfessionalPreferences() {
     u.available = currentPro.available;
     u.serviceRadius = currentPro.serviceRadius;
     localStorage.setItem('currentUser', JSON.stringify(u));
-  } catch (e) {}
+  } catch (e) { }
 
   showToast('Professional preferences saved successfully.', 'success');
 }
@@ -4763,10 +4763,9 @@ function renderDocuments(container) {
               </div>
             </div>
             <div class="flex flex-col items-end space-y-2">
-              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                (doc.status || '').toLowerCase() === 'verified' ? 'bg-emerald-100 text-emerald-800' :
-                (doc.status || '').toLowerCase() === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
-              }">${escapeHtml(doc.status || 'Verified')}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${(doc.status || '').toLowerCase() === 'verified' ? 'bg-emerald-100 text-emerald-800' :
+      (doc.status || '').toLowerCase() === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+    }">${escapeHtml(doc.status || 'Verified')}</span>
               <button onclick="showToast('Displaying masked verification record', 'info')" class="text-xs text-orange-600 font-semibold hover:underline">View File</button>
             </div>
           </div>
@@ -4952,9 +4951,9 @@ function renderReviews(container) {
 }
 
 function openRequestModal(reqId) {
-  const req = (currentPro.requests || []).find(r => 
-    String(r.id) === String(reqId) || 
-    String(r.requestId) === String(reqId) || 
+  const req = (currentPro.requests || []).find(r =>
+    String(r.id) === String(reqId) ||
+    String(r.requestId) === String(reqId) ||
     (r.numericId && String(r.numericId) === String(reqId))
   );
   if (!req) return;
@@ -5094,9 +5093,9 @@ async function acceptRequest(reqId) {
     return;
   }
 
-  const req = (currentPro.requests || []).find(x => 
-    String(x.id) === String(reqId) || 
-    String(x.requestId) === String(reqId) || 
+  const req = (currentPro.requests || []).find(x =>
+    String(x.id) === String(reqId) ||
+    String(x.requestId) === String(reqId) ||
     (x.numericId && String(x.numericId) === String(reqId))
   );
   const targetId = (req && req.numericId) ? req.numericId : reqId;
@@ -5119,7 +5118,7 @@ async function acceptRequest(reqId) {
       await fetchAndUpdateActiveWorks();
     } else {
       let errData = {};
-      try { errData = await res.json(); } catch (_) {}
+      try { errData = await res.json(); } catch (_) { }
       showToast(errData.error || errData.message || `Failed to accept request (Status ${res.status}).`, 'error');
     }
   } catch (err) {
@@ -5129,9 +5128,9 @@ async function acceptRequest(reqId) {
 }
 
 function promptDecline(reqId) {
-  const req = (currentPro.requests || []).find(x => 
-    String(x.id) === String(reqId) || 
-    String(x.requestId) === String(reqId) || 
+  const req = (currentPro.requests || []).find(x =>
+    String(x.id) === String(reqId) ||
+    String(x.requestId) === String(reqId) ||
     (x.numericId && String(x.numericId) === String(reqId))
   );
   const targetId = (req && req.numericId) ? req.numericId : reqId;
@@ -5173,7 +5172,7 @@ function promptDecline(reqId) {
           await fetchAndUpdateRequests();
         } else {
           let errData = {};
-          try { errData = await res.json(); } catch (_) {}
+          try { errData = await res.json(); } catch (_) { }
           showToast(errData.error || errData.message || `Failed to decline request (Status ${res.status}).`, 'error');
         }
       } catch (err) {
@@ -5332,7 +5331,7 @@ async function handleProposalSubmit(e) {
       await fetchFindWorkRequirements();
     } else {
       let errData = {};
-      try { errData = await res.json(); } catch (_) {}
+      try { errData = await res.json(); } catch (_) { }
       const errMsg = errData.error || errData.message || '';
 
       if (res.status === 409) {
@@ -5484,7 +5483,7 @@ function handleSearch(val) {
   if (!val || val.trim().length < 3) return;
   // Search matches
   const match = currentPro.requests.find(r => r.project.toLowerCase().includes(val.toLowerCase())) ||
-                currentPro.projects.find(p => p.name.toLowerCase().includes(val.toLowerCase()));
+    currentPro.projects.find(p => p.name.toLowerCase().includes(val.toLowerCase()));
   if (match) {
     showToast(`Found: "${match.project || match.name}"`, 'info');
   }
@@ -5701,8 +5700,8 @@ function updateProfessionalMyOrdersBadge() {
 function isProfessionalAcceptedOrderStatus(status) {
   if (!status) return false;
   const s = String(status).trim().toUpperCase();
-  if (s === "WAITING_FOR_ACCEPTANCE" || s === "NEW" || s === "PENDING" || 
-      s === "DECLINED" || s === "REJECTED" || s === "CANCELLED" || s === "DRAFT") {
+  if (s === "WAITING_FOR_ACCEPTANCE" || s === "NEW" || s === "PENDING" ||
+    s === "DECLINED" || s === "REJECTED" || s === "CANCELLED" || s === "DRAFT") {
     return false;
   }
   return true;
@@ -6012,7 +6011,7 @@ function resolveProfessionalRequestStatus(req) {
 
   // Check req.orders or req.sellerOrders
   const linkedOrders = Array.isArray(req.orders) && req.orders.length > 0 ? req.orders :
-                       (Array.isArray(req.sellerOrders) && req.sellerOrders.length > 0 ? req.sellerOrders : []);
+    (Array.isArray(req.sellerOrders) && req.sellerOrders.length > 0 ? req.sellerOrders : []);
   const hasAcceptedAttachedOrder = linkedOrders.some(isAcceptedOrderRecord);
 
   // Check professionalOrders collection for this authenticated Professional
@@ -6025,12 +6024,12 @@ function resolveProfessionalRequestStatus(req) {
     hasAcceptedGlobalOrder = professionalOrders.some(order => {
       if (!isAcceptedOrderRecord(order)) return false;
       const orderMrId = order.materialRequestId != null ? String(order.materialRequestId).trim() :
-                        (order.materialRequest && order.materialRequest.id != null ? String(order.materialRequest.id).trim() : null);
+        (order.materialRequest && order.materialRequest.id != null ? String(order.materialRequest.id).trim() : null);
       const orderReqCode = order.materialRequest && order.materialRequest.requestId ? String(order.materialRequest.requestId).trim() : null;
 
       const idMatch = (reqDbId && orderMrId === reqDbId) ||
-                      (reqNumFromId && orderMrId === reqNumFromId) ||
-                      (reqCardId && orderReqCode === reqCardId);
+        (reqNumFromId && orderMrId === reqNumFromId) ||
+        (reqCardId && orderReqCode === reqCardId);
       return Boolean(idMatch);
     });
   }
@@ -6084,8 +6083,8 @@ function getProSupplierDeclinedAlertHTML(req) {
   const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
   const sellerStatus = (req.sellerStatus || req.sellerAction || "").toUpperCase();
   const isDeclined = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED") ||
-                     sellerStatus.includes("DECLINED") || sellerStatus.includes("REJECTED") ||
-                     req.rejected === true || req.declined === true;
+    sellerStatus.includes("DECLINED") || sellerStatus.includes("REJECTED") ||
+    req.rejected === true || req.declined === true;
 
   if (!isDeclined) return '';
 
@@ -6117,7 +6116,7 @@ function getProDirectBuyTimelineHTML(req) {
 
 function renderProfessionalMyRequests(container) {
   const allReqs = Array.isArray(professionalRequests) ? professionalRequests : [];
-  
+
   // Filter by Type
   let filtered = allReqs;
   if (proRequestTypeFilter === "DIRECT_BUY") {
@@ -6292,9 +6291,9 @@ function renderProfessionalMyRequests(container) {
           <div>
             <h3 class="text-base font-extrabold text-slate-900">No material requests found</h3>
             <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              ${proRequestSearchQuery || proRequestStatusFilter !== 'ALL' || proRequestTypeFilter !== 'ALL' 
-                ? 'No requests match your current search or filter criteria. Try resetting filters.' 
-                : 'You have not submitted any material purchase requests yet. You can purchase material directly from nearby verified suppliers or post a requirement.'}
+              ${proRequestSearchQuery || proRequestStatusFilter !== 'ALL' || proRequestTypeFilter !== 'ALL'
+        ? 'No requests match your current search or filter criteria. Try resetting filters.'
+        : 'You have not submitted any material purchase requests yet. You can purchase material directly from nearby verified suppliers or post a requirement.'}
             </p>
           </div>
           <div class="pt-2">
@@ -6307,21 +6306,21 @@ function renderProfessionalMyRequests(container) {
       ` : `
         <div class="space-y-4">
           ${filtered.map(req => {
-            const isDirectBuy = req.type === "DIRECT_BUY" || req.isDirectBuy;
-            const reqId = req.id || (isDirectBuy ? `DMR-${req.backendId}` : `MR-${req.backendId}`);
-            const dateStr = req.submittedDate || "Recently";
+          const isDirectBuy = req.type === "DIRECT_BUY" || req.isDirectBuy;
+          const reqId = req.id || (isDirectBuy ? `DMR-${req.backendId}` : `MR-${req.backendId}`);
+          const dateStr = req.submittedDate || "Recently";
 
-            // Status normalization for Professional My Requests
-            const resolvedStatus = resolveProfessionalRequestStatus(req);
-            const statusBadge = resolvedStatus.badgeClass;
-            const statusIcon = resolvedStatus.iconClass;
-            const isRejectedCard = resolvedStatus.status === "Rejected" || resolvedStatus.isRejected === true;
+          // Status normalization for Professional My Requests
+          const resolvedStatus = resolveProfessionalRequestStatus(req);
+          const statusBadge = resolvedStatus.badgeClass;
+          const statusIcon = resolvedStatus.iconClass;
+          const isRejectedCard = resolvedStatus.status === "Rejected" || resolvedStatus.isRejected === true;
 
-            const sellerName = req.sellerName || req.targetSeller || "Designated Supplier";
-            const sellerLoc = req.sellerAddress || req.location || "Regional Supplier";
-            const sellerPhone = req.sellerPhone || "";
+          const sellerName = req.sellerName || req.targetSeller || "Designated Supplier";
+          const sellerLoc = req.sellerAddress || req.location || "Regional Supplier";
+          const sellerPhone = req.sellerPhone || "";
 
-            return `
+          return `
               <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 hover:shadow-card transition${isRejectedCard ? ' opacity-60' : ''}"${isRejectedCard ? ' style="opacity: 0.6;"' : ''}>
                 <!-- Card Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
@@ -6398,10 +6397,10 @@ function renderProfessionalMyRequests(container) {
                     </div>
                     <div class="space-y-2">
                       ${req.quotations.map(q => {
-                        const qStatus = (q.status || "PENDING").toUpperCase();
-                        const isQAccepted = qStatus === "ACCEPTED";
-                        const isQRejected = qStatus === "REJECTED";
-                        return `
+            const qStatus = (q.status || "PENDING").toUpperCase();
+            const isQAccepted = qStatus === "ACCEPTED";
+            const isQRejected = qStatus === "REJECTED";
+            return `
                           <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs">
                             <div>
                               <div class="font-bold text-slate-900">${escapeHtml(q.sellerName || q.providerName || "Verified Supplier")}</div>
@@ -6428,13 +6427,13 @@ function renderProfessionalMyRequests(container) {
                             </div>
                           </div>
                         `;
-                      }).join('')}
+          }).join('')}
                     </div>
                   </div>
                 ` : ''}
               </div>
             `;
-          }).join('')}
+        }).join('')}
         </div>
       `}
     </div>
@@ -6457,19 +6456,47 @@ function setProOrderStatusFilter(filter) {
   }
 }
 
+function extractProOrderStatus(item) {
+  if (!item) return "CONFIRMED";
+  const candidates = [item.deliveryStatus, item.orderStatus, item.rawStatus, item.status];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) {
+      return c.trim().toUpperCase();
+    }
+  }
+  return "CONFIRMED";
+}
+
 function getProOrderStageIndex(status) {
-  const s = (status || "").toUpperCase();
+  const s = (typeof status === "string" ? status.trim() : "").toUpperCase();
   if (s.includes("DELIVERED") || s.includes("COMPLETED")) return 4;
   if (s.includes("OUT_FOR_DELIVERY")) return 3;
-  if (s.includes("DISPATCH") || s.includes("READY_FOR_DISPATCH")) return 2;
+  if (s.includes("IN_TRANSIT") || s.includes("TRANSIT") || s.includes("DISPATCH") || s.includes("READY_TO_DISPATCH") || s.includes("READY_FOR_DISPATCH") || s.includes("DELAYED") || s.includes("RETURNED")) return 2;
   return 1; // PROCESSING / ACCEPTED
 }
 
 function getProOrderProgressBarHTML(status) {
   const stage = getProOrderStageIndex(status);
+  const s = (status || "").toUpperCase();
+
+  let stage2Label = "Dispatched";
+  let stage2Sub = "भेजा गया";
+  if (stage === 2) {
+    if (s.includes("IN_TRANSIT") || s.includes("TRANSIT")) {
+      stage2Label = "In Transit";
+      stage2Sub = "रास्ते में";
+    } else if (s.includes("READY")) {
+      stage2Label = "Ready for Dispatch";
+      stage2Sub = "तैयार";
+    } else if (s.includes("DELAYED")) {
+      stage2Label = "Delayed";
+      stage2Sub = "विलंबित";
+    }
+  }
+
   const stages = [
     { num: 1, label: "Processing", sub: "प्रक्रिया में", icon: "fa-solid fa-gear" },
-    { num: 2, label: "Dispatched", sub: "भेजा गया", icon: "fa-solid fa-box-open" },
+    { num: 2, label: stage2Label, sub: stage2Sub, icon: s.includes("IN_TRANSIT") ? "fa-solid fa-truck-moving" : "fa-solid fa-box-open" },
     { num: 3, label: "Out for Delivery", sub: "रवाना", icon: "fa-solid fa-truck-fast" },
     { num: 4, label: "Delivered", sub: "डिलीवर", icon: "fa-solid fa-circle-check" }
   ];
@@ -6478,11 +6505,11 @@ function getProOrderProgressBarHTML(status) {
     <div class="py-3 px-4 bg-slate-50/80 rounded-xl border border-slate-100 my-4">
       <div class="grid grid-cols-4 gap-2 text-center relative">
         ${stages.map((st) => {
-          const isDone = stage >= st.num;
-          const isCurrent = stage === st.num;
-          const iconBg = isDone ? (st.num === 4 ? 'bg-teal-500 text-white' : 'bg-emerald-500 text-white') : 'bg-white text-slate-400 border border-slate-200';
-          const ring = isCurrent ? 'ring-4 ring-emerald-500/20' : '';
-          return `
+    const isDone = stage >= st.num;
+    const isCurrent = stage === st.num;
+    const iconBg = isDone ? (st.num === 4 ? 'bg-teal-500 text-white' : 'bg-emerald-500 text-white') : 'bg-white text-slate-400 border border-slate-200';
+    const ring = isCurrent ? 'ring-4 ring-emerald-500/20' : '';
+    return `
             <div class="flex flex-col items-center">
               <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${iconBg} ${ring} shadow-2xs mb-1.5 transition">
                 <i class="${st.icon}"></i>
@@ -6491,7 +6518,7 @@ function getProOrderProgressBarHTML(status) {
               <span class="text-[10px] text-slate-400">${st.sub}</span>
             </div>
           `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
   `;
@@ -6504,7 +6531,7 @@ function renderProfessionalMyOrders(container) {
   let filtered = allOrders;
   if (proOrderStatusFilter !== "ALL") {
     filtered = filtered.filter(o => {
-      const stage = getProOrderStageIndex(o.orderStatus || o.status);
+      const stage = getProOrderStageIndex(extractProOrderStatus(o));
       if (proOrderStatusFilter === "PROCESSING") return stage === 1;
       if (proOrderStatusFilter === "DISPATCHED") return stage === 2;
       if (proOrderStatusFilter === "OUT_FOR_DELIVERY") return stage === 3;
@@ -6518,7 +6545,7 @@ function renderProfessionalMyOrders(container) {
     const q = proOrderSearchQuery;
     filtered = filtered.filter(o => {
       const codeMatch = (o.orderCode || o.orderId || "").toLowerCase().includes(q);
-      const titleMatch = (o.materialTitle || (o.items && o.items.map(i=>i.materialName).join(" ")) || "").toLowerCase().includes(q);
+      const titleMatch = (o.materialTitle || (o.items && o.items.map(i => i.materialName).join(" ")) || "").toLowerCase().includes(q);
       const sellerMatch = (o.sellerName || o.sellerBusinessName || "").toLowerCase().includes(q);
       const siteMatch = (o.deliverySite || o.deliveryAddress || "").toLowerCase().includes(q);
       return codeMatch || titleMatch || sellerMatch || siteMatch;
@@ -6526,9 +6553,9 @@ function renderProfessionalMyOrders(container) {
   }
 
   const totalOrders = allOrders.length;
-  const processingCount = allOrders.filter(o => getProOrderStageIndex(o.orderStatus || o.status) === 1).length;
-  const inTransitCount = allOrders.filter(o => [2, 3].includes(getProOrderStageIndex(o.orderStatus || o.status))).length;
-  const deliveredCount = allOrders.filter(o => getProOrderStageIndex(o.orderStatus || o.status) === 4).length;
+  const processingCount = allOrders.filter(o => getProOrderStageIndex(extractProOrderStatus(o)) === 1).length;
+  const inTransitCount = allOrders.filter(o => [2, 3].includes(getProOrderStageIndex(extractProOrderStatus(o)))).length;
+  const deliveredCount = allOrders.filter(o => getProOrderStageIndex(extractProOrderStatus(o)) === 4).length;
 
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto animate-fade-in">
@@ -6657,9 +6684,9 @@ function renderProfessionalMyOrders(container) {
           <div>
             <h3 class="text-base font-extrabold text-slate-900">No confirmed material orders yet</h3>
             <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              ${proOrderSearchQuery || proOrderStatusFilter !== 'ALL' 
-                ? 'No orders match your filter criteria. Try resetting filters.' 
-                : 'When a supplier accepts your direct purchase request or confirms a quotation, your order will automatically appear here with live tracking.'}
+              ${proOrderSearchQuery || proOrderStatusFilter !== 'ALL'
+        ? 'No orders match your filter criteria. Try resetting filters.'
+        : 'When a supplier accepts your direct purchase request or confirms a quotation, your order will automatically appear here with live tracking.'}
             </p>
           </div>
           <div class="pt-2 flex items-center justify-center gap-3">
@@ -6675,30 +6702,49 @@ function renderProfessionalMyOrders(container) {
       ` : `
         <div class="space-y-4">
           ${filtered.map(order => {
-            const orderCode = order.orderCode || order.orderId || `ORD-${order.id}`;
-            const rawStatus = (order.orderStatus || order.status || "CONFIRMED").toUpperCase();
-            const stage = getProOrderStageIndex(rawStatus);
+          const orderCode = order.orderCode || order.orderId || `ORD-${order.id}`;
+          const rawStatus = extractProOrderStatus(order);
+          const stage = getProOrderStageIndex(rawStatus);
 
-            let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
-            let statusLabel = 'Processing / प्रक्रिया में';
-            if (stage === 4) {
-              statusBadge = 'bg-teal-50 text-teal-700 border-teal-200';
-              statusLabel = 'Delivered / डिलीवर हो गया';
-            } else if (stage === 3) {
+          let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+          let statusLabel = 'Processing / प्रक्रिया में';
+          if (stage === 4) {
+            statusBadge = 'bg-teal-50 text-teal-700 border-teal-200';
+            statusLabel = 'Delivered / डिलीवर हो गया';
+          } else if (stage === 3) {
+            if (rawStatus.includes("FAILED")) {
+              statusBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+              statusLabel = 'Delivery Failed / असफल';
+            } else {
               statusBadge = 'bg-indigo-50 text-indigo-700 border-indigo-200';
               statusLabel = 'Out for Delivery / रवाना';
-            } else if (stage === 2) {
+            }
+          } else if (stage === 2) {
+            if (rawStatus.includes("IN_TRANSIT") || rawStatus.includes("TRANSIT")) {
+              statusBadge = 'bg-sky-50 text-sky-700 border-sky-200';
+              statusLabel = 'In Transit / रास्ते में';
+            } else if (rawStatus.includes("READY")) {
+              statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+              statusLabel = 'Ready for Dispatch / भेजने के लिए तैयार';
+            } else if (rawStatus.includes("DELAYED")) {
+              statusBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+              statusLabel = 'Delayed / विलंबित';
+            } else if (rawStatus.includes("RETURNED")) {
+              statusBadge = 'bg-slate-50 text-slate-700 border-slate-200';
+              statusLabel = 'Returned / वापस लौटाया';
+            } else {
               statusBadge = 'bg-sky-50 text-sky-700 border-sky-200';
               statusLabel = 'Dispatched / भेजा गया';
             }
+          }
 
-            const sellerName = order.sellerName || order.sellerBusinessName || "Verified Supplier";
-            const sellerPhone = order.sellerPhone || "";
-            const sellerLocation = order.sellerLocation || order.sellerAddress || "Regional Warehouse";
-            const deliverySite = order.deliverySite || order.deliveryAddress || "Project Site";
-            const orderedDate = order.orderedDate || (order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "Recently");
+          const sellerName = order.sellerName || order.sellerBusinessName || "Verified Supplier";
+          const sellerPhone = order.sellerPhone || "";
+          const sellerLocation = order.sellerLocation || order.sellerAddress || "Regional Warehouse";
+          const deliverySite = order.deliverySite || order.deliveryAddress || "Project Site";
+          const orderedDate = order.orderedDate || (order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "Recently");
 
-            return `
+          return `
               <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 hover:shadow-card transition">
                 <!-- Order Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -6728,7 +6774,7 @@ function renderProfessionalMyOrders(container) {
                   <div class="space-y-1">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Materials Included</span>
                     <div class="font-extrabold text-slate-900 text-sm">
-                      ${escapeHtml(order.materialTitle || (order.items && order.items.length ? order.items.map(i=>i.materialName).join(", ") : "Construction Material Supplies"))}
+                      ${escapeHtml(order.materialTitle || (order.items && order.items.length ? order.items.map(i => i.materialName).join(", ") : "Construction Material Supplies"))}
                     </div>
                     ${order.items && order.items.length ? `
                       <div class="space-y-1 pt-1">
@@ -6802,7 +6848,7 @@ function renderProfessionalMyOrders(container) {
                 </div>
               </div>
             `;
-          }).join('')}
+        }).join('')}
         </div>
       `}
     </div>
@@ -6819,7 +6865,7 @@ function openProfessionalOrderTrackingModal(orderCode) {
   const bodyEl = document.getElementById('tracking-modal-body');
   if (!bodyEl) return;
 
-  const rawStatus = (order.orderStatus || order.status || "CONFIRMED").toUpperCase();
+  const rawStatus = extractProOrderStatus(order);
   const stage = getProOrderStageIndex(rawStatus);
 
   bodyEl.innerHTML = `

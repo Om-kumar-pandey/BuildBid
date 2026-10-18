@@ -170,3 +170,16 @@ body {
     }
 }
 
+/* ==========================================================================
+   PHASE 3: SELLER DELIVERIES & LOGISTICS ENHANCEMENTS
+   ========================================================================== */
+#tab-deliveries table th,
+#tab-deliveries table td {
+    vertical-align: middle;
+}
+
+#deliveryDetailsHistoryModal .relative.pl-6.pb-2:last-child {
+    padding-bottom: 0;
+}
+
+
