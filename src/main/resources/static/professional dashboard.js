@@ -1523,7 +1523,7 @@ async function handleProNotificationClick(notifId, type, refId, isUnread) {
   } else if (t === "POST_REQUIREMENT_APPLICATION" || t.includes("POST_REQUIREMENT_APPLICATION")) {
     window.location.href = `requirement-applications.html${refId ? '?applicationId=' + encodeURIComponent(refId) : ''}`;
   } else if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
-    window.location.href = "my-orders.html";
+    navigate('my-orders');
   } else if (t.includes("REQUEST") || t.includes("LEAD") || t.includes("QUOTATION")) {
     navigate('requests');
   } else if (t.includes("PROJECT")) {
