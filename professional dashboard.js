@@ -215,31 +215,7 @@ function isWorkScheduledDatePast(scheduledDateStr) {
 }
 
 function getProfessionalFallbackAvatar(roleTitle) {
-  return "data:image/svg+xml;utf8," + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-      <defs>
-        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#0f172a"/>
-          <stop offset="100%" stop-color="#1e3a8a"/>
-        </linearGradient>
-        <linearGradient id="helmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#f97316"/>
-          <stop offset="100%" stop-color="#ea580c"/>
-        </linearGradient>
-      </defs>
-      <rect width="120" height="120" rx="28" fill="url(#bgGrad)"/>
-      <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
-      <g transform="translate(60, 52)">
-        <path d="M -26 0 C -26 -18 26 -18 26 0 Z" fill="url(#helmGrad)"/>
-        <path d="M -30 0 C -30 3 30 3 30 0 L -30 0 Z" fill="#c2410c"/>
-        <path d="M -4 -16 L 4 -16 L 3 0 L -3 0 Z" fill="#ffedd5"/>
-        <path d="M -24 16 L -10 32 L 0 20 L 10 32 L 24 16 C 18 36 -18 36 -24 16 Z" fill="#ffffff" opacity="0.9"/>
-        <path d="M 0 20 L -4 34 L 0 38 L 4 34 Z" fill="#f97316"/>
-      </g>
-      <circle cx="92" cy="92" r="14" fill="#10b981" stroke="#0f172a" stroke-width="3"/>
-      <path d="M 87 92 L 91 96 L 98 88" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `);
+  return "professional-default-avatar.webp";
 }
 
 function normalizeProfessionalType(raw) {
@@ -617,31 +593,61 @@ function updateAllAvatarElements(avatarUrl) {
   const sideAvatar = document.getElementById('side-avatar');
   if (sideAvatar) {
     sideAvatar.src = safeUrl;
-    sideAvatar.onerror = function() { this.src = fallbackUrl; };
+    sideAvatar.onerror = function() {
+      if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
+        this.src = fallbackUrl;
+      } else {
+        this.onerror = null;
+      }
+    };
   }
 
   const topAvatar = document.getElementById('top-avatar');
   if (topAvatar) {
     topAvatar.src = safeUrl;
-    topAvatar.onerror = function() { this.src = fallbackUrl; };
+    topAvatar.onerror = function() {
+      if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
+        this.src = fallbackUrl;
+      } else {
+        this.onerror = null;
+      }
+    };
   }
 
   const heroAvatar = document.getElementById('proHeroAvatar');
   if (heroAvatar) {
     heroAvatar.src = safeUrl;
-    heroAvatar.onerror = function() { this.src = fallbackUrl; };
+    heroAvatar.onerror = function() {
+      if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
+        this.src = fallbackUrl;
+      } else {
+        this.onerror = null;
+      }
+    };
   }
 
   const profileAvatar = document.getElementById('proProfileTabAvatar');
   if (profileAvatar) {
     profileAvatar.src = safeUrl;
-    profileAvatar.onerror = function() { this.src = fallbackUrl; };
+    profileAvatar.onerror = function() {
+      if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
+        this.src = fallbackUrl;
+      } else {
+        this.onerror = null;
+      }
+    };
   }
 
   const settingsAvatar = document.getElementById('settings-header-avatar');
   if (settingsAvatar) {
     settingsAvatar.src = safeUrl;
-    settingsAvatar.onerror = function() { this.src = fallbackUrl; };
+    settingsAvatar.onerror = function() {
+      if (this.src !== fallbackUrl && !this.src.endsWith(fallbackUrl)) {
+        this.src = fallbackUrl;
+      } else {
+        this.onerror = null;
+      }
+    };
   }
 }
 
@@ -1891,7 +1897,7 @@ function renderDashboard(container) {
       <section class="pro-profile-hero-banner mb-6">
         <div class="pro-hero-left">
           <div class="pro-hero-avatar-box">
-            <img src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="pro-hero-avatar" id="proHeroAvatar" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
+            <img src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="pro-hero-avatar" id="proHeroAvatar" onerror="if (this.src !== getProfessionalFallbackAvatar(currentPro.type) && !this.src.endsWith(getProfessionalFallbackAvatar(currentPro.type))) { this.src = getProfessionalFallbackAvatar(currentPro.type); } else { this.onerror = null; }">
           </div>
           
           <div class="pro-hero-details">
@@ -3538,7 +3544,7 @@ function renderProfile(container) {
         <div class="px-8 pb-8 relative">
           <div class="flex items-end justify-between -mt-14">
             <div class="flex items-end space-x-5">
-              <img id="proProfileTabAvatar" src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="w-28 h-28 rounded-2xl object-cover ring-4 ring-white shadow-float" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
+              <img id="proProfileTabAvatar" src="${escapeHtml(currentPro.avatar)}" alt="${escapeHtml(currentPro.name)}" class="w-28 h-28 rounded-2xl object-cover ring-4 ring-white shadow-float" onerror="if (this.src !== getProfessionalFallbackAvatar(currentPro.type) && !this.src.endsWith(getProfessionalFallbackAvatar(currentPro.type))) { this.src = getProfessionalFallbackAvatar(currentPro.type); } else { this.onerror = null; }">
               <div>
                 <h3 class="text-xl font-bold text-slate-900">${currentPro.name}</h3>
                 <p class="text-xs font-semibold text-orange-600">${currentPro.type} • ${currentPro.category}</p>
@@ -3617,7 +3623,7 @@ function renderAccountSettings(container) {
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div class="flex items-center space-x-4">
             <div class="relative flex-shrink-0">
-              <img id="settings-header-avatar" src="${escapeHtml(avatarUrl)}" alt="Avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-white/20 shadow-md" onerror="this.src=getProfessionalFallbackAvatar(currentPro.type)">
+              <img id="settings-header-avatar" src="${escapeHtml(avatarUrl)}" alt="Avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-white/20 shadow-md" onerror="if (this.src !== getProfessionalFallbackAvatar(currentPro.type) && !this.src.endsWith(getProfessionalFallbackAvatar(currentPro.type))) { this.src = getProfessionalFallbackAvatar(currentPro.type); } else { this.onerror = null; }">
               <span class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] ring-2 ring-slate-900" title="Active Account">
                 <i class="fa-solid fa-check"></i>
               </span>
