@@ -229,25 +229,15 @@
 
                 <!-- TAB 1: DASHBOARD HOME -->
                 <div id="tab-dashboard" class="tab-content space-y-6">
-                    <!-- Welcome Banner -->
-                    <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center md:justify-between border border-blue-900/50">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2 text-xs font-semibold text-blue-400 uppercase tracking-widest">
-                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span id="seller-banner-region">Verified Supplier Portal</span>
+                    <!-- Welcome Hero Banner -->
+                    <div id="seller-hero-banner" class="seller-hero-card">
+                        <div class="seller-hero-content">
+                            <div class="flex flex-wrap items-start gap-2 text-xs font-semibold text-blue-400 uppercase tracking-widest">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0 mt-1"></span>
+                                <span id="seller-banner-region" class="flex-1 min-w-0 leading-normal">Verified Supplier Portal</span>
                             </div>
-                            <h1 id="seller-banner-greeting" class="text-2xl font-bold tracking-tight">Welcome to BuildBid</h1>
-                            <p class="text-slate-300 text-sm">You have <span id="seller-banner-req-count" class="text-blue-300 font-semibold">Checking requirements...</span> matching your catalog in Noida & NCR.</p>
-                        </div>
-                        <div class="mt-4 md:mt-0 flex items-center space-x-3">
-                            <button onclick="window.location.href='add-material.html'" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 flex items-center space-x-2 transition-all">
-                                <i class="fa-solid fa-plus"></i>
-                                <span>Add New Material</span>
-                            </button>
-                            <button onclick="switchTab('requests')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all">
-                                <i class="fa-solid fa-clipboard-list text-blue-400"></i>
-                                <span id="seller-banner-view-req-count">View Requests</span>
-                            </button>
+                            <h1 id="seller-banner-greeting" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-white drop-shadow-sm">Welcome to BuildBid</h1>
+                            <p class="text-slate-200 text-sm sm:text-base leading-relaxed">You have <span id="seller-banner-req-count" class="text-blue-300 font-semibold">Checking requirements...</span> matching your catalog in Noida & NCR.</p>
                         </div>
                     </div>
 
