@@ -5913,9 +5913,180 @@ function setProRequestStatusFilter(filter) {
   }
 }
 
+/**
+ * Professional-specific material request status resolver.
+ * Normalizes material request statuses for the Professional My Requests view:
+ * - Unaccepted / pending requests -> "Waiting for Acceptance"
+ * - Accepted / downstream fulfillment requests -> "Order Accepted"
+ * - Explicitly declined / rejected requests -> "Rejected"
+ * - Explicitly cancelled requests -> "Cancelled"
+ */
+function resolveProfessionalRequestStatus(req) {
+  if (!req) {
+    return {
+      status: "Waiting for Acceptance",
+      badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+      iconClass: "fa-hourglass-half",
+      isWaiting: true,
+      isAccepted: false,
+      isDeclined: false,
+      isRejected: false,
+      isCancelled: false
+    };
+  }
+
+  // Preserve non-material requests (e.g., DIRECT_HIRE service requests)
+  if (req.type === "DIRECT_HIRE") {
+    const raw = String(req.rawStatus || req.status || "PENDING").trim().toUpperCase();
+    const display = req.status || req.rawStatus || "Active";
+    let badge = "bg-amber-50 text-amber-700 border-amber-200";
+    let icon = "fa-hourglass-half";
+    if (raw.includes("DECLINED") || raw.includes("REJECTED")) {
+      badge = "bg-rose-50 text-rose-700 border-rose-200";
+      icon = "fa-ban";
+    } else if (raw.includes("ACCEPTED") || raw.includes("CONFIRMED")) {
+      badge = "bg-emerald-50 text-emerald-700 border-emerald-200";
+      icon = "fa-check";
+    }
+    return {
+      status: display,
+      badgeClass: badge,
+      iconClass: icon,
+      isWaiting: raw.includes("PENDING") || raw.includes("WAITING"),
+      isAccepted: raw.includes("ACCEPTED") || raw.includes("CONFIRMED"),
+      isDeclined: raw.includes("DECLINED") || raw.includes("REJECTED"),
+      isRejected: false,
+      isCancelled: raw.includes("CANCEL")
+    };
+  }
+
+  const rawNorm = String(req.rawStatus || req.status || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+  const displayNorm = String(req.status || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+  const sellerStatusNorm = String(req.sellerStatus || req.sellerAction || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+
+  // 1. Explicit cancellation
+  if (rawNorm === "CANCELLED" || rawNorm === "CANCELED" || displayNorm === "CANCELLED" || displayNorm === "CANCELED" || req.cancelled === true) {
+    return {
+      status: "Cancelled",
+      badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+      iconClass: "fa-ban",
+      isWaiting: false,
+      isAccepted: false,
+      isDeclined: false,
+      isRejected: false,
+      isCancelled: true
+    };
+  }
+
+  // 2. Explicit seller rejection or declined request
+  const isExplicitlyRejected =
+    rawNorm === "DECLINED" || rawNorm === "REJECTED" ||
+    displayNorm === "DECLINED" || displayNorm === "REJECTED" ||
+    sellerStatusNorm === "DECLINED" || sellerStatusNorm === "REJECTED" ||
+    req.rejected === true || req.declined === true;
+
+  if (isExplicitlyRejected) {
+    return {
+      status: "Rejected",
+      badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
+      iconClass: "fa-ban",
+      isWaiting: false,
+      isAccepted: false,
+      isDeclined: true,
+      isRejected: true,
+      isCancelled: false
+    };
+  }
+
+  // 3. Explicit pending / waiting states:
+  // Rule 4: If a request is still pending, never let an unrelated or stale order record make it appear accepted.
+  if (rawNorm === "WAITING_FOR_ACCEPTANCE" || rawNorm === "NEW" || rawNorm === "PENDING" ||
+      displayNorm === "WAITING_FOR_ACCEPTANCE") {
+    return {
+      status: "Waiting for Acceptance",
+      badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+      iconClass: "fa-hourglass-half",
+      isWaiting: true,
+      isAccepted: false,
+      isDeclined: false,
+      isRejected: false,
+      isCancelled: false
+    };
+  }
+
+  // 4. Check if request itself is accepted or in downstream fulfillment
+  const ACCEPTED_LIFECYCLE_STATUSES = [
+    "ACCEPTED",
+    "ORDER_ACCEPTED",
+    "CONFIRMED",
+    "ALLOCATED",
+    "PURCHASE_PLAN_CONFIRMED",
+    "PROCESSING",
+    "READY_FOR_DISPATCH",
+    "DISPATCHED",
+    "OUT_FOR_DELIVERY",
+    "DELIVERED",
+    "COMPLETED",
+    "CLOSED"
+  ];
+
+  if (ACCEPTED_LIFECYCLE_STATUSES.includes(rawNorm) || ACCEPTED_LIFECYCLE_STATUSES.includes(displayNorm)) {
+    return {
+      status: "Order Accepted",
+      badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      iconClass: "fa-check",
+      isWaiting: false,
+      isAccepted: true,
+      isDeclined: false,
+      isRejected: false,
+      isCancelled: false
+    };
+  }
+
+  // 5. Check linked accepted orders (e.g. for regular material requirement where rawStatus may still be ACTIVE)
+  const linkedOrders = Array.isArray(req.orders) && req.orders.length > 0 ? req.orders :
+                       (Array.isArray(req.sellerOrders) && req.sellerOrders.length > 0 ? req.sellerOrders : []);
+  const hasAcceptedLinkedOrder = linkedOrders.some(order => {
+    if (!order) return false;
+    const os = String(order.status || order.orderStatus || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+    if (!os || ["WAITING_FOR_ACCEPTANCE", "NEW", "PENDING", "DECLINED", "REJECTED", "CANCELLED", "CANCELED", "DRAFT"].includes(os)) {
+      return false;
+    }
+    return ACCEPTED_LIFECYCLE_STATUSES.includes(os);
+  });
+
+  if (hasAcceptedLinkedOrder) {
+    return {
+      status: "Order Accepted",
+      badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      iconClass: "fa-check",
+      isWaiting: false,
+      isAccepted: true,
+      isDeclined: false,
+      isRejected: false,
+      isCancelled: false
+    };
+  }
+
+  // 6. Default for unaccepted requests (e.g. "ACTIVE" with no accepted orders, quotations received but not allocated)
+  return {
+    status: "Waiting for Acceptance",
+    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+    iconClass: "fa-hourglass-half",
+    isWaiting: true,
+    isAccepted: false,
+    isDeclined: false,
+    isRejected: false,
+    isCancelled: false
+  };
+}
+
 function getProDirectBuyTimelineHTML(req) {
   const rawStatus = (req.rawStatus || req.status || "").toUpperCase();
-  const isDeclined = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED");
+  const sellerStatus = (req.sellerStatus || req.sellerAction || "").toUpperCase();
+  const isDeclined = rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED") ||
+                     sellerStatus.includes("DECLINED") || sellerStatus.includes("REJECTED") ||
+                     req.rejected === true || req.declined === true;
 
   if (isDeclined) {
     return `
@@ -6014,12 +6185,13 @@ function renderProfessionalMyRequests(container) {
   // Filter by Status
   if (proRequestStatusFilter !== "ALL") {
     filtered = filtered.filter(r => {
+      const resolved = resolveProfessionalRequestStatus(r);
       const raw = (r.rawStatus || r.status || "").toUpperCase();
       if (proRequestStatusFilter === "WAITING_FOR_ACCEPTANCE") {
-        return raw.includes("WAITING") || raw === "NEW" || raw === "PENDING";
+        return resolved.status === "Waiting for Acceptance";
       }
       if (proRequestStatusFilter === "ACCEPTED") {
-        return raw === "ACCEPTED" || raw === "ORDER_ACCEPTED" || raw === "CONFIRMED" || raw === "ALLOCATED";
+        return resolved.status === "Order Accepted";
       }
       if (proRequestStatusFilter === "IN_PROGRESS") {
         return raw === "PROCESSING" || raw === "READY_FOR_DISPATCH" || raw === "DISPATCHED" || raw === "OUT_FOR_DELIVERY";
@@ -6027,8 +6199,8 @@ function renderProfessionalMyRequests(container) {
       if (proRequestStatusFilter === "DELIVERED") {
         return raw === "DELIVERED" || raw === "COMPLETED";
       }
-      if (proRequestStatusFilter === "DECLINED") {
-        return raw.includes("DECLINED") || raw.includes("REJECTED") || raw === "CANCELLED";
+      if (proRequestStatusFilter === "DECLINED" || proRequestStatusFilter === "REJECTED") {
+        return resolved.status === "Rejected" || resolved.status === "Declined" || resolved.status === "Cancelled" || resolved.isRejected || resolved.isDeclined || resolved.isCancelled;
       }
       return true;
     });
@@ -6048,11 +6220,8 @@ function renderProfessionalMyRequests(container) {
 
   const totalCount = allReqs.length;
   const directBuyCount = allReqs.filter(r => r.type === "DIRECT_BUY" || r.isDirectBuy).length;
-  const waitingCount = allReqs.filter(r => {
-    const raw = (r.rawStatus || r.status || "").toUpperCase();
-    return raw.includes("WAITING") || raw === "NEW" || raw === "PENDING";
-  }).length;
-  const acceptedCount = allReqs.filter(r => isProfessionalAcceptedOrderStatus(r.rawStatus || r.status)).length;
+  const waitingCount = allReqs.filter(r => resolveProfessionalRequestStatus(r).status === "Waiting for Acceptance").length;
+  const acceptedCount = allReqs.filter(r => resolveProfessionalRequestStatus(r).status === "Order Accepted").length;
 
   container.innerHTML = `
     <div class="space-y-6 max-w-[1700px] mx-auto animate-fade-in">
@@ -6151,7 +6320,7 @@ function renderProfessionalMyRequests(container) {
             <option value="ACCEPTED" ${proRequestStatusFilter === 'ACCEPTED' ? 'selected' : ''}>Accepted / Confirmed</option>
             <option value="IN_PROGRESS" ${proRequestStatusFilter === 'IN_PROGRESS' ? 'selected' : ''}>In Progress (Processing / Dispatched / Out for Delivery)</option>
             <option value="DELIVERED" ${proRequestStatusFilter === 'DELIVERED' ? 'selected' : ''}>Delivered / Completed</option>
-            <option value="DECLINED" ${proRequestStatusFilter === 'DECLINED' ? 'selected' : ''}>Declined / Cancelled</option>
+            <option value="DECLINED" ${proRequestStatusFilter === 'DECLINED' || proRequestStatusFilter === 'REJECTED' ? 'selected' : ''}>Rejected / Cancelled</option>
           </select>
         </div>
       </div>
@@ -6201,32 +6370,18 @@ function renderProfessionalMyRequests(container) {
             const dateStr = req.submittedDate || "Recently";
             const rawStatus = (req.rawStatus || req.status || "WAITING_FOR_ACCEPTANCE").toUpperCase();
 
-            // Status Badge styling
-            let statusBadge = `bg-amber-50 text-amber-700 border-amber-200`;
-            let statusIcon = `fa-hourglass-half`;
-            if (rawStatus.includes("DELIVERED") || rawStatus === "COMPLETED") {
-              statusBadge = `bg-teal-50 text-teal-700 border-teal-200`;
-              statusIcon = `fa-circle-check`;
-            } else if (rawStatus.includes("OUT_FOR_DELIVERY")) {
-              statusBadge = `bg-indigo-50 text-indigo-700 border-indigo-200`;
-              statusIcon = `fa-truck-fast`;
-            } else if (rawStatus.includes("DISPATCH") || rawStatus.includes("PROCESSING")) {
-              statusBadge = `bg-blue-50 text-blue-700 border-blue-200`;
-              statusIcon = `fa-gear`;
-            } else if (rawStatus.includes("ACCEPTED") || rawStatus.includes("CONFIRMED")) {
-              statusBadge = `bg-emerald-50 text-emerald-700 border-emerald-200`;
-              statusIcon = `fa-check`;
-            } else if (rawStatus.includes("DECLINED") || rawStatus.includes("REJECTED")) {
-              statusBadge = `bg-rose-50 text-rose-700 border-rose-200`;
-              statusIcon = `fa-ban`;
-            }
+            // Status normalization for Professional My Requests
+            const resolvedStatus = resolveProfessionalRequestStatus(req);
+            const statusBadge = resolvedStatus.badgeClass;
+            const statusIcon = resolvedStatus.iconClass;
+            const isRejectedCard = resolvedStatus.status === "Rejected" || resolvedStatus.isRejected === true;
 
             const sellerName = req.sellerName || req.targetSeller || "Designated Supplier";
             const sellerLoc = req.sellerAddress || req.location || "Regional Supplier";
             const sellerPhone = req.sellerPhone || "";
 
             return `
-              <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 hover:shadow-card transition">
+              <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-6 hover:shadow-card transition${isRejectedCard ? ' opacity-60' : ''}"${isRejectedCard ? ' style="opacity: 0.6;"' : ''}>
                 <!-- Card Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                   <div class="flex items-center gap-3 flex-wrap">
@@ -6241,7 +6396,7 @@ function renderProfessionalMyRequests(container) {
                   <div class="flex items-center gap-2">
                     <span class="px-3 py-1 rounded-full text-xs font-bold border ${statusBadge} inline-flex items-center gap-1.5">
                       <i class="fa-solid ${statusIcon} text-[10px]"></i>
-                      <span>${escapeHtml(req.status || rawStatus)}</span>
+                      <span>${escapeHtml(resolvedStatus.status)}</span>
                     </span>
                   </div>
                 </div>
@@ -6291,8 +6446,8 @@ function renderProfessionalMyRequests(container) {
                   </div>
                 </div>
 
-                <!-- Direct Buy Timeline -->
-                ${isDirectBuy ? getProDirectBuyTimelineHTML(req) : ''}
+                <!-- Direct Buy Timeline suppressed from My Requests; supplier declined alert preserved -->
+                ${isDirectBuy && (resolvedStatus.isDeclined || resolvedStatus.isRejected) ? getProDirectBuyTimelineHTML(req) : ''}
 
                 <!-- Material Requirement Quotations List -->
                 ${!isDirectBuy && req.quotations && req.quotations.length ? `
