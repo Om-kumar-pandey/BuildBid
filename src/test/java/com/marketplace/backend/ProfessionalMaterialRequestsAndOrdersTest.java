@@ -509,4 +509,112 @@ public class ProfessionalMaterialRequestsAndOrdersTest {
         assertEquals(HttpStatus.FORBIDDEN, materialOrderController.getCustomerMyOrders(authSeller1).getStatusCode());
         assertEquals(HttpStatus.FORBIDDEN, materialOrderController.getBuyerOrders(authSeller1).getStatusCode());
     }
+
+    @Test
+    @DisplayName("Test 10: Direct Buy carries orders summary and Post Requirements DECLINED maps to Declined")
+    public void test10_DirectBuyWithLinkedOrderAndPostRequirementsDeclined() {
+        // 1. Direct Buy with linked order
+        MaterialRequest mrDirect = new MaterialRequest();
+        mrDirect.setId(710L);
+        mrDirect.setRequestId("DMR-710");
+        mrDirect.setRequestType("DIRECT_MATERIAL");
+        mrDirect.setBuyer(professionalA);
+        mrDirect.setBuyerRole("PROFESSIONAL");
+        mrDirect.setTargetSeller(seller1);
+        mrDirect.setStatus("WAITING_FOR_ACCEPTANCE");
+        mrDirect.setMaterialPrice(500.0);
+        mrDirect.setMaterialAmount(50000.0);
+
+        MaterialOrder directOrder = new MaterialOrder();
+        directOrder.setId(810L);
+        directOrder.setOrderCode("BBD-ORD-810");
+        directOrder.setBuyer(professionalA);
+        directOrder.setSeller(seller1);
+        directOrder.setOrderStatus("ORDER_ACCEPTED");
+        directOrder.setTotalAmount(50000.0);
+        directOrder.setExpectedDeliveryDate("2026-10-25");
+        directOrder.setMaterialRequest(mrDirect);
+
+        when(materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(710L))
+                .thenReturn(List.of(directOrder));
+
+        // 2. Post Requirements with DECLINED status
+        MaterialRequest mrReq = new MaterialRequest();
+        mrReq.setId(720L);
+        mrReq.setRequestId("MR-720");
+        mrReq.setRequestType("POST_REQUIREMENTS");
+        mrReq.setBuyer(professionalA);
+        mrReq.setBuyerRole("PROFESSIONAL");
+        mrReq.setStatus("DECLINED");
+
+        when(materialRequestRepository.findByBuyerOrderByCreatedAtDesc(professionalA))
+                .thenReturn(List.of(mrDirect, mrReq));
+
+        ResponseEntity<?> res = customerRequestController.getCustomerMyRequests(authProfessionalA);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        List<?> cards = (List<?>) res.getBody();
+        assertNotNull(cards);
+        assertEquals(2, cards.size());
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> cardList = (List<Map<String, Object>>) cards;
+
+        Map<String, Object> cardDirect = cardList.stream()
+                .filter(c -> "DMR-710".equals(c.get("id")))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("DIRECT_BUY", cardDirect.get("type"));
+        assertNotNull(cardDirect.get("orders"));
+        assertEquals(1, ((List<?>) cardDirect.get("orders")).size());
+        assertEquals("2026-10-25", cardDirect.get("expectedDeliveryDate"));
+
+        Map<String, Object> cardReq = cardList.stream()
+                .filter(c -> "MR-720".equals(c.get("id")))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("MATERIAL_REQUIREMENT", cardReq.get("type"));
+        assertEquals("Declined", cardReq.get("status"));
+        assertEquals("DECLINED", cardReq.get("rawStatus"));
+    }
+
+    @Test
+    @DisplayName("Test 11: Quotations rejection does not mark parent Material Requirement as declined or rejected")
+    public void test11_QuotationRejectionDoesNotRejectParentRequirement() {
+        MaterialRequest mr = new MaterialRequest();
+        mr.setId(730L);
+        mr.setRequestId("MR-730");
+        mr.setRequestType("POST_REQUIREMENTS");
+        mr.setBuyer(professionalA);
+        mr.setBuyerRole("PROFESSIONAL");
+        mr.setStatus("NEW");
+
+        Quotation q1 = new Quotation();
+        q1.setId(901L);
+        q1.setQuotationId("QT-901");
+        q1.setStatus("REJECTED");
+        q1.setProvider(seller1);
+        q1.setProviderRole("MATERIAL_SELLER");
+        q1.setQuotedAmount(50000.0);
+        q1.setMaterialRequest(mr);
+
+        when(materialRequestRepository.findByBuyerOrderByCreatedAtDesc(professionalA))
+                .thenReturn(List.of(mr));
+        when(quotationRepository.findByMaterialRequestIdOrderByCreatedAtDesc(730L))
+                .thenReturn(List.of(q1));
+
+        ResponseEntity<?> res = customerRequestController.getCustomerMyRequests(authProfessionalA);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        List<?> cards = (List<?>) res.getBody();
+        assertNotNull(cards);
+        assertEquals(1, cards.size());
+
+        Map<?, ?> card = (Map<?, ?>) cards.get(0);
+        assertEquals("Active", card.get("status"));
+        assertEquals("NEW", card.get("rawStatus"));
+        List<?> quotations = (List<?>) card.get("quotations");
+        assertNotNull(quotations);
+        assertEquals(1, quotations.size());
+        Map<?, ?> qCard = (Map<?, ?>) quotations.get(0);
+        assertEquals("REJECTED", qCard.get("status"));
+    }
 }

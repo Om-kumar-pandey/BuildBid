@@ -211,6 +211,10 @@ public class CustomerRequestController {
                 displayStatus = "Cancelled";
                 statusEn = "Cancelled";
                 statusHi = "रद्द";
+            } else if ("DECLINED".equals(rawStatus) || "REJECTED".equals(rawStatus)) {
+                displayStatus = "Declined";
+                statusEn = "Declined";
+                statusHi = "अस्वीकृत";
             } else {
                 displayStatus = "Active";
                 statusEn = "Active";
@@ -278,15 +282,18 @@ public class CustomerRequestController {
             card.put("estimatedTotal", mr.getEstimatedTotal());
             card.put("verificationCode", mr.getVerificationCode());
             String expDate = mr.getExpectedDeliveryDate();
-            if ((expDate == null || expDate.isBlank() || "Not Set".equalsIgnoreCase(expDate.trim()))
-                    && materialOrderRepository != null && mr.getId() != null) {
-                List<MaterialOrder> orders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
-                if (orders != null && !orders.isEmpty()) {
-                    for (MaterialOrder mo : orders) {
-                        if (mo.getExpectedDeliveryDate() != null && !mo.getExpectedDeliveryDate().isBlank() && !"Not Set".equalsIgnoreCase(mo.getExpectedDeliveryDate().trim())) {
-                            expDate = mo.getExpectedDeliveryDate();
-                            break;
-                        }
+
+            List<Map<String, Object>> directOrderSummaries = buildOrderSummaries(mr.getId());
+            if (!directOrderSummaries.isEmpty()) {
+                card.put("orders", directOrderSummaries);
+                card.put("sellerOrders", directOrderSummaries);
+                card.put("allocatedOrdersCount", directOrderSummaries.size());
+                for (Map<String, Object> moMap : directOrderSummaries) {
+                    String oDate = (String) moMap.get("expectedDeliveryDate");
+                    if ((expDate == null || expDate.isBlank() || "Not Set".equalsIgnoreCase(expDate.trim()))
+                            && oDate != null && !oDate.isBlank() && !"Not Set".equalsIgnoreCase(oDate.trim())) {
+                        expDate = oDate;
+                        break;
                     }
                 }
             }
@@ -386,47 +393,16 @@ public class CustomerRequestController {
             card.put("quotations", quotationCards);
 
             // Fetch generated seller orders if any exist for this MaterialRequest
-            if (materialOrderRepository != null) {
-                List<MaterialOrder> orders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(mr.getId());
-                if (orders != null && !orders.isEmpty()) {
-                    List<Map<String, Object>> orderSummaries = new ArrayList<>();
-                    String topExpectedDeliveryDate = null;
-                    for (MaterialOrder mo : orders) {
-                        Map<String, Object> moMap = new LinkedHashMap<>();
-                        moMap.put("id", mo.getId());
-                        moMap.put("orderId", mo.getOrderCode());
-                        moMap.put("orderCode", mo.getOrderCode());
-                        moMap.put("sellerName", mo.getSeller() != null ? mo.getSeller().getName() : "Seller");
-                        moMap.put("sellerPhone", mo.getSeller() != null ? mo.getSeller().getPhone() : "");
-                        moMap.put("sellerLocation", mo.getSeller() != null ? mo.getSeller().getLocation() : "");
-                        moMap.put("totalAmount", mo.getTotalAmount());
-                        moMap.put("status", mo.getOrderStatus());
-                        moMap.put("expectedDeliveryDate", mo.getExpectedDeliveryDate());
-                        if (topExpectedDeliveryDate == null && mo.getExpectedDeliveryDate() != null
-                                && !mo.getExpectedDeliveryDate().isBlank() && !"Not Set".equalsIgnoreCase(mo.getExpectedDeliveryDate().trim())) {
-                            topExpectedDeliveryDate = mo.getExpectedDeliveryDate();
-                        }
-
-                        List<Map<String, Object>> orderItems = new ArrayList<>();
-                        if (mo.getItems() != null) {
-                            for (MaterialOrderItem oi : mo.getItems()) {
-                                Map<String, Object> oiMap = new LinkedHashMap<>();
-                                oiMap.put("materialName", oi.getMaterialName());
-                                oiMap.put("allocatedQuantity", oi.getQuantity());
-                                oiMap.put("unit", oi.getUnit());
-                                oiMap.put("agreedRate", oi.getUnitPrice());
-                                oiMap.put("lineTotal", oi.getSubtotal());
-                                orderItems.add(oiMap);
-                            }
-                        }
-                        moMap.put("items", orderItems);
-                        orderSummaries.add(moMap);
-                    }
-                    card.put("orders", orderSummaries);
-                    card.put("sellerOrders", orderSummaries);
-                    card.put("allocatedOrdersCount", orderSummaries.size());
-                    if (topExpectedDeliveryDate != null) {
-                        card.put("expectedDeliveryDate", topExpectedDeliveryDate);
+            List<Map<String, Object>> reqOrderSummaries = buildOrderSummaries(mr.getId());
+            if (!reqOrderSummaries.isEmpty()) {
+                card.put("orders", reqOrderSummaries);
+                card.put("sellerOrders", reqOrderSummaries);
+                card.put("allocatedOrdersCount", reqOrderSummaries.size());
+                for (Map<String, Object> moMap : reqOrderSummaries) {
+                    String oDate = (String) moMap.get("expectedDeliveryDate");
+                    if (oDate != null && !oDate.isBlank() && !"Not Set".equalsIgnoreCase(oDate.trim())) {
+                        card.put("expectedDeliveryDate", oDate);
+                        break;
                     }
                 }
             }
@@ -436,6 +412,45 @@ public class CustomerRequestController {
         }
 
         return card;
+    }
+
+    private List<Map<String, Object>> buildOrderSummaries(Long materialRequestId) {
+        if (materialOrderRepository == null || materialRequestId == null) {
+            return Collections.emptyList();
+        }
+        List<MaterialOrder> orders = materialOrderRepository.findByMaterialRequestIdOrderByCreatedAtDesc(materialRequestId);
+        if (orders == null || orders.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> orderSummaries = new ArrayList<>();
+        for (MaterialOrder mo : orders) {
+            Map<String, Object> moMap = new LinkedHashMap<>();
+            moMap.put("id", mo.getId());
+            moMap.put("orderId", mo.getOrderCode());
+            moMap.put("orderCode", mo.getOrderCode());
+            moMap.put("sellerName", mo.getSeller() != null ? mo.getSeller().getName() : "Seller");
+            moMap.put("sellerPhone", mo.getSeller() != null ? mo.getSeller().getPhone() : "");
+            moMap.put("sellerLocation", mo.getSeller() != null ? mo.getSeller().getLocation() : "");
+            moMap.put("totalAmount", mo.getTotalAmount());
+            moMap.put("status", mo.getOrderStatus());
+            moMap.put("expectedDeliveryDate", mo.getExpectedDeliveryDate());
+
+            List<Map<String, Object>> orderItems = new ArrayList<>();
+            if (mo.getItems() != null) {
+                for (MaterialOrderItem oi : mo.getItems()) {
+                    Map<String, Object> oiMap = new LinkedHashMap<>();
+                    oiMap.put("materialName", oi.getMaterialName());
+                    oiMap.put("allocatedQuantity", oi.getQuantity());
+                    oiMap.put("unit", oi.getUnit());
+                    oiMap.put("agreedRate", oi.getUnitPrice());
+                    oiMap.put("lineTotal", oi.getSubtotal());
+                    orderItems.add(oiMap);
+                }
+            }
+            moMap.put("items", orderItems);
+            orderSummaries.add(moMap);
+        }
+        return orderSummaries;
     }
 
     /**
