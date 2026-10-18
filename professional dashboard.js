@@ -2925,16 +2925,15 @@ function renderRequirementDetailBody(body, d) {
 function renderRequests(container) {
   const allReqs = (currentPro && Array.isArray(currentPro.requests)) ? currentPro.requests : [];
   const directHireRequests = allReqs.filter(r => (r.requestType || 'DIRECT_HIRE').toUpperCase() === 'DIRECT_HIRE');
-  const postReqRequests = allReqs.filter(r => (r.requestType || '').toUpperCase() === 'POST_REQUIREMENT');
 
   const newCount = directHireRequests.filter(r => (r.status || '').toLowerCase() === 'new').length;
   const acceptedCount = directHireRequests.filter(r => (r.status || '').toLowerCase() === 'accepted').length;
   const declinedCount = directHireRequests.filter(r => (r.status || '').toLowerCase() === 'declined').length;
 
-  let displayedRequests = activeRequestTab === 'DIRECT_HIRE' ? directHireRequests : postReqRequests;
+  let displayedRequests = directHireRequests;
 
-  // Filter by status if in Direct Hire tab
-  if (activeRequestTab === 'DIRECT_HIRE' && requestStatusFilter !== 'ALL') {
+  // Filter by status
+  if (requestStatusFilter !== 'ALL') {
     displayedRequests = displayedRequests.filter(r => (r.status || '').toUpperCase() === requestStatusFilter);
   }
 
@@ -2972,47 +2971,23 @@ function renderRequests(container) {
         </div>
       </div>
 
-      <!-- Tab Switcher: Direct Hire vs Post Requirement -->
+      <!-- Direct Hire Requests Category -->
       <div class="flex items-center gap-3 border-b border-slate-200 pb-3">
-        <button onclick="setRequestsTab('DIRECT_HIRE')" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${activeRequestTab === 'DIRECT_HIRE' ? 'bg-orange-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}">
+        <button class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-orange-600 text-white shadow-sm cursor-default">
           <i class="fa-solid fa-handshake"></i>
           <span>Direct Hire Requests</span>
-          <span class="px-1.5 py-0.5 rounded-full text-[10px] ${activeRequestTab === 'DIRECT_HIRE' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}">${directHireRequests.length}</span>
-        </button>
-        <button onclick="setRequestsTab('POST_REQUIREMENT')" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${activeRequestTab === 'POST_REQUIREMENT' ? 'bg-orange-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}">
-          <i class="fa-solid fa-clipboard-list"></i>
-          <span>Post Requirement Requests</span>
-          <span class="px-1.5 py-0.5 rounded-full text-[10px] ${activeRequestTab === 'POST_REQUIREMENT' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}">0</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-white">${directHireRequests.length}</span>
         </button>
       </div>
 
-      ${activeRequestTab === 'POST_REQUIREMENT' ? `
-        <!-- POST REQUIREMENT SAFE EMPTY STATE -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-subtle p-12 text-center space-y-4">
-          <div class="w-16 h-16 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto text-2xl border border-orange-100">
-            <i class="fa-solid fa-clipboard-list"></i>
-          </div>
-          <div class="space-y-1.5 max-w-md mx-auto">
-            <h3 class="text-base font-bold text-slate-900">No Post Requirement requests available.</h3>
-            <p class="text-xs text-slate-500 leading-relaxed">
-              Post Requirement broadcast matching is not yet active for your profile. Direct hire requests sent to you specifically are accessible under the Direct Hire tab.
-            </p>
-          </div>
-          <div>
-            <button onclick="setRequestsTab('DIRECT_HIRE')" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-xs transition">
-              View Direct Hire Requests (${directHireRequests.length})
-            </button>
-          </div>
-        </div>
-      ` : `
-        <!-- DIRECT HIRE CONTROLS & TABLE -->
-        <!-- Filter & Search Bar -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-subtle">
-          <!-- Status Pills -->
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <button onclick="setRequestsStatusFilter('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-              All (${directHireRequests.length})
-            </button>
+      <!-- DIRECT HIRE CONTROLS & TABLE -->
+      <!-- Filter & Search Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-subtle">
+        <!-- Status Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <button onclick="setRequestsStatusFilter('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+            All (${directHireRequests.length})
+          </button>
             <button onclick="setRequestsStatusFilter('NEW')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${requestStatusFilter === 'NEW' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100'}">
               New (${newCount})
             </button>
@@ -3140,7 +3115,6 @@ function renderRequests(container) {
             </div>
           `}
         </div>
-      `}
     </div>
   `;
 }

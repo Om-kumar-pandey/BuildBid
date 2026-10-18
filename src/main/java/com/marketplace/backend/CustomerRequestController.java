@@ -24,7 +24,6 @@ import java.util.*;
  * MUST NEVER appear in My Requests.
  */
 @RestController
-@RequestMapping({"/api/customer", "/api/contractor", "/api/professional"})
 public class CustomerRequestController {
 
     private final MaterialRequestRepository materialRequestRepository;
@@ -64,8 +63,15 @@ public class CustomerRequestController {
      * GET /api/customer/my-requests, /api/contractor/my-requests, /api/professional/my-requests
      * Aggregates only genuine customer/buyer request submissions belonging to the logged-in user.
      * ZERO queries to ProjectRepository / projects table.
+     * NOTE: /api/professional/requests is EXCLUDED here and handled exclusively by ClientServiceRequestController.
      */
-    @GetMapping({"/my-requests", "/requests"})
+    @GetMapping({
+            "/api/customer/my-requests",
+            "/api/customer/requests",
+            "/api/contractor/my-requests",
+            "/api/contractor/requests",
+            "/api/professional/my-requests"
+    })
     public ResponseEntity<?> getCustomerMyRequests(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

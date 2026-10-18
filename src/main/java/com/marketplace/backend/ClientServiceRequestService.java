@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class ClientServiceRequestService {
         this.notificationService = notificationService;
     }
 
+    @Transactional(readOnly = true)
     public List<ClientServiceRequest> getRequestsForProfessional(MarketplaceBackendApplication.MarketplaceUser professional) {
         if (professional == null || professional.getId() == null) {
             return List.of();
@@ -99,6 +101,7 @@ public class ClientServiceRequestService {
 
         String oldStatus = req.getStatus();
         req.setStatus(normalizedStatus);
+        req.setUpdatedAt(LocalDateTime.now());
         ClientServiceRequest saved = requestRepository.save(req);
 
         if (notificationService != null && saved.getClient() != null) {

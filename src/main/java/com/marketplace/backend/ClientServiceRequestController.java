@@ -395,12 +395,39 @@ public class ClientServiceRequestController {
         map.put("createdAt", req.getCreatedAt());
 
         // PART C: Logical response fields
-        map.put("requesterUserId", req.getClient() != null ? req.getClient().getId() : null);
+        Long requesterUserId = null;
+        String requesterPhone = req.getClientPhone();
+        String requesterLocation = (req.getLocation() != null && !req.getLocation().isBlank()) ? req.getLocation() : null;
+        try {
+            MarketplaceBackendApplication.MarketplaceUser client = req.getClient();
+            if (client != null) {
+                requesterUserId = client.getId();
+                if (requesterPhone == null || requesterPhone.isBlank()) {
+                    requesterPhone = client.getPhone();
+                }
+                if (requesterLocation == null || requesterLocation.isBlank()) {
+                    requesterLocation = client.getLocation();
+                }
+            }
+        } catch (Exception ignored) {
+            // Guard against LazyInitializationException or EntityNotFoundException if proxy cannot be loaded
+        }
+
+        Long professionalId = null;
+        try {
+            if (req.getProfessional() != null) {
+                professionalId = req.getProfessional().getId();
+            }
+        } catch (Exception ignored) {
+            // Guard against proxy access exception
+        }
+
+        map.put("requesterUserId", requesterUserId);
         map.put("requesterName", req.getClientName());
         map.put("requesterRole", req.getRequesterType() != null ? req.getRequesterType() : "CUSTOMER");
-        map.put("requesterPhone", req.getClientPhone() != null ? req.getClientPhone() : (req.getClient() != null ? req.getClient().getPhone() : null));
-        map.put("requesterLocation", req.getLocation() != null && !req.getLocation().isBlank() ? req.getLocation() : (req.getClient() != null ? req.getClient().getLocation() : null));
-        map.put("professionalId", req.getProfessional() != null ? req.getProfessional().getId() : null);
+        map.put("requesterPhone", requesterPhone);
+        map.put("requesterLocation", requesterLocation);
+        map.put("professionalId", professionalId);
         map.put("requestType", "DIRECT_HIRE");
         map.put("requestStatus", req.getStatus() != null ? req.getStatus() : "New");
         map.put("requestedService", req.getRequestedService());
