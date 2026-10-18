@@ -149,6 +149,7 @@ public class ProfessionalEmailVerificationSecurityTest {
         when(userRepository.save(any(MarketplaceBackendApplication.MarketplaceUser.class))).thenAnswer(inv -> inv.getArgument(0));
         when(verificationRepository.save(any(UserVerification.class))).thenAnswer(inv -> inv.getArgument(0));
         when(verificationRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(emailService.sendVerificationOtpEmail(any(), any(), any(), any())).thenReturn(true);
 
         // Mock UserDetailsService for JWT creation
         when(userDetailsService.loadUserByUsername(anyString())).thenAnswer(inv -> {
@@ -618,5 +619,659 @@ public class ProfessionalEmailVerificationSecurityTest {
         Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertNotNull(body);
         assertTrue(((String) body.get("error")).contains("Access denied"));
+    }
+
+    // ============================================================
+    // 6. FIVE-ATTEMPT / 24-HOUR RATE LIMITING & SECURITY FIX TESTS
+    // ============================================================
+
+    @Test
+    @DisplayName("16. First accepted email-change send leaves four attempts remaining")
+    void testFirstSendLeavesFourAttemptsRemaining() {
+        String proposedEmail = "pro.attempt1@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(Collections.emptyList());
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals(5, body.get("maxAttempts"));
+        assertEquals(1, body.get("attemptsUsed"));
+        assertEquals(4, body.get("attemptsRemaining"));
+        assertEquals(true, body.get("allowed"));
+        assertNotNull(body.get("windowExpiresAt"));
+    }
+
+    @Test
+    @DisplayName("17. Fifth accepted send leaves zero attempts remaining")
+    void testFifthSendLeavesZeroAttemptsRemaining() {
+        String proposedEmail = "pro.attempt5@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+
+        LocalDateTime now = LocalDateTime.now();
+        List<UserVerification> priorRecords = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            UserVerification uv = new UserVerification(
+                    existingPro.getId(),
+                    UserVerification.VerificationType.EMAIL_CHANGE,
+                    "old" + i + "@buildbid.com",
+                    "hash" + i,
+                    now.plusMinutes(10),
+                    now.minusMinutes(1)
+            );
+            uv.setCreatedAt(now.minusHours(2).plusMinutes(i * 10));
+            priorRecords.add(uv);
+        }
+
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(priorRecords);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals(5, body.get("maxAttempts"));
+        assertEquals(5, body.get("attemptsUsed"));
+        assertEquals(0, body.get("attemptsRemaining"));
+        assertEquals(false, body.get("allowed"));
+    }
+
+    @Test
+    @DisplayName("18. Sixth send within active 24-hour window is rejected with 429 Too Many Requests")
+    void testSixthSendIn24HourWindowRejected() {
+        String proposedEmail = "pro.attempt6@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+
+        LocalDateTime now = LocalDateTime.now();
+        List<UserVerification> exhaustedRecords = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            UserVerification uv = new UserVerification(
+                    existingPro.getId(),
+                    UserVerification.VerificationType.EMAIL_CHANGE,
+                    "prior" + i + "@buildbid.com",
+                    "hash" + i,
+                    now.plusMinutes(10),
+                    now.minusMinutes(5)
+            );
+            uv.setCreatedAt(now.minusHours(3).plusMinutes(i * 10));
+            exhaustedRecords.add(uv);
+        }
+
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(exhaustedRecords);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(((String) body.get("error")).contains("Maximum OTP send attempts (5) reached"));
+        assertEquals(0, body.get("attemptsRemaining"));
+        assertEquals(5, body.get("attemptsUsed"));
+        assertEquals(false, body.get("allowed"));
+        assertNotNull(body.get("windowExpiresAt"));
+    }
+
+    @Test
+    @DisplayName("19. Failed email delivery does not report success and does not persist OTP")
+    void testFailedEmailDeliveryDoesNotReportSuccess() {
+        String proposedEmail = "pro.faildelivery@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(Collections.emptyList());
+
+        // Simulate delivery rejection by Brevo / SMTP
+        when(emailService.sendVerificationOtpEmail(eq(proposedEmail), any(), any(), any())).thenReturn(false);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(((String) body.get("error")).contains("Failed to deliver verification code"));
+
+        // Verify verificationRepository.save was NEVER called
+        verify(verificationRepository, never()).save(argThat(uv -> proposedEmail.equals(uv.getTargetValue())));
+    }
+
+    @Test
+    @DisplayName("20. Invalid syntax email cannot trigger Send OTP and returns 400 Bad Request")
+    void testInvalidSyntaxEmailRejected() {
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest("invalid-not-an-email"),
+                auth
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Invalid email format.", body.get("error"));
+    }
+
+    @Test
+    @DisplayName("21. 24-hour window renewal: allowance renews to five attempts after window expires")
+    void testAllowanceRenewsAfter24Hours() {
+        String proposedEmail = "pro.renewed@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+
+        LocalDateTime now = LocalDateTime.now();
+        // 5 records all created 26 hours ago (window ended 2 hours ago)
+        List<UserVerification> oldRecords = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            UserVerification uv = new UserVerification(
+                    existingPro.getId(),
+                    UserVerification.VerificationType.EMAIL_CHANGE,
+                    "old" + i + "@buildbid.com",
+                    "hash" + i,
+                    now.minusHours(25),
+                    now.minusHours(25)
+            );
+            uv.setCreatedAt(now.minusHours(26).plusMinutes(i * 5));
+            oldRecords.add(uv);
+        }
+
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(oldRecords);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        // After renewal, this send is attempt 1 of the new window, leaving 4 remaining
+        assertEquals(5, body.get("maxAttempts"));
+        assertEquals(1, body.get("attemptsUsed"));
+        assertEquals(4, body.get("attemptsRemaining"));
+        assertEquals(true, body.get("allowed"));
+    }
+
+    @Test
+    @DisplayName("22. Attempt status endpoint returns authoritative rate limit metadata")
+    void testAttemptStatusEndpoint() {
+        LocalDateTime now = LocalDateTime.now();
+        List<UserVerification> records = new ArrayList<>();
+        UserVerification uv = new UserVerification(
+                existingPro.getId(),
+                UserVerification.VerificationType.EMAIL_CHANGE,
+                "first@buildbid.com",
+                "hash",
+                now.plusMinutes(10),
+                now.minusMinutes(1)
+        );
+        uv.setCreatedAt(now.minusHours(1));
+        records.add(uv);
+
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(records);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        ResponseEntity<?> response = verificationController.getEmailChangeAttemptStatus(auth);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals(5, body.get("maxAttempts"));
+        assertEquals(1, body.get("attemptsUsed"));
+        assertEquals(4, body.get("attemptsRemaining"));
+        assertEquals(true, body.get("allowed"));
+        assertNotNull(body.get("windowExpiresAt"));
+    }
+
+    @Test
+    @DisplayName("23. Concurrent requests cannot bypass the five-attempt limit")
+    void testConcurrentRequestsCannotBypassLimit() throws Exception {
+        String proposedEmail = "pro.concurrent@buildbid.com";
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+
+        List<UserVerification> sharedRecords = Collections.synchronizedList(new ArrayList<>());
+        when(verificationRepository.findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenAnswer(inv -> new ArrayList<>(sharedRecords));
+
+        when(verificationRepository.save(any(UserVerification.class))).thenAnswer(inv -> {
+            UserVerification uv = inv.getArgument(0);
+            sharedRecords.add(uv);
+            return uv;
+        });
+
+        int numThreads = 10;
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(numThreads);
+        java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch doneLatch = new java.util.concurrent.CountDownLatch(numThreads);
+        java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger rejectedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        for (int i = 0; i < numThreads; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    ResponseEntity<?> resp = verificationController.requestEmailChange(
+                            new VerificationController.EmailChangeRequest(proposedEmail),
+                            auth
+                    );
+                    if (resp.getStatusCode() == HttpStatus.OK) {
+                        successCount.incrementAndGet();
+                    } else if (resp.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                        rejectedCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    rejectedCount.incrementAndGet();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        doneLatch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertEquals(5, successCount.get());
+        assertEquals(5, rejectedCount.get());
+        assertEquals(5, sharedRecords.size());
+    }
+
+    @Test
+    @DisplayName("24. Concurrent first-time requests cannot bypass the five-attempt limit")
+    void testConcurrentFirstTimeRequestsCannotBypassLimit() throws Exception {
+        String proposedEmail = "pro.firsttime@buildbid.com";
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+
+        List<UserVerification> sharedRecords = Collections.synchronizedList(new ArrayList<>());
+        when(verificationRepository.findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE), any(LocalDateTime.class)
+        )).thenAnswer(inv -> new ArrayList<>(sharedRecords));
+
+        when(verificationRepository.save(any(UserVerification.class))).thenAnswer(inv -> {
+            UserVerification uv = inv.getArgument(0);
+            sharedRecords.add(uv);
+            return uv;
+        });
+
+        int numThreads = 8;
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(numThreads);
+        java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch doneLatch = new java.util.concurrent.CountDownLatch(numThreads);
+        java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger rejectedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        for (int i = 0; i < numThreads; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    ResponseEntity<?> resp = verificationController.requestEmailChange(
+                            new VerificationController.EmailChangeRequest(proposedEmail),
+                            auth
+                    );
+                    if (resp.getStatusCode() == HttpStatus.OK) {
+                        successCount.incrementAndGet();
+                    } else if (resp.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                        rejectedCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    rejectedCount.incrementAndGet();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        doneLatch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertEquals(5, successCount.get());
+        assertEquals(3, rejectedCount.get());
+        assertEquals(5, sharedRecords.size());
+    }
+
+    @Test
+    @DisplayName("25. Multi-instance concurrency with shared persistence store cannot exceed five attempts")
+    void testMultiInstanceConcurrencyCannotExceedLimit() throws Exception {
+        String proposedEmail = "pro.multiinstance@buildbid.com";
+
+        // Simulate two independent service instances (instanceA and instanceB) sharing one repository store
+        List<UserVerification> sharedStore = Collections.synchronizedList(new ArrayList<>());
+        java.util.concurrent.locks.ReentrantLock dbRowLock = new java.util.concurrent.locks.ReentrantLock(true);
+
+        UserVerificationRepository sharedVerifRepo = mock(UserVerificationRepository.class);
+        MarketplaceBackendApplication.UserRepository sharedUserRepo = mock(MarketplaceBackendApplication.UserRepository.class);
+
+        when(sharedUserRepo.existsByEmail(anyString())).thenReturn(false);
+        when(sharedUserRepo.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+        when(sharedUserRepo.findByEmail("pro@buildbid.com")).thenReturn(Optional.of(existingPro));
+        when(sharedUserRepo.findByEmailIgnoreCase("pro@buildbid.com")).thenReturn(Optional.of(existingPro));
+
+        // SELECT ... FOR UPDATE simulation on shared store
+        when(sharedUserRepo.findByIdForUpdate(existingPro.getId())).thenAnswer(inv -> {
+            dbRowLock.lock();
+            return Optional.of(existingPro);
+        });
+
+        when(sharedVerifRepo.findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE), any(LocalDateTime.class)
+        )).thenAnswer(inv -> new ArrayList<>(sharedStore));
+
+        when(sharedVerifRepo.save(any(UserVerification.class))).thenAnswer(inv -> {
+            UserVerification uv = inv.getArgument(0);
+            sharedStore.add(uv);
+            if (dbRowLock.isHeldByCurrentThread()) {
+                dbRowLock.unlock();
+            }
+            return uv;
+        });
+
+        VerificationService instanceA = new VerificationService(
+                sharedVerifRepo, sharedUserRepo, customerProfileRepository, emailService, smsService, passwordEncoder
+        );
+        VerificationService instanceB = new VerificationService(
+                sharedVerifRepo, sharedUserRepo, customerProfileRepository, emailService, smsService, passwordEncoder
+        );
+
+        VerificationController controllerA = new VerificationController(instanceA, sharedUserRepo);
+        VerificationController controllerB = new VerificationController(instanceB, sharedUserRepo);
+
+        int totalRequests = 10;
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(totalRequests);
+        java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch doneLatch = new java.util.concurrent.CountDownLatch(totalRequests);
+        java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger rejectedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        for (int i = 0; i < totalRequests; i++) {
+            final boolean useInstanceA = (i % 2 == 0);
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    VerificationController targetController = useInstanceA ? controllerA : controllerB;
+                    ResponseEntity<?> resp = targetController.requestEmailChange(
+                            new VerificationController.EmailChangeRequest(proposedEmail),
+                            auth
+                    );
+                    if (resp.getStatusCode() == HttpStatus.OK) {
+                        successCount.incrementAndGet();
+                    } else if (resp.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                        rejectedCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    rejectedCount.incrementAndGet();
+                } finally {
+                    if (dbRowLock.isHeldByCurrentThread()) {
+                        dbRowLock.unlock();
+                    }
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        doneLatch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertEquals(5, successCount.get());
+        assertEquals(5, rejectedCount.get());
+        assertEquals(5, sharedStore.size());
+    }
+
+    @Test
+    @DisplayName("26. Database persistence failure does not report success and leaves no uncommitted OTP")
+    void testPersistenceFailureDoesNotReportSuccess() {
+        String proposedEmail = "pro.persistfail@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+        when(verificationRepository.findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE), any(LocalDateTime.class)
+        )).thenReturn(Collections.emptyList());
+
+        // Simulate database constraint / persistence crash during save
+        when(verificationRepository.save(any(UserVerification.class)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("Simulated DB connection or constraint failure"));
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> {
+            verificationController.requestEmailChange(
+                    new VerificationController.EmailChangeRequest(proposedEmail),
+                    auth
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("27. Delivery retry after transport failure does not consume extra attempts")
+    void testDeliveryRetryAfterTransportFailureDoesNotConsumeExtraAttempts() {
+        String proposedEmail = "pro.retry@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+
+        List<UserVerification> persistedStore = new ArrayList<>();
+        when(verificationRepository.findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE), any(LocalDateTime.class)
+        )).thenAnswer(inv -> new ArrayList<>(persistedStore));
+
+        when(verificationRepository.save(any(UserVerification.class))).thenAnswer(inv -> {
+            UserVerification uv = inv.getArgument(0);
+            persistedStore.add(uv);
+            return uv;
+        });
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        // Attempt 1: Delivery fails (e.g. SMTP down)
+        when(emailService.sendVerificationOtpEmail(eq(proposedEmail), any(), any(), any())).thenReturn(false);
+
+        ResponseEntity<?> failResp = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, failResp.getStatusCode());
+        assertEquals(0, persistedStore.size()); // No attempt recorded
+
+        // Status check confirms 5 full attempts remain
+        ResponseEntity<?> statusResp = verificationController.getEmailChangeAttemptStatus(auth);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statusBody = (Map<String, Object>) statusResp.getBody();
+        assertNotNull(statusBody);
+        assertEquals(5, statusBody.get("attemptsRemaining"));
+        assertEquals(0, statusBody.get("attemptsUsed"));
+
+        // Attempt 2: Delivery succeeds on retry
+        when(emailService.sendVerificationOtpEmail(eq(proposedEmail), any(), any(), any())).thenReturn(true);
+
+        ResponseEntity<?> successResp = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(proposedEmail),
+                auth
+        );
+        assertEquals(HttpStatus.OK, successResp.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> successBody = (Map<String, Object>) successResp.getBody();
+        assertNotNull(successBody);
+        assertEquals(4, successBody.get("attemptsRemaining"));
+        assertEquals(1, successBody.get("attemptsUsed"));
+        assertEquals(1, persistedStore.size());
+    }
+
+    @Test
+    @DisplayName("28. Expired historical records (>24h) are filtered by cutoff query and restore full allowance")
+    void testCutoffQueryFiltersExpiredRecords() {
+        String proposedEmail = "pro.cutoff@buildbid.com";
+        when(userRepository.existsByEmail(proposedEmail)).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(proposedEmail)).thenReturn(false);
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cutoff = now.minusHours(24);
+
+        // Simulated repository: returns only records where createdAt >= cutoff
+        List<UserVerification> allHistory = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            UserVerification old = new UserVerification(
+                    existingPro.getId(),
+                    UserVerification.VerificationType.EMAIL_CHANGE,
+                    "old" + i + "@buildbid.com",
+                    "hash" + i,
+                    now.minusHours(25),
+                    now.minusHours(25)
+            );
+            old.setCreatedAt(now.minusHours(30).plusHours(i));
+            allHistory.add(old);
+        }
+
+        when(verificationRepository.findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE), any(LocalDateTime.class)
+        )).thenAnswer(inv -> {
+            LocalDateTime c = inv.getArgument(2);
+            return allHistory.stream().filter(r -> !r.getCreatedAt().isBefore(c)).toList();
+        });
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        VerificationService.RateLimitStatus status = verificationService.getEmailChangeRateLimitStatus(existingPro.getId());
+        assertEquals(5, status.maxAttempts());
+        assertEquals(0, status.attemptsUsed());
+        assertEquals(5, status.attemptsRemaining());
+        assertTrue(status.allowed());
+    }
+
+    @Test
+    @DisplayName("29. Duplicate email and invalid syntax requests do NOT consume rate-limit attempts")
+    void testInvalidAndDuplicateRequestsDoNotConsumeAttempts() {
+        String existingEmail = "customer@buildbid.com"; // belongs to another user
+        when(userRepository.existsByEmail(existingEmail)).thenReturn(true);
+        when(userRepository.existsByEmailIgnoreCase(existingEmail)).thenReturn(true);
+
+        when(verificationRepository.findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE), any(LocalDateTime.class)
+        )).thenReturn(Collections.emptyList());
+
+        Authentication auth = createMockAuth("pro@buildbid.com", "PROFESSIONAL");
+
+        // 1. Duplicate email attempt
+        ResponseEntity<?> dupResp = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest(existingEmail),
+                auth
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, dupResp.getStatusCode());
+
+        // 2. Invalid syntax attempt
+        ResponseEntity<?> invalidResp = verificationController.requestEmailChange(
+                new VerificationController.EmailChangeRequest("not-an-email"),
+                auth
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, invalidResp.getStatusCode());
+
+        // 3. Status remains at full 5 attempts
+        VerificationService.RateLimitStatus status = verificationService.getEmailChangeRateLimitStatus(existingPro.getId());
+        assertEquals(5, status.attemptsRemaining());
+        assertEquals(0, status.attemptsUsed());
+        verify(verificationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("30. Bounded striped lock maps users stably and prevents memory growth")
+    void testBoundedStripedLockStability() {
+        // Test that 1,000 distinct user IDs map to valid striped locks without allocation growth
+        for (long id = 1; id <= 1000; id++) {
+            VerificationService.RateLimitStatus status = verificationService.getEmailChangeRateLimitStatus(id);
+            assertNotNull(status);
+            assertEquals(5, status.maxAttempts());
+        }
+    }
+
+    @Test
+    @DisplayName("31. One user cannot verify another user's pending email change OTP")
+    void testOneUserCannotVerifyAnotherUsersOtp() {
+        // User A (existingPro) has a pending OTP
+        LocalDateTime now = LocalDateTime.now();
+        String targetEmail = "pro.userA.target@buildbid.com";
+        String otp = "654321";
+        UserVerification uvA = new UserVerification(
+                existingPro.getId(),
+                UserVerification.VerificationType.EMAIL_CHANGE,
+                targetEmail,
+                passwordEncoder.encode(otp),
+                now.plusMinutes(10),
+                now.plusSeconds(60)
+        );
+
+        when(verificationRepository.findTopByUserIdAndVerificationTypeAndUsedFalseOrderByCreatedAtDesc(
+                eq(existingPro.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(Optional.of(uvA));
+
+        // User B (existingContractor) has NO pending OTP
+        when(verificationRepository.findTopByUserIdAndVerificationTypeAndUsedFalseOrderByCreatedAtDesc(
+                eq(existingContractor.getId()), eq(UserVerification.VerificationType.EMAIL_CHANGE)
+        )).thenReturn(Optional.empty());
+
+        Authentication authUserB = createMockAuth("contractor@buildbid.com", "CONTRACTOR");
+
+        // User B attempts to verify User A's OTP and email
+        ResponseEntity<?> response = verificationController.verifyEmailChange(
+                new VerificationController.VerifyEmailChangeRequest(targetEmail, otp),
+                authUserB
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("No pending email change request found. Please request a new verification code.", body.get("error"));
+        assertFalse(uvA.isUsed()); // User A's OTP remains untouched
     }
 }

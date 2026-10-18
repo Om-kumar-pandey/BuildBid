@@ -67,14 +67,21 @@ public class VerificationController {
                     .body(Map.of("error", "Unauthorized. Please login first."));
         }
 
-        return ResponseEntity.ok(Map.of(
-                "email", user.getEmail() != null ? user.getEmail() : "",
-                "emailVerified", user.isEmailVerified(),
-                "emailVerifiedAt", user.getEmailVerifiedAt() != null ? user.getEmailVerifiedAt().toString() : "",
-                "phone", user.getPhone() != null ? user.getPhone() : "",
-                "phoneVerified", user.isPhoneVerified(),
-                "phoneVerifiedAt", user.getPhoneVerifiedAt() != null ? user.getPhoneVerifiedAt().toString() : ""
-        ));
+        VerificationService.RateLimitStatus rateLimit = verificationService.getEmailChangeRateLimitStatus(user.getId());
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("email", user.getEmail() != null ? user.getEmail() : "");
+        status.put("emailVerified", user.isEmailVerified());
+        status.put("emailVerifiedAt", user.getEmailVerifiedAt() != null ? user.getEmailVerifiedAt().toString() : "");
+        status.put("phone", user.getPhone() != null ? user.getPhone() : "");
+        status.put("phoneVerified", user.isPhoneVerified());
+        status.put("phoneVerifiedAt", user.getPhoneVerifiedAt() != null ? user.getPhoneVerifiedAt().toString() : "");
+        status.put("maxAttempts", rateLimit.maxAttempts());
+        status.put("attemptsUsed", rateLimit.attemptsUsed());
+        status.put("attemptsRemaining", rateLimit.attemptsRemaining());
+        status.put("windowExpiresAt", rateLimit.windowExpiresAt() != null ? rateLimit.windowExpiresAt().toString() : null);
+        status.put("allowed", rateLimit.allowed());
+
+        return ResponseEntity.ok(status);
     }
 
     // ============================================================
@@ -127,6 +134,25 @@ public class VerificationController {
     // ============================================================
     // 3. EMAIL CHANGE (REQUEST & VERIFY)
     // ============================================================
+    @GetMapping({"/email/attempt-status", "/email/change-status"})
+    public ResponseEntity<?> getEmailChangeAttemptStatus(Authentication authentication) {
+        MarketplaceBackendApplication.MarketplaceUser user = getAuthenticatedUser(authentication);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized. Please login first."));
+        }
+
+        VerificationService.RateLimitStatus status = verificationService.getEmailChangeRateLimitStatus(user.getId());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("maxAttempts", status.maxAttempts());
+        body.put("attemptsUsed", status.attemptsUsed());
+        body.put("attemptsRemaining", status.attemptsRemaining());
+        body.put("windowExpiresAt", status.windowExpiresAt() != null ? status.windowExpiresAt().toString() : null);
+        body.put("allowed", status.allowed());
+        body.put("cooldownSeconds", 60);
+        return ResponseEntity.ok(body);
+    }
+
     @PostMapping("/email/request-change")
     public ResponseEntity<?> requestEmailChange(
             @RequestBody EmailChangeRequest request,
@@ -138,15 +164,36 @@ public class VerificationController {
                     .body(Map.of("error", "Unauthorized. Please login first."));
         }
 
+        if (request == null || request.newEmail() == null || request.newEmail().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "New email address is required."));
+        }
+
         try {
-            verificationService.requestEmailChange(user, request.newEmail());
-            return ResponseEntity.ok(Map.of(
-                    "message", "Verification code sent to " + maskEmail(request.newEmail()),
-                    "targetEmail", request.newEmail().trim().toLowerCase(),
-                    "cooldownSeconds", 60
-            ));
+            VerificationService.RateLimitStatus status = verificationService.requestEmailChange(user, request.newEmail());
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("message", "Verification code sent to " + maskEmail(request.newEmail()));
+            body.put("targetEmail", request.newEmail().trim().toLowerCase());
+            body.put("cooldownSeconds", 60);
+            body.put("maxAttempts", status.maxAttempts());
+            body.put("attemptsUsed", status.attemptsUsed());
+            body.put("attemptsRemaining", status.attemptsRemaining());
+            body.put("windowExpiresAt", status.windowExpiresAt() != null ? status.windowExpiresAt().toString() : null);
+            body.put("allowed", status.allowed());
+            body.put("deliveryStatus", "QUEUED");
+            return ResponseEntity.ok(body);
         } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", ex.getMessage()));
+            VerificationService.RateLimitStatus status = verificationService.getEmailChangeRateLimitStatus(user.getId());
+            Map<String, Object> errBody = new LinkedHashMap<>();
+            errBody.put("error", ex.getMessage());
+            errBody.put("maxAttempts", status.maxAttempts());
+            errBody.put("attemptsUsed", status.attemptsUsed());
+            errBody.put("attemptsRemaining", status.attemptsRemaining());
+            errBody.put("windowExpiresAt", status.windowExpiresAt() != null ? status.windowExpiresAt().toString() : null);
+            errBody.put("allowed", status.allowed());
+            if (ex.getMessage() != null && ex.getMessage().contains("Failed to deliver")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errBody);
+            }
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errBody);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }

@@ -130,6 +130,17 @@ public class DatabaseSchemaMigrationService implements ApplicationRunner {
         try (Connection conn = dataSource.getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
             String dbProduct = metaData.getDatabaseProductName() != null ? metaData.getDatabaseProductName().toLowerCase() : "";
+            boolean isH2 = dbProduct.contains("h2");
+
+            try {
+                ensureEmailOutboxTable(conn, metaData, isH2);
+            } catch (SQLException outboxEx) {
+                log.error("Email outbox schema migration DDL failed [SQLState: {}, ErrorCode: {}]: {}. " +
+                          "If the database user lacks CREATE TABLE privileges, run src/main/resources/schema-update.sql manually.",
+                        outboxEx.getSQLState(), outboxEx.getErrorCode(), outboxEx.getMessage(), outboxEx);
+                return new MigrationResult(MigrationStatus.FAILED, false, false,
+                        "Email outbox migration failed: " + outboxEx.getMessage());
+            }
 
             boolean ordersTableExists = tableExists(conn, metaData, "material_orders");
             boolean itemsTableExists = tableExists(conn, metaData, "material_order_items");
@@ -157,8 +168,6 @@ public class DatabaseSchemaMigrationService implements ApplicationRunner {
 
             log.info("Direct Buy schema requires modification: quotation_id nullable={}, material_id nullable={}. Applying DDL...",
                     quotationNullable, materialNullable);
-
-            boolean isH2 = dbProduct.contains("h2");
 
             try (Statement stmt = conn.createStatement()) {
                 if (!quotationNullable && ordersTableExists) {
@@ -222,6 +231,92 @@ public class DatabaseSchemaMigrationService implements ApplicationRunner {
             } catch (SQLException e2) {
                 stmt.execute("ALTER TABLE " + tableName + " ALTER COLUMN " + columnName + " BIGINT NULL");
             }
+        }
+    }
+
+    public void ensureEmailOutboxTable(Connection conn) throws SQLException {
+        DatabaseMetaData metaData = conn.getMetaData();
+        String dbProduct = metaData.getDatabaseProductName() != null ? metaData.getDatabaseProductName().toLowerCase() : "";
+        boolean isH2 = dbProduct.contains("h2");
+        ensureEmailOutboxTable(conn, metaData, isH2);
+    }
+
+    public void ensureEmailOutboxTable(Connection conn, DatabaseMetaData metaData, boolean isH2) throws SQLException {
+        boolean outboxExists = tableExists(conn, metaData, "email_outbox");
+        if (!outboxExists) {
+            log.info("Outbox schema check: email_outbox table does not exist. Creating table...");
+            createEmailOutboxTableIfNotExists(conn, isH2);
+            if (!tableExists(conn, metaData, "email_outbox")) {
+                throw new SQLException("Post-creation verification failed: email_outbox table does not exist after creation attempt.");
+            }
+        }
+    }
+
+    public void createEmailOutboxTableIfNotExists(Connection conn, boolean isH2) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            if (isH2) {
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS email_outbox (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        event_id VARCHAR(64) NOT NULL,
+                        user_id BIGINT NOT NULL,
+                        verification_id BIGINT NULL,
+                        recipient_email VARCHAR(150) NOT NULL,
+                        recipient_name VARCHAR(150) NULL,
+                        subject VARCHAR(255) NOT NULL,
+                        template_type VARCHAR(50) NOT NULL,
+                        encrypted_otp CLOB NULL,
+                        encryption_key_version INT NOT NULL DEFAULT 1,
+                        status VARCHAR(30) NOT NULL DEFAULT 'QUEUED',
+                        attempt_count INT NOT NULL DEFAULT 0,
+                        max_attempts INT NOT NULL DEFAULT 3,
+                        next_attempt_at TIMESTAMP NOT NULL,
+                        lease_owner VARCHAR(100) NULL,
+                        lease_expires_at TIMESTAMP NULL,
+                        last_error CLOB NULL,
+                        provider_message_id VARCHAR(150) NULL,
+                        payload_cleared_at TIMESTAMP NULL,
+                        sent_at TIMESTAMP NULL,
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL,
+                        CONSTRAINT uk_email_outbox_event_id UNIQUE (event_id)
+                    )
+                """);
+            } else {
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS email_outbox (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        event_id VARCHAR(64) NOT NULL,
+                        user_id BIGINT NOT NULL,
+                        verification_id BIGINT NULL,
+                        recipient_email VARCHAR(150) NOT NULL,
+                        recipient_name VARCHAR(150) NULL,
+                        subject VARCHAR(255) NOT NULL,
+                        template_type VARCHAR(50) NOT NULL,
+                        encrypted_otp TEXT NULL,
+                        encryption_key_version INT NOT NULL DEFAULT 1,
+                        status VARCHAR(30) NOT NULL DEFAULT 'QUEUED',
+                        attempt_count INT NOT NULL DEFAULT 0,
+                        max_attempts INT NOT NULL DEFAULT 3,
+                        next_attempt_at DATETIME(6) NOT NULL,
+                        lease_owner VARCHAR(100) NULL,
+                        lease_expires_at DATETIME(6) NULL,
+                        last_error TEXT NULL,
+                        provider_message_id VARCHAR(150) NULL,
+                        payload_cleared_at DATETIME(6) NULL,
+                        sent_at DATETIME(6) NULL,
+                        created_at DATETIME(6) NOT NULL,
+                        updated_at DATETIME(6) NOT NULL,
+                        CONSTRAINT uk_email_outbox_event_id UNIQUE (event_id),
+                        INDEX idx_email_outbox_poll (status, next_attempt_at, lease_expires_at),
+                        INDEX idx_email_outbox_user_status (user_id, status),
+                        INDEX idx_email_outbox_recipient (recipient_email),
+                        CONSTRAINT fk_email_outbox_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        CONSTRAINT fk_email_outbox_verif FOREIGN KEY (verification_id) REFERENCES user_verifications(id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """);
+            }
+            log.info("Executed CREATE TABLE IF NOT EXISTS email_outbox.");
         }
     }
 

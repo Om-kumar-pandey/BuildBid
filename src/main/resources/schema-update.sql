@@ -60,3 +60,37 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS title VARCHAR(150) NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS pincode VARCHAR(20) NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NULL;
 
+-- ============================================================================
+-- BUILDBID SECURE TRANSACTIONAL EMAIL OUTBOX (PHASE 4)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS email_outbox (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_id VARCHAR(64) NOT NULL,
+    user_id BIGINT NOT NULL,
+    verification_id BIGINT NULL,
+    recipient_email VARCHAR(150) NOT NULL,
+    recipient_name VARCHAR(150) NULL,
+    subject VARCHAR(255) NOT NULL,
+    template_type VARCHAR(50) NOT NULL,
+    encrypted_otp TEXT NULL,
+    encryption_key_version INT NOT NULL DEFAULT 1,
+    status VARCHAR(30) NOT NULL DEFAULT 'QUEUED',
+    attempt_count INT NOT NULL DEFAULT 0,
+    max_attempts INT NOT NULL DEFAULT 3,
+    next_attempt_at DATETIME(6) NOT NULL,
+    lease_owner VARCHAR(100) NULL,
+    lease_expires_at DATETIME(6) NULL,
+    last_error TEXT NULL,
+    provider_message_id VARCHAR(150) NULL,
+    payload_cleared_at DATETIME(6) NULL,
+    sent_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    CONSTRAINT uk_email_outbox_event_id UNIQUE (event_id),
+    INDEX idx_email_outbox_poll (status, next_attempt_at, lease_expires_at),
+    INDEX idx_email_outbox_user_status (user_id, status),
+    INDEX idx_email_outbox_recipient (recipient_email),
+    CONSTRAINT fk_email_outbox_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_email_outbox_verif FOREIGN KEY (verification_id) REFERENCES user_verifications(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

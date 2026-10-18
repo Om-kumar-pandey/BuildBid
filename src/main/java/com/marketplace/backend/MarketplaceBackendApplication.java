@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -255,6 +256,10 @@ public class MarketplaceBackendApplication {
         boolean existsByUsername(String username);
         boolean existsByEmail(String email);
         boolean existsByEmailIgnoreCase(String email);
+
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT u FROM MarketplaceUser u WHERE u.id = :id")
+        Optional<MarketplaceUser> findByIdForUpdate(@Param("id") Long id);
 
         @Modifying(clearAutomatically = true)
         @Query("UPDATE MarketplaceUser u SET u.deletionAuthToken = NULL, u.deletionAuthExpiry = NULL " +

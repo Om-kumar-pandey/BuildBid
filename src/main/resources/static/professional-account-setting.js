@@ -1754,6 +1754,11 @@
   let pendingEmailChange = "";
   let emailResendCooldownInterval = null;
   let emailResendCooldownRemaining = 0;
+  let emailSendAttemptsRemaining = 5;
+  let emailSendMaxAttempts = 5;
+  let emailSendWindowExpiresAt = null;
+  let emailSendAllowed = true;
+  let emailChangeAbortController = null;
 
   function setEmailChangeFeedback(message, type = "") {
     const feedback = document.getElementById("pro-email-otp-feedback");
@@ -1784,10 +1789,139 @@
     }
   }
 
+  function isValidEmailFormat(email) {
+    if (!email) return false;
+    return /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email.trim());
+  }
+
+  function updateEmailChangeAttemptsUI(data) {
+    if (data) {
+      if (typeof data.maxAttempts === "number") emailSendMaxAttempts = data.maxAttempts;
+      if (typeof data.attemptsRemaining === "number") emailSendAttemptsRemaining = data.attemptsRemaining;
+      if (typeof data.allowed === "boolean") emailSendAllowed = data.allowed;
+      if (data.windowExpiresAt !== undefined) emailSendWindowExpiresAt = data.windowExpiresAt;
+    }
+
+    const sendBtn = document.getElementById("pro-btn-send-email-change-otp");
+    const resendBtn = document.getElementById("pro-btn-resend-email-otp");
+    const remainingEl = document.getElementById("pro-email-otp-remaining-attempts");
+    const renewalBanner = document.getElementById("pro-email-otp-renewal-banner");
+    const hintContainer = document.getElementById("pro-email-send-attempts-hint");
+    const hintText = document.getElementById("pro-email-send-attempts-remaining-text");
+
+    let renewalFormatted = "";
+    if (emailSendWindowExpiresAt) {
+      try {
+        const d = new Date(emailSendWindowExpiresAt);
+        if (!isNaN(d.getTime())) {
+          renewalFormatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " (" + d.toLocaleDateString() + ")";
+        }
+      } catch (e) {}
+    }
+
+    if (remainingEl) {
+      remainingEl.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Remaining send attempts: <strong>${emailSendAttemptsRemaining} of ${emailSendMaxAttempts}</strong>`;
+      if (emailSendAttemptsRemaining <= 1) {
+        remainingEl.style.color = "var(--pro-rose-600, #e11d48)";
+      } else {
+        remainingEl.style.color = "";
+      }
+    }
+
+    if (renewalBanner) {
+      if (emailSendAttemptsRemaining <= 0) {
+        renewalBanner.style.display = "block";
+        renewalBanner.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> 24-hour limit reached (0 attempts remaining). Next attempt available: ${renewalFormatted || "after 24h renewal"}.`;
+      } else {
+        renewalBanner.style.display = "none";
+        renewalBanner.innerHTML = "";
+      }
+    }
+
+    if (hintContainer && hintText) {
+      if (emailSendAttemptsRemaining < emailSendMaxAttempts) {
+        hintContainer.style.display = "flex";
+        if (emailSendAttemptsRemaining <= 0) {
+          hintText.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: var(--pro-rose-600);"></i> 0 of ${emailSendMaxAttempts} send attempts remaining. Renewal: ${renewalFormatted || "in 24 hours"}.`;
+        } else {
+          hintText.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${emailSendAttemptsRemaining} of ${emailSendMaxAttempts} send attempts remaining (24h window)`;
+        }
+      } else {
+        hintContainer.style.display = "none";
+      }
+    }
+
+    if (emailSendAttemptsRemaining <= 0) {
+      if (sendBtn) sendBtn.disabled = true;
+      if (resendBtn) resendBtn.disabled = true;
+    }
+  }
+
+  async function fetchEmailChangeAttemptStatus() {
+    const token = getCleanToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/verification/email/attempt-status`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        updateEmailChangeAttemptsUI(data);
+      }
+    } catch (e) {}
+  }
+
+  function validateEmailInputLive() {
+    const input = document.getElementById("pro-input-new-email");
+    const sendBtn = document.getElementById("pro-btn-send-email-change-otp");
+    if (!input || !sendBtn) return false;
+
+    const val = input.value.trim().toLowerCase();
+    const currentEmail = (currentProfile && currentProfile.email ? currentProfile.email : "").trim().toLowerCase();
+
+    if (!val) {
+      sendBtn.disabled = true;
+      setEmailChangeError("");
+      return false;
+    }
+
+    if (!isValidEmailFormat(val)) {
+      sendBtn.disabled = true;
+      return false;
+    }
+
+    if (currentEmail && val === currentEmail) {
+      sendBtn.disabled = true;
+      setEmailChangeError("New email cannot be the same as your current email.");
+      return false;
+    }
+
+    if (emailSendAttemptsRemaining <= 0) {
+      sendBtn.disabled = true;
+      setEmailChangeError("24-hour limit reached. No send attempts remaining.");
+      return false;
+    }
+
+    setEmailChangeError("");
+    sendBtn.disabled = false;
+    return true;
+  }
+
   function openEmailChangeSubcard() {
+    if (emailChangeAbortController) {
+      emailChangeAbortController.abort();
+      emailChangeAbortController = null;
+    }
+
     const changeSection = document.getElementById("pro-email-change-section");
     const otpSection = document.getElementById("pro-email-otp-section");
     const input = document.getElementById("pro-input-new-email");
+    const sendBtn = document.getElementById("pro-btn-send-email-change-otp");
 
     if (otpSection) otpSection.style.display = "none";
     if (changeSection) changeSection.style.display = "block";
@@ -1795,17 +1929,41 @@
     setEmailChangeError("");
     setEmailChangeFeedback("");
 
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Send OTP</span>`;
+    }
+
     if (input) {
       input.value = "";
       setTimeout(() => input.focus(), 60);
     }
+
+    fetchEmailChangeAttemptStatus();
   }
 
   function closeEmailChangeSubcard() {
+    if (emailChangeAbortController) {
+      emailChangeAbortController.abort();
+      emailChangeAbortController = null;
+    }
+
     const changeSection = document.getElementById("pro-email-change-section");
     const otpSection = document.getElementById("pro-email-otp-section");
+    const sendBtn = document.getElementById("pro-btn-send-email-change-otp");
+    const input = document.getElementById("pro-input-new-email");
+
     if (changeSection) changeSection.style.display = "none";
     if (otpSection) otpSection.style.display = "none";
+
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Send OTP</span>`;
+    }
+
+    if (input) {
+      input.value = "";
+    }
 
     setEmailChangeError("");
     setEmailChangeFeedback("");
@@ -1840,8 +1998,13 @@
     const resendBtn = document.getElementById("pro-btn-resend-email-otp");
     const countdownSpan = document.getElementById("pro-email-resend-countdown");
     if (resendBtn && countdownSpan) {
-      resendBtn.disabled = false;
-      countdownSpan.textContent = "Resend Code";
+      if (emailSendAttemptsRemaining > 0) {
+        resendBtn.disabled = false;
+        countdownSpan.textContent = "Resend Code";
+      } else {
+        resendBtn.disabled = true;
+        countdownSpan.textContent = "Limit Reached (0 attempts)";
+      }
     }
   }
 
@@ -1874,11 +2037,15 @@
     }
 
     const input = document.getElementById("pro-input-new-email");
+    const sendBtn = document.getElementById("pro-btn-send-email-change-otp");
+    const resendBtn = document.getElementById("pro-btn-resend-email-otp");
+
     setEmailChangeError("");
 
     const newEmail = input ? input.value.trim().toLowerCase() : "";
-    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    if (!newEmail || !isValidEmailFormat(newEmail)) {
       setEmailChangeError("Please enter a valid email address.");
+      if (sendBtn) sendBtn.disabled = true;
       if (input) input.focus();
       return;
     }
@@ -1886,15 +2053,30 @@
     const currentEmail = (currentProfile && currentProfile.email ? currentProfile.email : "").trim().toLowerCase();
     if (currentEmail && newEmail === currentEmail) {
       setEmailChangeError("New email cannot be the same as your current email.");
+      if (sendBtn) sendBtn.disabled = true;
       if (input) input.focus();
       return;
     }
 
-    const sendBtn = document.getElementById("pro-btn-send-email-change-otp");
-    const originalHtml = sendBtn ? sendBtn.innerHTML : "";
+    if (emailSendAttemptsRemaining <= 0) {
+      setEmailChangeError("Maximum OTP send attempts (5) reached for this 24-hour window.");
+      if (sendBtn) sendBtn.disabled = true;
+      return;
+    }
+
+    if (emailChangeAbortController) {
+      emailChangeAbortController.abort();
+    }
+    emailChangeAbortController = new AbortController();
+    const currentSignal = emailChangeAbortController.signal;
+
+    const originalSendHtml = `<i class="fa-solid fa-paper-plane"></i> <span>Send OTP</span>`;
     if (sendBtn) {
       sendBtn.disabled = true;
-      sendBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Checking Availability...</span>`;
+      sendBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Sending OTP...</span>`;
+    }
+    if (resendBtn) {
+      resendBtn.disabled = true;
     }
 
     try {
@@ -1905,10 +2087,16 @@
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        body: JSON.stringify({ newEmail: newEmail })
+        body: JSON.stringify({ newEmail: newEmail }),
+        signal: currentSignal
       });
 
+      if (currentSignal.aborted) {
+        return;
+      }
+
       const resJson = await response.json().catch(() => ({}));
+      updateEmailChangeAttemptsUI(resJson);
 
       if (response.ok) {
         pendingEmailChange = newEmail;
@@ -1922,7 +2110,11 @@
         if (targetDisplay) targetDisplay.textContent = newEmail;
 
         clearOtpDigitInputs();
-        setEmailChangeFeedback("");
+        if (resJson.deliveryStatus === "QUEUED") {
+          setEmailChangeFeedback("Verification code is queued for delivery. Please check your inbox shortly.");
+        } else {
+          setEmailChangeFeedback("");
+        }
         startEmailCooldownTimer(resJson.cooldownSeconds || 60);
 
         showToast(resJson.message || `Verification code sent to ${newEmail}`, "success");
@@ -1937,13 +2129,17 @@
         showToast(errorMsg, "error");
       }
     } catch (err) {
+      if (err.name === "AbortError") {
+        return;
+      }
       console.error("[BuildBid Pro] Email change request error:", err);
       setEmailChangeError("Network error. Please check your connection and retry.");
       showToast("Network error. Could not connect to verification server.", "error");
     } finally {
+      emailChangeAbortController = null;
       if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.innerHTML = originalHtml;
+        sendBtn.innerHTML = originalSendHtml;
+        validateEmailInputLive();
       }
     }
   }
@@ -1964,7 +2160,7 @@
     }
 
     const verifyBtn = document.getElementById("pro-btn-verify-email-otp");
-    const originalHtml = verifyBtn ? verifyBtn.innerHTML : "";
+    const originalHtml = `<i class="fa-solid fa-circle-check"></i> <span>Confirm and Change Email</span>`;
     if (verifyBtn) {
       verifyBtn.disabled = true;
       verifyBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Verifying Code...</span>`;
@@ -2066,6 +2262,8 @@
 
       if (response.ok) {
         const status = await response.json();
+        updateEmailChangeAttemptsUI(status);
+
         if (currentProfile) {
           currentProfile.email = status.email || currentProfile.email;
           currentProfile.emailVerified = status.emailVerified;
@@ -2130,11 +2328,17 @@
       newEmailInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          handleSendEmailChangeOtp();
+          if (validateEmailInputLive()) {
+            handleSendEmailChangeOtp();
+          }
         }
       });
       newEmailInput.addEventListener("input", () => {
-        setEmailChangeError("");
+        if (emailChangeAbortController) {
+          emailChangeAbortController.abort();
+          emailChangeAbortController = null;
+        }
+        validateEmailInputLive();
       });
     }
 
@@ -2142,7 +2346,7 @@
     const resendBtn = document.getElementById("pro-btn-resend-email-otp");
     if (resendBtn) {
       resendBtn.addEventListener("click", () => {
-        if (emailResendCooldownRemaining <= 0 && pendingEmailChange) {
+        if (emailResendCooldownRemaining <= 0 && pendingEmailChange && emailSendAttemptsRemaining > 0) {
           handleSendEmailChangeOtp();
         }
       });

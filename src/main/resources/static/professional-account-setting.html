@@ -329,14 +329,17 @@
             </div>
 
             <div class="pro-subcard-actions" style="margin-top: 16px;">
-              <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-send-email-change-otp">
+              <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-send-email-change-otp" disabled>
                 <i class="fa-solid fa-paper-plane"></i>
-                <span>Send Verification Code</span>
+                <span>Send OTP</span>
               </button>
               <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-cancel-email-change">
                 <i class="fa-solid fa-xmark"></i>
                 <span>Cancel</span>
               </button>
+            </div>
+            <div id="pro-email-send-attempts-hint" class="pro-otp-meta-row" style="margin-top: 10px; display: none;">
+              <span id="pro-email-send-attempts-remaining-text"><i class="fa-solid fa-shield-halved"></i> 5 send attempts remaining in current 24h window</span>
             </div>
           </div>
 
@@ -367,7 +370,7 @@
             <div class="pro-subcard-actions">
               <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-verify-email-otp">
                 <i class="fa-solid fa-circle-check"></i>
-                <span>Verify & Update Email</span>
+                <span>Confirm and Change Email</span>
               </button>
               <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-resend-email-otp" disabled>
                 <i class="fa-solid fa-rotate-right"></i>
@@ -380,8 +383,9 @@
 
             <div class="pro-otp-meta-row">
               <span class="pro-otp-expiry-hint"><i class="fa-regular fa-clock"></i> Code expires in 10 minutes</span>
-              <span>Maximum 5 attempts allowed</span>
+              <span id="pro-email-otp-remaining-attempts"><i class="fa-solid fa-shield-halved"></i> Remaining send attempts: 5 of 5</span>
             </div>
+            <div id="pro-email-otp-renewal-banner" class="pro-field-error" style="display: none; margin-top: 10px;" role="alert"></div>
 
             <div id="pro-email-otp-feedback" class="pro-otp-feedback-box" style="display: none;" role="alert"></div>
           </div>
@@ -404,13 +408,6 @@
               <button type="button" class="pro-settings-btn pro-settings-btn-secondary" onclick="notifyPlannedFeature('Mobile phone OTP verification is planned for Phase 2.')">
                 Verify via OTP
               </button>
-            </div>
-          </div>
-
-          <div class="pro-settings-footer-note">
-            <div class="pro-settings-phase-notice">
-              <i class="fa-solid fa-circle-info"></i>
-              <span>OTP verification endpoints will be securely linked in Phase 2.</span>
             </div>
           </div>
         </div>

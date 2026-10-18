@@ -3,6 +3,7 @@ package com.marketplace.backend;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +31,17 @@ public interface UserVerificationRepository extends JpaRepository<UserVerificati
     );
 
     List<UserVerification> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<UserVerification> findByUserIdAndVerificationTypeOrderByCreatedAtAsc(
+            Long userId,
+            UserVerification.VerificationType verificationType
+    );
+
+    List<UserVerification> findByUserIdAndVerificationTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+            Long userId,
+            UserVerification.VerificationType verificationType,
+            LocalDateTime cutoff
+    );
 
     void deleteByUserId(Long userId);
 

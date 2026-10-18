@@ -143,6 +143,7 @@ public class EmailAndMobileVerificationSecurityTest {
 
         when(verificationRepository.save(any(UserVerification.class))).thenAnswer(inv -> inv.getArgument(0));
         when(verificationRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(emailService.sendVerificationOtpEmail(any(), any(), any(), any())).thenReturn(true);
     }
 
     private Authentication createMockAuth(String principalEmail, String role) {
