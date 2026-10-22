@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BuildBid - Professional Account Settings</title>
-  <meta name="description" content="Manage your BuildBid professional account settings, credentials, verification, work preferences, and security.">
+  <meta name="description"
+    content="Manage your BuildBid professional account settings, credentials, verification, work preferences, and security.">
 
   <!-- Modern Typography and Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Dedicated Namespaced Stylesheet -->
   <link rel="stylesheet" href="professional-account-setting.css">
 </head>
+
 <body class="pro-settings-body">
 
   <!-- ============================================================
@@ -25,7 +29,7 @@
       <!-- Left: Logo & Back Link -->
       <div style="display: flex; align-items: center; gap: 18px;">
         <a href="professional dashboard.html" class="pro-settings-brand-wrap" title="BuildBid Professional Home">
-          <img src="logo.png" alt="BuildBid Logo" class="pro-settings-brand-logo">
+          <img src="BuildBid logo.png" alt="BuildBid Logo" class="pro-settings-brand-logo" onerror="this.src='logo.png'">
           <div class="pro-settings-brand-text">
             <span class="pro-settings-brand-title">BuildBid</span>
             <span class="pro-settings-brand-badge">Professional</span>
@@ -47,19 +51,22 @@
         </div>
 
         <div class="pro-settings-user-pill" id="pro-settings-user-pill">
-          <img id="pro-settings-nav-avatar" src="professional-default-avatar.webp" alt="Avatar" class="pro-settings-user-avatar">
+          <img id="pro-settings-nav-avatar" src="professional-default-avatar.webp" alt="Avatar"
+            class="pro-settings-user-avatar">
           <div class="pro-settings-user-info">
             <span class="pro-settings-user-name" id="pro-settings-nav-name">Professional</span>
             <span class="pro-settings-user-role" id="pro-settings-nav-role">No service</span>
           </div>
         </div>
 
-        <button type="button" class="pro-settings-btn-signout" id="pro-settings-signout-btn" onclick="openSignoutModal()">
+        <button type="button" class="pro-settings-btn-signout" id="pro-settings-signout-btn"
+          onclick="openSignoutModal()">
           <i class="fa-solid fa-power-off"></i>
           <span>Logout</span>
         </button>
 
-        <button type="button" class="pro-settings-mobile-menu-btn" id="pro-settings-mobile-toggle" aria-label="Toggle Navigation">
+        <button type="button" class="pro-settings-mobile-menu-btn" id="pro-settings-mobile-toggle"
+          aria-label="Toggle Navigation">
           <i class="fa-solid fa-bars"></i>
         </button>
       </div>
@@ -82,13 +89,15 @@
         <div class="pro-settings-nav-group-title">Identity &amp; Profile</div>
         <ul class="pro-settings-nav-list" role="tablist">
           <li class="pro-settings-nav-item" role="presentation">
-            <button type="button" class="pro-settings-nav-btn active" role="tab" aria-selected="true" data-section="personal-info" id="tab-personal-info">
+            <button type="button" class="pro-settings-nav-btn active" role="tab" aria-selected="true"
+              data-section="personal-info" id="tab-personal-info">
               <i class="fa-solid fa-user-pen pro-settings-nav-icon"></i>
               <span>1. Personal Information</span>
             </button>
           </li>
           <li class="pro-settings-nav-item" role="presentation">
-            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false" data-section="verification" id="tab-verification">
+            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false"
+              data-section="verification" id="tab-verification">
               <i class="fa-solid fa-shield-halved pro-settings-nav-icon"></i>
               <span>2. Email &amp; Mobile Verification</span>
               <span class="pro-settings-nav-badge pro-settings-nav-badge-verified" id="badge-nav-verify">Active</span>
@@ -102,19 +111,22 @@
         <div class="pro-settings-nav-group-title">Security &amp; Account Controls</div>
         <ul class="pro-settings-nav-list" role="tablist">
           <li class="pro-settings-nav-item" role="presentation">
-            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false" data-section="security-login" id="tab-security-login">
+            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false"
+              data-section="security-login" id="tab-security-login">
               <i class="fa-solid fa-lock pro-settings-nav-icon"></i>
               <span>4. Security &amp; Login</span>
             </button>
           </li>
           <li class="pro-settings-nav-item" role="presentation">
-            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false" data-section="account-activity" id="tab-account-activity">
+            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false"
+              data-section="account-activity" id="tab-account-activity">
               <i class="fa-solid fa-clock-rotate-left pro-settings-nav-icon"></i>
               <span>5. Account Activity &amp; History</span>
             </button>
           </li>
           <li class="pro-settings-nav-item" role="presentation">
-            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false" data-section="deactivation-deletion" id="tab-deactivation-deletion">
+            <button type="button" class="pro-settings-nav-btn" role="tab" aria-selected="false"
+              data-section="deactivation-deletion" id="tab-deactivation-deletion">
               <i class="fa-solid fa-triangle-exclamation pro-settings-nav-icon" style="color: #f43f5e;"></i>
               <span style="color: #e11d48;">6. Account Deactivation / Deletion</span>
             </button>
@@ -132,7 +144,8 @@
           <div>
             <h1 class="pro-settings-overview-title">Professional Account Settings</h1>
             <p class="pro-settings-overview-desc">
-              Manage your verified identity, credentials, consultation preferences, and security configurations across the BuildBid ecosystem.
+              Manage your verified identity, credentials, consultation preferences, and security configurations across
+              the BuildBid ecosystem.
             </p>
           </div>
           <div>
@@ -150,7 +163,8 @@
       <!-- ============================================================
            SECTION 1: PERSONAL INFORMATION
            ============================================================ -->
-      <section class="pro-settings-panel active" id="sec-personal-info" role="tabpanel" aria-labelledby="tab-personal-info">
+      <section class="pro-settings-panel active" id="sec-personal-info" role="tabpanel"
+        aria-labelledby="tab-personal-info">
         <div class="pro-settings-card">
           <div class="pro-settings-card-header">
             <div class="pro-settings-card-title-wrap">
@@ -162,34 +176,45 @@
                 Update your personal name, contact details, profile photo, and public professional summary.
               </p>
             </div>
-            <span class="pro-settings-badge pro-settings-badge-verified"><i class="fa-solid fa-circle-check"></i> Active</span>
+            <span class="pro-settings-badge pro-settings-badge-verified"><i class="fa-solid fa-circle-check"></i>
+              Active</span>
           </div>
 
           <!-- Profile Photo Interactive Component -->
           <div class="pro-settings-photo-area" id="pro-photo-area">
-            <input type="file" id="pro-photo-file-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" class="pro-photo-hidden-input" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;" aria-label="Upload profile picture file" onchange="handlePhotoFileSelected(event)">
+            <input type="file" id="pro-photo-file-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              class="pro-photo-hidden-input"
+              style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;"
+              aria-label="Upload profile picture file" onchange="handlePhotoFileSelected(event)">
             <div class="pro-settings-avatar-wrap">
-              <img id="pro-settings-photo-preview" src="professional-default-avatar.webp" alt="Professional Profile Photo Preview" class="pro-settings-avatar-preview">
-              <button type="button" class="pro-settings-avatar-badge" id="pro-photo-badge-btn" title="Choose new profile photo" aria-label="Choose new profile photo" onclick="triggerPhotoFileInput()">
+              <img id="pro-settings-photo-preview" src="professional-default-avatar.webp"
+                alt="Professional Profile Photo Preview" class="pro-settings-avatar-preview">
+              <button type="button" class="pro-settings-avatar-badge" id="pro-photo-badge-btn"
+                title="Choose new profile photo" aria-label="Choose new profile photo"
+                onclick="triggerPhotoFileInput()">
                 <i class="fa-solid fa-camera"></i>
               </button>
-              <div class="pro-photo-loading-overlay" id="pro-photo-loading-overlay" style="display: none;" aria-hidden="true">
+              <div class="pro-photo-loading-overlay" id="pro-photo-loading-overlay" style="display: none;"
+                aria-hidden="true">
                 <i class="fa-solid fa-circle-notch fa-spin"></i>
               </div>
             </div>
             <div class="pro-settings-photo-controls">
               <h3 class="pro-settings-photo-title">Professional Profile Photo</h3>
               <p class="pro-settings-photo-desc">
-                Upload a professional headshot. Supported formats: JPG, JPEG, PNG, or WebP up to 5MB. Persists securely across sessions.
+                Upload a professional headshot. Supported formats: JPG, JPEG, PNG, or WebP up to 5MB. Persists securely
+                across sessions.
               </p>
 
               <!-- Default Actions -->
               <div class="pro-settings-photo-actions" id="pro-photo-actions-default">
-                <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-photo-choose-btn" onclick="triggerPhotoFileInput()">
+                <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-photo-choose-btn"
+                  onclick="triggerPhotoFileInput()">
                   <i class="fa-solid fa-arrow-up-from-bracket"></i>
                   <span>Upload Photo</span>
                 </button>
-                <button type="button" class="pro-settings-btn pro-settings-btn-secondary pro-settings-btn-disabled" id="pro-photo-remove-btn" disabled onclick="removeProfilePhoto()">
+                <button type="button" class="pro-settings-btn pro-settings-btn-secondary pro-settings-btn-disabled"
+                  id="pro-photo-remove-btn" disabled onclick="removeProfilePhoto()">
                   <i class="fa-solid fa-trash-can"></i>
                   <span>Remove</span>
                 </button>
@@ -215,7 +240,8 @@
           <!-- Form Fields -->
           <div class="pro-settings-form-group" style="margin-bottom: 18px;">
             <label class="pro-settings-label" for="pro-input-fullname">Full Name</label>
-            <input type="text" id="pro-input-fullname" class="pro-settings-input" placeholder="Enter your full legal name" value="Professional">
+            <input type="text" id="pro-input-fullname" class="pro-settings-input"
+              placeholder="Enter your full legal name" value="Professional">
             <span class="pro-settings-help-text">Displayed on consultation proposals and client contracts.</span>
           </div>
 
@@ -223,18 +249,21 @@
             <div class="pro-settings-form-group">
               <label class="pro-settings-label" for="pro-input-email">
                 <span>Registered Email Address</span>
-                <button type="button" class="pro-settings-inline-link" id="pro-link-goto-email-change" title="Update email address in Verification section">
+                <button type="button" class="pro-settings-inline-link" id="pro-link-goto-email-change"
+                  title="Update email address in Verification section">
                   <span>Change Email</span>
                   <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i>
                 </button>
               </label>
-              <input type="email" id="pro-input-email" class="pro-settings-input" placeholder="email@buildbid.com" readonly disabled>
+              <input type="email" id="pro-input-email" class="pro-settings-input" placeholder="email@buildbid.com"
+                readonly disabled>
               <span class="pro-settings-help-text">Manage and update via Email & Mobile Verification section.</span>
             </div>
 
             <div class="pro-settings-form-group">
               <label class="pro-settings-label" for="pro-input-phone">Primary Mobile Number</label>
-              <input type="tel" id="pro-input-phone" class="pro-settings-input" placeholder="+91 98765 43210" readonly disabled>
+              <input type="tel" id="pro-input-phone" class="pro-settings-input" placeholder="+91 98765 43210" readonly
+                disabled>
               <span class="pro-settings-help-text">Manage and verify via Mobile Verification section.</span>
             </div>
           </div>
@@ -242,7 +271,8 @@
           <div class="pro-settings-grid-2">
             <div class="pro-settings-form-group">
               <label class="pro-settings-label" for="pro-input-location">Primary Operating City</label>
-              <input type="text" id="pro-input-location" class="pro-settings-input" placeholder="e.g. Mumbai, Maharashtra" value="">
+              <input type="text" id="pro-input-location" class="pro-settings-input"
+                placeholder="e.g. Mumbai, Maharashtra" value="">
             </div>
 
             <div class="pro-settings-form-group">
@@ -253,12 +283,15 @@
 
           <div class="pro-settings-form-group">
             <label class="pro-settings-label" for="pro-input-bio">Professional Bio & Experience Summary</label>
-            <textarea id="pro-input-bio" class="pro-settings-textarea" placeholder="Describe your background, years in practice, signature projects, and technical proficiencies..."></textarea>
+            <textarea id="pro-input-bio" class="pro-settings-textarea"
+              placeholder="Describe your background, years in practice, signature projects, and technical proficiencies..."></textarea>
           </div>
 
           <div class="pro-settings-footer-note">
-            <div id="pro-personal-info-feedback" class="pro-photo-feedback" role="status" aria-live="polite" style="display: none; margin-bottom: 8px;"></div>
-            <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-save-personal-info" onclick="savePersonalInformation()">
+            <div id="pro-personal-info-feedback" class="pro-photo-feedback" role="status" aria-live="polite"
+              style="display: none; margin-bottom: 8px;"></div>
+            <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-save-personal-info"
+              onclick="savePersonalInformation()">
               <i class="fa-solid fa-floppy-disk"></i>
               <span>Save Changes</span>
             </button>
@@ -278,7 +311,8 @@
                 2. Email & Mobile Verification
               </h2>
               <p class="pro-settings-card-desc">
-                Cryptographic verification ensures secure authentication, instant milestone alerts, and verified badge eligibility.
+                Cryptographic verification ensures secure authentication, instant milestone alerts, and verified badge
+                eligibility.
               </p>
             </div>
             <span class="pro-settings-badge pro-settings-badge-verified">Security Check</span>
@@ -315,7 +349,8 @@
               <div>
                 <h4 class="pro-subcard-title">Change Account Email Address</h4>
                 <p class="pro-subcard-desc">
-                  Enter your proposed new email address. A 6-digit cryptographic verification code will be dispatched to verify ownership before the change is committed.
+                  Enter your proposed new email address. A 6-digit cryptographic verification code will be dispatched to
+                  verify ownership before the change is committed.
                 </p>
               </div>
             </div>
@@ -324,47 +359,59 @@
               <label class="pro-settings-label" for="pro-input-new-email">
                 Proposed New Email Address <span style="color: var(--pro-rose-500);">*</span>
               </label>
-              <input type="email" id="pro-input-new-email" class="pro-settings-input" placeholder="e.g. professional.new@buildbid.com" autocomplete="email">
+              <input type="email" id="pro-input-new-email" class="pro-settings-input"
+                placeholder="e.g. professional.new@buildbid.com" autocomplete="email">
               <div id="pro-email-change-error" class="pro-field-error" style="display: none;" role="alert"></div>
             </div>
 
             <div class="pro-subcard-actions" style="margin-top: 16px;">
-              <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-send-email-change-otp" disabled>
+              <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-send-email-change-otp"
+                disabled>
                 <i class="fa-solid fa-paper-plane"></i>
                 <span>Send OTP</span>
               </button>
-              <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-cancel-email-change">
+              <button type="button" class="pro-settings-btn pro-settings-btn-secondary"
+                id="pro-btn-cancel-email-change">
                 <i class="fa-solid fa-xmark"></i>
                 <span>Cancel</span>
               </button>
             </div>
             <div id="pro-email-send-attempts-hint" class="pro-otp-meta-row" style="margin-top: 10px; display: none;">
-              <span id="pro-email-send-attempts-remaining-text"><i class="fa-solid fa-shield-halved"></i> 5 send attempts remaining in current 24h window</span>
+              <span id="pro-email-send-attempts-remaining-text"><i class="fa-solid fa-shield-halved"></i> 5 send
+                attempts remaining in current 24h window</span>
             </div>
           </div>
 
           <!-- Email OTP Verification Sub-Card (Step C & D) -->
           <div class="pro-settings-interactive-subcard" id="pro-email-otp-section" style="display: none;">
             <div class="pro-subcard-header">
-              <div class="pro-subcard-icon" style="background-color: var(--pro-orange-50); color: var(--pro-orange-600); border-color: var(--pro-orange-100);">
+              <div class="pro-subcard-icon"
+                style="background-color: var(--pro-orange-50); color: var(--pro-orange-600); border-color: var(--pro-orange-100);">
                 <i class="fa-solid fa-shield-keyhole"></i>
               </div>
               <div>
                 <h4 class="pro-subcard-title">Enter Verification Code</h4>
                 <p class="pro-subcard-desc">
-                  We sent a 6-digit verification code to <strong id="pro-email-otp-target-display" style="color: var(--pro-slate-900);">your proposed email</strong>.
+                  We sent a 6-digit verification code to <strong id="pro-email-otp-target-display"
+                    style="color: var(--pro-slate-900);">your proposed email</strong>.
                 </p>
               </div>
             </div>
 
             <!-- 6-digit OTP Inputs -->
             <div class="pro-otp-digits-wrapper" id="pro-email-otp-digits-container">
-              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="0" autocomplete="off" aria-label="Digit 1">
-              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="1" autocomplete="off" aria-label="Digit 2">
-              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="2" autocomplete="off" aria-label="Digit 3">
-              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="3" autocomplete="off" aria-label="Digit 4">
-              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="4" autocomplete="off" aria-label="Digit 5">
-              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="5" autocomplete="off" aria-label="Digit 6">
+              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+                data-index="0" autocomplete="off" aria-label="Digit 1">
+              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+                data-index="1" autocomplete="off" aria-label="Digit 2">
+              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+                data-index="2" autocomplete="off" aria-label="Digit 3">
+              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+                data-index="3" autocomplete="off" aria-label="Digit 4">
+              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+                data-index="4" autocomplete="off" aria-label="Digit 5">
+              <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+                data-index="5" autocomplete="off" aria-label="Digit 6">
             </div>
 
             <div class="pro-subcard-actions">
@@ -372,7 +419,8 @@
                 <i class="fa-solid fa-circle-check"></i>
                 <span>Confirm and Change Email</span>
               </button>
-              <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-resend-email-otp" disabled>
+              <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-resend-email-otp"
+                disabled>
                 <i class="fa-solid fa-rotate-right"></i>
                 <span id="pro-email-resend-countdown">Resend Code (60s)</span>
               </button>
@@ -383,9 +431,11 @@
 
             <div class="pro-otp-meta-row">
               <span class="pro-otp-expiry-hint"><i class="fa-regular fa-clock"></i> Code expires in 10 minutes</span>
-              <span id="pro-email-otp-remaining-attempts"><i class="fa-solid fa-shield-halved"></i> Remaining send attempts: 5 of 5</span>
+              <span id="pro-email-otp-remaining-attempts"><i class="fa-solid fa-shield-halved"></i> Remaining send
+                attempts: 5 of 5</span>
             </div>
-            <div id="pro-email-otp-renewal-banner" class="pro-field-error" style="display: none; margin-top: 10px;" role="alert"></div>
+            <div id="pro-email-otp-renewal-banner" class="pro-field-error" style="display: none; margin-top: 10px;"
+              role="alert"></div>
 
             <div id="pro-email-otp-feedback" class="pro-otp-feedback-box" style="display: none;" role="alert"></div>
           </div>
@@ -405,7 +455,8 @@
               <span class="pro-settings-badge pro-settings-badge-pending" id="badge-phone-status">
                 <i class="fa-solid fa-clock"></i> Verification Pending
               </span>
-              <button type="button" class="pro-settings-btn pro-settings-btn-secondary" onclick="notifyPlannedFeature('Mobile phone OTP verification is planned for Phase 2.')">
+              <button type="button" class="pro-settings-btn pro-settings-btn-secondary"
+                onclick="notifyPlannedFeature('Mobile phone OTP verification is planned for Phase 2.')">
                 Verify via OTP
               </button>
             </div>
@@ -440,7 +491,8 @@
               Change Password
             </h3>
             <p class="pro-settings-card-desc">
-              Update your login password. We recommend choosing a strong password of at least 8 characters. For your security, all existing sessions will be invalidated and you will be asked to log in again.
+              Update your login password. We recommend choosing a strong password of at least 8 characters. For your
+              security, all existing sessions will be invalidated and you will be asked to log in again.
             </p>
           </div>
 
@@ -452,12 +504,17 @@
                   <span>Current Password <span style="color: var(--pro-rose-500);">*</span></span>
                 </label>
                 <div class="pro-settings-security-input-wrap">
-                  <input type="password" id="pro-settings-security-current-password" name="currentPassword" class="pro-settings-input" placeholder="Enter current password" autocomplete="current-password" required>
-                  <button type="button" class="pro-settings-security-pwd-toggle" id="pro-settings-security-toggle-current" title="Toggle current password visibility" aria-label="Toggle current password visibility">
+                  <input type="password" id="pro-settings-security-current-password" name="currentPassword"
+                    class="pro-settings-input" placeholder="Enter current password" autocomplete="current-password"
+                    required>
+                  <button type="button" class="pro-settings-security-pwd-toggle"
+                    id="pro-settings-security-toggle-current" title="Toggle current password visibility"
+                    aria-label="Toggle current password visibility">
                     <i class="fa-regular fa-eye"></i>
                   </button>
                 </div>
-                <div id="pro-settings-security-current-error" class="pro-field-error" style="display: none;" role="alert"></div>
+                <div id="pro-settings-security-current-error" class="pro-field-error" style="display: none;"
+                  role="alert"></div>
               </div>
 
               <!-- New Password -->
@@ -466,12 +523,15 @@
                   <span>New Password <span style="color: var(--pro-rose-500);">*</span></span>
                 </label>
                 <div class="pro-settings-security-input-wrap">
-                  <input type="password" id="pro-settings-security-new-password" name="newPassword" class="pro-settings-input" placeholder="Min. 8 characters" autocomplete="new-password" required>
-                  <button type="button" class="pro-settings-security-pwd-toggle" id="pro-settings-security-toggle-new" title="Toggle new password visibility" aria-label="Toggle new password visibility">
+                  <input type="password" id="pro-settings-security-new-password" name="newPassword"
+                    class="pro-settings-input" placeholder="Min. 8 characters" autocomplete="new-password" required>
+                  <button type="button" class="pro-settings-security-pwd-toggle" id="pro-settings-security-toggle-new"
+                    title="Toggle new password visibility" aria-label="Toggle new password visibility">
                     <i class="fa-regular fa-eye"></i>
                   </button>
                 </div>
-                <div id="pro-settings-security-new-error" class="pro-field-error" style="display: none;" role="alert"></div>
+                <div id="pro-settings-security-new-error" class="pro-field-error" style="display: none;" role="alert">
+                </div>
               </div>
 
               <!-- Confirm New Password -->
@@ -480,12 +540,16 @@
                   <span>Confirm New Password <span style="color: var(--pro-rose-500);">*</span></span>
                 </label>
                 <div class="pro-settings-security-input-wrap">
-                  <input type="password" id="pro-settings-security-confirm-password" name="confirmPassword" class="pro-settings-input" placeholder="Re-enter new password" autocomplete="new-password" required>
-                  <button type="button" class="pro-settings-security-pwd-toggle" id="pro-settings-security-toggle-confirm" title="Toggle confirm password visibility" aria-label="Toggle confirm password visibility">
+                  <input type="password" id="pro-settings-security-confirm-password" name="confirmPassword"
+                    class="pro-settings-input" placeholder="Re-enter new password" autocomplete="new-password" required>
+                  <button type="button" class="pro-settings-security-pwd-toggle"
+                    id="pro-settings-security-toggle-confirm" title="Toggle confirm password visibility"
+                    aria-label="Toggle confirm password visibility">
                     <i class="fa-regular fa-eye"></i>
                   </button>
                 </div>
-                <div id="pro-settings-security-confirm-error" class="pro-field-error" style="display: none;" role="alert"></div>
+                <div id="pro-settings-security-confirm-error" class="pro-field-error" style="display: none;"
+                  role="alert"></div>
               </div>
             </div>
 
@@ -512,15 +576,18 @@
             </div>
 
             <!-- Form Feedback Box (Success / Error Alert) -->
-            <div id="pro-settings-security-feedback" class="pro-settings-security-feedback" style="display: none;" role="status" aria-live="polite"></div>
+            <div id="pro-settings-security-feedback" class="pro-settings-security-feedback" style="display: none;"
+              role="status" aria-live="polite"></div>
 
             <!-- Form Action Buttons -->
             <div style="display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
-              <button type="submit" id="pro-settings-security-submit-btn" class="pro-settings-btn pro-settings-btn-primary">
+              <button type="submit" id="pro-settings-security-submit-btn"
+                class="pro-settings-btn pro-settings-btn-primary">
                 <i class="fa-solid fa-lock"></i>
                 <span>Update Password</span>
               </button>
-              <button type="button" id="pro-settings-security-reset-btn" class="pro-settings-btn pro-settings-btn-secondary">
+              <button type="button" id="pro-settings-security-reset-btn"
+                class="pro-settings-btn pro-settings-btn-secondary">
                 <i class="fa-solid fa-rotate-left"></i>
                 <span>Cancel / Clear</span>
               </button>
@@ -537,7 +604,9 @@
                 Session Invalidation &amp; Remote Revoke
               </h3>
               <p class="pro-settings-card-desc">
-                BuildBid uses stateless cryptographic tokens for maximum privacy and scalability. If you suspect unauthorized activity or left your session active on a public device, revoke all active sessions immediately.
+                BuildBid uses stateless cryptographic tokens for maximum privacy and scalability. If you suspect
+                unauthorized activity or left your session active on a public device, revoke all active sessions
+                immediately.
               </p>
             </div>
           </div>
@@ -546,24 +615,28 @@
             <i class="fa-solid fa-circle-info" style="font-size: 16px;"></i>
             <div style="flex: 1;">
               <strong>Cross-Device Notice:</strong>
-              Revoking active sessions updates your account's security timestamp and immediately invalidates all previously issued tokens across desktop and mobile devices. You will be redirected to the login page.
+              Revoking active sessions updates your account's security timestamp and immediately invalidates all
+              previously issued tokens across desktop and mobile devices. You will be redirected to the login page.
             </div>
           </div>
 
           <div style="display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap;">
-            <button type="button" id="pro-settings-security-logout-all-btn" class="pro-settings-btn pro-settings-btn-danger">
+            <button type="button" id="pro-settings-security-logout-all-btn"
+              class="pro-settings-btn pro-settings-btn-danger">
               <i class="fa-solid fa-power-off"></i>
               <span>Revoke All Active Sessions</span>
             </button>
           </div>
-          <div id="pro-settings-security-revoke-feedback" class="pro-settings-security-feedback" style="display: none;" role="status" aria-live="polite"></div>
+          <div id="pro-settings-security-revoke-feedback" class="pro-settings-security-feedback" style="display: none;"
+            role="status" aria-live="polite"></div>
         </div>
       </section>
 
       <!-- ============================================================
            SECTION 5: ACCOUNT ACTIVITY & HISTORY
            ============================================================ -->
-      <section class="pro-settings-panel" id="sec-account-activity" role="tabpanel" aria-labelledby="tab-account-activity">
+      <section class="pro-settings-panel" id="sec-account-activity" role="tabpanel"
+        aria-labelledby="tab-account-activity">
         <div class="pro-settings-card">
           <div class="pro-settings-card-header">
             <div class="pro-settings-card-title-wrap">
@@ -572,14 +645,16 @@
                 5. Account Activity &amp; History
               </h2>
               <p class="pro-settings-card-desc">
-                Review verified security, verification, and profile activity events recorded for your authenticated BuildBid account.
+                Review verified security, verification, and profile activity events recorded for your authenticated
+                BuildBid account.
               </p>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <span class="pro-settings-badge pro-settings-badge-verified" id="pro-activity-count-badge">
                 <i class="fa-solid fa-shield-halved"></i> Verified Records
               </span>
-              <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-refresh-activity" title="Refresh account activity">
+              <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-refresh-activity"
+                title="Refresh account activity">
                 <i class="fa-solid fa-rotate-right"></i>
                 <span>Refresh</span>
               </button>
@@ -594,7 +669,8 @@
           <div class="pro-settings-footer-note">
             <div class="pro-settings-phase-notice">
               <i class="fa-solid fa-circle-info"></i>
-              <span>All displayed events are derived strictly from genuine backend timestamps and cryptographically authenticated user records.</span>
+              <span>All displayed events are derived strictly from genuine backend timestamps and cryptographically
+                authenticated user records.</span>
             </div>
           </div>
         </div>
@@ -603,7 +679,8 @@
       <!-- ============================================================
            SECTION 6: ACCOUNT DEACTIVATION / DELETION
            ============================================================ -->
-      <section class="pro-settings-panel" id="sec-deactivation-deletion" role="tabpanel" aria-labelledby="tab-deactivation-deletion">
+      <section class="pro-settings-panel" id="sec-deactivation-deletion" role="tabpanel"
+        aria-labelledby="tab-deactivation-deletion">
         <div class="pro-settings-card" style="border-color: var(--pro-rose-100);">
           <div class="pro-settings-card-header">
             <div class="pro-settings-card-title-wrap">
@@ -612,10 +689,13 @@
                 6. Account Deactivation / Deletion
               </h2>
               <p class="pro-settings-card-desc">
-                Temporarily pause your listing from client discovery, or permanently close your BuildBid professional account.
+                Temporarily pause your listing from client discovery, or permanently close your BuildBid professional
+                account.
               </p>
             </div>
-            <span class="pro-settings-badge" style="background-color: var(--pro-rose-50); color: var(--pro-rose-600); border: 1px solid var(--pro-rose-100);">Danger Zone</span>
+            <span class="pro-settings-badge"
+              style="background-color: var(--pro-rose-50); color: var(--pro-rose-600); border: 1px solid var(--pro-rose-100);">Danger
+              Zone</span>
           </div>
 
           <!-- Real-Time Account Lifecycle Status Strip -->
@@ -630,36 +710,44 @@
               <span class="pro-status-pill" id="pro-deact-phone-pill">
                 <i class="fa-solid fa-phone"></i> <span id="pro-deact-phone-text">Mobile Checking...</span>
               </span>
-              <span class="pro-status-pill" id="pro-deact-services-pill" style="background-color: var(--pro-slate-100); color: var(--pro-slate-700); border: 1px solid var(--pro-slate-200);">
+              <span class="pro-status-pill" id="pro-deact-services-pill"
+                style="background-color: var(--pro-slate-100); color: var(--pro-slate-700); border: 1px solid var(--pro-slate-200);">
                 <i class="fa-solid fa-briefcase"></i> <span id="pro-deact-services-text">Services</span>
               </span>
             </div>
-            <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-refresh-deact-status" title="Refresh Account Status">
+            <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-refresh-deact-status"
+              title="Refresh Account Status">
               <i class="fa-solid fa-rotate-right"></i>
               <span>Refresh Status</span>
             </button>
           </div>
 
           <!-- Feature Row 1: Temporary Account Deactivation -->
-          <div class="pro-settings-feature-row" style="background-color: rgba(254, 243, 199, 0.25); border: 1px solid var(--pro-amber-100); border-radius: var(--pro-radius-lg); padding: 20px; margin-bottom: 20px;">
+          <div class="pro-settings-feature-row"
+            style="background-color: rgba(254, 243, 199, 0.25); border: 1px solid var(--pro-amber-100); border-radius: var(--pro-radius-lg); padding: 20px; margin-bottom: 20px;">
             <div class="pro-settings-feature-info">
-              <div class="pro-settings-feature-icon" style="background-color: var(--pro-amber-100); color: var(--pro-amber-700);">
+              <div class="pro-settings-feature-icon"
+                style="background-color: var(--pro-amber-100); color: var(--pro-amber-700);">
                 <i class="fa-solid fa-pause"></i>
               </div>
               <div class="pro-settings-feature-text">
-                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--pro-slate-900); margin: 0 0 4px 0;">Temporarily Pause / Deactivate Profile</h4>
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--pro-slate-900); margin: 0 0 4px 0;">
+                  Temporarily Pause / Deactivate Profile</h4>
                 <p style="font-size: 12.5px; color: var(--pro-slate-600); margin: 0 0 10px 0; line-height: 1.5;">
                   Take a break from client requests without losing your reputation, ratings, or verified documents.
                 </p>
-                <ul style="font-size: 11.5px; color: var(--pro-slate-600); margin: 0; padding-left: 18px; line-height: 1.6;">
+                <ul
+                  style="font-size: 11.5px; color: var(--pro-slate-600); margin: 0; padding-left: 18px; line-height: 1.6;">
                   <li>Hides your public card and published services from client discovery and direct hire searches.</li>
                   <li>Preserves all client reviews, verified credentials, and historical project proposals safely.</li>
-                  <li>Direct login is suspended while deactivated; you can reactivate at any time by contacting BuildBid support.</li>
+                  <li>Direct login is suspended while deactivated; you can reactivate at any time by contacting BuildBid
+                    support.</li>
                 </ul>
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-              <button type="button" class="pro-settings-btn pro-settings-btn-warning" id="pro-btn-open-deactivate-modal">
+              <button type="button" class="pro-settings-btn pro-settings-btn-warning"
+                id="pro-btn-open-deactivate-modal">
                 <i class="fa-solid fa-pause"></i>
                 <span>Pause Profile</span>
               </button>
@@ -667,21 +755,29 @@
           </div>
 
           <!-- Feature Row 2: Permanent Account Deletion -->
-          <div class="pro-settings-feature-row" style="background-color: rgba(255, 241, 242, 0.35); border: 1px solid var(--pro-rose-100); border-radius: var(--pro-radius-lg); padding: 20px;">
+          <div class="pro-settings-feature-row"
+            style="background-color: rgba(255, 241, 242, 0.35); border: 1px solid var(--pro-rose-100); border-radius: var(--pro-radius-lg); padding: 20px;">
             <div class="pro-settings-feature-info">
-              <div class="pro-settings-feature-icon" style="background-color: var(--pro-rose-100); color: var(--pro-rose-600);">
+              <div class="pro-settings-feature-icon"
+                style="background-color: var(--pro-rose-100); color: var(--pro-rose-600);">
                 <i class="fa-solid fa-user-xmark"></i>
               </div>
               <div class="pro-settings-feature-text">
-                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--pro-rose-600); margin: 0 0 4px 0;">Permanently Delete Account</h4>
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--pro-rose-600); margin: 0 0 4px 0;">
+                  Permanently Delete Account</h4>
                 <p style="font-size: 12.5px; color: var(--pro-slate-600); margin: 0 0 10px 0; line-height: 1.5;">
-                  Permanently terminate your BuildBid professional account, remove personal data, and revoke credentials.
+                  Permanently terminate your BuildBid professional account, remove personal data, and revoke
+                  credentials.
                 </p>
-                <ul style="font-size: 11.5px; color: var(--pro-slate-600); margin: 0; padding-left: 18px; line-height: 1.6;">
-                  <li>Deletes profile picture, deactivates published services, and scrambles login credentials permanently.</li>
+                <ul
+                  style="font-size: 11.5px; color: var(--pro-slate-600); margin: 0; padding-left: 18px; line-height: 1.6;">
+                  <li>Deletes profile picture, deactivates published services, and scrambles login credentials
+                    permanently.</li>
                   <li>Immediately invalidates active JWT sessions across all devices.</li>
-                  <li>Shared project applications and consultation contracts are preserved for legal and audit compliance.</li>
-                  <li><strong>Security Prerequisite:</strong> Requires verification of BOTH your primary email and mobile number via secure OTP.</li>
+                  <li>Shared project applications and consultation contracts are preserved for legal and audit
+                    compliance.</li>
+                  <li><strong>Security Prerequisite:</strong> Requires verification of BOTH your primary email and
+                    mobile number via secure OTP.</li>
                 </ul>
               </div>
             </div>
@@ -696,7 +792,8 @@
           <div class="pro-settings-footer-note">
             <div class="pro-settings-phase-notice">
               <i class="fa-solid fa-shield-halved"></i>
-              <span>All deactivation and deletion operations are backed by server-authoritative state transitions and cryptographic audit logging.</span>
+              <span>All deactivation and deletion operations are backed by server-authoritative state transitions and
+                cryptographic audit logging.</span>
             </div>
           </div>
         </div>
@@ -708,7 +805,8 @@
   <!-- ============================================================
        MODAL: CONFIRM SIGNOUT
        ============================================================ -->
-  <div class="pro-settings-modal-overlay" id="modal-signout" role="dialog" aria-modal="true" aria-labelledby="modal-signout-title">
+  <div class="pro-settings-modal-overlay" id="modal-signout" role="dialog" aria-modal="true"
+    aria-labelledby="modal-signout-title">
     <div class="pro-settings-modal-card">
       <div class="pro-settings-modal-icon pro-settings-modal-icon-danger">
         <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -731,14 +829,16 @@
   <!-- ============================================================
        MODAL: DEACTIVATE PROFESSIONAL ACCOUNT
        ============================================================ -->
-  <div class="pro-settings-modal-overlay" id="modal-pro-deactivate" role="dialog" aria-modal="true" aria-labelledby="modal-pro-deact-title">
+  <div class="pro-settings-modal-overlay" id="modal-pro-deactivate" role="dialog" aria-modal="true"
+    aria-labelledby="modal-pro-deact-title">
     <div class="pro-settings-modal-card">
       <div class="pro-settings-modal-icon" style="background-color: var(--pro-amber-50); color: var(--pro-amber-600);">
         <i class="fa-solid fa-pause"></i>
       </div>
       <h3 class="pro-settings-modal-title" id="modal-pro-deact-title">Pause Professional Account?</h3>
       <p class="pro-settings-modal-desc">
-        Your published services will be hidden from client search. Your reviews and ratings will be safely preserved. To reactivate later, contact BuildBid Support.
+        Your published services will be hidden from client search. Your reviews and ratings will be safely preserved. To
+        reactivate later, contact BuildBid Support.
       </p>
 
       <div class="pro-settings-form-group" style="text-align: left; margin-bottom: 16px;">
@@ -746,14 +846,17 @@
           <span>Enter Current Password to Confirm <span style="color: var(--pro-rose-500);">*</span></span>
         </label>
         <div class="pro-settings-security-input-wrap">
-          <input type="password" id="pro-deact-password" class="pro-settings-input" placeholder="Current account password" autocomplete="current-password" required>
-          <button type="button" class="pro-settings-security-pwd-toggle" id="pro-deact-pwd-toggle" title="Toggle password visibility" aria-label="Toggle password visibility">
+          <input type="password" id="pro-deact-password" class="pro-settings-input"
+            placeholder="Current account password" autocomplete="current-password" required>
+          <button type="button" class="pro-settings-security-pwd-toggle" id="pro-deact-pwd-toggle"
+            title="Toggle password visibility" aria-label="Toggle password visibility">
             <i class="fa-regular fa-eye"></i>
           </button>
         </div>
       </div>
 
-      <div id="pro-deact-feedback" class="pro-settings-security-feedback" style="display: none; margin-bottom: 16px;" role="alert"></div>
+      <div id="pro-deact-feedback" class="pro-settings-security-feedback" style="display: none; margin-bottom: 16px;"
+        role="alert"></div>
 
       <div class="pro-settings-modal-actions">
         <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-cancel-deactivate">
@@ -770,19 +873,24 @@
   <!-- ============================================================
        MODAL: MULTI-STEP PERMANENT ACCOUNT DELETION
        ============================================================ -->
-  <div class="pro-settings-modal-overlay" id="modal-pro-delete" role="dialog" aria-modal="true" aria-labelledby="modal-pro-delete-title">
+  <div class="pro-settings-modal-overlay" id="modal-pro-delete" role="dialog" aria-modal="true"
+    aria-labelledby="modal-pro-delete-title">
     <div class="pro-settings-modal-card pro-settings-modal-card-lg">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          <div class="pro-settings-modal-icon pro-settings-modal-icon-danger" style="margin: 0; width: 42px; height: 42px; font-size: 18px;">
+          <div class="pro-settings-modal-icon pro-settings-modal-icon-danger"
+            style="margin: 0; width: 42px; height: 42px; font-size: 18px;">
             <i class="fa-solid fa-triangle-exclamation"></i>
           </div>
           <div>
-            <h3 class="pro-settings-modal-title" id="modal-pro-delete-title" style="font-size: 16px;">Permanent Account Deletion</h3>
-            <span style="font-size: 11.5px; color: var(--pro-slate-500);" id="modal-pro-delete-step-hint">Step 1 of 4: Prerequisites &amp; Notice</span>
+            <h3 class="pro-settings-modal-title" id="modal-pro-delete-title" style="font-size: 16px;">Permanent Account
+              Deletion</h3>
+            <span style="font-size: 11.5px; color: var(--pro-slate-500);" id="modal-pro-delete-step-hint">Step 1 of 4:
+              Prerequisites &amp; Notice</span>
           </div>
         </div>
-        <button type="button" id="pro-btn-delete-modal-close" aria-label="Close dialog" style="background: none; border: none; font-size: 18px; color: var(--pro-slate-400); cursor: pointer;">
+        <button type="button" id="pro-btn-delete-modal-close" aria-label="Close dialog"
+          style="background: none; border: none; font-size: 18px; color: var(--pro-slate-400); cursor: pointer;">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -800,11 +908,13 @@
         <div class="pro-settings-alert pro-settings-alert-danger" style="margin-bottom: 16px;">
           <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; margin-top: 2px;"></i>
           <div style="font-size: 12px;">
-            <strong>Warning: This action cannot be reversed.</strong> Once finalized, your professional headshot, published service listings, and active tokens are erased permanently.
+            <strong>Warning: This action cannot be reversed.</strong> Once finalized, your professional headshot,
+            published service listings, and active tokens are erased permanently.
           </div>
         </div>
 
-        <h4 style="font-size: 13px; font-weight: 700; color: var(--pro-slate-800); margin: 0 0 8px 0;">Required Verification Channels</h4>
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--pro-slate-800); margin: 0 0 8px 0;">Required
+          Verification Channels</h4>
         <p style="font-size: 12px; color: var(--pro-slate-500); margin: 0 0 12px 0;">
           Permanent account deletion requires dual-channel verification to protect your professional identity:
         </p>
@@ -814,7 +924,8 @@
           <div class="pro-channel-info">
             <div class="pro-channel-icon"><i class="fa-regular fa-envelope"></i></div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; color: var(--pro-slate-800);" id="pro-del-s1-email-val">Checking email...</div>
+              <div style="font-size: 12px; font-weight: 600; color: var(--pro-slate-800);" id="pro-del-s1-email-val">
+                Checking email...</div>
               <div style="font-size: 10.5px; color: var(--pro-slate-400);">Registered Email Address</div>
             </div>
           </div>
@@ -826,32 +937,39 @@
           <div class="pro-channel-info">
             <div class="pro-channel-icon"><i class="fa-solid fa-mobile-screen"></i></div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; color: var(--pro-slate-800);" id="pro-del-s1-phone-val">Checking mobile...</div>
+              <div style="font-size: 12px; font-weight: 600; color: var(--pro-slate-800);" id="pro-del-s1-phone-val">
+                Checking mobile...</div>
               <div style="font-size: 10.5px; color: var(--pro-slate-400);">Primary Mobile Number</div>
             </div>
           </div>
           <span class="pro-settings-badge pro-settings-badge-verified" id="pro-del-s1-phone-badge">Checking</span>
         </div>
 
-        <div id="pro-del-s1-feedback" class="pro-settings-security-feedback" style="display: none; margin-top: 14px;" role="alert"></div>
+        <div id="pro-del-s1-feedback" class="pro-settings-security-feedback" style="display: none; margin-top: 14px;"
+          role="alert"></div>
 
         <div class="pro-settings-modal-actions" style="margin-top: 20px;">
-          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-cancel-del-s1">Cancel</button>
-          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-goto-del-s2">Proceed to Authorization <i class="fa-solid fa-arrow-right"></i></button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary"
+            id="pro-btn-cancel-del-s1">Cancel</button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-goto-del-s2">Proceed to
+            Authorization <i class="fa-solid fa-arrow-right"></i></button>
         </div>
       </div>
 
       <!-- SCREEN 2: Explicit Confirmation Word & Password -->
       <div class="pro-del-screen" id="pro-del-screen-2" style="display: none;">
         <p style="font-size: 12.5px; color: var(--pro-slate-600); margin: 0 0 16px 0; line-height: 1.5;">
-          Please enter your current password and type <strong style="color: var(--pro-rose-600);">DELETE</strong> in exact uppercase to verify intent before the cryptographic code is dispatched.
+          Please enter your current password and type <strong style="color: var(--pro-rose-600);">DELETE</strong> in
+          exact uppercase to verify intent before the cryptographic code is dispatched.
         </p>
 
         <div class="pro-settings-form-group" style="margin-bottom: 14px;">
           <label class="pro-settings-label" for="pro-del-confirm-word">
-            <span>Type <strong style="color: var(--pro-rose-600);">DELETE</strong> to confirm <span style="color: var(--pro-rose-500);">*</span></span>
+            <span>Type <strong style="color: var(--pro-rose-600);">DELETE</strong> to confirm <span
+                style="color: var(--pro-rose-500);">*</span></span>
           </label>
-          <input type="text" id="pro-del-confirm-word" class="pro-settings-input" placeholder="Type DELETE" autocomplete="off" required>
+          <input type="text" id="pro-del-confirm-word" class="pro-settings-input" placeholder="Type DELETE"
+            autocomplete="off" required>
         </div>
 
         <div class="pro-settings-form-group" style="margin-bottom: 14px;">
@@ -859,17 +977,21 @@
             <span>Current Password <span style="color: var(--pro-rose-500);">*</span></span>
           </label>
           <div class="pro-settings-security-input-wrap">
-            <input type="password" id="pro-del-password" class="pro-settings-input" placeholder="Enter current password" autocomplete="current-password" required>
-            <button type="button" class="pro-settings-security-pwd-toggle" id="pro-del-pwd-toggle" title="Toggle password visibility" aria-label="Toggle password visibility">
+            <input type="password" id="pro-del-password" class="pro-settings-input" placeholder="Enter current password"
+              autocomplete="current-password" required>
+            <button type="button" class="pro-settings-security-pwd-toggle" id="pro-del-pwd-toggle"
+              title="Toggle password visibility" aria-label="Toggle password visibility">
               <i class="fa-regular fa-eye"></i>
             </button>
           </div>
         </div>
 
-        <div id="pro-del-s2-feedback" class="pro-settings-security-feedback" style="display: none; margin-top: 14px;" role="alert"></div>
+        <div id="pro-del-s2-feedback" class="pro-settings-security-feedback" style="display: none; margin-top: 14px;"
+          role="alert"></div>
 
         <div class="pro-settings-modal-actions" style="margin-top: 20px;">
-          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-back-to-del-s1"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-back-to-del-s1"><i
+              class="fa-solid fa-arrow-left"></i> Back</button>
           <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-btn-send-del-otp">
             <i class="fa-solid fa-paper-plane"></i>
             <span>Send Deletion Code</span>
@@ -880,29 +1002,41 @@
       <!-- SCREEN 3: Dual-Channel OTP Verification -->
       <div class="pro-del-screen" id="pro-del-screen-3" style="display: none;">
         <p style="font-size: 12.5px; color: var(--pro-slate-600); margin: 0 0 16px 0; line-height: 1.5;">
-          A single 6-digit security code was dispatched to both <strong id="pro-del-masked-email" style="color: var(--pro-slate-900);">your email</strong> and <strong id="pro-del-masked-phone" style="color: var(--pro-slate-900);">your mobile</strong>.
+          A single 6-digit security code was dispatched to both <strong id="pro-del-masked-email"
+            style="color: var(--pro-slate-900);">your email</strong> and <strong id="pro-del-masked-phone"
+            style="color: var(--pro-slate-900);">your mobile</strong>.
         </p>
 
         <!-- 6-digit OTP Inputs -->
         <div class="pro-otp-digits-wrapper" id="pro-del-otp-digits-container" style="margin: 16px 0;">
-          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="0" autocomplete="off" aria-label="Digit 1">
-          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="1" autocomplete="off" aria-label="Digit 2">
-          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="2" autocomplete="off" aria-label="Digit 3">
-          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="3" autocomplete="off" aria-label="Digit 4">
-          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="4" autocomplete="off" aria-label="Digit 5">
-          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input" data-index="5" autocomplete="off" aria-label="Digit 6">
+          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+            data-index="0" autocomplete="off" aria-label="Digit 1">
+          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+            data-index="1" autocomplete="off" aria-label="Digit 2">
+          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+            data-index="2" autocomplete="off" aria-label="Digit 3">
+          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+            data-index="3" autocomplete="off" aria-label="Digit 4">
+          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+            data-index="4" autocomplete="off" aria-label="Digit 5">
+          <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="pro-otp-digit-input"
+            data-index="5" autocomplete="off" aria-label="Digit 6">
         </div>
 
         <div class="pro-otp-meta-row" style="margin-bottom: 12px;">
-          <span class="pro-otp-expiry-hint"><i class="fa-regular fa-clock"></i> Code expires in <strong id="pro-del-expiry-count">10:00</strong></span>
+          <span class="pro-otp-expiry-hint"><i class="fa-regular fa-clock"></i> Code expires in <strong
+              id="pro-del-expiry-count">10:00</strong></span>
           <span>Max 5 attempts</span>
         </div>
 
-        <div id="pro-del-s3-feedback" class="pro-otp-feedback-box" style="display: none; margin-bottom: 14px;" role="alert"></div>
+        <div id="pro-del-s3-feedback" class="pro-otp-feedback-box" style="display: none; margin-bottom: 14px;"
+          role="alert"></div>
 
         <div class="pro-settings-modal-actions" style="margin-top: 16px;">
-          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-back-to-del-s2"><i class="fa-solid fa-arrow-left"></i> Back</button>
-          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-resend-del-otp" disabled>
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-back-to-del-s2"><i
+              class="fa-solid fa-arrow-left"></i> Back</button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-resend-del-otp"
+            disabled>
             <i class="fa-solid fa-rotate-right"></i>
             <span id="pro-del-resend-countdown">Resend (60s)</span>
           </button>
@@ -919,15 +1053,19 @@
           <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-top: 2px;"></i>
           <div style="font-size: 12.5px;">
             <strong>Final Confirmation Required:</strong>
-            You have successfully completed dual-channel OTP verification. Clicking the button below will immediately and irreversibly delete your professional account and invalidate all active sessions.
+            You have successfully completed dual-channel OTP verification. Clicking the button below will immediately
+            and irreversibly delete your professional account and invalidate all active sessions.
           </div>
         </div>
 
-        <div id="pro-del-s4-feedback" class="pro-settings-security-feedback" style="display: none; margin-bottom: 14px;" role="alert"></div>
+        <div id="pro-del-s4-feedback" class="pro-settings-security-feedback" style="display: none; margin-bottom: 14px;"
+          role="alert"></div>
 
         <div class="pro-settings-modal-actions" style="margin-top: 20px;">
-          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-btn-cancel-del-final">Cancel</button>
-          <button type="button" class="pro-settings-btn pro-settings-btn-danger" id="pro-btn-finalize-del" style="background-color: var(--pro-rose-600); color: white; border: none;">
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary"
+            id="pro-btn-cancel-del-final">Cancel</button>
+          <button type="button" class="pro-settings-btn pro-settings-btn-danger" id="pro-btn-finalize-del"
+            style="background-color: var(--pro-rose-600); color: white; border: none;">
             <i class="fa-solid fa-trash-can"></i>
             <span>Permanently Delete My Account Now</span>
           </button>
@@ -939,7 +1077,8 @@
   <!-- ============================================================
        MODAL: PROFESSIONAL PROFILE PHOTO CROP & PREVIEW
        ============================================================ -->
-  <div class="pro-settings-modal-overlay" id="modal-pro-crop" role="dialog" aria-modal="true" aria-labelledby="modal-pro-crop-title" style="display: none;">
+  <div class="pro-settings-modal-overlay" id="modal-pro-crop" role="dialog" aria-modal="true"
+    aria-labelledby="modal-pro-crop-title" style="display: none;">
     <div class="pro-settings-modal-card pro-crop-modal-card">
       <!-- Modal Header -->
       <div class="pro-crop-header">
@@ -948,13 +1087,15 @@
             <i class="fa-solid fa-crop-simple"></i>
           </div>
           <div>
-            <h3 class="pro-settings-modal-title" id="modal-pro-crop-title" style="margin: 0; font-size: 16px;">Adjust Profile Photo</h3>
+            <h3 class="pro-settings-modal-title" id="modal-pro-crop-title" style="margin: 0; font-size: 16px;">Adjust
+              Profile Photo</h3>
             <p class="pro-settings-modal-desc" id="modal-pro-crop-desc" style="margin: 2px 0 0; font-size: 11px;">
               Reposition, zoom, and crop your professional headshot.
             </p>
           </div>
         </div>
-        <button type="button" class="pro-crop-close-btn" id="pro-crop-x-btn" onclick="closePhotoCropModal()" aria-label="Close Crop Modal">
+        <button type="button" class="pro-crop-close-btn" id="pro-crop-x-btn" onclick="closePhotoCropModal()"
+          aria-label="Close Crop Modal">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -968,21 +1109,25 @@
         <!-- Zoom & Rotate Toolbar -->
         <div class="pro-crop-tools">
           <div class="pro-crop-zoom-group">
-            <button type="button" class="pro-crop-tool-btn" id="pro-crop-zoom-out" title="Zoom Out" aria-label="Zoom Out">
+            <button type="button" class="pro-crop-tool-btn" id="pro-crop-zoom-out" title="Zoom Out"
+              aria-label="Zoom Out">
               <i class="fa-solid fa-magnifying-glass-minus"></i>
             </button>
-            <input type="range" id="pro-crop-zoom-slider" min="0.5" max="3" step="0.01" value="1" class="pro-crop-slider" aria-label="Zoom Level">
+            <input type="range" id="pro-crop-zoom-slider" min="0.5" max="3" step="0.01" value="1"
+              class="pro-crop-slider" aria-label="Zoom Level">
             <button type="button" class="pro-crop-tool-btn" id="pro-crop-zoom-in" title="Zoom In" aria-label="Zoom In">
               <i class="fa-solid fa-magnifying-glass-plus"></i>
             </button>
           </div>
 
           <div class="pro-crop-action-group">
-            <button type="button" class="pro-crop-tool-btn pro-crop-tool-btn-labeled" id="pro-crop-rotate-btn" title="Rotate 90 degrees">
+            <button type="button" class="pro-crop-tool-btn pro-crop-tool-btn-labeled" id="pro-crop-rotate-btn"
+              title="Rotate 90 degrees">
               <i class="fa-solid fa-rotate-right"></i>
               <span>Rotate 90°</span>
             </button>
-            <button type="button" class="pro-crop-tool-btn pro-crop-tool-btn-labeled" id="pro-crop-reset-btn" title="Reset view">
+            <button type="button" class="pro-crop-tool-btn pro-crop-tool-btn-labeled" id="pro-crop-reset-btn"
+              title="Reset view">
               <i class="fa-solid fa-arrows-rotate"></i>
               <span>Reset</span>
             </button>
@@ -998,7 +1143,8 @@
           <button type="button" class="pro-settings-btn pro-settings-btn-secondary" onclick="closePhotoCropModal()">
             Cancel
           </button>
-          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-crop-continue-btn" onclick="proceedToCropPreview()">
+          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-crop-continue-btn"
+            onclick="proceedToCropPreview()">
             <span>Continue to Preview</span>
             <i class="fa-solid fa-arrow-right"></i>
           </button>
@@ -1019,20 +1165,23 @@
             <span id="pro-crop-preview-meta">512 × 512 px · Standard Square / Circular Crop</span>
           </div>
           <p class="pro-crop-preview-note">
-            This photo will be displayed on your main Professional Dashboard, hero greeting card, and top navigation header.
+            This photo will be displayed on your main Professional Dashboard, hero greeting card, and top navigation
+            header.
           </p>
         </div>
 
         <!-- Preview Step Actions -->
         <div class="pro-settings-modal-actions" style="margin-top: 16px;">
-          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-crop-back-btn" onclick="backToCropStep()">
+          <button type="button" class="pro-settings-btn pro-settings-btn-secondary" id="pro-crop-back-btn"
+            onclick="backToCropStep()">
             <i class="fa-solid fa-arrow-left"></i>
             <span>Back to Crop</span>
           </button>
           <button type="button" class="pro-settings-btn pro-settings-btn-secondary" onclick="closePhotoCropModal()">
             Cancel
           </button>
-          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-crop-confirm-save-btn" onclick="confirmAndSaveCroppedPhoto()">
+          <button type="button" class="pro-settings-btn pro-settings-btn-primary" id="pro-crop-confirm-save-btn"
+            onclick="confirmAndSaveCroppedPhoto()">
             <i class="fa-solid fa-floppy-disk"></i>
             <span>Confirm &amp; Save</span>
           </button>
@@ -1050,4 +1199,5 @@
   <!-- Dedicated JavaScript Controller -->
   <script src="professional-account-setting.js"></script>
 </body>
+
 </html>

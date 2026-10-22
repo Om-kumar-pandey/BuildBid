@@ -22,7 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Comprehensive Security, IDOR Protection, Format Whitelisting, and Persistence Test Suite
+ * Comprehensive Security, IDOR Protection, Format Whitelisting, and Persistence
+ * Test Suite
  * for Professional Profile Picture Upload, Retrieval, and Removal.
  */
 public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
@@ -54,11 +55,13 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         user.setLocation("Mumbai");
         user.setPhone("9876543210");
         try {
-            java.lang.reflect.Field idField = MarketplaceBackendApplication.MarketplaceUser.class.getDeclaredField("id");
+            java.lang.reflect.Field idField = MarketplaceBackendApplication.MarketplaceUser.class
+                    .getDeclaredField("id");
             idField.setAccessible(true);
             idField.set(user, id);
 
-            java.lang.reflect.Field dateField = MarketplaceBackendApplication.MarketplaceUser.class.getDeclaredField("createdAt");
+            java.lang.reflect.Field dateField = MarketplaceBackendApplication.MarketplaceUser.class
+                    .getDeclaredField("createdAt");
             dateField.setAccessible(true);
             dateField.set(user, LocalDateTime.now().minusMonths(1));
         } catch (Exception e) {
@@ -107,13 +110,19 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
 
         int totalFileSize = 4 + 4 + 4 + vp8xChunk.length; // RIFF + size + WEBP + chunk
         byte[] riff = new byte[totalFileSize];
-        riff[0] = 'R'; riff[1] = 'I'; riff[2] = 'F'; riff[3] = 'F';
+        riff[0] = 'R';
+        riff[1] = 'I';
+        riff[2] = 'F';
+        riff[3] = 'F';
         int riffSize = totalFileSize - 8;
         riff[4] = (byte) (riffSize & 0xFF);
         riff[5] = (byte) ((riffSize >> 8) & 0xFF);
         riff[6] = (byte) ((riffSize >> 16) & 0xFF);
         riff[7] = (byte) ((riffSize >> 24) & 0xFF);
-        riff[8] = 'W'; riff[9] = 'E'; riff[10] = 'B'; riff[11] = 'P';
+        riff[8] = 'W';
+        riff[9] = 'E';
+        riff[10] = 'B';
+        riff[11] = 'P';
         System.arraycopy(vp8xChunk, 0, riff, 12, vp8xChunk.length);
         return riff;
     }
@@ -126,12 +135,18 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         photoService = new ProfessionalProfilePhotoService(photoRepository, userRepository);
         photoController = new ProfessionalProfileController(photoService, userRepository);
 
-        proUserA = createTestUser(301L, "proA@buildbid.com", "Pro User Alpha", "pro_alpha", MarketplaceBackendApplication.Role.PROFESSIONAL);
-        proUserB = createTestUser(302L, "proB@buildbid.com", "Pro User Beta", "pro_beta", MarketplaceBackendApplication.Role.PROFESSIONAL);
-        legacyServiceProvider = createTestUser(303L, "legacypro@buildbid.com", "Legacy Pro", "legacy_pro", MarketplaceBackendApplication.Role.SERVICE_PROVIDER);
-        customerUser = createTestUser(101L, "customer@buildbid.com", "Customer One", "cust_one", MarketplaceBackendApplication.Role.CUSTOMER);
-        contractorUser = createTestUser(201L, "contractor@buildbid.com", "Contractor One", "cont_one", MarketplaceBackendApplication.Role.CONTRACTOR);
-        sellerUser = createTestUser(401L, "seller@buildbid.com", "Seller One", "seller_one", MarketplaceBackendApplication.Role.MATERIAL_SELLER);
+        proUserA = createTestUser(301L, "proA@buildbid.com", "Pro User Alpha", "pro_alpha",
+                MarketplaceBackendApplication.Role.PROFESSIONAL);
+        proUserB = createTestUser(302L, "proB@buildbid.com", "Pro User Beta", "pro_beta",
+                MarketplaceBackendApplication.Role.PROFESSIONAL);
+        legacyServiceProvider = createTestUser(303L, "legacypro@buildbid.com", "Legacy Pro", "legacy_pro",
+                MarketplaceBackendApplication.Role.SERVICE_PROVIDER);
+        customerUser = createTestUser(101L, "customer@buildbid.com", "Customer One", "cust_one",
+                MarketplaceBackendApplication.Role.CUSTOMER);
+        contractorUser = createTestUser(201L, "contractor@buildbid.com", "Contractor One", "cont_one",
+                MarketplaceBackendApplication.Role.CONTRACTOR);
+        sellerUser = createTestUser(401L, "seller@buildbid.com", "Seller One", "seller_one",
+                MarketplaceBackendApplication.Role.MATERIAL_SELLER);
 
         when(userRepository.findByEmail("proA@buildbid.com")).thenReturn(Optional.of(proUserA));
         when(userRepository.findByUsername("proA@buildbid.com")).thenReturn(Optional.empty());
@@ -143,7 +158,8 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         when(userRepository.findByEmail("contractor@buildbid.com")).thenReturn(Optional.of(contractorUser));
         when(userRepository.findByEmail("seller@buildbid.com")).thenReturn(Optional.of(sellerUser));
 
-        when(photoRepository.save(any(ProfessionalProfilePhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(photoRepository.save(any(ProfessionalProfilePhoto.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Generate valid 2x2 PNG
         BufferedImage pngImage = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
@@ -246,8 +262,7 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
 
         // Mock repository returning saved entity on subsequent retrieval
         ProfessionalProfilePhoto savedEntity = new ProfessionalProfilePhoto(
-                proUserA, validPngBytes, "image/png", "headshot.png", validPngBytes.length, 2, 2
-        );
+                proUserA, validPngBytes, "image/png", "headshot.png", validPngBytes.length, 2, 2);
         savedEntity.setId(10L);
         when(photoRepository.findByUser(proUserA)).thenReturn(Optional.of(savedEntity));
 
@@ -273,8 +288,7 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         assertEquals("image/jpeg", body.get("contentType"));
 
         ProfessionalProfilePhoto savedEntity = new ProfessionalProfilePhoto(
-                proUserA, validJpegBytes, "image/jpeg", "portrait.jpg", validJpegBytes.length, 2, 2
-        );
+                proUserA, validJpegBytes, "image/jpeg", "portrait.jpg", validJpegBytes.length, 2, 2);
         savedEntity.setId(11L);
         when(photoRepository.findByUser(proUserA)).thenReturn(Optional.of(savedEntity));
 
@@ -297,8 +311,7 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         assertEquals("image/webp", body.get("contentType"));
 
         ProfessionalProfilePhoto savedEntity = new ProfessionalProfilePhoto(
-                proUserA, validWebpBytes, "image/webp", "photo.webp", validWebpBytes.length, 2, 2
-        );
+                proUserA, validWebpBytes, "image/webp", "photo.webp", validWebpBytes.length, 2, 2);
         savedEntity.setId(12L);
         when(photoRepository.findByUser(proUserA)).thenReturn(Optional.of(savedEntity));
 
@@ -318,8 +331,7 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
 
         ProfessionalProfilePhoto existingRecord = new ProfessionalProfilePhoto(
-                proUserA, validPngBytes, "image/png", "old.png", validPngBytes.length, 2, 2
-        );
+                proUserA, validPngBytes, "image/png", "old.png", validPngBytes.length, 2, 2);
         existingRecord.setId(1L);
         when(photoRepository.findByUser(proUserA)).thenReturn(Optional.of(existingRecord));
 
@@ -340,8 +352,7 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         proUserA.setProfilePhotoUrl("/api/professional/profile/photo");
 
         ProfessionalProfilePhoto existingRecord = new ProfessionalProfilePhoto(
-                proUserA, validPngBytes, "image/png", "photo.png", validPngBytes.length, 2, 2
-        );
+                proUserA, validPngBytes, "image/png", "photo.png", validPngBytes.length, 2, 2);
         when(photoRepository.findByUser(proUserA)).thenReturn(Optional.of(existingRecord));
 
         ResponseEntity<?> delRes = photoController.removePhoto(authA);
@@ -375,13 +386,11 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
         Authentication authB = createMockAuth("proB@buildbid.com", "ROLE_PROFESSIONAL");
 
         ProfessionalProfilePhoto photoA = new ProfessionalProfilePhoto(
-                proUserA, validPngBytes, "image/png", "alpha.png", validPngBytes.length, 2, 2
-        );
+                proUserA, validPngBytes, "image/png", "alpha.png", validPngBytes.length, 2, 2);
         photoA.setId(101L);
 
         ProfessionalProfilePhoto photoB = new ProfessionalProfilePhoto(
-                proUserB, validJpegBytes, "image/jpeg", "beta.jpg", validJpegBytes.length, 2, 2
-        );
+                proUserB, validJpegBytes, "image/jpeg", "beta.jpg", validJpegBytes.length, 2, 2);
         photoB.setId(102L);
 
         when(photoRepository.findByUser(proUserA)).thenReturn(Optional.of(photoA));
@@ -458,7 +467,8 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
     void testRejectsSvgFormat() {
         Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
         String svgContent = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\"><circle cx=\"50\" cy=\"50\" r=\"40\"/></svg>";
-        MockMultipartFile svgFile = new MockMultipartFile("file", "logo.svg", "image/svg+xml", svgContent.getBytes(StandardCharsets.UTF_8));
+        MockMultipartFile svgFile = new MockMultipartFile("file", "logo.svg", "image/svg+xml",
+                svgContent.getBytes(StandardCharsets.UTF_8));
 
         ResponseEntity<?> response = photoController.uploadPhoto(svgFile, null, authA);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -469,7 +479,8 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
     void testRejectsSpoofedMimeType() {
         Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
         String fakeJpgContent = "<html><body><h1>Not an image!</h1></body></html>";
-        MockMultipartFile spoofedFile = new MockMultipartFile("file", "spoofed.jpg", "image/jpeg", fakeJpgContent.getBytes(StandardCharsets.UTF_8));
+        MockMultipartFile spoofedFile = new MockMultipartFile("file", "spoofed.jpg", "image/jpeg",
+                fakeJpgContent.getBytes(StandardCharsets.UTF_8));
 
         ResponseEntity<?> response = photoController.uploadPhoto(spoofedFile, null, authA);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -480,7 +491,8 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
     void testRejectsScriptInjection() {
         Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
         String polyglot = "<script>alert('xss')</script>";
-        MockMultipartFile badFile = new MockMultipartFile("file", "exploit.png", "image/png", polyglot.getBytes(StandardCharsets.UTF_8));
+        MockMultipartFile badFile = new MockMultipartFile("file", "exploit.png", "image/png",
+                polyglot.getBytes(StandardCharsets.UTF_8));
 
         ResponseEntity<?> response = photoController.uploadPhoto(badFile, null, authA);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -491,7 +503,7 @@ public class ProfessionalProfilePhotoSecurityAndPersistenceTest {
     void testRejectsCorruptImageData() {
         Authentication authA = createMockAuth("proA@buildbid.com", "ROLE_PROFESSIONAL");
         // Starts with PNG magic bytes but followed by truncated garbage
-        byte[] corruptBytes = new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x01, 0x02, 0x03};
+        byte[] corruptBytes = new byte[] { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x01, 0x02, 0x03 };
         MockMultipartFile corruptFile = new MockMultipartFile("file", "corrupt.png", "image/png", corruptBytes);
 
         ResponseEntity<?> response = photoController.uploadPhoto(corruptFile, null, authA);

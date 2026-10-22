@@ -31,8 +31,7 @@ public class ProfessionalProfileController {
     public ProfessionalProfileController(
             ProfessionalProfileService profileService,
             ProfessionalProfilePhotoService photoService,
-            MarketplaceBackendApplication.UserRepository userRepository
-    ) {
+            MarketplaceBackendApplication.UserRepository userRepository) {
         this.profileService = profileService;
         this.photoService = photoService;
         this.userRepository = userRepository;
@@ -40,8 +39,7 @@ public class ProfessionalProfileController {
 
     public ProfessionalProfileController(
             ProfessionalProfilePhotoService photoService,
-            MarketplaceBackendApplication.UserRepository userRepository
-    ) {
+            MarketplaceBackendApplication.UserRepository userRepository) {
         this(new ProfessionalProfileService(userRepository), photoService, userRepository);
     }
 
@@ -62,7 +60,8 @@ public class ProfessionalProfileController {
     }
 
     /**
-     * Validates that the user holds the PROFESSIONAL or legacy SERVICE_PROVIDER role.
+     * Validates that the user holds the PROFESSIONAL or legacy SERVICE_PROVIDER
+     * role.
      */
     private boolean isProfessional(MarketplaceBackendApplication.MarketplaceUser user) {
         if (user == null || user.getRoles() == null) {
@@ -108,8 +107,7 @@ public class ProfessionalProfileController {
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> updateProfile(
             @RequestBody ProfessionalProfileService.ProfessionalProfileUpdateRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Unauthorized. Please log in as a professional."));
@@ -164,8 +162,7 @@ public class ProfessionalProfileController {
     @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadPhotoMultipart(
             @RequestParam(value = "file", required = false) MultipartFile file,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         return uploadPhoto(file, null, authentication);
     }
 
@@ -175,8 +172,7 @@ public class ProfessionalProfileController {
     @PostMapping(value = "/photo", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> uploadPhotoJson(
             @RequestBody(required = false) Map<String, String> jsonBody,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         return uploadPhoto(null, jsonBody, authentication);
     }
 
@@ -187,8 +183,7 @@ public class ProfessionalProfileController {
     public ResponseEntity<?> uploadPhoto(
             MultipartFile file,
             Map<String, String> jsonBody,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Unauthorized. Please log in as a professional."));
@@ -303,7 +298,8 @@ public class ProfessionalProfileController {
             mediaType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        String etag = "\"" + photo.getId() + "-" + (photo.getUpdatedAt() != null ? photo.getUpdatedAt().hashCode() : 0) + "\"";
+        String etag = "\"" + photo.getId() + "-" + (photo.getUpdatedAt() != null ? photo.getUpdatedAt().hashCode() : 0)
+                + "\"";
 
         return ResponseEntity.ok()
                 .contentType(mediaType)

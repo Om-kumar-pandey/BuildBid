@@ -28,9 +28,9 @@
   // ============================================================
   function getCleanToken() {
     let token = localStorage.getItem("token") ||
-                localStorage.getItem("authToken") ||
-                localStorage.getItem("marketplaceToken") ||
-                sessionStorage.getItem("token") || "";
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("marketplaceToken") ||
+      sessionStorage.getItem("token") || "";
     if (!token) return "";
     token = String(token).trim();
     let changed = true;
@@ -252,7 +252,7 @@
           return u.services;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return [];
   }
 
@@ -286,7 +286,7 @@
             u.services = list;
             localStorage.setItem("currentUser", JSON.stringify(u));
           }
-        } catch (e) {}
+        } catch (e) { }
         return;
       }
 
@@ -374,7 +374,7 @@
     try {
       const raw = localStorage.getItem("currentUser") || localStorage.getItem("marketplaceUser");
       if (raw) cachedUser = JSON.parse(raw);
-    } catch (e) {}
+    } catch (e) { }
 
     if (cachedUser) {
       populateProfileUI(cachedUser);
@@ -734,7 +734,7 @@
           u.bio = updated.bio !== undefined ? updated.bio : bio;
           localStorage.setItem("currentUser", JSON.stringify(u));
           localStorage.setItem("marketplaceUser", JSON.stringify(u));
-        } catch (e) {}
+        } catch (e) { }
 
         setPersonalInfoFeedback("Personal information saved successfully to database.", "success");
         setTimeout(() => {
@@ -895,7 +895,7 @@
     // 3. Broadcast cross-tab synchronization signal
     try {
       localStorage.setItem("buildbid_avatar_sync_signal", JSON.stringify(payload));
-    } catch (e) {}
+    } catch (e) { }
 
     // 4. Keep cached user reference clean in localStorage
     try {
@@ -911,7 +911,7 @@
         }
         localStorage.setItem("currentUser", JSON.stringify(u));
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async function loadSavedPhotoFromBackend(token, force = false) {
@@ -974,11 +974,11 @@
                   localStorage.setItem("buildbid_pro_avatar_cache", reader.result);
                   const owner = getProCacheOwnerIdentifier();
                   if (owner) localStorage.setItem("buildbid_pro_avatar_cache_owner", owner);
-                } catch (e) {}
+                } catch (e) { }
               }
             };
             reader.readAsDataURL(blob);
-          } catch (e) {}
+          } catch (e) { }
         } else if (response.status === 404) {
           hasSavedPhoto = false;
           if (savedPhotoBlobUrl) {
@@ -988,7 +988,7 @@
           try {
             localStorage.removeItem("buildbid_pro_avatar_cache");
             localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-          } catch (e) {}
+          } catch (e) { }
           if (previewAvatar) previewAvatar.src = DEFAULT_AVATAR;
           if (navAvatar) navAvatar.src = DEFAULT_AVATAR;
           ["side-avatar", "proHeroAvatar", "top-avatar", "proProfileTabAvatar", "settings-header-avatar"].forEach(id => {
@@ -1008,7 +1008,7 @@
           try {
             localStorage.removeItem("buildbid_pro_avatar_cache");
             localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-          } catch (e) {}
+          } catch (e) { }
           if (previewAvatar) previewAvatar.src = DEFAULT_AVATAR;
           if (navAvatar) navAvatar.src = DEFAULT_AVATAR;
           ["side-avatar", "proHeroAvatar", "top-avatar", "proProfileTabAvatar", "settings-header-avatar"].forEach(id => {
@@ -1618,7 +1618,7 @@
         try {
           localStorage.removeItem("buildbid_pro_avatar_cache");
           localStorage.removeItem("buildbid_pro_avatar_cache_owner");
-        } catch (e) {}
+        } catch (e) { }
         pendingFile = null;
         croppedBlob = null;
         croppedDataUrl = null;
@@ -1731,7 +1731,7 @@
         try {
           const data = JSON.parse(e.newValue);
           window.dispatchEvent(new CustomEvent("buildbid:avatar-sync", { detail: data }));
-        } catch (err) {}
+        } catch (err) { }
       }
     });
 
@@ -1816,7 +1816,7 @@
         if (!isNaN(d.getTime())) {
           renewalFormatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " (" + d.toLocaleDateString() + ")";
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (remainingEl) {
@@ -1873,7 +1873,7 @@
         const data = await response.json();
         updateEmailChangeAttemptsUI(data);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function validateEmailInputLive() {
@@ -2204,7 +2204,7 @@
             localStorage.setItem("currentUser", JSON.stringify(parsed));
             localStorage.setItem("marketplaceUser", JSON.stringify(parsed));
           }
-        } catch (e) {}
+        } catch (e) { }
 
         // 3. Update in-memory state and UI elements
         if (currentProfile) {
