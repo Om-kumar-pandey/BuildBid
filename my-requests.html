@@ -16,11 +16,96 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Contractor Dashboard Stylesheet (Activated for Contractor Role) -->
+  <link rel="stylesheet" href="contractor-dashboard.css" id="contractorDashboardStylesheet" disabled>
+
+  <!-- Early Role Detection to Prevent FOUC -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('currentUser') || localStorage.getItem('loggedInUser') || sessionStorage.getItem('currentUser') || localStorage.getItem('marketplaceUser');
+        var r = '';
+        if (raw) {
+          var u = JSON.parse(raw);
+          r = (u.role || (u.roles && (typeof u.roles[0] === 'string' ? u.roles[0] : (u.roles[0].name || u.roles[0].authority))) || '').replace('ROLE_', '').toUpperCase();
+        }
+        if (!r && window.location && window.location.search) {
+          var m = window.location.search.match(/[?&]role=([^&]+)/i);
+          if (m) r = decodeURIComponent(m[1]).toUpperCase();
+        }
+        if (r === 'CONTRACTOR') {
+          document.documentElement.classList.add('is-contractor');
+          var sheet = document.getElementById('contractorDashboardStylesheet');
+          if (sheet) sheet.disabled = false;
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <style>
+    /* Contractor mode styling ensuring complete Contractor Dashboard continuity */
+    html.is-contractor body,
+    body.contractor-mode {
+      background-color: #f4f7fb !important;
+      background-image: none !important;
+      color: #1e293b;
+    }
+    html.is-contractor body::before,
+    body.contractor-mode::before {
+      display: none !important;
+    }
+    html.is-contractor #universalTopNavbar,
+    body.contractor-mode #universalTopNavbar {
+      display: none !important;
+    }
+    html.is-contractor #contractorTopNav,
+    body.contractor-mode #contractorTopNav {
+      display: flex !important;
+      justify-content: flex-end;
+      padding: 1rem 0;
+      margin-bottom: 0.5rem;
+    }
+    html.is-contractor #customerSidebar,
+    body.contractor-mode #customerSidebar {
+      display: none !important;
+    }
+    html.is-contractor #contractorSidebar,
+    body.contractor-mode #contractorSidebar {
+      display: flex !important;
+      width: 260px !important;
+      background-color: #ffffff !important;
+      min-height: 100vh !important;
+      border-right: 1px solid #e2e8f0 !important;
+      padding: 1.5rem 1rem !important;
+      box-shadow: none !important;
+      flex-shrink: 0 !important;
+    }
+    html.is-contractor .requests-main-container,
+    body.contractor-mode .requests-main-container {
+      padding: 0 2rem 2rem 2rem !important;
+      background-color: #f4f7fb !important;
+    }
+    @media (max-width: 768px) {
+      html.is-contractor #contractorSidebar,
+      body.contractor-mode #contractorSidebar {
+        width: 100% !important;
+        min-height: auto !important;
+        border-right: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 1rem !important;
+      }
+      html.is-contractor .requests-main-container,
+      body.contractor-mode .requests-main-container {
+        padding: 0 1rem 1rem 1rem !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
   <!-- Top Navbar (Matching Customer Shell) -->
-  <header class="top-navbar">
+  <header class="top-navbar" id="universalTopNavbar">
     <div class="nav-left">
       <a href="customer dashboard.html" class="brand-logo">
         <img src="BuildBid logo.png" alt="BuildBid Logo" class="site-logo" onerror="this.src='logo.png'">
@@ -76,8 +161,8 @@
   <!-- Main App Layout -->
   <div class="app-layout">
     
-    <!-- Customer Sidebar -->
-    <aside class="sidebar">
+    <!-- Role Sidebar: CUSTOMER (Default) -->
+    <aside class="sidebar customer-sidebar" id="customerSidebar">
       <ul class="side-menu">
         <li>
           <a href="customer dashboard.html">
@@ -170,14 +255,83 @@
       </div>
     </aside>
 
+    <!-- Role Sidebar: CONTRACTOR -->
+    <aside class="sidebar contractor-sidebar" id="contractorSidebar" style="display: none;">
+      <div class="brand-header">
+        <img src="BuildBid logo.png" alt="BuildBid Logo" class="brand-logo" onerror="this.src='logo.png'" />
+        <div class="brand-text">
+          <h2>BuildBid</h2>
+          <span>Plan. Build. Better.</span>
+        </div>
+      </div>
+
+      <div class="panel-badge">
+        <i class="fa-solid fa-user-gear"></i> Contractor Panel
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="contractor-dashboard.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+        <a href="contractor-projects.html" class="nav-item"><i class="fa-solid fa-briefcase"></i> Projects <span class="badge" id="nav-badge-projects">0</span></a>
+        <a href="contractor-bids.html" class="nav-item"><i class="fa-solid fa-gavel"></i> Bids <span class="badge" id="nav-badge-bids">0</span></a>
+        <a href="contractor-my-bids.html" class="nav-item"><i class="fa-regular fa-file-lines"></i> My Contracts <span class="badge" id="nav-badge-contracts">0</span></a>
+        <a href="buy-material-select.html" class="nav-item"><i class="fa-solid fa-cart-shopping"></i> Buy Material / सामग्री खरीदें</a>
+        <a href="my-requests.html" class="nav-item active"><i class="fa-solid fa-file-circle-check"></i> My Requests</a>
+        <a href="my-orders.html" class="nav-item"><i class="fa-solid fa-truck-ramp-box"></i> My Orders</a>
+        <a href="hired-professionals.html" class="nav-item"><i class="fa-solid fa-helmet-safety"></i> Hired Professionals</a>
+        <a href="direct-hire.html" class="nav-item"><i class="fa-solid fa-user-plus"></i> Direct Hire</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-people-group"></i> My Team</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Reviews &amp; Ratings</a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Earnings</a>
+        <a href="contractor-verification.html" class="nav-item"><i class="fa-solid fa-circle-check"></i>Get Verified</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-comment-dots"></i> Messages</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Notifications <span class="badge" id="nav-badge-notifications">0</span></a>
+        <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Account Settings</a>
+        <a href="#" class="nav-item"><i class="fa-regular fa-circle-question"></i> Help &amp; Support</a>
+        <a href="javascript:void(0)" class="nav-item nav-logout" id="contractorLogoutBtn" onclick="performUnifiedLogout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </nav>
+    </aside>
+
     <!-- Main Content Area -->
     <main class="requests-main-container">
+
+      <!-- Contractor Top Navbar (Visible in Contractor mode) -->
+      <header class="top-nav" id="contractorTopNav" style="display: none;">
+        <div class="nav-actions">
+          <div class="notif-dropdown-wrapper" style="position: relative;">
+            <button class="icon-btn" id="btn-notification-bell" onclick="toggleContractorNotifications()" title="Notifications" aria-label="Notifications">
+              <i class="fa-regular fa-bell"></i>
+              <span class="dot" id="notif-indicator" style="display: none;"></span>
+            </button>
+            <div id="contractor-notif-dropdown" class="notif-dropdown-panel" style="display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 330px; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; z-index: 1000; overflow: hidden; text-align: left;">
+              <div style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                <span id="contractor-notif-title" style="font-size: 13px; font-weight: 700; color: #1e293b;">Notifications / सूचनाएं</span>
+                <span onclick="markAllContractorNotificationsRead()" style="font-size: 11px; color: #2563eb; font-weight: 600; cursor: pointer;">Mark all read / सभी पढ़े</span>
+              </div>
+              <div id="contractor-notifications-list" style="max-height: 320px; overflow-y: auto;">
+                <div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Loading notifications...</div>
+              </div>
+            </div>
+          </div>
+          <div class="user-profile" onclick="window.location.href='contractor-dashboard.html'" title="View Contractor Dashboard">
+            <div class="avatar" id="top-nav-avatar">
+              <span id="top-nav-avatar-text"><i class="fa-solid fa-user-tie"></i></span>
+            </div>
+            <div class="user-meta">
+              <h4 id="top-nav-name">Contractor</h4>
+              <span id="top-nav-badge">Verified Contractor</span>
+            </div>
+            <i class="fa-solid fa-chevron-down drop-icon"></i>
+          </div>
+        </div>
+      </header>
 
       <!-- Dark Navy Header Banner (Section 5) -->
       <section class="requests-header-banner">
         <div class="banner-content">
           <div class="breadcrumb-text">
-            <a href="index.html">Home</a> &gt; <a href="customer dashboard.html">Dashboard</a> &gt; <span>My Requests</span>
+            <a href="index.html">Home</a> &gt; <a href="customer dashboard.html" id="breadcrumbDashboardLink">Dashboard</a> &gt; <span>My Requests</span>
           </div>
           <h1 class="banner-title">My Requests</h1>
           <p class="banner-subtitle">Manage, track and respond to all your submitted requests in one place.</p>
@@ -193,7 +347,7 @@
           <a href="direct-hire.html" class="btn-banner-action secondary">
             <i class="fa-solid fa-user-tie"></i> Direct Hire
           </a>
-          <a href="post-requirements.html" class="btn-banner-action primary">
+          <a href="post-requirements.html" class="btn-banner-action primary" id="btnPostRequirementLink">
             <i class="fa-solid fa-plus"></i> Post Requirement
           </a>
         </div>

@@ -42,51 +42,372 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function setupUserDisplay() {
-  const userString = localStorage.getItem("currentUser") || 
-                     localStorage.getItem("customerUser") || 
-                     localStorage.getItem("user") || 
-                     sessionStorage.getItem("user");
-  let user = {};
-  try {
-    user = JSON.parse(userString) || {};
-  } catch (e) {
-    user = {};
+  setupRoleBasedShell();
+}
+
+/* =========================================================
+   ROLE-BASED SHELL & USER DISPLAY (CONTINUITY & SHELL SAFETY)
+   ========================================================= */
+
+function resolveAuthenticatedUser() {
+  const storageKeys = ["currentUser", "loggedInUser", "customerUser", "marketplaceUser", "contractorUser", "userData"];
+  for (const key of storageKeys) {
+    try {
+      const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          return parsed;
+        }
+      }
+    } catch (e) {}
   }
+  return null;
+}
 
-  const navUserName = document.getElementById("navUserName");
-  const navUserRole = document.getElementById("navUserRole");
-  const navAvatar = document.getElementById("navAvatar");
-
-  const displayName = (user.name || user.fullName || user.username || "Customer").toString().trim();
-  if (navUserName) {
-    const firstName = displayName.split(" ")[0];
-    navUserName.textContent = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+function resolveUserRole(user) {
+  if (!user) return "";
+  if (user.role) {
+    return String(user.role).replace("ROLE_", "").toUpperCase();
   }
-
-  const role = (user.role || (user.roles && user.roles[0]) || "").toUpperCase();
-  const isContractor = role === "CONTRACTOR" || localStorage.getItem("contractorUser") || (window.location.search.includes("role=contractor"));
-
-  if (navUserRole) {
-    navUserRole.textContent = isContractor ? "Contractor" : "Customer";
+  if (Array.isArray(user.roles) && user.roles.length > 0) {
+    const primary = user.roles[0];
+    return String(typeof primary === "string" ? primary : primary.name || primary.authority || "")
+      .replace("ROLE_", "")
+      .toUpperCase();
   }
+  return "";
+}
 
-  if (isContractor) {
-    const userPill = document.querySelector(".user-pill");
-    if (userPill) userPill.setAttribute("onclick", "window.location.href='contractor-dashboard.html'");
-    const brandLogo = document.querySelector(".brand-logo");
-    if (brandLogo) brandLogo.href = "contractor-dashboard.html";
-    const profileLink = document.querySelector(".side-menu a[href='customer dashboard.html']");
-    if (profileLink) {
-      profileLink.href = "contractor-dashboard.html";
-      profileLink.innerHTML = '<i class="fa-solid fa-table-cells-large"></i> Dashboard';
+function getActiveRole() {
+  const user = resolveAuthenticatedUser();
+  const detectedRole = resolveUserRole(user);
+  if (detectedRole) {
+    // Authenticated role always takes priority
+    return detectedRole;
+  }
+  // Only if no authenticated session role exists, allow preview query param
+  if (typeof window !== "undefined" && window.location && window.location.search) {
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = (params.get("role") || "").toUpperCase();
+    if (roleParam === "CONTRACTOR" || roleParam === "CUSTOMER") {
+      return roleParam;
     }
   }
+  return "CUSTOMER";
+}
 
-  if (navAvatar && navAvatar.tagName === "IMG") {
-    const photo = user.profilePhoto || user.avatarUrl || user.profilePhotoUrl;
-    navAvatar.src = photo || `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(displayName)}`;
+function setupRoleBasedShell() {
+  try {
+    const user = resolveAuthenticatedUser();
+    const role = getActiveRole();
+    const isContractor = role === "CONTRACTOR";
+
+    const customerSidebar = document.getElementById("customerSidebar");
+    const contractorSidebar = document.getElementById("contractorSidebar");
+    const universalTopNav = document.getElementById("universalTopNavbar");
+    const contractorTopNav = document.getElementById("contractorTopNav");
+    const contractorCss = document.getElementById("contractorDashboardStylesheet");
+    const postReqLink = document.getElementById("btnOrdersPostReq");
+
+    if (isContractor) {
+      document.documentElement.classList.add("is-contractor");
+      document.body.classList.add("contractor-mode");
+      if (contractorCss) contractorCss.disabled = false;
+
+      if (universalTopNav) universalTopNav.style.display = "none";
+      if (customerSidebar) customerSidebar.style.display = "none";
+      if (contractorTopNav) contractorTopNav.style.display = "flex";
+      if (contractorSidebar) contractorSidebar.style.display = "flex";
+
+      // Setup Contractor Top Navbar Profile
+      if (user) {
+        const displayName = (user.name || user.fullName || user.companyName || user.username || "Contractor").trim();
+        const words = displayName.split(" ").filter(Boolean);
+        const initials = words.length > 1 ? (words[0][0] + words[words.length - 1][0]) : (words[0] ? words[0][0] : "C");
+
+        const nameEl = document.getElementById("top-nav-name");
+        const badgeEl = document.getElementById("top-nav-badge");
+        const avatarEl = document.getElementById("top-nav-avatar");
+        const avatarTextEl = document.getElementById("top-nav-avatar-text");
+
+        if (nameEl) nameEl.textContent = displayName;
+        if (badgeEl) badgeEl.textContent = "Verified Contractor";
+
+        const photoUrl = (user.profilePhoto || user.avatarUrl || user.profilePhotoUrl || "").trim();
+        if (photoUrl && avatarEl) {
+          avatarEl.style.backgroundImage = `url('${photoUrl}')`;
+          avatarEl.style.backgroundSize = "cover";
+          avatarEl.style.backgroundPosition = "center";
+          if (avatarTextEl) avatarTextEl.style.display = "none";
+        } else if (avatarTextEl) {
+          if (avatarEl) avatarEl.style.backgroundImage = "";
+          avatarTextEl.style.display = "inline-block";
+          avatarTextEl.textContent = initials.toUpperCase();
+        }
+      }
+
+      if (postReqLink) {
+        postReqLink.href = "contractor-post-requirement.html";
+      }
+
+      // Synchronize contractor badges & notifications
+      syncContractorBadges();
+    } else {
+      document.documentElement.classList.remove("is-contractor");
+      document.body.classList.remove("contractor-mode");
+      if (contractorCss) contractorCss.disabled = true;
+
+      if (universalTopNav) universalTopNav.style.display = "flex";
+      if (customerSidebar) customerSidebar.style.display = "flex";
+      if (contractorTopNav) contractorTopNav.style.display = "none";
+      if (contractorSidebar) contractorSidebar.style.display = "none";
+
+      // Setup Customer Header Profile
+      const navUserName = document.getElementById("navUserName");
+      const navUserRole = document.getElementById("navUserRole");
+      const navAvatar = document.getElementById("navAvatar");
+
+      if (user) {
+        const displayName = (user.name || user.fullName || user.username || "Customer").toString().trim();
+        const firstName = displayName.split(" ")[0];
+        if (navUserName) navUserName.textContent = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+        if (navUserRole) navUserRole.textContent = "Customer";
+        if (navAvatar && navAvatar.tagName === "IMG") {
+          const photo = user.profilePhoto || user.avatarUrl || user.profilePhotoUrl;
+          navAvatar.src = photo || `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(displayName)}`;
+        }
+      }
+
+      if (postReqLink) {
+        postReqLink.href = "post-requirements.html";
+      }
+    }
+
+    // Bind logout action on all logout buttons
+    const logoutButtons = [
+      document.getElementById("logoutBtn"),
+      document.getElementById("contractorLogoutBtn")
+    ];
+    logoutButtons.forEach(btn => {
+      if (btn && !btn.dataset.bound) {
+        btn.dataset.bound = "true";
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          performUnifiedLogout();
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Shell setup fallback error:", e);
   }
 }
+window.setupUserDisplay = setupUserDisplay;
+window.setupRoleBasedShell = setupRoleBasedShell;
+
+/* =========================================================
+   CONTRACTOR SIDEBAR BADGE SYNCHRONIZATION & NOTIFICATIONS
+   ========================================================= */
+function syncContractorBadges() {
+  const cachedProjects = sessionStorage.getItem("contractor_badge_projects");
+  const cachedBids = sessionStorage.getItem("contractor_badge_bids");
+  const cachedContracts = sessionStorage.getItem("contractor_badge_contracts");
+  const cachedNotifs = sessionStorage.getItem("contractor_badge_notifications");
+
+  const elProjects = document.getElementById("nav-badge-projects");
+  const elBids = document.getElementById("nav-badge-bids");
+  const elContracts = document.getElementById("nav-badge-contracts");
+  const elNotifs = document.getElementById("nav-badge-notifications");
+
+  if (elProjects && cachedProjects !== null) elProjects.textContent = cachedProjects;
+  if (elBids && cachedBids !== null) elBids.textContent = cachedBids;
+  if (elContracts && cachedContracts !== null) elContracts.textContent = cachedContracts;
+  if (elNotifs && cachedNotifs !== null) elNotifs.textContent = cachedNotifs;
+
+  const token = getCleanToken();
+  if (!token) return;
+
+  const authHeaders = {
+    "Authorization": "Bearer " + token,
+    "Accept": "application/json"
+  };
+
+  fetch(`${API_BASE_URL}/api/contractor/projects`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elProjects) elProjects.textContent = data.length;
+        sessionStorage.setItem("contractor_badge_projects", data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/contractor/my-bids?history=true`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        if (elBids) elBids.textContent = data.length;
+        sessionStorage.setItem("contractor_badge_bids", data.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/contractor/my-bids/contracts`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data)) {
+        const activeContracts = data.filter(c => c.assignmentStatus === "ACTIVE" && c.isCurrent);
+        if (elContracts) elContracts.textContent = activeContracts.length;
+        sessionStorage.setItem("contractor_badge_contracts", activeContracts.length);
+      }
+    })
+    .catch(() => {});
+
+  fetch(`${API_BASE_URL}/api/notifications`, { headers: authHeaders })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && typeof data.unreadCount === "number") {
+        if (elNotifs) elNotifs.textContent = data.unreadCount;
+        sessionStorage.setItem("contractor_badge_notifications", data.unreadCount);
+        const dot = document.getElementById("notif-indicator");
+        if (dot) dot.style.display = data.unreadCount > 0 ? "inline-block" : "none";
+      }
+    })
+    .catch(() => {});
+}
+
+window.toggleContractorNotifications = function () {
+  const dropdown = document.getElementById("contractor-notif-dropdown");
+  if (!dropdown) return;
+  const isHidden = dropdown.style.display === "none" || dropdown.classList.contains("hidden");
+  if (isHidden) {
+    dropdown.style.display = "block";
+    dropdown.classList.remove("hidden");
+    loadContractorNotifications();
+  } else {
+    dropdown.style.display = "none";
+    dropdown.classList.add("hidden");
+  }
+};
+
+async function loadContractorNotifications() {
+  const token = getCleanToken();
+  const listEl = document.getElementById("contractor-notifications-list");
+  const dotEl = document.getElementById("notif-indicator");
+  const badgeEl = document.getElementById("nav-badge-notifications");
+  const titleEl = document.getElementById("contractor-notif-title");
+
+  if (!token) {
+    if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Please log in to view notifications</div>';
+    if (dotEl) dotEl.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/notifications`, {
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
+    });
+    if (!res.ok) {
+      if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Unable to load notifications</div>';
+      return;
+    }
+    const data = await res.json();
+    const notifs = data.notifications || [];
+    const unreadCount = data.unreadCount || 0;
+
+    if (dotEl) dotEl.style.display = unreadCount > 0 ? "inline-block" : "none";
+    if (badgeEl) badgeEl.textContent = unreadCount;
+    sessionStorage.setItem("contractor_badge_notifications", unreadCount);
+    if (titleEl) titleEl.textContent = `Notifications / सूचनाएं ${unreadCount > 0 ? "(" + unreadCount + " New)" : ""}`;
+
+    if (!listEl) return;
+    if (notifs.length === 0) {
+      listEl.innerHTML = '<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12px;"><i class="fa-regular fa-bell-slash" style="font-size: 20px; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>No notifications yet / अभी कोई सूचना नहीं है</div>';
+      return;
+    }
+    listEl.innerHTML = notifs.map(n => {
+      const isUnread = !n.isRead;
+      return `
+        <div onclick="handleContractorNotificationClick(${n.id}, '${escapeHtml(n.type || '')}', '${escapeHtml(n.referenceId || '')}', ${isUnread})"
+             style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; ${isUnread ? 'background: #eff6ff;' : ''}">
+          <div style="font-size: 12px; font-weight: 600; color: #1e293b;">${escapeHtml(n.title || '')}</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${escapeHtml(n.message || '')}</div>
+        </div>
+      `;
+    }).join("");
+  } catch (e) {
+    if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Error loading notifications</div>';
+  }
+}
+
+window.handleContractorNotificationClick = async function (notifId, type, refId, isUnread) {
+  const dropdown = document.getElementById("contractor-notif-dropdown");
+  if (dropdown) { dropdown.style.display = "none"; dropdown.classList.add("hidden"); }
+  if (isUnread && notifId) {
+    try {
+      const token = getCleanToken();
+      await fetch(`${API_BASE_URL}/api/notifications/${notifId}/read`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
+      });
+      loadContractorNotifications();
+    } catch (e) {}
+  }
+  const t = (type || "").toUpperCase();
+  if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
+    window.location.href = "my-orders.html";
+  } else if (t.includes("BID") || t.includes("PROJECT")) {
+    window.location.href = "contractor-projects.html";
+  }
+};
+
+window.markAllContractorNotificationsRead = async function () {
+  const token = getCleanToken();
+  if (!token) return;
+  try {
+    await fetch(`${API_BASE_URL}/api/notifications/mark-all-read`, {
+      method: "PUT",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
+    });
+    loadContractorNotifications();
+  } catch (e) {}
+};
+
+// Close contractor notification dropdown when clicking outside
+document.addEventListener("click", (e) => {
+  const notifDropdown = document.getElementById("contractor-notif-dropdown");
+  const notifBtn = document.getElementById("btn-notification-bell");
+  if (notifDropdown && notifBtn && !notifBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
+    notifDropdown.style.display = "none";
+    notifDropdown.classList.add("hidden");
+  }
+});
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function performUnifiedLogout() {
+  const keysToRemove = [
+    "marketplaceToken", "token", "authToken", "marketplaceUser",
+    "currentUser", "customerUser", "loggedInUser", "contractorUser", "userData",
+    "buildbid_user", "buildbid_current_user"
+  ];
+  keysToRemove.forEach(k => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+  sessionStorage.clear();
+  window.location.href = "index.html";
+}
+window.performUnifiedLogout = performUnifiedLogout;
+window.logoutUser = performUnifiedLogout;
 
 function setupFilterListeners() {
   const searchInput = document.getElementById("orderSearchInput");
