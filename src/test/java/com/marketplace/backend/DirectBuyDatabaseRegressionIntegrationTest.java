@@ -80,6 +80,12 @@ public class DirectBuyDatabaseRegressionIntegrationTest {
     @Autowired
     private DirectBuyController directBuyController;
 
+    @Autowired(required = false)
+    private DeliveryRepository deliveryRepository;
+
+    @Autowired(required = false)
+    private DeliveryStatusHistoryRepository deliveryStatusHistoryRepository;
+
     @Autowired
     private PlatformTransactionManager transactionManager;
 
@@ -93,6 +99,12 @@ public class DirectBuyDatabaseRegressionIntegrationTest {
     @BeforeEach
     public void setupData() {
         // Clear dependent order and action data before test run (respect FK order)
+        if (deliveryStatusHistoryRepository != null) {
+            deliveryStatusHistoryRepository.deleteAll();
+        }
+        if (deliveryRepository != null) {
+            deliveryRepository.deleteAll();
+        }
         sellerMaterialRequestActionRepository.deleteAll();
         materialOrderItemRepository.deleteAll();
         materialOrderRepository.deleteAll();
