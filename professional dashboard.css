@@ -478,6 +478,21 @@ aside.border-r > div:first-child {
   border-bottom-color: #1e293b; /* Material Seller header border-slate-800 */
 }
 
+/* Sidebar Header Brand Logo Soft Fade */
+aside.w-\[280px\] .h-16 a img,
+aside.border-r .h-16 a img {
+  height: 36px;
+  width: 36px;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.20);
+  padding: 1px;
+  flex-shrink: 0;
+}
+
 /* Sidebar Header Logo Text & Subtitle */
 aside.w-\[280px\] .h-16 span.font-extrabold,
 aside.w-\[280px\] .h-16 a span:first-child {
