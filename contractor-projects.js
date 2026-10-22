@@ -881,6 +881,185 @@ function syncContractorBadges() {
     .catch(() => {});
 }
 
+// -------------------------------------------------------------
+// Contractor Notification System & Top Navbar Handlers
+// -------------------------------------------------------------
+function toggleContractorNotifications() {
+  const dropdown = document.getElementById('contractor-notif-dropdown');
+  if (!dropdown) return;
+  const isHidden = dropdown.style.display === 'none' || dropdown.classList.contains('hidden');
+  if (isHidden) {
+    dropdown.style.display = 'block';
+    dropdown.classList.remove('hidden');
+    loadContractorNotifications();
+  } else {
+    dropdown.style.display = 'none';
+    dropdown.classList.add('hidden');
+  }
+}
+window.toggleContractorNotifications = toggleContractorNotifications;
+
+function formatContractorNotifTime(dateStr) {
+  if (!dateStr) return "Just now";
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    if (isNaN(diffMs) || diffMs < 0) return "Just now";
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "Yesterday";
+    return `${days}d ago`;
+  } catch (e) {
+    return "Recently";
+  }
+}
+
+async function loadContractorNotifications() {
+  const token = getCleanToken();
+  const listEl = document.getElementById('contractor-notifications-list');
+  const dotEl = document.getElementById('notif-indicator');
+  const badgeEl = document.getElementById('nav-badge-notifications');
+  const titleEl = document.getElementById('contractor-notif-title');
+
+  if (!token) {
+    if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Please log in to view notifications</div>';
+    if (dotEl) dotEl.style.display = 'none';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/notifications`, {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Unable to load notifications</div>';
+      return;
+    }
+
+    const data = await res.json();
+    const notifs = data.notifications || [];
+    const unreadCount = data.unreadCount || 0;
+
+    if (dotEl) dotEl.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+    if (badgeEl) badgeEl.textContent = unreadCount;
+    sessionStorage.setItem('contractor_badge_notifications', unreadCount);
+    if (titleEl) titleEl.textContent = `Notifications / सूचनाएं ${unreadCount > 0 ? '(' + unreadCount + ' New)' : ''}`;
+
+    if (!listEl) return;
+    if (notifs.length === 0) {
+      listEl.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 12px;">
+          <i class="fa-regular fa-bell-slash" style="font-size: 20px; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>
+          No notifications yet / अभी कोई सूचना नहीं है
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = notifs.map(n => {
+      const isUnread = !n.isRead;
+      const type = (n.type || "").toUpperCase();
+      let iconColor = "#2563eb";
+      if (type.includes("ORDER") || type.includes("DIRECT_BUY")) iconColor = "#10b981";
+      else if (type.includes("BID") || type.includes("PROJECT")) iconColor = "#f59e0b";
+
+      return `
+        <div onclick="handleContractorNotificationClick(${n.id}, '${escapeHTML(n.type || '')}', '${escapeHTML(n.referenceId || '')}', ${isUnread})"
+             style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; ${isUnread ? 'background: #eff6ff;' : ''}"
+             onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='${isUnread ? '#eff6ff' : '#ffffff'}'">
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${iconColor}; margin-top: 5px; flex-shrink: 0;"></div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p style="margin: 0; font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(n.title || '')}</p>
+                ${isUnread ? '<span style="width: 6px; height: 6px; border-radius: 50%; background: #2563eb; margin-left: 4px; flex-shrink: 0;"></span>' : ''}
+              </div>
+              ${n.titleHi ? `<p style="margin: 2px 0 0; font-size: 11px; font-weight: 500; color: #475569;">${escapeHTML(n.titleHi)}</p>` : ''}
+              <p style="margin: 4px 0 0; font-size: 11px; color: #64748b; line-height: 1.4;">${escapeHTML(n.message || '')}</p>
+              ${n.messageHi ? `<p style="margin: 2px 0 0; font-size: 10px; color: #94a3b8; line-height: 1.4;">${escapeHTML(n.messageHi)}</p>` : ''}
+              <span style="display: block; margin-top: 4px; font-size: 10px; color: #94a3b8;"><i class="fa-regular fa-clock" style="margin-right: 3px;"></i>${formatContractorNotifTime(n.createdAt)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error("Contractor notification load error:", err);
+    if (listEl) listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 12px;">Error loading notifications</div>';
+  }
+}
+window.loadContractorNotifications = loadContractorNotifications;
+
+async function handleContractorNotificationClick(notifId, type, refId, isUnread) {
+  const dropdown = document.getElementById('contractor-notif-dropdown');
+  if (dropdown) {
+    dropdown.style.display = 'none';
+    dropdown.classList.add('hidden');
+  }
+
+  if (isUnread && notifId) {
+    try {
+      const token = getCleanToken();
+      await fetch(`${API_BASE_URL}/api/notifications/${notifId}/read`, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        }
+      });
+      loadContractorNotifications();
+    } catch (e) {
+      console.warn("Could not mark notif read:", e);
+    }
+  }
+
+  const t = (type || "").toUpperCase();
+  if (t.includes("ORDER") || t.includes("DIRECT_BUY")) {
+    window.location.href = "my-orders.html";
+  } else if (t.includes("BID") || t.includes("PROJECT")) {
+    window.location.href = "contractor-projects.html";
+  }
+}
+window.handleContractorNotificationClick = handleContractorNotificationClick;
+
+async function markAllContractorNotificationsRead() {
+  const token = getCleanToken();
+  if (!token) return;
+
+  try {
+    await fetch(`${API_BASE_URL}/api/notifications/mark-all-read`, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+    loadContractorNotifications();
+  } catch (e) {
+    console.error("Error marking all read:", e);
+  }
+}
+window.markAllContractorNotificationsRead = markAllContractorNotificationsRead;
+
+window.addEventListener('click', (e) => {
+  const wrapper = e.target.closest('.notif-dropdown-wrapper');
+  if (!wrapper) {
+    const dropdown = document.getElementById('contractor-notif-dropdown');
+    if (dropdown) {
+      dropdown.style.display = 'none';
+      dropdown.classList.add('hidden');
+    }
+  }
+});
+
 // Bootstrapping
 document.addEventListener("DOMContentLoaded", () => {
   syncContractorBadges();
