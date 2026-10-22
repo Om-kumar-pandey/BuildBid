@@ -159,6 +159,14 @@ body {
   color: #ffffff;
 }
 
+/* Typography Enhancement: Readability for Buy Material and Direct Hire */
+.sidebar-nav a.nav-item[href*="buy-material"],
+.sidebar-nav a.nav-item[href*="direct-hire"] {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .nav-logout {
   margin-top: 1.5rem;
   color: #ef4444;
