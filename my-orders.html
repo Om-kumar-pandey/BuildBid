@@ -73,6 +73,13 @@
     html.is-contractor #contractorSidebar,
     body.contractor-mode #contractorSidebar {
       display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      align-self: flex-start !important;
+      position: sticky !important;
+      top: 0 !important;
+      max-height: 100vh !important;
+      overflow-y: auto !important;
       width: 260px !important;
       background-color: #ffffff !important;
       min-height: 100vh !important;
@@ -81,16 +88,33 @@
       box-shadow: none !important;
       flex-shrink: 0 !important;
     }
+    html.is-contractor #contractorSidebar::-webkit-scrollbar,
+    body.contractor-mode #contractorSidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    html.is-contractor #contractorSidebar::-webkit-scrollbar-thumb,
+    body.contractor-mode #contractorSidebar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
     html.is-contractor .requests-main-container,
     body.contractor-mode .requests-main-container {
       padding: 0 2rem 2rem 2rem !important;
       background-color: #f4f7fb !important;
     }
     @media (max-width: 768px) {
+      html.is-contractor .app-layout,
+      body.contractor-mode .app-layout {
+        flex-direction: column !important;
+      }
       html.is-contractor #contractorSidebar,
       body.contractor-mode #contractorSidebar {
         width: 100% !important;
         min-height: auto !important;
+        max-height: none !important;
+        position: static !important;
+        overflow-y: visible !important;
+        align-self: auto !important;
         border-right: none !important;
         border-bottom: 1px solid #e2e8f0 !important;
         padding: 1rem !important;
